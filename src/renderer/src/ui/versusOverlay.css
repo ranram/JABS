@@ -1,0 +1,445 @@
+.versus-overlay {
+  --versus-left: var(--game-accent, #ffcc35);
+  --versus-right: var(--broadcast-right, #ff4e71);
+  background: #090b12;
+  color: #fff;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.versus-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  background:
+    linear-gradient(
+      112deg,
+      color-mix(in srgb, var(--versus-left) 52%, #080b12) 0 43%,
+      transparent 43.2%
+    ),
+    linear-gradient(
+      248deg,
+      color-mix(in srgb, var(--versus-right) 52%, #080b12) 0 43%,
+      transparent 43.2%
+    ),
+    #090b12;
+}
+
+.versus-atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    118deg,
+    transparent 0 72px,
+    rgb(255 255 255 / 5%) 73px 76px
+  );
+  opacity: 0.55;
+}
+
+.versus-player {
+  position: absolute;
+  inset-block: 0;
+  width: 43%;
+}
+.versus-player-left {
+  left: 0;
+}
+.versus-player-right {
+  right: 0;
+}
+.versus-subject {
+  position: absolute;
+  inset: 2.5% 1% 13%;
+  overflow: hidden;
+}
+.versus-subject img {
+  position: absolute;
+  display: block;
+}
+.versus-character {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 50%;
+  filter: drop-shadow(0 22px 24px rgb(0 0 0 / 45%));
+}
+.versus-player-right .versus-character {
+  transform: scaleX(-1);
+}
+.versus-preview-canvas {
+  width: 1920px;
+  height: 1080px;
+  pointer-events: auto;
+  container-type: inline-size;
+}
+.versus-preview-canvas .versus-player-right .versus-character {
+  transform: none;
+}
+.versus-preview-shell {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-md);
+  background: #090b12;
+}
+.versus-preview-stage {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+}
+@media (min-width: 1600px) {
+  .versus-preview-shell {
+    width: min(100%, 1180px);
+    margin-inline: auto;
+  }
+}
+.versus-photo {
+  z-index: 2;
+  inset: 7% 4% 0;
+  width: 92%;
+  height: 93%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  filter: drop-shadow(0 20px 20px rgb(0 0 0 / 55%));
+}
+.versus-sponsor {
+  z-index: 1;
+  top: 70%;
+  width: 28%;
+  height: 16%;
+  object-fit: contain;
+  opacity: 0.9;
+}
+.versus-player-left .versus-sponsor {
+  left: -5%;
+}
+.versus-player-right .versus-sponsor {
+  right: -5%;
+}
+
+.versus-character-portraits {
+  position: absolute;
+  z-index: 6;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.versus-character-portraits.is-left { left: 24px; }
+.versus-character-portraits.is-right { right: 24px; }
+
+.versus-character-portraits img {
+  display: block;
+  width: 128px;
+  height: 128px;
+  border: 4px solid color-mix(in srgb, currentColor 72%, white);
+  background: #090b12;
+  box-shadow: 0 12px 26px rgb(0 0 0 / 48%);
+  object-fit: cover;
+}
+
+.versus-player-left .versus-character-portraits { color: var(--versus-left); }
+.versus-player-right .versus-character-portraits { color: var(--versus-right); }
+
+.versus-identity {
+  position: absolute;
+  bottom: 4.2%;
+  min-width: 68%;
+  max-width: 92%;
+  padding: 18px 28px 20px;
+  background: #0b0e16;
+  border-block: 3px solid currentColor;
+  box-shadow: 0 14px 28px rgb(0 0 0 / 45%);
+}
+.versus-player-left .versus-identity {
+  left: 0;
+  color: var(--versus-left);
+  text-align: left;
+  padding-left: 58px;
+  clip-path: polygon(0 0, 95% 0, 100% 50%, 95% 100%, 0 100%);
+}
+.versus-player-right .versus-identity {
+  right: 0;
+  color: var(--versus-right);
+  text-align: right;
+  padding-right: 58px;
+  clip-path: polygon(5% 0, 100% 0, 100% 100%, 5% 100%, 0 50%);
+}
+.versus-identity span,
+.versus-identity small {
+  display: block;
+  color: #d5d8e2;
+  font:
+    700 19px/1.1 Inter,
+    sans-serif;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.versus-identity strong {
+  display: block;
+  color: #fff;
+  font:
+    900 clamp(44px, 4vw, 72px)/0.96 "Bebas Neue",
+    Impact,
+    sans-serif;
+  letter-spacing: 0.025em;
+}
+
+.versus-identity .versus-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.18em;
+  min-width: 0;
+  font-size: clamp(44px, 4vw, 72px);
+}
+
+.versus-player-left .versus-name-row {
+  justify-content: flex-start;
+}
+
+.versus-player-right .versus-name-row {
+  justify-content: flex-end;
+}
+
+.versus-identity .versus-name-row strong {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.versus-identity .versus-player-context {
+  margin-top: 6px;
+}
+
+.versus-identity .versus-character-team {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  max-width: 560px;
+  margin-top: 7px;
+  line-height: 1.25;
+}
+
+.versus-player-right .versus-character-team {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.versus-identity .versus-character-team span {
+  display: inline;
+  flex: 0 1 auto;
+  min-width: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  overflow-wrap: anywhere;
+}
+
+.versus-character-team span:not(:last-child)::after {
+  content: " /";
+}
+
+.versus-country-flag {
+  flex: 0 0 auto;
+  width: auto;
+  height: 0.50em;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0.04em;
+}
+
+.versus-country-flag.is-pride {
+  object-fit: contain;
+}
+
+.versus-center-card {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 50%;
+  width: 35%;
+  min-height: 84%;
+  transform: translate(-50%, -50%);
+  padding: 28px 42px 30px;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--versus-left) 78%, #111521) 0 8px,
+      transparent 8px calc(100% - 8px),
+      color-mix(in srgb, var(--versus-right) 78%, #111521) calc(100% - 8px)
+    ),
+    linear-gradient(180deg, #161b29 0%, #0d111c 48%, #151a27 100%);
+  border-block: 3px solid rgb(255 255 255 / 24%);
+  box-shadow: 0 34px 84px rgb(0 0 0 / 68%);
+  clip-path: polygon(
+    6% 0,
+    94% 0,
+    100% 4%,
+    100% 96%,
+    94% 100%,
+    6% 100%,
+    0 96%,
+    0 4%
+  );
+}
+.versus-center-card header {
+  display: grid;
+  justify-items: center;
+  min-height: 218px;
+  text-align: center;
+}
+.versus-center-card header img {
+  width: 230px;
+  height: 102px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 50%));
+}
+.versus-center-card header span {
+  margin-top: 16px;
+  max-width: 96%;
+  color: #e2e5ed;
+  font:
+    800 32px/1.1 Inter,
+    sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.versus-center-card header strong {
+  margin-top: 16px;
+  font:
+    900 82px/0.78 "Bungee Shade",
+    "Bebas Neue",
+    Impact,
+    sans-serif;
+  color: #fff;
+  text-shadow:
+    -6px 0 var(--versus-left),
+    6px 0 var(--versus-right);
+}
+.versus-history-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 16px;
+}
+.versus-placements {
+  padding: 14px 16px;
+  background: rgb(255 255 255 / 5%);
+}
+.versus-placements:nth-child(2) {
+  transform: skewX(2deg);
+}
+.versus-placements h2,
+.versus-h2h h2 {
+  margin: 0 0 10px;
+  overflow: hidden;
+  color: #fff;
+  font:
+    900 48px/1 "Bebas Neue",
+    Impact,
+    sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+.versus-placements > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  border-top: 1px solid rgb(255 255 255 / 14%);
+}
+.versus-placements strong {
+  color: var(--game-accent, #ffd238);
+  font:
+    900 24px Inter,
+    sans-serif;
+}
+.versus-placements span,
+.versus-h2h span {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  color: #d7dbe5;
+  font:
+    700 16px/1.1 Inter,
+    sans-serif;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  text-align: justify;
+}
+.versus-placements p,
+.versus-h2h p {
+  color: #818897;
+  font:
+    600 14px Inter,
+    sans-serif;
+}
+.versus-h2h {
+  margin-top: 22px;
+}
+.versus-h2h h2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  overflow: visible;
+}
+.versus-h2h h2 > strong {
+  color: #fff;
+  font:
+    900 38px/0.8 "Bebas Neue",
+    Impact,
+    sans-serif;
+  letter-spacing: 0.08em;
+}
+.versus-h2h-row {
+  display: grid;
+  grid-template-columns: 96px 38px minmax(0, 1fr) 38px 96px;
+  align-items: center;
+  gap: 10px;
+  min-height: 96px;
+  margin-top: 7px;
+  background: rgb(255 255 255 / 6%);
+}
+.versus-h2h-row > strong {
+  color: #fff;
+  font:
+    900 48px/1 "Bebas Neue",
+    Impact,
+    sans-serif;
+  text-align: center;
+}
+.versus-h2h-row > span {
+  text-align: center;
+  font:
+    900 36px/1 "Bebas Neue",
+    Impact,
+    sans-serif;
+}
+.versus-h2h-outcome {
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+  color: #fff;
+  font:
+    900 64px/1 "Bebas Neue",
+    Impact,
+    sans-serif;
+}
+.versus-h2h-outcome.is-win {
+  background: #18a957;
+  box-shadow: 0 0 18px rgb(24 169 87 / 35%);
+}
+.versus-h2h-outcome.is-loss {
+  background: #d83d4d;
+  box-shadow: 0 0 18px rgb(216 61 77 / 30%);
+}

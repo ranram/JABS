@@ -1,0 +1,18 @@
+[
+  { "id": "pride:agender", "label": "Agender", "file": "Agender.svg" },
+  { "id": "pride:aromantic", "label": "Aromantic", "file": "Aromantic.svg" },
+  { "id": "pride:asexual", "label": "Asexual", "file": "Asexual.svg" },
+  { "id": "pride:bigender", "label": "Bigender", "file": "Bigender.svg" },
+  { "id": "pride:bisexual", "label": "Bisexual", "file": "Bisexual.svg" },
+  { "id": "pride:demisexual", "label": "Demisexual", "file": "Demisexual.svg" },
+  { "id": "pride:gay", "label": "Gay", "file": "Gay.svg" },
+  { "id": "pride:genderfluid", "label": "Gender Fluid", "file": "GenderFluid.svg" },
+  { "id": "pride:genderqueer", "label": "Genderqueer", "file": "Genderqueer.svg" },
+  { "id": "pride:intersex", "label": "Intersex", "file": "Intersex.svg" },
+  { "id": "pride:lesbian", "label": "Lesbian", "file": "Lesbian.svg" },
+  { "id": "pride:nonbinary", "label": "Non-binary", "file": "NonBinary.svg" },
+  { "id": "pride:pansexual", "label": "Pansexual", "file": "Pansexual.svg" },
+  { "id": "pride:polyamory", "label": "Polyamory", "file": "Polyamory.svg" },
+  { "id": "pride:polysexual", "label": "Polysexual", "file": "Polysexual.svg" },
+  { "id": "pride:transgender", "label": "Transgender", "file": "Transgender.svg" }
+]

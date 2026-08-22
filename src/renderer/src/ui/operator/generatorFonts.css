@@ -1,0 +1,31 @@
+@font-face {
+  font-family: "JABS Bebas Neue";
+  src: url("../../assets/fonts/BebasNeue-Regular.ttf") format("truetype");
+  font-display: block;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "JABS Anton";
+  src: url("../../assets/fonts/Anton-Regular.ttf") format("truetype");
+  font-display: block;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "JABS Titan One";
+  src: url("../../assets/fonts/TitanOne-Regular.ttf") format("truetype");
+  font-display: block;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "JABS Bungee Shade";
+  src: url("../../assets/fonts/BungeeShade-Regular.ttf") format("truetype");
+  font-display: block;
+  font-style: normal;
+  font-weight: 400;
+}

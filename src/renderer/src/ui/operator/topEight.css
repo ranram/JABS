@@ -1,0 +1,544 @@
+.top8-generator-controls,
+.top8-preview-panel,
+.top8-entrants-panel {
+  width: 100%;
+}
+
+.top8-style-control {
+  overflow-x: auto;
+}
+
+.top8-style-control .mantine-SegmentedControl-control {
+  min-width: max-content;
+}
+
+.top8-entrant-editor {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.top8-canvas {
+  --top8-accent: #f7b733;
+  --top8-background: #19110c;
+  position: relative;
+  container-type: inline-size;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--top8-accent) 50%, white 12%);
+  border-radius: 16px;
+  background: var(--top8-background);
+  color: white;
+  isolation: isolate;
+}
+
+@media (min-width: 1600px) {
+  .top8-preview-panel .top8-canvas {
+    width: min(100%, 1180px);
+    margin-inline: auto;
+  }
+}
+
+.top8-canvas::before,
+.top8-canvas::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+}
+
+.top8-canvas[data-export-hide-pseudo="true"]::before,
+.top8-canvas[data-export-hide-pseudo="true"]::after {
+  display: none !important;
+}
+
+.top8-custom-background {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+
+.top8-mosaic-grid,
+.top8-neon-feature,
+.top8-neon-finalists,
+.top8-editorial-champion,
+.top8-editorial-results {
+  z-index: 1;
+}
+
+.top8-canvas-header {
+  position: absolute;
+  z-index: 5;
+  top: 4.2%;
+  left: 4%;
+  display: flex;
+  width: 92%;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-transform: uppercase;
+}
+
+.top8-canvas-title {
+  display: grid;
+  min-width: 0;
+  max-width: 66%;
+}
+
+.top8-canvas-brand {
+  display: flex;
+  max-width: 31%;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1.1cqw;
+  text-align: right;
+}
+
+.top8-event-logo {
+  display: none;
+  width: auto;
+  max-width: 8.5cqw;
+  height: 6.5cqw;
+  object-fit: contain;
+}
+
+.top8-event-logo.is-loaded {
+  display: block;
+}
+
+.top8-canvas-header span,
+.top8-canvas-header small {
+  color: color-mix(in srgb, var(--top8-accent) 72%, white);
+  font-size: 1.4cqw;
+  font-family: "JABS Bebas Neue", Impact, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+}
+
+.top8-canvas-title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top8-canvas-header strong {
+  overflow: hidden;
+  font-family: "JABS Titan One", "Arial Black", sans-serif;
+  font-size: 5.2cqw;
+  letter-spacing: 0.02em;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top8-card {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--top8-accent) 40%, white 16%);
+  background: color-mix(in srgb, var(--top8-background) 87%, white);
+}
+
+.top8-card-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--top8-accent) 36%, var(--top8-background)), var(--top8-background));
+}
+
+.top8-character-art {
+  position: absolute;
+  inset: 2% 3% 0;
+  display: none;
+  width: 94%;
+  height: 98%;
+  object-fit: contain;
+  object-position: center;
+  transform-origin: center;
+  filter: drop-shadow(0 1.2cqw 1.4cqw rgba(0, 0, 0, 0.45));
+}
+
+/*
+ * The React composition supplies a placement-tier baseline scale above this contained fit. Large
+ * feature cards keep the full-subject bias, while 4th-7th cards begin substantially enlarged so the
+ * operator normally needs only a small pose-specific adjustment.
+ */
+.top8-character-art.is-loaded {
+  display: block;
+}
+
+.top8-player-photo {
+  position: absolute;
+  z-index: 2;
+  inset: 2% 3% 0;
+  display: none;
+  width: 94%;
+  height: 98%;
+  object-fit: contain;
+  object-position: center;
+  transform-origin: center;
+  filter: drop-shadow(0 1.2cqw 1.4cqw rgba(0, 0, 0, 0.45));
+}
+
+.top8-player-photo.is-loaded {
+  display: block;
+}
+
+.top8-character-portraits {
+  position: absolute;
+  z-index: 4;
+  top: 0.75cqw;
+  left: 0.75cqw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55cqw;
+}
+
+.top8-character-portraits img {
+  display: block;
+  width: 1.67cqw;
+  height: 1.67cqw;
+  border: 0.11cqw solid color-mix(in srgb, var(--top8-accent) 70%, white);
+  background: var(--top8-background);
+  box-shadow: 0 0.35cqw 0.7cqw rgba(0, 0, 0, 0.46);
+  object-fit: cover;
+}
+
+.top8-card.placement-1 .top8-character-portraits img {
+  width: 5cqw;
+  height: 5cqw;
+}
+
+.top8-card:is(.placement-2, .placement-3) .top8-character-portraits img {
+  width: 3.33cqw;
+  height: 3.33cqw;
+}
+
+.top8-card.placement-4 .top8-character-portraits img {
+  width: 2.5cqw;
+  height: 2.5cqw;
+}
+
+.top8-card-copy {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  gap: 0.25cqw;
+  min-width: 0;
+  padding: 1cqw 1.2cqw 0.9cqw;
+  background: linear-gradient(0deg, var(--top8-background) 0 68%, transparent);
+}
+
+.top8-placement {
+  color: var(--top8-accent);
+  font-family: "JABS Bebas Neue", Impact, sans-serif;
+  font-size: 64px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.top8-placement sup {
+  font-family: inherit;
+  font-size: 0.45em;
+}
+
+.top8-name-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.6cqw;
+  width: 100%;
+  min-width: 0;
+}
+
+.top8-name-row > strong {
+  display: block;
+  flex: 1 1 0%;
+  min-width: 0;
+  padding-block: 0.08em 0.12em;
+  font-family: "JABS Anton", Impact, sans-serif;
+  font-weight: 400;
+  font-size: 2.3cqw;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  text-transform: uppercase;
+  white-space: normal;
+}
+
+.top8-name-row > .top8-country-flag {
+  flex: 0 0 auto;
+}
+
+.top8-card-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45cqw;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1cqw;
+  font-family: "JABS Bebas Neue", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.top8-card-meta > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top8-sponsor-text {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.92cqw;
+  font-family: "JABS Bebas Neue", Impact, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.top8-editorial .top8-sponsor-text { color: rgba(255, 255, 255, 0.82); }
+
+.top8-country-flag {
+  display: none;
+  width: auto;
+  height: 1.2cqw;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0.12cqw;
+}
+
+.top8-country-flag.is-loaded {
+  display: block;
+}
+
+.top8-country-flag.is-pride {
+  object-fit: contain;
+}
+
+.top8-sponsor-logo {
+  display: none;
+  width: auto;
+  max-width: 4cqw;
+  height: 1.2cqw;
+  object-fit: contain;
+}
+
+.top8-sponsor-logo.is-loaded {
+  display: block;
+}
+
+/* Mosaic: conventional ranking in an asymmetric but immediately scannable grid. */
+.top8-mosaic {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--top8-accent) 12%, var(--top8-background)), var(--top8-background) 32% 68%, color-mix(in srgb, var(--top8-accent) 12%, var(--top8-background)));
+}
+
+.top8-mosaic .top8-canvas-header {
+  top: 5%;
+  left: 3%;
+  width: 94%;
+}
+
+.top8-mosaic-grid {
+  position: absolute;
+  top: 18%;
+  right: 3%;
+  bottom: 4%;
+  left: 3%;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  grid-template-areas:
+    "one one one two two three"
+    "one one one two two three"
+    "one one one four five six"
+    "one one one four seven eight";
+  gap: 0.7cqw;
+}
+
+.top8-mosaic-position { min-width: 0; min-height: 0; }
+.top8-mosaic-position.position-1 { grid-area: one; }
+.top8-mosaic-position.position-2 { grid-area: two; }
+.top8-mosaic-position.position-3 { grid-area: three; }
+.top8-mosaic-position.position-4 { grid-area: four; }
+.top8-mosaic-position.position-5 { grid-area: five; }
+.top8-mosaic-position.position-6 { grid-area: six; }
+.top8-mosaic-position.position-7 { grid-area: seven; }
+.top8-mosaic-position.position-8 { grid-area: eight; }
+.top8-mosaic .top8-card { border-radius: 0.25cqw; }
+.top8-mosaic .placement-1 { border-width: 0.28cqw; }
+.top8-mosaic .placement-1 .top8-name-row > strong { font-size: 3.1cqw; }
+.top8-mosaic-position:not(.position-1) .top8-card-copy { padding: 0.55cqw 0.7cqw; }
+.top8-mosaic-position:not(.position-1) .top8-name-row > strong { font-size: 1.45cqw; }
+.top8-mosaic-position:not(.position-1) .top8-placement { font-size: 3.3cqw; }
+.top8-mosaic-position:not(.position-1) .top8-card-meta { display: none; }
+.top8-mosaic-position.position-2 .top8-name-row > strong { font-size: 1.85cqw; }
+.top8-mosaic-position.position-3 .top8-name-row > strong { font-size: 1.6cqw; }
+.top8-mosaic-position.position-4 .top8-name-row > strong { font-size: 1.55cqw; }
+.top8-mosaic .top8-card:is(.placement-5, .placement-7) .top8-character-portraits {
+  right: 0.75cqw;
+  left: auto;
+}
+
+/* Neon: familiar champion-plus-seven grid with square cards and luminous tournament color. */
+.top8-neon {
+  --neon-cyan: color-mix(in srgb, var(--top8-accent) 82%, #5ffcff);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 24%),
+    repeating-linear-gradient(90deg, transparent 0 9.8%, color-mix(in srgb, var(--neon-cyan) 8%, transparent) 9.8% 10%),
+    color-mix(in srgb, var(--top8-background) 88%, #070715);
+}
+
+.top8-neon::before {
+  inset: 0;
+  box-shadow: inset 0 0 7cqw color-mix(in srgb, var(--neon-cyan) 10%, transparent);
+}
+
+.top8-neon-feature {
+  position: absolute;
+  top: 18%;
+  left: 4%;
+  width: 31%;
+  height: 76%;
+}
+
+.top8-neon-finalists {
+  position: absolute;
+  top: 18%;
+  right: 4%;
+  display: grid;
+  width: 59%;
+  height: 76%;
+  grid-template-columns: repeat(22, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 1.1cqw;
+}
+
+.top8-neon-finalists > .top8-card:nth-child(1) { grid-column: 1 / 14; }
+.top8-neon-finalists > .top8-card:nth-child(2) { grid-column: 14 / 23; }
+.top8-neon-finalists > .top8-card:nth-child(3) { grid-column: 1 / 7; }
+.top8-neon-finalists > .top8-card:nth-child(4) { grid-column: 7 / 11; }
+.top8-neon-finalists > .top8-card:nth-child(5) { grid-column: 11 / 15; }
+.top8-neon-finalists > .top8-card:nth-child(6) { grid-column: 15 / 19; }
+.top8-neon-finalists > .top8-card:nth-child(7) { grid-column: 19 / 23; }
+.top8-neon .top8-card {
+  border: 0.16cqw solid var(--neon-cyan);
+  border-radius: 0;
+  box-shadow: inset 0 0 1.1cqw color-mix(in srgb, var(--neon-cyan) 10%, transparent);
+}
+.top8-neon-feature .top8-card { border-width: 0.3cqw; }
+.top8-neon-feature .top8-name-row > strong { font-size: 3.2cqw; }
+.top8-neon-finalists .top8-card-copy { padding: 0.55cqw 0.7cqw; }
+.top8-neon-finalists .top8-name-row > strong { font-size: 1.4cqw; }
+.top8-neon-finalists .top8-card-meta { display: none; }
+.top8-neon-finalists .top8-placement { font-size: 3.3cqw; }
+.top8-neon-finalists > .top8-card:nth-child(1) .top8-name-row > strong { font-size: 2cqw; }
+.top8-neon-finalists > .top8-card:nth-child(2) .top8-name-row > strong { font-size: 1.7cqw; }
+.top8-neon-finalists > .top8-card:nth-child(3) .top8-name-row > strong { font-size: 1.55cqw; }
+
+/* Editorial: restrained print-like blocks, large champion image, ordered results column. */
+.top8-editorial {
+  --editorial-paper: color-mix(in srgb, var(--top8-accent) 7%, #eee7da);
+  background: var(--editorial-paper);
+  color: #171514;
+}
+
+.top8-editorial::before {
+  top: 0;
+  right: 0;
+  width: 31%;
+  height: 100%;
+  background: var(--top8-accent);
+}
+
+.top8-editorial .top8-canvas-header span,
+.top8-editorial .top8-canvas-header small { color: #4f4942; }
+.top8-editorial .top8-canvas-header strong { color: #171514; }
+.top8-editorial-champion {
+  position: absolute;
+  top: 18%;
+  left: 4%;
+  width: 47%;
+  height: 76%;
+}
+.top8-editorial-results {
+  position: absolute;
+  top: 18%;
+  right: 4%;
+  display: grid;
+  width: 42%;
+  height: 76%;
+  grid-template-columns: repeat(22, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 0.55cqw;
+}
+.top8-editorial-results > .top8-card:nth-child(1) { grid-column: 1 / 14; grid-row: 1 / 3; }
+.top8-editorial-results > .top8-card:nth-child(2) { grid-column: 14 / 23; grid-row: 1 / 3; }
+.top8-editorial-results > .top8-card:nth-child(3) { grid-column: 1 / 7; grid-row: 3 / 5; }
+.top8-editorial-results > .top8-card:nth-child(4) { grid-column: 7 / 11; grid-row: 3 / 5; }
+.top8-editorial-results > .top8-card:nth-child(5) { grid-column: 11 / 15; grid-row: 3 / 5; }
+.top8-editorial-results > .top8-card:nth-child(6) { grid-column: 15 / 19; grid-row: 3 / 5; }
+.top8-editorial-results > .top8-card:nth-child(7) { grid-column: 19 / 23; grid-row: 3 / 5; }
+.top8-editorial .top8-card {
+  border: 0.16cqw solid #171514;
+  border-radius: 0;
+  background: #171514;
+}
+.top8-editorial .top8-name-row > strong { color: #fff; opacity: 1; }
+.top8-canvas-footer {
+  position: absolute;
+  z-index: 6;
+  right: 4%;
+  bottom: 1.6%;
+  left: 4%;
+  text-align: center;
+  pointer-events: none;
+}
+
+.top8-canvas-footer span {
+  display: inline-block;
+  color: color-mix(in srgb, var(--top8-accent) 72%, white);
+  font-family: "JABS Bebas Neue", Impact, sans-serif;
+  font-size: 1.1cqw;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.top8-editorial .top8-canvas-footer span { color: #4f4942; }
+
+.top8-editorial .top8-card-meta { color: rgba(255, 255, 255, 0.74); }
+.top8-editorial-champion .top8-card { border-width: 0.35cqw; border-color: var(--top8-accent); }
+.top8-editorial-champion .top8-name-row > strong { font-size: 3.8cqw; }
+.top8-editorial-results .top8-card-copy { padding: 0.45cqw 0.65cqw; }
+.top8-editorial-results .top8-name-row > strong { font-size: 1.35cqw; }
+.top8-editorial-results > .top8-card:nth-child(1) .top8-name-row > strong { font-size: 2.05cqw; }
+.top8-editorial-results > .top8-card:nth-child(2) .top8-name-row > strong { font-size: 1.7cqw; }
+.top8-editorial-results > .top8-card:nth-child(3) .top8-name-row > strong { font-size: 1.5cqw; }
+.top8-editorial-results > .top8-card:nth-child(-n + 2) .top8-placement { font-size: 3.3cqw; }
+.top8-editorial-results .top8-card-meta { display: none; }
+.top8-editorial-results .top8-placement { font-size: 3cqw; }
+
+@media (max-width: 700px) {
+  .top8-canvas { border-radius: 10px; }
+  .top8-style-control .mantine-SegmentedControl-label { padding-inline: 8px; }
+}

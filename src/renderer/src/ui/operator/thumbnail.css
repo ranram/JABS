@@ -1,0 +1,417 @@
+.thumbnail-canvas {
+  --thumbnail-accent: #f7b733;
+  --thumbnail-background: #19110c;
+  position: relative;
+  container-type: inline-size;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--thumbnail-accent) 55%, white 12%);
+  border-radius: 16px;
+  background: var(--thumbnail-background);
+  color: white;
+  isolation: isolate;
+}
+
+@media (min-width: 1600px) {
+  .thumbnail-canvas {
+    width: min(100%, 1180px);
+    margin-inline: auto;
+  }
+}
+
+.thumbnail-canvas::before,
+.thumbnail-canvas::after {
+  position: absolute;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.thumbnail-header {
+  position: absolute;
+  z-index: 8;
+  top: 2.5%;
+  left: 25%;
+  display: flex;
+  width: 50%;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25cqw;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.thumbnail-heading {
+  display: grid;
+  min-width: 0;
+  width: 100%;
+  justify-items: center;
+}
+
+.thumbnail-heading span {
+  overflow: hidden;
+  color: var(--thumbnail-accent);
+  max-width: 100%;
+  font-size: 1.25cqw;
+  font-family: "JABS Bebas Neue", Impact, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thumbnail-heading strong {
+  overflow: hidden;
+  font-family: "JABS Titan One", "Arial Black", sans-serif;
+  max-width: 100%;
+  font-size: 2.2cqw;
+  letter-spacing: 0.015em;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thumbnail-event-logo {
+  display: none;
+  width: auto;
+  max-width: 16cqw;
+  height: 14.2cqw;
+  object-fit: contain;
+}
+
+.thumbnail-event-logo.is-loaded { display: block; }
+
+.thumbnail-matchup {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.thumbnail-player {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--thumbnail-accent) 28%, var(--thumbnail-background)), var(--thumbnail-background) 68%);
+}
+
+.thumbnail-player-one { border-right: 0.12cqw solid rgba(255, 255, 255, 0.25); }
+.thumbnail-player-two { border-left: 0.12cqw solid rgba(0, 0, 0, 0.38); }
+
+.thumbnail-subject {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.thumbnail-character,
+.thumbnail-player-photo {
+  position: absolute;
+  display: none;
+}
+
+.thumbnail-character {
+  inset: 2% 3% 0;
+  width: 94%;
+  height: 98%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0.8cqw 1cqw 1.1cqw rgba(0, 0, 0, 0.55));
+}
+
+.thumbnail-player-two .thumbnail-character {
+  filter: drop-shadow(-0.8cqw 1cqw 1.1cqw rgba(0, 0, 0, 0.55));
+  transform: scaleX(-1);
+}
+
+.thumbnail-character.is-loaded { display: block; }
+
+.thumbnail-player-photo {
+  z-index: 4;
+  inset: 2% 3% 0;
+  width: 94%;
+  height: 98%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.thumbnail-player-photo.is-loaded { display: block; }
+
+.thumbnail-character-portraits {
+  position: absolute;
+  z-index: 7;
+  top: 2.2cqw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65cqw;
+}
+
+.thumbnail-character-portraits.is-left { left: 1.5cqw; }
+.thumbnail-character-portraits.is-right { right: 1.5cqw; }
+
+.thumbnail-character-portraits img {
+  display: block;
+  width: 7.5cqw;
+  height: 7.5cqw;
+  border: 0.28cqw solid color-mix(in srgb, var(--thumbnail-accent) 72%, white);
+  background: var(--thumbnail-background);
+  box-shadow: 0 0.8cqw 1.4cqw rgba(0, 0, 0, 0.5);
+  object-fit: cover;
+}
+
+.thumbnail-player.has-photo .thumbnail-subject::after {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 38%, color-mix(in srgb, var(--thumbnail-background) 86%, transparent) 90%);
+  content: "";
+}
+
+.thumbnail-identity {
+  position: absolute;
+  z-index: 6;
+  right: 3.5%;
+  bottom: 7%;
+  left: auto;
+  display: grid;
+  width: 78%;
+  min-width: 0;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+  justify-items: end;
+  padding: 0.65cqw 1.1cqw 0.8cqw 2.4cqw;
+  background: linear-gradient(100deg, transparent 0 8%, color-mix(in srgb, var(--thumbnail-background) 92%, black) 8% 100%);
+  filter: drop-shadow(0.55cqw 0.7cqw 0 rgba(0, 0, 0, 0.34));
+  text-align: right;
+}
+
+.thumbnail-identity::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 88%;
+  height: 0.32cqw;
+  background: var(--thumbnail-accent);
+  content: "";
+}
+
+.thumbnail-player-one .thumbnail-identity {
+  right: auto;
+  left: 3.5%;
+  justify-items: start;
+  padding-right: 2.4cqw;
+  padding-left: 1.1cqw;
+  background: linear-gradient(260deg, transparent 0 8%, color-mix(in srgb, var(--thumbnail-background) 92%, black) 8% 100%);
+  text-align: left;
+}
+
+.thumbnail-player-one .thumbnail-identity::before {
+  right: auto;
+  left: 0;
+}
+
+.thumbnail-identity strong {
+  overflow: hidden;
+  max-width: 100%;
+  padding-block: 0.08em 0.12em;
+  font-family: "JABS Anton", Impact, sans-serif;
+  font-weight: 400;
+  font-size: 3.3cqw;
+  letter-spacing: 0.015em;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.thumbnail-player.has-sponsor .thumbnail-identity strong,
+.thumbnail-player.has-sponsor .thumbnail-sponsor-text,
+.thumbnail-player.has-sponsor .thumbnail-country-flag {
+  max-width: calc(100% - 10cqw);
+}
+
+.thumbnail-sponsor-text {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 1cqw;
+  max-width: 100%;
+  font-family: "JABS Bebas Neue", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.thumbnail-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6cqw;
+  width: 100%;
+  min-width: 0;
+}
+
+.thumbnail-name-row > strong {
+  display: block;
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.thumbnail-name-row > .thumbnail-country-flag {
+  flex: 0 0 auto;
+}
+
+.thumbnail-country-flag {
+  display: none;
+  width: auto;
+  height: 1.4cqw;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0.12cqw;
+}
+
+.thumbnail-country-flag.is-loaded { display: block; }
+
+.thumbnail-country-flag.is-pride {
+  object-fit: contain;
+}
+
+.thumbnail-sponsor-logo {
+  position: absolute;
+  top: 55%;
+  right: auto;
+  left: 2.8cqw;
+  display: none;
+  width: 7cqw;
+  height: 7cqw;
+  object-fit: contain;
+  object-position: left center;
+  transform: translateY(-50%);
+}
+
+.thumbnail-player-one .thumbnail-sponsor-logo {
+  right: 2.8cqw;
+  left: auto;
+  object-position: right center;
+}
+
+.thumbnail-sponsor-logo.is-loaded { display: block; }
+
+.thumbnail-versus {
+  position: absolute;
+  z-index: 9;
+  top: 50%;
+  left: 50%;
+  margin-top: -4cqw;
+  margin-left: -7cqw;
+  display: grid;
+  width: 14cqw;
+  height: 8cqw;
+  place-items: center;
+  color: white;
+  font-family: "JABS Bungee Shade", "JABS Titan One", sans-serif;
+  font-size: 6.2cqw;
+  font-style: normal;
+  line-height: 1;
+  text-shadow:
+    0.16cqw 0.16cqw 0 var(--thumbnail-background),
+    0 0 0.7cqw color-mix(in srgb, var(--thumbnail-accent) 86%, white),
+    0 0 1.4cqw var(--thumbnail-accent);
+}
+
+.thumbnail-canvas footer {
+  position: absolute;
+  z-index: 8;
+  right: 2.5%;
+  bottom: 1.5%;
+  left: 2.5%;
+  display: flex;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.78cqw;
+  font-family: "JABS Bebas Neue", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.thumbnail-canvas footer strong { color: var(--thumbnail-accent); }
+
+/* Versus: a layered arena backdrop with asymmetric light fields around each competitor. */
+.thumbnail-style-versus {
+  background:
+    radial-gradient(ellipse at 14% 72%, color-mix(in srgb, var(--thumbnail-accent) 32%, transparent) 0 12%, transparent 48%),
+    radial-gradient(ellipse at 86% 28%, color-mix(in srgb, var(--thumbnail-accent) 22%, white 4%) 0 10%, transparent 46%),
+    linear-gradient(122deg, color-mix(in srgb, var(--thumbnail-background) 78%, black) 0 48%, color-mix(in srgb, var(--thumbnail-background) 88%, var(--thumbnail-accent)) 52% 100%);
+}
+
+.thumbnail-style-versus::before {
+  inset: 0;
+  background:
+    linear-gradient(118deg, color-mix(in srgb, var(--thumbnail-accent) 18%, transparent) 0 49.65%, transparent 49.8%),
+    linear-gradient(145deg, transparent 0 17%, rgba(255, 255, 255, 0.045) 17.1% 17.5%, transparent 17.6% 76%, rgba(255, 255, 255, 0.035) 76.1% 76.45%, transparent 76.55%);
+}
+
+.thumbnail-style-versus .thumbnail-player-one {
+  background:
+    radial-gradient(ellipse at 12% 36%, color-mix(in srgb, var(--thumbnail-accent) 30%, transparent), transparent 54%),
+    linear-gradient(145deg, color-mix(in srgb, var(--thumbnail-accent) 16%, var(--thumbnail-background)), transparent 70%);
+}
+
+.thumbnail-style-versus .thumbnail-player-two {
+  background:
+    radial-gradient(ellipse at 88% 64%, color-mix(in srgb, var(--thumbnail-accent) 24%, transparent), transparent 56%),
+    linear-gradient(325deg, color-mix(in srgb, var(--thumbnail-accent) 12%, var(--thumbnail-background)), transparent 72%);
+}
+
+/* Spotlight: broad, calm stage lighting without high-frequency rays or flashing contrast. */
+.thumbnail-style-spotlight {
+  background:
+    radial-gradient(ellipse at 24% 48%, color-mix(in srgb, var(--thumbnail-accent) 28%, transparent) 0 9%, transparent 48%),
+    radial-gradient(ellipse at 76% 48%, color-mix(in srgb, var(--thumbnail-accent) 22%, white 3%) 0 8%, transparent 48%),
+    radial-gradient(ellipse at 50% 112%, color-mix(in srgb, var(--thumbnail-accent) 16%, transparent), transparent 58%),
+    color-mix(in srgb, var(--thumbnail-background) 92%, black);
+}
+
+.thumbnail-style-spotlight::before {
+  inset: 0;
+  background:
+    linear-gradient(166deg, transparent 0 19%, color-mix(in srgb, var(--thumbnail-accent) 58%, white 8%) 19.1% 19.35%, transparent 19.45% 78%, color-mix(in srgb, var(--thumbnail-accent) 34%, transparent) 78.1% 78.3%, transparent 78.4%),
+    linear-gradient(8deg, transparent 0 31%, color-mix(in srgb, var(--thumbnail-accent) 28%, transparent) 31.1% 31.35%, transparent 31.45% 67%, rgba(255, 255, 255, 0.09) 67.1% 67.25%, transparent 67.35%);
+}
+
+.thumbnail-style-spotlight .thumbnail-matchup {
+  inset: 0;
+  gap: 0;
+}
+
+.thumbnail-style-spotlight .thumbnail-player {
+  border: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+
+.thumbnail-style-spotlight .thumbnail-character {
+  inset: 6% 3% 0;
+  width: 94%;
+  height: 94%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.thumbnail-style-spotlight .thumbnail-player-two .thumbnail-character { transform: scaleX(-1); }
+.thumbnail-style-spotlight .thumbnail-identity { bottom: 5%; }
+
+.thumbnail-style-spotlight .thumbnail-heading { justify-self: center; text-align: center; }
+@media (max-width: 700px) {
+  .thumbnail-canvas { border-radius: 10px; }
+}

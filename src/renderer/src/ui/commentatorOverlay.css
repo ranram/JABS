@@ -1,0 +1,170 @@
+.commentator-overlay {
+  background: transparent;
+  font-family: "JABS Bebas Neue", Impact, sans-serif;
+}
+
+.commentator-lower-third {
+  --commentator-rail-height: 90px;
+  --commentator-edge-cut: 34px;
+  --commentator-border-size: 4px;
+  --commentator-logo-width: 340px;
+  --commentator-logo-height: 180px;
+  position: absolute;
+  right: 11%;
+  bottom: 8%;
+  left: 11%;
+  isolation: isolate;
+  height: var(--commentator-rail-height);
+  filter: drop-shadow(0 16px 18px rgba(0, 0, 0, 0.52));
+  transform-origin: center bottom;
+}
+
+.commentator-lower-third::before,
+.commentator-lower-third::after {
+  position: absolute;
+  content: "";
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    calc(100% - var(--commentator-edge-cut)) 100%,
+    var(--commentator-edge-cut) 100%
+  );
+}
+
+.commentator-lower-third::before {
+  z-index: -2;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--game-accent) 72%, white),
+    var(--game-accent) 18% 82%,
+    color-mix(in srgb, var(--game-accent) 72%, white)
+  );
+}
+
+.commentator-lower-third::after {
+  z-index: -1;
+  inset: var(--commentator-border-size);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1), transparent 8% 92%, rgba(255, 255, 255, 0.1)),
+    linear-gradient(90deg, color-mix(in srgb, var(--game-bg) 92%, black), color-mix(in srgb, var(--game-bg) 72%, #303640) 38%, color-mix(in srgb, var(--game-bg) 94%, black) 50%, color-mix(in srgb, var(--game-bg) 72%, #303640) 62%, color-mix(in srgb, var(--game-bg) 92%, black));
+}
+
+.commentator-lower-third.is-timed {
+  animation: commentator-presentation 10s ease-in-out both;
+}
+
+.commentator-lower-third.is-persistent {
+  animation: commentator-enter 520ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.commentator-identity {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  box-sizing: border-box;
+  min-width: 0;
+  width: calc((100% - 310px) / 2);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+  padding-block: 10px;
+  padding-inline: 38px;
+  color: white;
+  text-align: center;
+}
+
+.commentator-identity-left {
+  left: 0;
+  padding-inline: 48px 38px;
+}
+
+.commentator-identity-right {
+  right: 0;
+  padding-inline: 38px 48px;
+}
+
+.commentator-identity strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  font-family: "JABS Anton", Impact, sans-serif;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.commentator-identity span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 21px;
+  letter-spacing: 0.055em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commentator-event-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 2;
+  width: 350px;
+  transform: translateX(-50%);
+}
+
+.commentator-event-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: var(--commentator-logo-width);
+  height: var(--commentator-logo-height);
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+}
+
+.commentator-event-mark span {
+  position: absolute;
+  top: calc(50% + 96px);
+  left: 50%;
+  display: block;
+  width: 270px;
+  overflow: hidden;
+  color: var(--game-accent);
+  font-size: 15px;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+@keyframes commentator-enter {
+  from { opacity: 0; transform: translateY(80px) scaleX(0.82); }
+  to { opacity: 1; transform: translateY(0) scaleX(1); }
+}
+
+@keyframes commentator-presentation {
+  0% { opacity: 0; transform: translateY(80px) scaleX(0.82); }
+  7% { opacity: 1; transform: translateY(0) scaleX(1); }
+  84% { opacity: 1; transform: translateY(0) scaleX(1); }
+  100% { opacity: 0; transform: translateY(80px) scaleX(0.88); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commentator-lower-third.is-timed { animation-timing-function: steps(1, end); }
+  .commentator-lower-third.is-persistent { animation: none; }
+}

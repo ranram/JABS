@@ -1,0 +1,28 @@
+# Supply-chain policy applies to the root package and every future workspace package.
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  # Exact, reviewed fix for GHSA-2v37-7h3g-55p8; published just under seven days before migration.
+  - nanoid@3.3.17
+minimumReleaseAgeIgnoreMissingTime: false
+minimumReleaseAgeStrict: true
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 525600
+trustLockfile: false
+blockExoticSubdeps: true
+
+# Narrow security backport for an advisory in the active dependency graph.
+overrides:
+  "nanoid@^3": "3.3.17"
+
+# Fail instead of silently installing or running with an unexpected dependency tree.
+engineStrict: true
+verifyDepsBeforeRun: error
+verifyStoreIntegrity: true
+strictStorePkgContentCheck: true
+strictDepBuilds: true
+saveExact: true
+
+# Exact versions are intentional: dependency install scripts require re-review on update.
+allowBuilds:
+  esbuild@0.25.12: true
+  fsevents@2.3.3: true

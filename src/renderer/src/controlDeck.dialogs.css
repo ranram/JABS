@@ -1,0 +1,228 @@
+.operator-shell > .set-action-backdrop {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  background: rgba(3, 3, 7, 0.78);
+  padding: 24px;
+}
+
+.set-action-dialog {
+  width: min(760px, 100%);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(105, 231, 255, 0.1), transparent 36%),
+    radial-gradient(circle at 0% 100%, rgba(217, 255, 67, 0.07), transparent 40%),
+    #111016;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58);
+  color: var(--deck-ink);
+}
+
+.set-action-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 21px 26px 18px;
+}
+
+.set-action-body {
+  padding: 24px 26px 28px;
+}
+
+.set-action-heading > div {
+  min-width: 0;
+}
+
+.set-action-heading span,
+.quick-score-toolbar > span {
+  color: #8d8796;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.set-action-heading h2 {
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: #fffaf0;
+  font-size: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.set-action-close {
+  flex: 0 0 auto;
+}
+
+.set-action-choices {
+  gap: 16px;
+}
+
+.set-action-choice {
+  display: grid;
+  min-height: 108px;
+  align-content: center;
+  border-radius: 14px !important;
+  padding: 15px 17px !important;
+  text-align: left;
+}
+
+.set-action-choice .mantine-Button-inner,
+.set-action-choice .mantine-Button-label {
+  width: 100%;
+  overflow: visible;
+}
+
+.set-action-choice .mantine-Button-label {
+  white-space: normal;
+}
+
+.set-action-choice .mantine-Stack-root {
+  width: 100%;
+  min-width: 0;
+}
+
+.set-action-description {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--deck-muted);
+  white-space: normal;
+}
+
+.stream-choice {
+  border-color: rgba(217, 255, 67, 0.25) !important;
+  background: linear-gradient(145deg, rgba(217, 255, 67, 0.12), rgba(17, 16, 22, 0.8)) !important;
+}
+
+.score-choice {
+  border-color: rgba(105, 231, 255, 0.25) !important;
+  background: linear-gradient(145deg, rgba(105, 231, 255, 0.12), rgba(17, 16, 22, 0.8)) !important;
+}
+
+.set-action-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #888291;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.quick-score-sheet {
+  display: grid;
+  gap: 14px;
+}
+
+.quick-score-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.quick-score-toolbar label {
+  min-width: 180px;
+  margin: 0;
+}
+
+.quick-score-warning {
+  border: 1px solid rgba(255, 193, 91, 0.25);
+  border-radius: 11px;
+  background: rgba(255, 193, 91, 0.08);
+  color: #ffd797;
+  padding: 10px 12px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.quick-score-players {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quick-score-outcome {
+  display: grid;
+  gap: 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 11px 13px;
+}
+
+.quick-score-outcome span {
+  color: #8d8796;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.quick-score-outcome strong {
+  color: #f7f3e8;
+  font-size: 12px;
+}
+
+.quick-score-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.quick-score-receipt {
+  display: grid;
+  gap: 10px;
+  padding: 28px 20px 22px;
+  text-align: center;
+}
+
+.quick-score-receipt > span {
+  color: var(--deck-lime);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.quick-score-receipt > strong {
+  color: #fffaf0;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.quick-score-receipt p {
+  margin: 0;
+  color: #918b98;
+  font-size: 11px;
+}
+
+.quick-score-receipt button {
+  justify-self: center;
+  min-width: 120px;
+  margin-top: 4px;
+}
+
+@media (max-width: 620px) {
+  .set-action-backdrop {
+    align-items: end;
+    padding: 10px;
+  }
+
+  .set-action-heading {
+    padding: 17px 18px 15px;
+  }
+
+  .set-action-body {
+    padding: 18px;
+  }
+
+  .quick-score-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,1384 @@
+:root {
+  --ink: #1d1a16;
+  --paper: #f4efe6;
+  --panel: #fffaf0;
+  --line: rgba(29, 26, 22, 0.14);
+  --accent: #d94f27;
+  --accent-strong: #9f2f1a;
+  --muted: #756f65;
+  --shadow: 0 24px 80px rgba(40, 28, 12, 0.16);
+  color: var(--ink);
+  background: transparent;
+  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.overlay {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+  color: white;
+  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.theme-sf6 {
+  --game-accent: #f7b733;
+  --game-bg: #19110c;
+  --broadcast-right: #ff554d;
+}
+
+.theme-t8 {
+  --game-accent: #30d5ff;
+  --game-bg: #080d17;
+  --broadcast-right: #ff3676;
+}
+
+.theme-avatar-legends {
+  --game-accent: #62d47b;
+  --game-bg: #0d1711;
+  --broadcast-right: #e9d49b;
+}
+
+.theme-tokon {
+  --game-accent: #ff3b30;
+  --game-bg: #130c10;
+  --broadcast-right: #e51f4b;
+}
+
+.theme-ggst {
+  --game-accent: #e54838;
+  --game-bg: #171310;
+  --broadcast-right: #45b7dc;
+}
+
+.theme-2xko { --game-accent: #21e6b2; --game-bg: #17101f; --broadcast-right: #ff3766; }
+.theme-bbcf { --game-accent: #69dff5; --game-bg: #101727; --broadcast-right: #ff6d5c; }
+.theme-cotw { --game-accent: #ffe02e; --game-bg: #151118; --broadcast-right: #ff3d84; }
+.theme-gbvsr { --game-accent: #71d9ff; --game-bg: #101b29; --broadcast-right: #d8bd72; }
+.theme-kofxv { --game-accent: #23cce5; --game-bg: #101419; --broadcast-right: #ff7a32; }
+.theme-mbtl { --game-accent: #d9c2ff; --game-bg: #17111d; --broadcast-right: #f4a8d8; }
+.theme-mk1 { --game-accent: #d8ad62; --game-bg: #17120d; --broadcast-right: #b94938; }
+.theme-umvc3 { --game-accent: #ffcf3d; --game-bg: #101629; --broadcast-right: #ff3d35; }
+.theme-smash-ultimate { --game-accent: #ff4f5f; --game-bg: #101728; --broadcast-right: #4f8cff; }
+.theme-under-night { --game-accent: #59d9ff; --game-bg: #161329; --broadcast-right: #bf67ff; }
+
+.overlay-announcement {
+  background:
+    radial-gradient(circle at 76% 42%, color-mix(in srgb, var(--game-accent) 34%, transparent), transparent 34%),
+    linear-gradient(112deg, color-mix(in srgb, var(--game-accent) 30%, var(--game-bg)) 0 39%, var(--game-bg) 39% 100%);
+}
+
+.announcement-composition {
+  position: relative;
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  grid-template-columns: minmax(620px, 0.82fr) minmax(760px, 1.18fr);
+  grid-template-areas: "copy subject";
+  align-items: center;
+  overflow: hidden;
+  background:
+    linear-gradient(128deg, transparent 0 47%, color-mix(in srgb, var(--game-accent) 18%, transparent) 47% 49%, transparent 49%),
+    repeating-linear-gradient(105deg, transparent 0 74px, rgba(255, 255, 255, 0.025) 74px 76px);
+}
+
+.announcement-composition::before {
+  position: absolute;
+  z-index: 0;
+  top: -20%;
+  bottom: -20%;
+  left: 41%;
+  width: 110px;
+  background: var(--game-accent);
+  content: "";
+  opacity: 0.88;
+  transform: rotate(12deg);
+}
+
+.announcement-subject {
+  position: relative;
+  z-index: 1;
+  grid-area: subject;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 55% 48%, color-mix(in srgb, var(--game-accent) 46%, transparent), transparent 48%);
+}
+
+.announcement-subject-placeholder {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--game-bg) 78%, black);
+  font-family: "JABS Bungee Shade", Impact, sans-serif;
+  font-size: clamp(340px, 42vw, 720px);
+  font-style: italic;
+  line-height: 0.8;
+  opacity: 0.62;
+  transform: rotate(-8deg);
+  -webkit-text-stroke: 5px color-mix(in srgb, var(--game-accent) 74%, white);
+}
+
+.announcement-character-art,
+.announcement-player-photo {
+  position: absolute;
+  display: none;
+  object-position: center bottom;
+}
+
+.announcement-character-art {
+  z-index: 2;
+  right: -5%;
+  bottom: -2%;
+  width: 98%;
+  height: 102%;
+  object-fit: contain;
+  filter: drop-shadow(-28px 22px 0 color-mix(in srgb, var(--game-accent) 46%, transparent)) drop-shadow(0 24px 28px rgba(0, 0, 0, 0.48));
+}
+
+.announcement-character-art.is-loaded,
+.announcement-player-photo.is-loaded {
+  display: block;
+}
+
+.announcement-player-photo {
+  z-index: 3;
+  right: 8%;
+  bottom: 2%;
+  width: 84%;
+  height: 91%;
+  object-fit: contain;
+  filter: drop-shadow(0 28px 34px rgba(0, 0, 0, 0.58));
+}
+
+.announcement-subject.has-character.has-photo .announcement-character-art {
+  right: -10%;
+  width: 86%;
+}
+
+.announcement-subject.has-character.has-photo .announcement-player-photo {
+  right: auto;
+  bottom: 5%;
+  left: 15%;
+  width: 40%;
+  height: 60%;
+  filter: drop-shadow(14px 18px 0 color-mix(in srgb, var(--game-accent) 62%, transparent)) drop-shadow(0 20px 24px rgba(0, 0, 0, 0.6));
+}
+
+.announcement-character-portraits {
+  position: absolute;
+  z-index: 8;
+  top: 28px;
+  right: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.announcement-character-portraits img {
+  display: block;
+  width: 128px;
+  height: 128px;
+  border: 4px solid color-mix(in srgb, var(--game-accent) 72%, white);
+  background: var(--game-bg);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.52);
+  object-fit: cover;
+}
+
+.announcement-subject.has-photo .announcement-subject-placeholder,
+.announcement-subject.has-character .announcement-subject-placeholder {
+  opacity: 0.16;
+}
+
+.announcement-subject.has-sponsor .announcement-subject-placeholder {
+  opacity: 0;
+}
+
+.announcement-copy {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-area: copy;
+  align-content: center;
+  justify-items: start;
+  gap: 18px;
+  padding: 120px 40px 90px 92px;
+}
+
+.announcement-kicker {
+  min-width: 310px;
+  color: var(--game-bg);
+  background: var(--game-accent);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 24px) 100%, 16px 100%);
+  font-family: "JABS Anton", Impact, sans-serif;
+  font-size: 31px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  padding: 11px 34px 9px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.announcement-copy strong {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  color: white;
+  font-family: "JABS Anton", Impact, sans-serif;
+  font-size: clamp(88px, 8.7vw, 166px);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  line-height: 0.92;
+  text-shadow: 7px 7px 0 color-mix(in srgb, var(--game-accent) 68%, black);
+  text-transform: uppercase;
+}
+
+.announcement-character {
+  color: color-mix(in srgb, var(--game-accent) 76%, white);
+  font-family: "JABS Anton", Impact, sans-serif;
+  font-size: 42px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.announcement-sponsor-watermark {
+  position: absolute;
+  z-index:10;
+  top:75%;
+  right: -10%;
+  display: none;
+  width: 40%;
+  height: 25%;
+  object-fit: contain;
+  opacity: 0.50;
+}
+
+.announcement-sponsor-watermark.is-loaded {
+  display: block;
+}
+
+.announcement-copy small {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: 0.035em;
+}
+
+.announcement-tournament-logo {
+  position: absolute;
+  z-index: 5;
+  top: 34px;
+  left: 50%;
+  display: none;
+  width: 280px;
+  height: 150px;
+  object-fit: contain;
+  transform: translateX(-50%);
+}
+
+.announcement-tournament-logo.is-loaded {
+  display: block;
+}
+
+.overlay-frame {
+  position: absolute;
+  inset: 0;
+}
+
+.overlay-player {
+  --player-side-accent: var(--game-accent);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "copy score";
+  min-width: 0;
+  align-items: center;
+  height: var(--hud-plate-height, 56px);
+  overflow: hidden;
+  border-radius: 10px;
+  padding: 0;
+}
+
+.overlay-player-left.has-country-flag {
+  grid-template-columns: var(--hud-plate-height, 56px) minmax(0, 1fr) auto;
+  grid-template-areas: "flag copy score";
+}
+
+.overlay-player-left .overlay-player-copy {
+  text-align: left;
+}
+
+.overlay-player-right {
+  --player-side-accent: var(--broadcast-right);
+  grid-template-areas: "score copy";
+}
+
+.overlay-player-right.has-country-flag {
+  grid-template-columns: auto minmax(0, 1fr) var(--hud-plate-height, 56px);
+  grid-template-areas: "score copy flag";
+}
+
+.overlay-player-right .overlay-player-copy {
+  text-align: right;
+}
+
+.overlay-player-flag {
+  display: flex;
+  grid-area: flag;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--hud-plate-height, 56px);
+  height: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--game-bg) 72%, var(--player-side-accent));
+  padding: clamp(6px, calc(var(--hud-plate-height, 56px) * 0.17), 9px);
+}
+
+.overlay-player-left .overlay-player-flag {
+  border-right: 1px solid color-mix(in srgb, var(--player-side-accent) 68%, white);
+}
+
+.overlay-player-flag img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.overlay-player-right .overlay-player-flag {
+  justify-self: end;
+  border-left: 1px solid color-mix(in srgb, var(--player-side-accent) 68%, white);
+}
+
+.overlay-player-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    "team"
+    "identity"
+    "meta";
+  grid-area: copy;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  padding-inline: 8px;
+  line-height: 1;
+}
+
+.overlay-player-team {
+  display: flex;
+  grid-area: team;
+  min-width: 0;
+  align-items: center;
+  align-self: end;
+  gap: 5px;
+}
+
+.overlay-player-right .overlay-player-team {
+  justify-content: flex-end;
+}
+
+.overlay-player-sponsor-logo {
+  display: none;
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 42px;
+  height: clamp(7px, calc(var(--hud-plate-height, 56px) * 0.2), 11px);
+  object-fit: contain;
+}
+
+.overlay-player-sponsor-logo.is-loaded {
+  display: block;
+}
+
+.overlay-player-identity {
+  display: flex;
+  grid-area: identity;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.overlay-player-right .overlay-player-identity {
+  justify-content: flex-end;
+}
+
+.overlay-player-team,
+.overlay-player-details,
+.overlay-player-pronouns,
+.overlay-player-meta {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: clamp(9px, calc(var(--hud-plate-height, 56px) * 0.21), 10px);
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  line-height: 0.95;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.overlay-player-meta {
+  display: flex;
+  grid-area: meta;
+  min-width: 0;
+  align-self: start;
+  justify-content: inherit;
+  gap: 6px;
+}
+
+.overlay-player-left .overlay-player-meta {
+  justify-content: flex-start;
+}
+
+.overlay-player-right .overlay-player-meta {
+  justify-content: flex-end;
+}
+
+.overlay-player-pronouns {
+  color: rgba(255, 255, 255, 0.86);
+  flex: 0 0 auto;
+}
+
+.overlay-player-details {
+  min-width: 0;
+}
+
+.overlay-player-pronouns + .overlay-player-details::before {
+  content: "·";
+  margin-right: 6px;
+}
+
+.overlay-player-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: clamp(15px, calc(var(--hud-plate-height, 56px) * 0.38), 22px);
+  font-weight: 1000;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overlay-player-score {
+  display: grid;
+  grid-area: score;
+  width: clamp(34px, var(--hud-plate-height, 56px), 52px);
+  height: 100%;
+  place-items: center;
+  color: var(--game-accent);
+  font-size: clamp(24px, calc(var(--hud-plate-height, 56px) * 0.78), 44px);
+  font-weight: 1000;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.top-hud-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--hud-center-width) minmax(0, 1fr);
+  column-gap: var(--hud-gap);
+  align-items: start;
+  padding: var(--hud-top) var(--hud-side-padding) 0;
+  filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.58));
+}
+
+.overlay-match-chip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 1fr;
+  height: 24px;
+  align-content: center;
+  align-items: center;
+  align-self: start;
+  overflow: hidden;
+  padding: 2px 12px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.overlay-hud-clear {
+  height: 1px;
+}
+
+.overlay-match-chip strong {
+  grid-column: 1;
+  grid-row: 1;
+  overflow: hidden;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overlay-connection-status {
+  position: absolute;
+  top: 112px;
+  left: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(15, 15, 15, 0.8);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 7px 12px;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+}
+
+.overlay-broadcast-layer {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.72));
+}
+
+.overlay-info-rail {
+  position: absolute;
+  bottom: var(--broadcast-bottom);
+  display: grid;
+  width: var(--broadcast-rail-width);
+  max-width: 45vw;
+  height: var(--broadcast-height);
+  place-items: center;
+  overflow: hidden;
+  border-top: 1px solid color-mix(in srgb, var(--game-accent) 70%, white 15%);
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--game-accent) 18%, transparent), transparent 40%),
+    color-mix(in srgb, var(--game-bg) 94%, transparent);
+  color: rgba(255, 255, 255, 0.88);
+  font-family: "Arial Narrow", "Avenir Next Condensed", sans-serif;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  padding: 0 18px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.overlay-info-left {
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+}
+
+.overlay-info-right {
+  right: 0;
+  border-top-color: color-mix(in srgb, var(--broadcast-right) 70%, white 15%);
+  background:
+    linear-gradient(260deg, color-mix(in srgb, var(--broadcast-right) 18%, transparent), transparent 40%),
+    color-mix(in srgb, var(--game-bg) 94%, transparent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%);
+}
+
+.overlay-match-context-rail {
+  z-index: 1;
+  left: 50%;
+  width: clamp(var(--broadcast-center-width), 32vw, 620px);
+  max-width: 46vw;
+  border-inline: 1px solid color-mix(in srgb, var(--game-accent) 42%, white 12%);
+  padding-inline: 22px;
+  transform: translateX(-50%);
+}
+
+.overlay-logo-slot {
+  position: absolute;
+  z-index: 2;
+  bottom: calc(var(--broadcast-bottom) + var(--broadcast-height) + 6px);
+  left: 50%;
+  width: calc(var(--broadcast-center-width) + 28px);
+  height: calc(var(--broadcast-logo-height) + 10px);
+  transform: translateX(-50%);
+}
+
+.logo-top-center .overlay-logo-slot,
+.logo-upper-center .overlay-logo-slot {
+  top: var(--broadcast-logo-top);
+  bottom: auto;
+}
+
+.overlay-logo-slot img {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  max-width: calc(100% - 8px);
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.72));
+  opacity: 0;
+  transform: translateX(-50%);
+}
+
+.logo-top-center .overlay-logo-slot img,
+.logo-upper-center .overlay-logo-slot img {
+  top: 0;
+  bottom: auto;
+}
+
+.overlay-logo-slot img.is-loaded {
+  opacity: 1;
+}
+
+.avatar-bending-broadcast .overlay-info-rail,
+.granblue-skybound-broadcast .overlay-info-rail,
+.melty-moon-broadcast .overlay-info-rail {
+  border: 1px solid color-mix(in srgb, var(--game-accent) 56%, white 18%);
+  border-radius: 9px 2px;
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 0.03em;
+}
+
+.tokon-assemble-broadcast .overlay-info-rail {
+  border: 2px solid #151014;
+  background: #fff0ce;
+  color: #151014;
+  font-family: Impact, "Arial Black", sans-serif;
+  box-shadow: 3px 3px 0 rgba(21, 16, 20, 0.8);
+}
+
+.cotw-rev-broadcast .overlay-info-rail {
+  border: 2px solid #111;
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.06) 0 3px, transparent 3px 11px),
+    #1b1420;
+  font-family: Impact, "Arial Black", sans-serif;
+  font-style: italic;
+}
+
+.mk1-brutality-broadcast .overlay-info-rail {
+  border: 1px solid rgba(216, 173, 98, 0.72);
+  background: rgba(20, 16, 12, 0.92);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.smash-stock-broadcast .overlay-info-rail {
+  border-top: 2px solid rgba(255, 255, 255, 0.82);
+  background:
+    linear-gradient(100deg, rgba(255, 79, 95, 0.32), transparent 45%),
+    rgba(12, 20, 38, 0.94);
+  font-family: "Arial Narrow", "Avenir Next Condensed", sans-serif;
+}
+
+.smash-stock-broadcast .overlay-info-right {
+  background:
+    linear-gradient(260deg, rgba(79, 140, 255, 0.32), transparent 45%),
+    rgba(12, 20, 38, 0.94);
+}
+
+.under-night-grd-broadcast .overlay-info-rail {
+  border-top: 1px solid rgba(112, 224, 255, 0.9);
+  background:
+    linear-gradient(100deg, rgba(89, 217, 255, 0.26), transparent 55%),
+    rgba(20, 15, 43, 0.94);
+  box-shadow: inset 0 0 9px rgba(89, 217, 255, 0.16);
+}
+
+.under-night-grd-broadcast .overlay-info-right {
+  border-top-color: rgba(202, 117, 255, 0.9);
+  background:
+    linear-gradient(260deg, rgba(191, 103, 255, 0.28), transparent 55%),
+    rgba(20, 15, 43, 0.94);
+}
+
+.overlay-route-error {
+  display: grid;
+  place-items: center;
+}
+
+.overlay-route-error > div {
+  display: grid;
+  gap: 7px;
+  max-width: 620px;
+  border: 2px solid #ff5b57;
+  border-radius: 8px;
+  background: rgba(22, 8, 10, 0.94);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  padding: 18px 24px;
+  text-align: center;
+}
+
+.overlay-route-error strong {
+  color: #ff736f;
+  font-size: 24px;
+  text-transform: uppercase;
+}
+
+.overlay-route-error span {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 15px;
+}
+
+/* Street Fighter 6: 4-60 px high, leaving the timer and life bars unobstructed. */
+.sf6-frame .overlay-player {
+  border-block: 2px solid color-mix(in srgb, var(--game-accent) 72%, white);
+  background:
+    linear-gradient(105deg, rgba(255, 255, 255, 0.11), transparent 48%),
+    rgb(18, 12, 9);
+}
+
+.sf6-frame .overlay-player-left {
+  box-shadow: inset 0 0 0 1px rgba(247, 183, 51, 0.25);
+  border-radius: 5px 15px 15px 5px;
+}
+
+.sf6-frame .overlay-player-right {
+  border-color: #ff554d;
+  box-shadow: inset 0 0 0 1px rgba(255, 85, 77, 0.25);
+  border-radius: 15px 5px 5px 15px;
+}
+
+.sf6-frame .overlay-player-right .overlay-player-score {
+  color: #ff5a4e;
+}
+
+.sf6-frame .overlay-match-chip {
+  border-top: 2px solid var(--game-accent);
+  background: rgb(12, 9, 7);
+}
+
+.sf6-frame .overlay-match-chip span {
+  color: var(--game-accent);
+}
+
+.sf6-edge {
+  position: absolute;
+  top: 61px;
+  width: 310px;
+  height: 4px;
+  background: var(--game-accent);
+  transform: skewX(-34deg);
+}
+
+.sf6-edge-left {
+  left: 202px;
+}
+
+.sf6-edge-right {
+  right: 202px;
+  background: #ff554d;
+}
+
+/* Tekken 8: 4-60 px high, between portraits and the round pips. */
+.tekken-frame .overlay-player {
+  border-top: 2px solid var(--game-accent);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.32);
+  background:
+    repeating-linear-gradient(118deg, transparent 0 18px, rgba(255, 255, 255, 0.035) 19px 21px),
+    rgb(5, 10, 19);
+}
+
+.tekken-frame .overlay-player-left {
+  box-shadow: inset 0 0 0 1px rgba(48, 213, 255, 0.25);
+  border-radius: 4px 16px 16px 4px;
+}
+
+.tekken-frame .overlay-player-right {
+  border-top-color: #ff3676;
+  box-shadow: inset 0 0 0 1px rgba(255, 54, 118, 0.25);
+  border-radius: 16px 4px 4px 16px;
+}
+
+.tekken-frame .overlay-player-name {
+  font-family: "Arial Narrow", "Avenir Next Condensed", sans-serif;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.tekken-frame .overlay-player-right .overlay-player-score {
+  color: #ff4c82;
+}
+
+.tekken-frame .overlay-match-chip {
+  border-inline: 1px solid rgba(255, 255, 255, 0.38);
+  border-top: 2px solid var(--game-accent);
+  background:
+    linear-gradient(110deg, rgba(48, 213, 255, 0.15), transparent 44%),
+    linear-gradient(250deg, rgba(255, 54, 118, 0.15), transparent 44%),
+    rgb(5, 10, 19);
+  border-radius: 9px;
+}
+
+.tekken-corner {
+  position: absolute;
+  top: 61px;
+  width: 210px;
+  height: 3px;
+  transform: skewX(-38deg);
+}
+
+.tekken-corner-left {
+  left: 225px;
+  background: linear-gradient(90deg, var(--game-accent), transparent);
+}
+
+.tekken-corner-right {
+  right: 225px;
+  background: linear-gradient(270deg, #ff3676, transparent);
+}
+
+/* Avatar Legends: 4-60 px high, aligned with the ornamental life-bar frame. */
+.avatar-legends-frame .overlay-player {
+  border-block: 2px solid #a4e5dc;
+  background:
+    linear-gradient(90deg, rgba(98, 212, 123, 0.13), transparent 52%),
+    rgb(11, 37, 51);
+}
+
+.avatar-legends-frame .overlay-player-left {
+  border-inline: 1px solid #e9d49b;
+  border-radius: 18px 5px 5px 18px;
+}
+
+.avatar-legends-frame .overlay-player-right {
+  border-inline: 1px solid #e9d49b;
+  border-radius: 5px 18px 18px 5px;
+}
+
+.avatar-legends-frame .overlay-player-name {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.avatar-legends-frame .overlay-player-score {
+  color: #b8f1df;
+}
+
+.avatar-legends-frame .overlay-match-chip {
+  border: 2px double #d9c48d;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle, rgba(89, 190, 171, 0.25), transparent 70%),
+    rgb(11, 37, 51);
+}
+
+.avatar-legends-frame .overlay-match-chip span {
+  color: #e9d49b;
+}
+
+.avatar-legends-frame .overlay-match-chip strong {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.avatar-legends-element {
+  position: absolute;
+  top: 15px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 2px solid #a4e5dc;
+  border-radius: 50%;
+  background: rgb(11, 37, 51);
+  color: #e9d49b;
+  font-size: 17px;
+}
+
+.avatar-legends-element-left {
+  left: 184px;
+}
+
+.avatar-legends-element-right {
+  right: 184px;
+}
+
+/* Marvel Tokon: 3-53 px high, replacing only the nonessential labels above bars. */
+.tokon-frame .overlay-player {
+  border: 2px solid #151014;
+  background:
+    radial-gradient(circle, rgba(21, 16, 20, 0.11) 0 1.5px, transparent 2px) 0 0 / 10px 10px,
+    #fff0ce;
+  color: #161014;
+}
+
+.tokon-frame .overlay-player-left {
+  box-shadow: 0 0 0 1px rgba(246, 201, 69, 0.72);
+  border-radius: 4px 15px 15px 4px;
+}
+
+.tokon-frame .overlay-player-right {
+  box-shadow: 0 0 0 1px rgba(234, 49, 81, 0.72);
+  border-radius: 15px 4px 4px 15px;
+}
+
+.tokon-frame .overlay-player-team,
+.tokon-frame .overlay-player-details,
+.tokon-frame .overlay-player-pronouns,
+.tokon-frame .overlay-player-flag,
+.tokon-frame .overlay-player-meta {
+  color: rgba(21, 16, 20, 0.68);
+}
+
+.tokon-frame .overlay-player-name {
+  font-family: Impact, "Arial Black", sans-serif;
+  font-size: 18px;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.tokon-frame .overlay-player-score {
+  color: #d89b00;
+}
+
+.tokon-frame .overlay-player-right .overlay-player-score {
+  color: #e51f4b;
+}
+
+.tokon-frame .overlay-match-chip {
+  border: 3px solid #151014;
+  background: #fff0ce;
+  box-shadow: 4px 4px 0 rgba(21, 16, 20, 0.88);
+  color: #151014;
+  font-family: Impact, "Arial Black", sans-serif;
+  border-radius: 8px;
+}
+
+.tokon-frame .overlay-match-chip span,
+.tokon-frame .overlay-match-chip small {
+  color: rgba(21, 16, 20, 0.7);
+}
+
+.tokon-frame .overlay-match-chip span {
+  color: #d6193e;
+}
+
+.tokon-dotfield {
+  position: absolute;
+  top: 55px;
+  right: 225px;
+  left: 225px;
+  height: 7px;
+  background: radial-gradient(circle, rgba(255, 240, 206, 0.9) 0 1.3px, transparent 1.7px) 0 0 / 9px 7px;
+  opacity: 0.72;
+}
+
+/* Guilty Gear Strive: 4-58 px high, above the life bars, portraits, hearts, and timer. */
+.strive-frame .overlay-player {
+  border-block: 2px solid #f0d6bd;
+  background:
+    repeating-linear-gradient(102deg, transparent 0 38px, rgba(255, 255, 255, 0.045) 39px 41px),
+    linear-gradient(90deg, rgba(229, 72, 56, 0.24), transparent 32%),
+    rgb(24, 20, 17);
+}
+
+.strive-frame .overlay-player-left {
+  box-shadow: inset 0 0 0 1px rgba(229, 72, 56, 0.32);
+  border-radius: 3px 17px 17px 3px;
+}
+
+.strive-frame .overlay-player-right {
+  background:
+    repeating-linear-gradient(78deg, transparent 0 38px, rgba(255, 255, 255, 0.045) 39px 41px),
+    linear-gradient(270deg, rgba(69, 183, 220, 0.22), transparent 32%),
+    rgb(24, 20, 17);
+  box-shadow: inset 0 0 0 1px rgba(69, 183, 220, 0.32);
+  border-radius: 17px 3px 3px 17px;
+}
+
+.strive-frame .overlay-player-name {
+  font-family: Impact, "Arial Black", sans-serif;
+  font-size: 21px;
+  font-style: italic;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.strive-frame .overlay-player-score {
+  color: #f3d3bd;
+  font-family: Impact, "Arial Black", sans-serif;
+  font-style: italic;
+  text-shadow: 2px 2px 0 #8e1d18;
+}
+
+.strive-frame .overlay-player-right .overlay-player-score {
+  color: #bdeeff;
+  text-shadow: 2px 2px 0 #145a71;
+}
+
+.strive-frame .overlay-match-chip {
+  border: 2px solid #e9d0b7;
+  background:
+    linear-gradient(112deg, rgba(229, 72, 56, 0.32), transparent 45%),
+    linear-gradient(248deg, rgba(69, 183, 220, 0.25), transparent 45%),
+    rgb(21, 18, 16);
+  box-shadow: inset 0 0 0 2px #171310;
+  border-radius: 9px;
+}
+
+.strive-frame .overlay-match-chip span {
+  color: #f06452;
+}
+
+.strive-frame .overlay-match-chip strong {
+  font-family: Impact, "Arial Black", sans-serif;
+  font-style: italic;
+  letter-spacing: 0.07em;
+}
+
+.strive-brush {
+  position: absolute;
+  top: 59px;
+  width: 310px;
+  height: 5px;
+  background: linear-gradient(90deg, var(--game-accent), rgba(229, 72, 56, 0));
+  clip-path: polygon(0 0, 100% 1px, 91% 100%, 6% 65%);
+}
+
+.strive-brush-left {
+  left: 178px;
+}
+
+.strive-brush-right {
+  right: 178px;
+  background: linear-gradient(270deg, #45b7dc, rgba(69, 183, 220, 0));
+  transform: scaleX(-1);
+}
+
+/* New profiles share only geometry; each treatment is intentionally game-specific. */
+.tournament-ribbon-frame .overlay-player {
+  border: 1px solid color-mix(in srgb, var(--game-accent) 54%, white 12%);
+  background: color-mix(in srgb, var(--game-bg) 94%, black);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.38);
+}
+
+.tournament-ribbon-frame .overlay-player-copy {
+  display: grid;
+}
+
+.tournament-ribbon-frame .overlay-player-details {
+  display: none;
+}
+
+.tournament-ribbon-frame .overlay-player-name {
+  flex: 1;
+  font-size: clamp(14px, calc(var(--hud-plate-height) * 0.4), 20px);
+}
+
+.tournament-ribbon-frame .overlay-match-chip {
+  border: 1px solid color-mix(in srgb, var(--game-accent) 60%, white 10%);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--game-bg) 95%, black);
+}
+
+.tournament-ribbon-frame .overlay-match-chip span {
+  color: var(--game-accent);
+}
+
+.\32 xko-duo-frame .overlay-player {
+  border-color: #121019;
+  border-radius: 4px 12px 4px 12px;
+  background:
+    linear-gradient(108deg, rgba(33, 230, 178, 0.2), transparent 46%),
+    #21162d;
+  box-shadow: 3px 3px 0 rgba(255, 55, 102, 0.72);
+}
+
+.\32 xko-duo-frame .overlay-player-left {
+  border-radius: 4px 15px 15px 4px;
+}
+
+.\32 xko-duo-frame .overlay-player-right {
+  background:
+    linear-gradient(252deg, rgba(255, 55, 102, 0.24), transparent 46%),
+    #21162d;
+  box-shadow: -3px 3px 0 rgba(33, 230, 178, 0.72);
+  border-radius: 15px 4px 4px 15px;
+}
+
+.\32 xko-duo-frame .overlay-player-name,
+.\32 xko-duo-frame .overlay-match-chip strong {
+  font-family: Impact, "Arial Black", sans-serif;
+  font-style: italic;
+  text-transform: uppercase;
+}
+
+.blazblue-astral-frame .overlay-player {
+  border: 2px double rgba(226, 242, 255, 0.85);
+  border-radius: 14px 5px;
+  background:
+    radial-gradient(circle at 12% 50%, rgba(78, 198, 255, 0.28), transparent 38%),
+    rgb(12, 22, 43);
+}
+
+.blazblue-astral-frame .overlay-player-right {
+  background:
+    radial-gradient(circle at 88% 50%, rgba(255, 109, 92, 0.28), transparent 38%),
+    rgb(12, 22, 43);
+}
+
+.blazblue-astral-frame .overlay-player-name,
+.blazblue-astral-frame .overlay-match-chip strong {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 0.02em;
+}
+
+.cotw-rev-frame .overlay-player {
+  border: 2px solid #141116;
+  border-radius: 3px;
+  background:
+    linear-gradient(100deg, rgba(255, 224, 46, 0.92) 0 7px, transparent 7px),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.05) 0 4px, transparent 4px 15px),
+    rgb(24, 18, 28);
+}
+
+.cotw-rev-frame .overlay-player-right {
+  background:
+    linear-gradient(260deg, rgba(255, 61, 132, 0.92) 0 7px, transparent 7px),
+    repeating-linear-gradient(65deg, rgba(255, 255, 255, 0.05) 0 4px, transparent 4px 15px),
+    rgb(24, 18, 28);
+}
+
+.cotw-rev-frame .overlay-player-name {
+  font-family: Impact, "Arial Black", sans-serif;
+  font-style: italic;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.granblue-skybound-frame .overlay-player {
+  border-color: rgba(191, 229, 255, 0.8);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(113, 217, 255, 0.2), transparent 55%),
+    rgb(17, 31, 48);
+  box-shadow: inset 0 0 12px rgba(160, 224, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.32);
+  border-radius: 5px 18px 18px 5px;
+}
+
+.granblue-skybound-frame .overlay-player-right {
+  border-radius: 18px 5px 5px 18px;
+}
+
+.granblue-skybound-frame .overlay-player-name,
+.granblue-skybound-frame .overlay-match-chip strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+}
+
+.kof-max-frame .overlay-player {
+  border: 0;
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, var(--game-accent) 0 8px, transparent 8px),
+    linear-gradient(105deg, rgba(255, 255, 255, 0.12), transparent 35%),
+    rgb(12, 18, 24);
+}
+
+.kof-max-frame .overlay-player-left {
+  border-radius: 4px 14px 14px 4px;
+}
+
+.kof-max-frame .overlay-player-right {
+  background:
+    linear-gradient(270deg, #ff7a32 0 8px, transparent 8px),
+    linear-gradient(255deg, rgba(255, 255, 255, 0.12), transparent 35%),
+    rgb(12, 18, 24);
+  border-radius: 14px 4px 4px 14px;
+}
+
+.kof-max-frame .overlay-player-name {
+  font-family: "Arial Narrow", "Avenir Next Condensed", sans-serif;
+  font-style: italic;
+  text-transform: uppercase;
+}
+
+.melty-moon-frame .overlay-player {
+  border-color: rgba(226, 214, 255, 0.72);
+  border-radius: 14px 4px;
+  background:
+    radial-gradient(circle at 10% 50%, rgba(202, 166, 255, 0.25), transparent 36%),
+    rgb(26, 17, 34);
+}
+
+.melty-moon-frame .overlay-player-name {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.melty-moon-frame .overlay-match-chip {
+  transform: translateY(calc(0px - var(--hud-top)));
+}
+
+.mk1-brutality-frame .overlay-player {
+  border: 1px solid rgba(216, 173, 98, 0.72);
+  border-radius: 2px;
+  background: rgb(20, 16, 12);
+  box-shadow: inset 0 -2px 0 rgba(216, 173, 98, 0.38);
+}
+
+.mk1-brutality-frame .overlay-player-left {
+  border-radius: 2px 12px 12px 2px;
+}
+
+.mk1-brutality-frame .overlay-player-right {
+  border-radius: 12px 2px 2px 12px;
+}
+
+.mk1-brutality-frame .overlay-player-name {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(15px, calc(var(--hud-plate-height) * 0.4), 20px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.umvc3-hyper-frame .overlay-player {
+  border: 2px solid #f6f4ff;
+  border-radius: 3px 13px;
+  background:
+    linear-gradient(110deg, rgba(255, 207, 61, 0.32), transparent 45%),
+    rgb(15, 23, 47);
+  box-shadow: 3px 3px 0 #284fff;
+}
+
+.umvc3-hyper-frame .overlay-player-right {
+  background:
+    linear-gradient(250deg, rgba(255, 75, 58, 0.34), transparent 45%),
+    rgb(15, 23, 47);
+  box-shadow: -3px 3px 0 #ff3d35;
+}
+
+.umvc3-hyper-frame .overlay-player-name {
+  font-family: Impact, "Arial Black", sans-serif;
+  font-style: italic;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.smash-stock-frame .overlay-player {
+  border: 1px solid rgba(242, 246, 255, 0.8);
+  border-radius: 5px 18px 18px 5px;
+  background:
+    linear-gradient(102deg, rgba(255, 79, 95, 0.28), transparent 42%),
+    rgb(11, 19, 37);
+  box-shadow: inset 0 -3px 0 rgba(255, 79, 95, 0.85), 0 4px 12px rgba(0, 0, 0, 0.42);
+}
+
+.smash-stock-frame .overlay-player-right {
+  border-radius: 18px 5px 5px 18px;
+  background:
+    linear-gradient(258deg, rgba(79, 140, 255, 0.3), transparent 42%),
+    rgb(11, 19, 37);
+  box-shadow: inset 0 -3px 0 rgba(79, 140, 255, 0.88), 0 4px 12px rgba(0, 0, 0, 0.42);
+}
+
+.smash-stock-frame .overlay-player-name,
+.smash-stock-frame .overlay-match-chip strong {
+  font-family: "Arial Narrow", "Avenir Next Condensed", sans-serif;
+  letter-spacing: 0.015em;
+}
+
+.smash-stock-frame .overlay-player-score {
+  color: #ff6572;
+}
+
+.smash-stock-frame .overlay-player-right .overlay-player-score {
+  color: #72a4ff;
+}
+
+.smash-stock-frame .overlay-match-chip {
+  border-block: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 5px;
+  background:
+    linear-gradient(90deg, rgba(255, 79, 95, 0.18), transparent 44%),
+    linear-gradient(270deg, rgba(79, 140, 255, 0.18), transparent 44%),
+    rgb(11, 19, 37);
+}
+
+.under-night-grd-frame .overlay-player {
+  border: 1px solid rgba(116, 224, 255, 0.82);
+  border-radius: 4px 16px 16px 4px;
+  background:
+    linear-gradient(100deg, rgba(72, 196, 255, 0.24), transparent 50%),
+    rgb(21, 17, 45);
+  box-shadow:
+    inset 0 0 12px rgba(76, 207, 255, 0.14),
+    0 0 0 1px rgba(28, 12, 55, 0.7);
+}
+
+.under-night-grd-frame .overlay-player-right {
+  border-color: rgba(206, 126, 255, 0.82);
+  border-radius: 16px 4px 4px 16px;
+  background:
+    linear-gradient(260deg, rgba(184, 91, 255, 0.26), transparent 50%),
+    rgb(21, 17, 45);
+  box-shadow:
+    inset 0 0 12px rgba(191, 103, 255, 0.15),
+    0 0 0 1px rgba(28, 12, 55, 0.7);
+}
+
+.under-night-grd-frame .overlay-player-name {
+  font-family: "Arial Narrow", "Avenir Next Condensed", sans-serif;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.under-night-grd-frame .overlay-player-score {
+  color: #72e4ff;
+  text-shadow: 0 0 8px rgba(89, 217, 255, 0.55);
+}
+
+.under-night-grd-frame .overlay-player-right .overlay-player-score {
+  color: #d59aff;
+  text-shadow: 0 0 8px rgba(191, 103, 255, 0.55);
+}
+
+.overlay-loading,
+.error-panel {
+  display: grid;
+  place-items: center;
+}
+
+.overlay-loading span {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(8, 8, 8, 0.82);
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 12px 18px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .operator-shell {
+    padding: 18px;
+  }
+
+  .hero-panel,
+  .grid-layout,
+  .grid-layout.wide,
+  .player-editor-grid,
+  .field-grid,
+  .browser-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-form {
+    grid-template-columns: 1fr;
+  }
+
+  .browser-filter-grid label:last-child {
+    grid-column: auto;
+  }
+}

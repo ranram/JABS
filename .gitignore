@@ -1,0 +1,28 @@
+node_modules
+.pnpm-store/
+dist
+src-tauri/target
+.vite
+coverage
+*.local
+.env
+.env.*
+!.env.example
+jabs.sqlite
+jabs.sqlite-*
+.startgg-test-token
+
+# User-provided media catalogs stay local. Commit only their usage notes.
+game-assets/*/characters/
+game-assets/*/portraits/
+players/*
+!players/README.md
+sponsors/*
+!sponsors/README.md
+tourney-logos/*
+!tourney-logos/README.md
+
+# Editor, operating-system, and diagnostic output.
+.DS_Store
+Thumbs.db
+*.log

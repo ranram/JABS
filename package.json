@@ -1,0 +1,60 @@
+{
+  "name": "jabs",
+  "version": "0.1.0",
+  "description": "JABS: Just Another Bracketing System, a local-first fighting game bracket and OBS score manager.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@11.18.0+sha512.33d83c77da82f49fba836925c6f1b841181ec3132b670639bd012f7075f5c7cf634c5f870147c19aae7478fac01df09d8892e880454896edd23ee9b33757563c",
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": "11.18.0"
+  },
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:web": "vite --config vite.config.ts",
+    "build": "pnpm run typecheck && tauri build -- --locked",
+    "build:web": "vite build --config vite.config.ts",
+    "preview": "vite preview --config vite.config.ts",
+    "tauri": "tauri",
+    "check:rust": "pnpm run rust-lock:check && cargo check --locked --manifest-path src-tauri/Cargo.toml",
+    "rust-lock:check": "node scripts/check-rust-lock.mjs",
+    "clean:native": "cargo clean --manifest-path src-tauri/Cargo.toml",
+    "typecheck": "pnpm run rosters:check && pnpm run locations:check && pnpm run moderation:check && pnpm run components:check && tsc --noEmit",
+    "components:check": "node scripts/check-component-size.mjs",
+    "rosters:sync": "node scripts/sync-character-rosters.mjs",
+    "rosters:check": "node scripts/sync-character-rosters.mjs --check",
+    "locations:sync": "node scripts/sync-location-catalog.mjs",
+    "locations:check": "node scripts/sync-location-catalog.mjs --check",
+    "moderation:sync": "node scripts/sync-moderation-terms.mjs",
+    "moderation:check": "node scripts/sync-moderation-terms.mjs --check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "pnpm typecheck && pnpm test && pnpm check:rust"
+  },
+  "dependencies": {
+    "@mantine/core": "9.5.1",
+    "@mantine/hooks": "9.5.1",
+    "@mantine/notifications": "9.5.1",
+    "@tauri-apps/api": "2.11.1",
+    "flag-icons": "7.3.0",
+    "html-to-image": "1.11.13",
+    "i18next": "26.3.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-i18next": "17.0.11",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@2toad/profanity": "3.3.0",
+    "@countrystatecity/countries": "1.0.7",
+    "@tauri-apps/cli": "2.11.4",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "4.7.0",
+    "typescript": "5.9.3",
+    "vite": "6.4.3",
+    "vitest": "3.2.7"
+  }
+}

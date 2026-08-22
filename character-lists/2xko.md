@@ -1,0 +1,15 @@
+Yasuo
+Warwick
+Vi
+Teemo
+Jinx
+Illaoi
+Ekko
+Darius
+Caitlyn
+Braum
+Blitzcrank
+Akali
+Ahri
+Thresh
+Senna

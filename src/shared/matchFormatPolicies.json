@@ -1,0 +1,29 @@
+{
+  "allowedBestOf": [3, 5],
+  "defaultBestOf": 3,
+  "topEightBestOf": 5,
+  "topEightPatterns": ["top 8", "top8", "top eight"],
+  "gameOverrides": {
+    "guilty-gear-strive": {
+      "defaultBestOf": 5,
+      "topEightBestOf": 5
+    },
+    "2xko": {
+      "defaultBestOf": 3,
+      "topEightBestOf": 3,
+      "roundRules": [
+        {
+          "bestOf": 5,
+          "patterns": [
+            "winners final",
+            "winners finals",
+            "losers final",
+            "losers finals",
+            "grand final",
+            "grand finals"
+          ]
+        }
+      ]
+    }
+  }
+}
