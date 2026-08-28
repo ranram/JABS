@@ -10,6 +10,7 @@ import { AdjustableMediaImage } from './operator/AdjustableMediaImage';
 import { displayFlagUrl, isPrideDisplayFlag } from './overlayPlayerPresentation';
 import './versusOverlay.css';
 import { playerCharacters, playerPortraitCharacters } from '@shared/characterTeams';
+import { selectedCharacterAssetId } from '@shared/characterAssets';
 import { loadCharacterPortraits, type CharacterPortrait } from '../characterPortraits';
 import { CharacterPortraitStrip } from './CharacterPortraitStrip';
 
@@ -179,10 +180,9 @@ export function useVersusMedia(selectedSet: SelectedSetState | undefined): [Subj
         (asset) => Boolean(asset.assetId || asset.portraitAssetId)
       );
       async function resolve(player: PlayerState, match: PlayerMediaMatch): Promise<SubjectMedia> {
-        const team = playerCharacters(player);
-        const character = assets.assets.find((asset) => asset.character === team[0]);
+        const characterAssetId = selectedCharacterAssetId(player, assets.assets);
         const [characterUrl, photoUrl, sponsorUrl, characterPortraits] = await Promise.all([
-          character?.assetId ? api.gameCharacterAssetUrl(slug, character.assetId) : undefined,
+          characterAssetId ? api.gameCharacterAssetUrl(slug, characterAssetId) : undefined,
           match.playerPhotoAssetId ? api.playerPhotoAssetUrl(match.playerPhotoAssetId) : undefined,
           match.sponsorLogoAssetId ? api.sponsorLogoAssetUrl(match.sponsorLogoAssetId) : undefined,
           loadCharacterPortraits(slug, playerPortraitCharacters(player), assets.assets)

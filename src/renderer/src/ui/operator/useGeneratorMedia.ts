@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { playerCharacters, playerPortraitCharacters } from '@shared/characterTeams';
+import { selectedCharacterAssetId } from '@shared/characterAssets';
 import type { GameCharacterAsset } from '@shared/models';
 import { api } from '../../api';
 import { loadCharacterPortraits, type CharacterPortrait } from '../../characterPortraits';
@@ -11,6 +12,7 @@ type GeneratorSubject = {
   sponsor?: string;
   character?: string;
   characters?: string[];
+  characterAssetId?: string;
 };
 
 export type GeneratorSubjectMedia = {
@@ -38,7 +40,7 @@ export function useGeneratorMedia<TDraft>({
 }: GeneratorMediaOptions<TDraft>): {
   previewDraft: TDraft;
   media: GeneratorSubjectMedia[];
-  characterAssetIds: Record<string, string>;
+  characterAssets: GameCharacterAsset[];
   availableCharacterNames: string[];
   warning?: GeneratorWarning;
 } {
@@ -46,8 +48,7 @@ export function useGeneratorMedia<TDraft>({
   const [resolvedIdentityKey, setResolvedIdentityKey] = useState<string>();
   const [identityMedia, setIdentityMedia] = useState<Array<Pick<GeneratorSubjectMedia, 'playerPhotoUrl' | 'sponsorLogoUrl'>>>([]);
   const [characterAssets, setCharacterAssets] = useState<GameCharacterAsset[]>([]);
-  const [characterAssetIds, setCharacterAssetIds] = useState<Record<string, string>>({});
-  const [characterUrls, setCharacterUrls] = useState<Record<string, string>>({});
+  const [characterUrls, setCharacterUrls] = useState<Array<string | undefined>>([]);
   const [portraitUrls, setPortraitUrls] = useState<Record<string, CharacterPortrait>>({});
   const [warning, setWarning] = useState<GeneratorWarning>();
   const latestDraft = useRef(draft);
@@ -60,18 +61,13 @@ export function useGeneratorMedia<TDraft>({
   useEffect(() => {
     let active = true;
     setCharacterAssets([]);
-    setCharacterAssetIds({});
-    setCharacterUrls({});
+    setCharacterUrls([]);
     setPortraitUrls({});
     void api.gameCharacterAssets(assetCatalogSlug).then(({ assets }) => {
       if (!active) return;
       setCharacterAssets(assets);
-      setCharacterAssetIds(Object.fromEntries(
-        assets.flatMap((asset) => asset.assetId ? [[asset.character, asset.assetId]] : [])
-      ));
     }).catch((error) => {
       if (!active) return;
-      setCharacterAssetIds({});
       setWarning((current) => nextGeneratorWarning(error, current));
     });
     return () => { active = false; };
@@ -79,25 +75,24 @@ export function useGeneratorMedia<TDraft>({
 
   useEffect(() => {
     let active = true;
-    const teams = characterKey.split('\u0000').map((team) => team ? team.split('\u0001') : []);
+    setCharacterUrls([]);
+    const teams = subjects.map((subject) => playerCharacters(subject));
     const portraits = [...new Set(teams.flatMap((team) => team.slice(1)))];
-    const leads = [...new Set(teams.flatMap((team) => team[0] ? [team[0]] : []))]
-      .filter((character) => Boolean(characterAssetIds[character]));
+    const leadAssetIds = subjects.map((subject) => selectedCharacterAssetId(subject, characterAssets));
     void Promise.all([
       loadCharacterPortraits(assetCatalogSlug, portraits, characterAssets),
-      Promise.all(leads.map(async (character) => [
-        character,
-        await api.gameCharacterAssetUrl(assetCatalogSlug, characterAssetIds[character])
-      ] as const))
+      Promise.all(leadAssetIds.map((assetId) => assetId
+        ? api.gameCharacterAssetUrl(assetCatalogSlug, assetId)
+        : undefined))
     ]).then(([resolvedPortraits, resolvedCharacters]) => {
       if (!active) return;
       setPortraitUrls(Object.fromEntries(resolvedPortraits.map((portrait) => [portrait.character, portrait])));
-      setCharacterUrls(Object.fromEntries(resolvedCharacters));
+      setCharacterUrls(resolvedCharacters);
     }).catch((error) => {
       if (active) setWarning((current) => nextGeneratorWarning(error, current));
     });
     return () => { active = false; };
-  }, [assetCatalogSlug, characterAssetIds, characterAssets, characterKey]);
+  }, [assetCatalogSlug, characterAssets, characterKey]);
 
   useEffect(() => {
     let active = true;
@@ -139,13 +134,12 @@ export function useGeneratorMedia<TDraft>({
     previewDraft,
     media: subjects.map((subject, index) => ({
       ...identityMedia[index],
-      characterUrl: playerCharacters(subject)[0]
-        ? characterUrls[playerCharacters(subject)[0]] : undefined,
+      characterUrl: characterUrls[index],
       characterPortraits: playerPortraitCharacters(subject).flatMap((character) =>
         portraitUrls[character] ? [portraitUrls[character]] : []
       )
     })),
-    characterAssetIds,
+    characterAssets,
     availableCharacterNames: characterAssets.map((asset) => asset.character),
     warning
   };

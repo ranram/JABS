@@ -31,6 +31,7 @@ import { useOperatorNotifications } from './operator/useOperatorNotifications';
 import { errorMessage, resultMessage } from './operator/operatorUtils';
 import { useStreamDraftAutosave } from './operator/useStreamDraftAutosave';
 import { useAssetCatalogReload } from './operator/useAssetCatalogReload';
+import { useCharacterCatalogOptions } from './operator/useCharacterCatalogOptions';
 import type { LocalHandoffUrl } from '../desktopRuntime';
 export function OperatorDashboard() {
   const { t } = useTranslation(['operator', 'common', 'errors']);
@@ -123,6 +124,8 @@ export function OperatorDashboard() {
   const { reloadAssets, reloadingAssets } = useAssetCatalogReload({
     assetCatalogSlug, setLogos, setAssetCatalogRevision
   });
+  const characterCatalog = useCharacterCatalogOptions(assetCatalogSlug, assetCatalogRevision);
+  const characterOptions = characterCatalog.characters;
   const localBaseUrl = apiPort === undefined ? undefined : `http://127.0.0.1:${apiPort}`;
   const { saving: draftSaving, blocked: draftBlocked } = useStreamDraftAutosave({
     draft,
@@ -168,6 +171,7 @@ export function OperatorDashboard() {
     setLoadGameId,
     selectedEventId,
     tournamentSlug,
+    assetCatalogSlug,
     setMessage,
     setTokenVerified,
     refreshAfterReport: refreshSetSelectorAfterReport,
@@ -287,7 +291,8 @@ export function OperatorDashboard() {
       const response = await api.selectStartggSet(setId, setLoadGameId, {
         eventId: selectedEventId || undefined,
         tournamentSlug: tournamentSlug || undefined,
-        assetCatalogSlug
+        assetCatalogSlug,
+        preserveBroadcast: true
       });
       recordStartggResult(response);
       setState(response.state);
@@ -385,8 +390,14 @@ export function OperatorDashboard() {
         response.reportedGameCount > 0
           ? t('operator:messages.reportExactSuccess', { winner: result.winnerName, winnerScore: result.winnerScore, loserScore: result.loserScore })
           : t('operator:messages.reportWinnerSuccess', { winner: result.winnerName });
+      const characterNotice = response.reportedCharacterSelectionCount > 0
+        ? ` ${t('operator:messages.characterSelectionsReported', {
+            count: response.reportedCharacterSelectionCount
+          })}`
+        : '';
       const refreshed = await refreshSetSelectorAfterReport();
-      setMessage(refreshed ? resultNotice : `${resultNotice} ${t('operator:messages.selectorRefreshFailed')}`);
+      const completeNotice = `${resultNotice}${characterNotice}`;
+      setMessage(refreshed ? completeNotice : `${completeNotice} ${t('operator:messages.selectorRefreshFailed')}`);
     } catch (error) {
       recordStartggFailure();
       setMessage(errorMessage(error, t('operator:messages.reportFailed')));
@@ -578,8 +589,8 @@ export function OperatorDashboard() {
             countries={countries}
             logos={logos}
             selectedProfile={selectedProfile}
-            assetCatalogSlug={assetCatalogSlug}
-            assetCatalogRevision={assetCatalogRevision}
+            characters={characterOptions}
+            characterAssets={characterCatalog.assets}
             dirty={draftDirty}
             saving={draftSaving}
             blocked={draftBlocked}
@@ -617,6 +628,7 @@ export function OperatorDashboard() {
         loading={loading}
         quickScoreLoading={quickScore.loading}
         gameProfileAvailable={Boolean(setLoadGameId)}
+        characterOptions={characterOptions}
         onClose={quickScore.close}
         onSendToStream={(setId) => {
           quickScore.close();
@@ -625,6 +637,7 @@ export function OperatorDashboard() {
         onBeginQuickScore={() => void quickScore.begin()}
         onChangeBestOf={quickScore.changeBestOf}
         onChangeScore={quickScore.changeScore}
+        onChangeCharacters={quickScore.changeCharacters}
         onResetScores={quickScore.resetScores}
         onReport={() => void quickScore.report()}
       />

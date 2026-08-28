@@ -1,6 +1,6 @@
 import { MultiSelect, NumberInput, Select } from '@mantine/core';
 import type { GameProfile } from '@shared/gameProfiles';
-import type { CountryOption, SelectedSetState } from '@shared/models';
+import type { CountryOption, GameCharacterAsset, SelectedSetState } from '@shared/models';
 import { memo, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../api';
@@ -8,6 +8,7 @@ import { emptyToUndefined, sortByLabel } from './operatorUtils';
 import { BufferedTextInput } from './BufferedTextInput';
 import { characterTeamSelection } from '@shared/characterTeams';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
+import { CharacterOutfitSelect } from './CharacterOutfitSelect';
 
 type PlayerEditorProps = {
   side: 'one' | 'two';
@@ -15,13 +16,17 @@ type PlayerEditorProps = {
   player: SelectedSetState['playerOne'];
   countries: CountryOption[];
   characters: readonly string[];
+  characterAssets: readonly GameCharacterAsset[];
   maxCharacters: number;
   editableFields: GameProfile['editableFields'];
   onChange(player: SelectedSetState['playerOne']): void;
 };
 
 export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps) {
-  const { side, title, player, countries, characters, maxCharacters, editableFields, onChange } = props;
+  const {
+    side, title, player, countries, characters, characterAssets,
+    maxCharacters, editableFields, onChange
+  } = props;
   const { t, i18n } = useTranslation('operator');
   const [states, setStates] = useState<Array<{ code: string; name: string }>>([]);
   const locale = i18n.resolvedLanguage ?? i18n.language;
@@ -49,6 +54,9 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
     ? player.characters
     : player.character ? [player.character] : [];
   const unavailableCharacters = selectedCharacters.filter((character) => !characters.includes(character));
+  const hasOutfits = characterAssets.find(
+    (asset) => asset.character === selectedCharacters[0]
+  )?.variants.filter((variant) => variant.assetId).length ?? 0;
   const visibleCharacterData = [
     ...unavailableCharacters.map((character) => ({
       value: character,
@@ -90,10 +98,21 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
             data={visibleCharacterData}
             value={selectedCharacters}
             maxValues={maxCharacters}
-            onChange={(nextCharacters) => onChange({ ...player, ...characterTeamSelection(nextCharacters) })}
+            onChange={(nextCharacters) => onChange({
+              ...player,
+              ...characterTeamSelection(nextCharacters, player)
+            })}
           />
         )}
-        {hasField('team', 'sponsor') && (
+        {hasField('character') && hasOutfits > 1 && (
+          <CharacterOutfitSelect
+            subject={player}
+            assets={characterAssets}
+            testId={`editor-${side}-character-outfit`}
+            onChange={(characterAssetId) => onChange({ ...player, characterAssetId })}
+          />
+        )}
+        {hasField('team', 'sponsor') && hasOutfits <= 1 && (
           <BufferedTextInput
             data-stream-free-text={side === 'one' ? 'playerOneSponsor' : 'playerTwoSponsor'}
             data-testid={`editor-${side}-sponsor`}
@@ -103,6 +122,17 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
           />
         )}
       </div>
+      {hasField('team', 'sponsor') && hasOutfits > 1 && (
+        <div className="player-field-row">
+          <BufferedTextInput
+            data-stream-free-text={side === 'one' ? 'playerOneSponsor' : 'playerTwoSponsor'}
+            data-testid={`editor-${side}-sponsor`}
+            label={t('editor.sponsor')}
+            value={player.sponsor ?? ''}
+            onCommit={(value) => onChange({ ...player, sponsor: emptyToUndefined(value) })}
+          />
+        </div>
+      )}
       <div className="player-field-row">
         {hasField('country') && (
           <DisplayFlagSelect
@@ -162,6 +192,7 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
   && previous.player === next.player
   && previous.countries === next.countries
   && previous.characters === next.characters
+  && previous.characterAssets === next.characterAssets
   && previous.maxCharacters === next.maxCharacters
   && previous.editableFields === next.editableFields
 ));

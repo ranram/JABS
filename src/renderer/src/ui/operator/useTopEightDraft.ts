@@ -104,6 +104,9 @@ export function useTopEightDraft(initialGameId?: GameId): TopEightDraftControlle
             characters: importedCharacter
               ? [importedCharacter]
               : existing?.characters,
+            characterAssetId: importedCharacter === existing?.character
+              ? existing?.characterAssetId
+              : undefined,
             sponsor: standing.prefix ?? existing?.sponsor,
             country: standing.country ?? existing?.country,
             displayFlag: existing?.displayFlag

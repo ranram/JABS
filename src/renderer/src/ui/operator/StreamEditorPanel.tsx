@@ -13,14 +13,12 @@ import {
   Title
 } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { charactersForAssetCatalog } from '@shared/characterRosters';
+import { useCallback, useMemo, useRef } from 'react';
 import { bestOfOptionsForGame, type GameId, type GameProfile } from '@shared/gameProfiles';
-import type { CountryOption, LogoAsset, SelectedSetState } from '@shared/models';
+import type { CountryOption, GameCharacterAsset, LogoAsset, SelectedSetState } from '@shared/models';
 import { PlayerEditor } from './PlayerEditor';
 import { MediaFolderControls } from './MediaFolderControls';
 import { emptyToUndefined, sortByLabel } from './operatorUtils';
-import { api } from '../../api';
 import { BufferedTextInput } from './BufferedTextInput';
 import { maxCharactersForGame } from '@shared/characterTeams';
 
@@ -33,8 +31,8 @@ type StreamEditorPanelProps = {
   countries: CountryOption[];
   logos: LogoAsset[];
   selectedProfile?: GameProfile;
-  assetCatalogSlug?: string;
-  assetCatalogRevision: number;
+  characters: readonly string[];
+  characterAssets: readonly GameCharacterAsset[];
   dirty: boolean;
   saving: boolean;
   blocked: boolean;
@@ -52,8 +50,8 @@ export function StreamEditorPanel({
   countries,
   logos,
   selectedProfile,
-  assetCatalogSlug,
-  assetCatalogRevision,
+  characters,
+  characterAssets,
   dirty,
   saving,
   blocked,
@@ -79,24 +77,6 @@ export function StreamEditorPanel({
     })),
     [logos, locale]
   );
-  const characterCatalogSlug = assetCatalogSlug ?? draft.assetCatalogSlug;
-  const [assetCharacters, setAssetCharacters] = useState<string[]>([]);
-  useEffect(() => {
-    let active = true;
-    if (!characterCatalogSlug) {
-      setAssetCharacters([]);
-      return () => { active = false; };
-    }
-    void api.gameCharacterAssets(characterCatalogSlug).then(
-      ({ assets }) => { if (active) setAssetCharacters(assets.map((asset) => asset.character)); },
-      () => { if (active) setAssetCharacters([]); }
-    );
-    return () => { active = false; };
-  }, [assetCatalogRevision, characterCatalogSlug]);
-  const characterOptions = useMemo(() => [...new Set([
-    ...charactersForAssetCatalog(characterCatalogSlug ?? ''),
-    ...assetCharacters
-  ])], [assetCharacters, characterCatalogSlug]);
   const patchRef = useRef(onPatch);
   patchRef.current = onPatch;
   const changePlayerOne = useCallback((playerOne: SelectedSetState['playerOne']) => {
@@ -263,7 +243,8 @@ export function StreamEditorPanel({
             title={t('operator:editor.playerOne')}
             player={draft.playerOne}
             countries={countries}
-            characters={characterOptions}
+            characters={characters}
+            characterAssets={characterAssets}
             maxCharacters={maxCharactersForGame(draft.gameId)}
             editableFields={selectedProfile?.editableFields ?? []}
             onChange={changePlayerOne}
@@ -273,7 +254,8 @@ export function StreamEditorPanel({
             title={t('operator:editor.playerTwo')}
             player={draft.playerTwo}
             countries={countries}
-            characters={characterOptions}
+            characters={characters}
+            characterAssets={characterAssets}
             maxCharacters={maxCharactersForGame(draft.gameId)}
             editableFields={selectedProfile?.editableFields ?? []}
             onChange={changePlayerTwo}

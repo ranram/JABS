@@ -19,6 +19,9 @@ describe('character rosters', () => {
     expect(charactersForAssetCatalog('samurai-shodown')).toEqual([]);
     expect(matchCharacterName('street-fighter-6', 'Chun Li')).toBe('Chun-Li');
     expect(matchCharacterName('tekken-8', 'NINA WILLIAMS')).toBe('Nina Williams');
+    expect(charactersForGame('super-smash-bros-ultimate')).toContain('Pyra and Mythra');
+    expect(charactersForGame('super-smash-bros-ultimate')).not.toContain('Pyra');
+    expect(charactersForGame('super-smash-bros-ultimate')).not.toContain('Mythra');
     expect(matchCharacterName('street-fighter-6', 'Sheng Long')).toBeUndefined();
     expect(matchCharacterName('street-fighter-6', undefined)).toBeUndefined();
   });

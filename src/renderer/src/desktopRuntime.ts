@@ -33,6 +33,7 @@ export type MediaDirectories = {
   players: string;
   sponsors: string;
   tourneyLogos: string;
+  moderationAllowlist: string;
 };
 
 export type MediaDirectoryKind = 'game-assets' | 'players' | 'sponsors' | 'tourney-logos';
@@ -63,6 +64,19 @@ export async function getNativeMediaDirectories(): Promise<MediaDirectories | un
 export async function openNativeMediaDirectory(kind: MediaDirectoryKind): Promise<void> {
   if (!isTauriRuntime()) return;
   await invoke<void>('open_media_directory', { kind });
+}
+
+export type ModerationAllowlistStatus = {
+  entryCount: number;
+};
+
+export async function openNativeModerationAllowlist(): Promise<void> {
+  if (!isTauriRuntime()) return;
+  await invoke<void>('open_moderation_allowlist');
+}
+
+export function reloadNativeModerationAllowlist(): Promise<ModerationAllowlistStatus> {
+  return invoke<ModerationAllowlistStatus>('reload_moderation_allowlist');
 }
 
 export type LocalHandoffUrl = 'overlay';

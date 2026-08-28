@@ -97,6 +97,8 @@ If text is rejected:
 - The text remains available for correction.
 - **Not sent to OBS** confirms viewers did not receive it.
 
+If JABS blocks a legitimate tag or sponsor, open **Moderation exceptions** near the start.gg connection area. Choose **Edit allowlist**, add the complete value on its own line, and save the file. Then choose **Reload allowlist**. Matching ignores capitalization but applies only to the complete field value, so allowing one tag does not weaken checks inside other text.
+
 ### Match details
 
 You can edit:

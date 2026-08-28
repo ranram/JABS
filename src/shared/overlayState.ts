@@ -36,6 +36,7 @@ export const playerStateSchema = z.object({
   sponsor: optionalDisplayText,
   characters: z.array(z.string().trim().min(1)).max(4).optional(),
   character: optionalDisplayText,
+  characterAssetId: z.string().trim().min(1).max(255).optional(),
   country: optionalDisplayText,
   displayFlag: z.string().trim().regex(/^pride:[a-z0-9-]+$/).optional(),
   state: optionalDisplayText,
@@ -45,7 +46,11 @@ export const playerStateSchema = z.object({
 });
 
 export const setGameResultSchema = z.object({
-  winnerId: requiredId
+  winnerId: requiredId,
+  selections: z.array(z.object({
+    entrantId: requiredId,
+    character: z.string().trim().min(1).max(100)
+  })).max(8).optional()
 });
 
 export const selectedSetStateSchema = z.object({
@@ -107,9 +112,16 @@ export const selectedSetStateSchema = z.object({
       game.winnerId !== selectedSet.playerOne.entrantId &&
       game.winnerId !== selectedSet.playerTwo.entrantId
   );
+  const hasUnknownSelectionEntrant = selectedSet.gameHistory.some((game) =>
+    game.selections?.some((selection) =>
+      selection.entrantId !== selectedSet.playerOne.entrantId &&
+      selection.entrantId !== selectedSet.playerTwo.entrantId
+    )
+  );
 
   if (
     hasUnknownWinner ||
+    hasUnknownSelectionEntrant ||
     playerOneWins !== selectedSet.playerOne.score ||
     playerTwoWins !== selectedSet.playerTwo.score
   ) {

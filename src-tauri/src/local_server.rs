@@ -555,7 +555,7 @@ struct SelectedSetBody {
     tournament_slug: Option<String>,
     #[serde(default = "default_true")]
     restore_overrides: bool,
-    #[serde(default)]
+    #[serde(default = "default_true")]
     preserve_broadcast: bool,
 }
 
@@ -568,10 +568,13 @@ async fn inspect_startgg_set(
     Json(body): Json<SelectedSetBody>,
 ) -> Response {
     match fetch_selected_set(&runtime, &body).await {
-        Ok(Some(selected_set)) => secure_json(Json(serde_json::json!({
-            "selectedSet": selected_set,
-            "source": "live"
-        }))),
+        Ok(Some(mut selected_set)) => {
+            reconcile_imported_characters(&mut selected_set, &runtime.game_asset_directory);
+            secure_json(Json(serde_json::json!({
+                "selectedSet": selected_set,
+                "source": "live"
+            })))
+        }
         Ok(None) => secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Set not found." })))),
         Err(error) => startgg_error(error),
     }
@@ -590,6 +593,7 @@ async fn select_startgg_set(
         Ok(None) => return secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Set not found." })))),
         Err(error) => return startgg_error(error),
     };
+    reconcile_imported_characters(&mut fresh, &runtime.game_asset_directory);
     if body.restore_overrides {
         if let Some(set_id) = fresh.set_id.as_deref() {
             let saved = runtime
@@ -623,12 +627,10 @@ async fn select_startgg_set(
                 fresh = saved;
             }
         }
-    } else if body.preserve_broadcast {
+    }
+    if body.preserve_broadcast {
         if let Ok(current) = runtime.overlay.selected_set() {
-            if current.set_id == fresh.set_id {
-                fresh.broadcast = current.broadcast;
-                fresh.styling_game_id = current.styling_game_id;
-            }
+            retain_broadcast_extras(&mut fresh, &current);
         }
     }
     crate::state::censor_untrusted_selected_set(&mut fresh);
@@ -647,6 +649,44 @@ async fn select_startgg_set(
     ) {
         Ok(state) => secure_json(Json(serde_json::json!({ "state": state, "source": "live" }))),
         Err(error) => state_result(Err(error)),
+    }
+}
+
+fn retain_broadcast_extras(
+    fresh: &mut crate::state::SelectedSet,
+    current: &crate::state::SelectedSet,
+) {
+    fresh.broadcast = current.broadcast.clone();
+    if current.set_id == fresh.set_id {
+        fresh.styling_game_id = current.styling_game_id.clone();
+    }
+}
+
+/// start.gg character selections are useful enrichment, but they are not required to show a set
+/// on stream. Keep every selection that maps to the active catalog and drop only unavailable
+/// external metadata. Manually edited or restored state still passes the strict state validator.
+fn reconcile_imported_characters(
+    selected_set: &mut crate::state::SelectedSet,
+    game_asset_directory: &std::path::Path,
+) {
+    let catalog_slug = selected_set
+        .asset_catalog_slug
+        .as_deref()
+        .unwrap_or(&selected_set.game_id);
+    for player in [&mut selected_set.player_one, &mut selected_set.player_two] {
+        let mut characters = std::mem::take(&mut player.characters)
+            .into_iter()
+            .filter_map(|character| {
+                crate::catalogs::canonical_character_for_catalog(
+                    game_asset_directory,
+                    catalog_slug,
+                    &character,
+                )
+            })
+            .collect::<Vec<_>>();
+        characters.dedup();
+        player.character = characters.first().cloned();
+        player.characters = characters;
     }
 }
 
@@ -1012,7 +1052,7 @@ pub(crate) fn secure_json(response: impl IntoResponse) -> Response {
 
 #[cfg(test)]
 mod tests {
-    use super::{has_renderer_action_header, trusted_websocket_origin};
+    use super::{has_renderer_action_header, retain_broadcast_extras, trusted_websocket_origin};
     use axum::http::{HeaderMap, HeaderValue, header};
 
     #[test]
@@ -1031,5 +1071,34 @@ mod tests {
         assert!(has_renderer_action_header(&mutation_headers));
         mutation_headers.insert("x-jabs-action", HeaderValue::from_static("renderer-v2"));
         assert!(!has_renderer_action_header(&mutation_headers));
+    }
+
+    #[test]
+    fn a_new_set_keeps_broadcast_extras_without_reusing_game_styling() {
+        let selected_set = |set_id: &str, styling: &str, info: &str| {
+            serde_json::from_value::<crate::state::SelectedSet>(serde_json::json!({
+                "setId": set_id,
+                "displayName": "Player 1 vs Player 2",
+                "gameId": "street-fighter-6",
+                "stylingGameId": styling,
+                "bestOf": 3,
+                "broadcast": {
+                    "infoBarEnabled": true,
+                    "infoLeft": info,
+                    "logoEnabled": true,
+                    "logoAssetId": "event.png"
+                },
+                "playerOne": { "entrantId": "p1", "name": "Player 1", "score": 0 },
+                "playerTwo": { "entrantId": "p2", "name": "Player 2", "score": 0 },
+                "updatedAt": "2026-08-27T00:00:00Z"
+            })).expect("selected set fixture should be valid")
+        };
+        let current = selected_set("old", "tekken-8", "twitch.tv/jabs");
+        let mut fresh = selected_set("new", "street-fighter-6", "replacement");
+
+        retain_broadcast_extras(&mut fresh, &current);
+
+        assert!(fresh.broadcast == current.broadcast);
+        assert_eq!(fresh.styling_game_id.as_deref(), Some("street-fighter-6"));
     }
 }

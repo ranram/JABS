@@ -22,12 +22,20 @@ export function playerPortraitCharacters(player: {
 }
 
 /** Keeps the legacy lead slot synchronized with the ordered team array. */
-export function characterTeamSelection(characters: string[]): {
+export function characterTeamSelection(
+  characters: string[],
+  current?: { character?: string; characterAssetId?: string }
+): {
   character?: string;
   characters?: string[];
+  characterAssetId?: string;
 } {
+  const character = characters[0];
   return {
-    character: characters[0],
-    characters: characters.length ? characters : undefined
+    character,
+    characters: characters.length ? characters : undefined,
+    characterAssetId: character && character === current?.character
+      ? current.characterAssetId
+      : undefined
   };
 }

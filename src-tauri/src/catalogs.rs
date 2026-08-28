@@ -1,13 +1,19 @@
 use crate::state::Player;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
     path::{Path, PathBuf},
     sync::OnceLock,
 };
 use unicode_normalization::{UnicodeNormalization, char::is_combining_mark};
 
-const ROSTER_JSON: &str = include_str!("../resources/character_rosters.json");
+mod character_assets;
+pub use character_assets::{
+    canonical_character_for_catalog, character_names_match, has_game_character_asset,
+    is_character_for_game, list_game_character_assets, resolve_game_character_asset,
+    resolve_game_character_portrait, valid_game_asset_catalog_slug,
+};
+use character_assets::{character_asset_directory, character_portrait_directory};
+
 const LOCATION_JSON: &str = include_str!("../resources/location_catalog.json");
 const PRIDE_FLAGS_JSON: &str = include_str!("../../src/shared/prideFlags.json");
 const MAX_CATALOG_RASTER_BYTES: u64 = 20 * 1024 * 1024;
@@ -82,23 +88,6 @@ pub struct IdentityMediaInput {
     pub sponsor: Option<String>,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GameCharacterAsset {
-    character: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    asset_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    portrait_asset_id: Option<String>,
-}
-
-fn rosters() -> &'static HashMap<String, Vec<String>> {
-    static ROSTERS: OnceLock<HashMap<String, Vec<String>>> = OnceLock::new();
-    ROSTERS.get_or_init(|| {
-        serde_json::from_str(ROSTER_JSON).expect("compiled character catalog must be valid")
-    })
-}
-
 fn locations() -> &'static Vec<LocationCountry> {
     static LOCATIONS: OnceLock<Vec<LocationCountry>> = OnceLock::new();
     LOCATIONS.get_or_init(|| {
@@ -110,23 +99,6 @@ fn pride_flags() -> &'static Vec<PrideFlagDefinition> {
     static PRIDE_FLAGS: OnceLock<Vec<PrideFlagDefinition>> = OnceLock::new();
     PRIDE_FLAGS.get_or_init(|| {
         serde_json::from_str(PRIDE_FLAGS_JSON).expect("compiled Pride flag catalog must be valid")
-    })
-}
-
-pub fn is_character_for_game(game_id: &str, character: &str) -> bool {
-    rosters().get(game_id).is_some_and(|characters| {
-        characters.iter().any(|candidate| candidate == character)
-    })
-}
-
-pub fn has_game_character_asset(
-    root_directory: &Path,
-    game_id: &str,
-    character: &str,
-) -> bool {
-    list_game_character_assets(root_directory, game_id).is_ok_and(|assets| {
-        assets.iter().any(|asset| asset.character == character
-            && (asset.asset_id.is_some() || asset.portrait_asset_id.is_some()))
     })
 }
 
@@ -224,10 +196,14 @@ pub fn asset_catalog_summary(
     let logos = list_logo_assets(logo_directory)?;
     let sponsor_logos = catalog_asset_ids_result(sponsor_directory)?.len();
     let player_photos = catalog_asset_ids_result(player_photo_directory)?.len();
-    let characters = list_game_character_assets(game_asset_directory, game_id)?;
+    list_game_character_assets(game_asset_directory, game_id)?;
     let counts = AssetCatalogCounts {
-        character_art: characters.iter().filter(|asset| asset.asset_id.is_some()).count(),
-        character_portraits: characters.iter().filter(|asset| asset.portrait_asset_id.is_some()).count(),
+        character_art: catalog_asset_ids_result(
+            &character_asset_directory(game_asset_directory, game_id),
+        )?.len(),
+        character_portraits: catalog_asset_ids_result(
+            &character_portrait_directory(game_asset_directory, game_id),
+        )?.len(),
         tournament_logos: logos.len(),
         sponsor_logos,
         player_photos,
@@ -310,106 +286,6 @@ pub fn match_identity_media(
             identity.sponsor.as_deref(),
         ))
         .collect()
-}
-
-pub fn list_game_character_assets(
-    root_directory: &Path,
-    game_id: &str,
-) -> Result<Vec<GameCharacterAsset>, String> {
-    if !valid_game_asset_catalog_slug(game_id) {
-        return Err("Choose a valid game asset catalog before loading character artwork.".to_owned());
-    }
-    let directory = character_asset_directory(root_directory, game_id);
-    let portrait_directory = character_portrait_directory(root_directory, game_id);
-    std::fs::create_dir_all(&directory)
-        .map_err(|_| "Unable to prepare the local game artwork catalog.".to_owned())?;
-    std::fs::create_dir_all(&portrait_directory)
-        .map_err(|_| "Unable to prepare the local game portrait catalog.".to_owned())?;
-    let asset_ids = catalog_asset_ids_result(&directory)?;
-    let portrait_asset_ids = catalog_asset_ids_result(&portrait_directory)?;
-    let mut assets = if let Some(characters) = rosters().get(game_id) {
-        characters
-            .iter()
-            .filter_map(|character| {
-                let asset_id = match_unique_asset_id(&asset_ids, character);
-                let portrait_asset_id = match_unique_asset_id(&portrait_asset_ids, character);
-                (asset_id.is_some() || portrait_asset_id.is_some()).then(|| GameCharacterAsset {
-                    character: character.clone(), asset_id, portrait_asset_id
-                })
-            })
-            .collect::<Vec<_>>()
-    } else {
-        let labels = asset_ids.iter().chain(portrait_asset_ids.iter())
-            .map(|asset_id| media_asset_label(asset_id))
-            .collect::<Vec<_>>();
-        labels
-            .iter()
-            .filter_map(|character| {
-                let normalized = normalize_label(&character);
-                (!normalized.is_empty() && labels.iter().filter(|candidate| {
-                    normalize_label(candidate) == normalized
-                }).count() >= 1).then(|| GameCharacterAsset {
-                    character: character.clone(),
-                    asset_id: match_unique_asset_id(&asset_ids, character),
-                    portrait_asset_id: match_unique_asset_id(&portrait_asset_ids, character),
-                })
-            })
-            .collect::<Vec<_>>()
-    };
-    assets.sort_by(|left, right| left.character.to_lowercase().cmp(&right.character.to_lowercase()));
-    assets.dedup_by(|left, right| normalize_label(&left.character) == normalize_label(&right.character));
-    Ok(assets)
-}
-
-pub fn resolve_game_character_asset(
-    root_directory: &Path,
-    game_id: &str,
-    asset_id: &str,
-) -> Option<(PathBuf, &'static str)> {
-    let assets = list_game_character_assets(root_directory, game_id).ok()?;
-    assets.iter().any(|asset| asset.asset_id.as_deref() == Some(asset_id)).then(|| {
-        resolve_media_path(&character_asset_directory(root_directory, game_id), asset_id)
-    })?
-}
-
-pub fn resolve_game_character_portrait(
-    root_directory: &Path,
-    game_id: &str,
-    asset_id: &str,
-) -> Option<(PathBuf, &'static str)> {
-    let assets = list_game_character_assets(root_directory, game_id).ok()?;
-    assets.iter().any(|asset| asset.portrait_asset_id.as_deref() == Some(asset_id)).then(|| {
-        resolve_media_path(&character_portrait_directory(root_directory, game_id), asset_id)
-    })?
-}
-
-fn character_asset_directory(root_directory: &Path, game_id: &str) -> PathBuf {
-    root_directory.join(game_id).join("characters")
-}
-
-fn character_portrait_directory(root_directory: &Path, game_id: &str) -> PathBuf {
-    root_directory.join(game_id).join("portraits")
-}
-
-pub fn valid_game_asset_catalog_slug(value: &str) -> bool {
-    !value.is_empty()
-        && value.len() <= 96
-        && !value.starts_with('-')
-        && !value.ends_with('-')
-        && !value.contains("--")
-        && value.chars().all(|character| character.is_ascii_lowercase()
-            || character.is_ascii_digit()
-            || character == '-')
-}
-
-fn media_asset_label(value: &str) -> String {
-    value
-        .rsplit_once('.')
-        .map_or(value, |(stem, _)| stem)
-        .replace(['-', '_'], " ")
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
 }
 
 fn match_player_media(
@@ -512,7 +388,8 @@ fn valid_media_id(value: &str) -> bool {
     !stem.is_empty()
         && stem.chars().next().is_some_and(char::is_alphanumeric)
         && stem.chars().all(|character| {
-            character.is_alphanumeric() || matches!(character, '.' | '_' | '-' | ' ')
+            character.is_alphanumeric()
+                || matches!(character, '.' | '_' | '-' | ' ' | '&' | '(' | ')' | '[' | ']')
         })
         && matches!(extension.to_ascii_lowercase().as_str(), "png" | "jpg" | "jpeg" | "webp")
 }
@@ -541,9 +418,7 @@ fn normalize_label(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        has_game_character_asset, list_game_character_assets,
-        match_unique_asset_id, valid_game_asset_catalog_slug,
-        valid_logo_id, valid_media_id,
+        match_unique_asset_id, valid_game_asset_catalog_slug, valid_logo_id, valid_media_id,
         valid_raster_bytes,
     };
 
@@ -552,6 +427,7 @@ mod tests {
         assert!(valid_logo_id("logo.png"));
         assert!(valid_media_id("ウメハラ.webp"));
         assert!(valid_media_id("Team Liquid.webp"));
+        assert!(valid_media_id("Mr Game & Watch [6].jpg"));
         assert!(!valid_logo_id("../logo.png"));
         assert!(!valid_logo_id("logo.svg"));
         assert!(valid_game_asset_catalog_slug("samurai-shodown"));
@@ -583,32 +459,6 @@ mod tests {
         assert!(valid_raster_bytes(b"\xff\xd8\xffrest", "image/jpeg"));
         assert!(valid_raster_bytes(b"RIFF0000WEBPrest", "image/webp"));
         assert!(!valid_raster_bytes(b"<svg></svg>", "image/png"));
-    }
-
-    #[test]
-    fn unsupported_games_catalog_valid_raster_filenames_as_character_choices() {
-        let root = std::env::temp_dir().join(format!(
-            "jabs-dynamic-catalog-{}-{}",
-            std::process::id(),
-            std::thread::current().name().unwrap_or("catalog")
-        ));
-        let directory = root.join("samurai-shodown").join("characters");
-        let portrait_directory = root.join("samurai-shodown").join("portraits");
-        std::fs::create_dir_all(&directory).expect("dynamic catalog directory should be created");
-        std::fs::create_dir_all(&portrait_directory).expect("portrait catalog directory should be created");
-        std::fs::write(directory.join("Haohmaru.png"), b"catalog test")
-            .expect("dynamic catalog fixture should be written");
-        std::fs::write(portrait_directory.join("Haohmaru.webp"), b"portrait test")
-            .expect("portrait catalog fixture should be written");
-        let assets = list_game_character_assets(&root, "samurai-shodown")
-            .expect("unsupported game catalog should load");
-        assert_eq!(assets.len(), 1);
-        assert_eq!(assets[0].character, "Haohmaru");
-        assert_eq!(assets[0].asset_id.as_deref(), Some("Haohmaru.png"));
-        assert_eq!(assets[0].portrait_asset_id.as_deref(), Some("Haohmaru.webp"));
-        assert!(has_game_character_asset(&root, "samurai-shodown", "Haohmaru"));
-        assert!(!has_game_character_asset(&root, "samurai-shodown", "Forged fighter"));
-        std::fs::remove_dir_all(&root).expect("dynamic catalog fixture should be removed");
     }
 
 }

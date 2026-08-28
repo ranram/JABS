@@ -41,7 +41,13 @@ describe('start.gg report readiness', () => {
       state: '2',
       bestOf: 3,
       gameHistory: [
-        { winnerId: 'entrant-1' },
+        {
+          winnerId: 'entrant-1',
+          selections: [
+            { entrantId: 'entrant-1', character: 'Ryu' },
+            { entrantId: 'entrant-2', character: 'Ken' }
+          ]
+        },
         { winnerId: 'entrant-2' },
         { winnerId: 'entrant-1' }
       ],
@@ -53,7 +59,14 @@ describe('start.gg report readiness', () => {
       ready: true,
       result: {
         gameData: [
-          { gameNum: 1, winnerId: 'entrant-1' },
+          {
+            gameNum: 1,
+            winnerId: 'entrant-1',
+            selections: [
+              { entrantId: 'entrant-1', character: 'Ryu' },
+              { entrantId: 'entrant-2', character: 'Ken' }
+            ]
+          },
           { gameNum: 2, winnerId: 'entrant-2' },
           { gameNum: 3, winnerId: 'entrant-1' }
         ]

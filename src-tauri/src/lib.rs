@@ -74,6 +74,7 @@ struct MediaDirectories {
     players: String,
     sponsors: String,
     tourney_logos: String,
+    moderation_allowlist: String,
 }
 
 #[tauri::command]
@@ -83,7 +84,28 @@ fn get_media_directories(state: tauri::State<'_, Arc<RuntimeState>>) -> MediaDir
         players: state.player_photo_directory.display().to_string(),
         sponsors: state.sponsor_directory.display().to_string(),
         tourney_logos: state.logo_directory.display().to_string(),
+        moderation_allowlist: state.moderation_allowlist_path.display().to_string(),
     }
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ModerationAllowlistStatus {
+    entry_count: usize,
+}
+
+#[tauri::command]
+fn open_moderation_allowlist(
+    state: tauri::State<'_, Arc<RuntimeState>>,
+) -> Result<(), String> {
+    moderation::ensure_runtime_allowlist_file(&state.moderation_allowlist_path)?;
+    open_with_default_app(&state.moderation_allowlist_path)
+}
+
+#[tauri::command]
+fn reload_moderation_allowlist() -> Result<ModerationAllowlistStatus, String> {
+    moderation::reload_runtime_allowlist()
+        .map(|entry_count| ModerationAllowlistStatus { entry_count })
 }
 
 /// Opens one of JABS's own user-media directories in the platform file
@@ -115,6 +137,34 @@ fn open_in_file_manager(directory: &std::path::Path) -> Result<(), String> {
         .spawn()
         .map(|_| ())
         .map_err(|_| "JABS could not open the media folder.".to_owned())
+}
+
+#[cfg(target_os = "windows")]
+fn open_with_default_app(path: &std::path::Path) -> Result<(), String> {
+    std::process::Command::new("rundll32")
+        .arg("url.dll,FileProtocolHandler")
+        .arg(path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|_| "JABS could not open the moderation allowlist.".to_owned())
+}
+
+#[cfg(target_os = "macos")]
+fn open_with_default_app(path: &std::path::Path) -> Result<(), String> {
+    std::process::Command::new("open")
+        .arg(path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|_| "JABS could not open the moderation allowlist.".to_owned())
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn open_with_default_app(path: &std::path::Path) -> Result<(), String> {
+    std::process::Command::new("xdg-open")
+        .arg(path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|_| "JABS could not open the moderation allowlist.".to_owned())
 }
 
 #[cfg(target_os = "macos")]
@@ -210,12 +260,19 @@ pub fn run() {
             std::fs::create_dir_all(&sponsor_directory)?;
             std::fs::create_dir_all(&player_photo_directory)?;
             std::fs::create_dir_all(&game_asset_directory)?;
+            let moderation_allowlist_path = app_data_dir.join("moderation-allowlist.txt");
+            if let Err(error) =
+                moderation::initialize_runtime_allowlist(moderation_allowlist_path.clone())
+            {
+                eprintln!("JABS could not load the moderation allowlist: {error}");
+            }
             let runtime = Arc::new(RuntimeState::new(
                 database,
                 logo_directory,
                 sponsor_directory,
                 player_photo_directory,
                 game_asset_directory,
+                moderation_allowlist_path,
             ).map_err(std::io::Error::other)?);
             secrets::initialize(&runtime);
             let requested_port = runtime::requested_port()?;
@@ -238,6 +295,8 @@ pub fn run() {
             clear_startgg_token,
             get_media_directories,
             open_media_directory,
+            open_moderation_allowlist,
+            reload_moderation_allowlist,
             report_renderer_diagnostic
         ])
         .run(tauri::generate_context!())

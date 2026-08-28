@@ -9,6 +9,7 @@ export type ThumbnailPlayer = {
   name: string;
   character?: string;
   characters?: string[];
+  characterAssetId?: string;
   sponsor?: string;
   country?: string;
   displayFlag?: string;

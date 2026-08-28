@@ -12,6 +12,7 @@ const playerMetadataKeys = [
   'sponsor',
   'characters',
   'character',
+  'characterAssetId',
   'country',
   'state',
   'pronouns',

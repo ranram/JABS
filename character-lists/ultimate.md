@@ -79,7 +79,6 @@ Byleth
 Min Min  
 Steve  
 Sephiroth  
-Pyra  
-Mythra  
+Pyra and Mythra
 Kazuya  
 Sora  

@@ -1,4 +1,4 @@
-import type { SelectedSetState } from './models';
+import type { SelectedSetState, SetGameCharacterSelection } from './models';
 import { scoreLimitForBestOf } from './gameProfiles';
 
 export type ReportableStartggResult = {
@@ -13,6 +13,7 @@ export type ReportableStartggResult = {
 export type StartggReportedGame = {
   gameNum: number;
   winnerId: string;
+  selections?: SetGameCharacterSelection[];
 };
 
 export type StartggReportReadiness =
@@ -77,7 +78,10 @@ export function startggReportReadiness(selectedSet: SelectedSetState): StartggRe
     }
     gameData = selectedSet.gameHistory.map((game, index) => ({
       gameNum: index + 1,
-      winnerId: game.winnerId
+      winnerId: game.winnerId,
+      ...(game.selections?.length
+        ? { selections: game.selections.map((selection) => ({ ...selection })) }
+        : {})
     }));
   }
   return {

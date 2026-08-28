@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { scoreLimitForBestOf, type GameId } from '@shared/gameProfiles';
+import { characterTeamSelection } from '@shared/characterTeams';
 import type { SelectedSetState, SetSummary, StartggResultMeta } from '@shared/models';
 import { startggReportReadiness, type StartggReportReadiness } from '@shared/startggReporting';
 import { api } from '../../api';
@@ -10,6 +11,7 @@ type UseQuickScoreActionsOptions = {
   setLoadGameId?: GameId;
   selectedEventId: string;
   tournamentSlug: string;
+  assetCatalogSlug?: string;
   setMessage: Dispatch<SetStateAction<string | undefined>>;
   setTokenVerified: Dispatch<SetStateAction<boolean>>;
   refreshAfterReport(): Promise<boolean>;
@@ -26,6 +28,7 @@ export function useQuickScoreActions({
   setLoadGameId,
   selectedEventId,
   tournamentSlug,
+  assetCatalogSlug,
   setMessage,
   setTokenVerified,
   refreshAfterReport,
@@ -69,7 +72,8 @@ export function useQuickScoreActions({
     try {
       const response = await api.inspectStartggSet(target.id, setLoadGameId, {
         eventId: selectedEventId || undefined,
-        tournamentSlug: tournamentSlug || undefined
+        tournamentSlug: tournamentSlug || undefined,
+        assetCatalogSlug
       });
       recordResult(response);
       setScoreState(response.selectedSet);
@@ -93,6 +97,20 @@ export function useQuickScoreActions({
       const maxScore = scoreLimitForBestOf(next.gameId, bestOf);
       next = setQuickScoreValue(next, 'one', Math.min(next.playerOne.score, maxScore));
       return setQuickScoreValue(next, 'two', Math.min(next.playerTwo.score, maxScore));
+    });
+  }
+
+  function changeCharacters(side: 'one' | 'two', characters: string[]): void {
+    setScoreState((current) => {
+      if (!current) return current;
+      const playerKey = side === 'one' ? 'playerOne' : 'playerTwo';
+      return {
+        ...current,
+        [playerKey]: {
+          ...current[playerKey],
+          ...characterTeamSelection(characters, current[playerKey])
+        }
+      };
     });
   }
 
@@ -144,13 +162,18 @@ export function useQuickScoreActions({
         confirmed: true
       });
       setTokenVerified(true);
-      const nextReceipt = t('messages.quickReceipt', {
+      const characterNotice = response.reportedCharacterSelectionCount > 0
+        ? ` ${t('messages.characterSelectionsReported', {
+            count: response.reportedCharacterSelectionCount
+          })}`
+        : '';
+      const nextReceipt = `${t('messages.quickReceipt', {
         winner: result.winnerName,
         winnerScore: result.winnerScore,
         loserScore: result.loserScore,
         setId: response.reportedSetId,
         completion: response.reportedSetState === '3' ? t('messages.markedComplete') : ''
-      });
+      })}${characterNotice}`;
       setReceipt(nextReceipt);
       setScoreState((current) => current ? { ...current, state: response.reportedSetState } : current);
       const refreshed = await refreshAfterReport();
@@ -174,6 +197,7 @@ export function useQuickScoreActions({
     begin,
     changeScore,
     changeBestOf,
+    changeCharacters,
     resetScores,
     report
   };

@@ -59,7 +59,17 @@ async fn perform_active_report(runtime: &RuntimeState, body: ReportSetBody) -> R
     if readiness.winner_id != body.winner_id {
         return state_result(Err("The confirmed winner does not match the completed local score.".to_owned()));
     }
-    let game_data = reported_games(readiness.game_winners.as_deref());
+    let game_data = match crate::startgg::reported_games(
+        runtime,
+        &body.set_id,
+        current.game_history.as_deref(),
+    ).await {
+        Ok(game_data) => game_data,
+        Err(error) => return startgg_error(error),
+    };
+    let reported_character_selection_count = game_data.as_ref().map_or(0, |games| {
+        games.iter().map(|game| game.selections.len()).sum::<usize>()
+    });
     let reported = match crate::startgg::report_set(
         runtime, &body.set_id, &body.winner_id, game_data.as_deref(),
     ).await {
@@ -79,6 +89,7 @@ async fn perform_active_report(runtime: &RuntimeState, body: ReportSetBody) -> R
         "reportedSetId": reported.id,
         "reportedSetState": reported.state,
         "reportedGameCount": game_data.as_ref().map_or(0, Vec::len),
+        "reportedCharacterSelectionCount": reported_character_selection_count,
         "winnerScore": readiness.winner_score,
         "loserScore": readiness.loser_score
     })))
@@ -161,7 +172,17 @@ async fn perform_quick_report(runtime: &RuntimeState, body: QuickReportBody) -> 
         Ok(readiness) => readiness,
         Err(error) => return state_result(Err(error)),
     };
-    let game_data = reported_games(readiness.game_winners.as_deref());
+    let game_data = match crate::startgg::reported_games(
+        runtime,
+        &body.set_id,
+        current.game_history.as_deref(),
+    ).await {
+        Ok(game_data) => game_data,
+        Err(error) => return startgg_error(error),
+    };
+    let reported_character_selection_count = game_data.as_ref().map_or(0, |games| {
+        games.iter().map(|game| game.selections.len()).sum::<usize>()
+    });
     let reported = match crate::startgg::report_set(
         runtime, &body.set_id, &readiness.winner_id, game_data.as_deref(),
     ).await {
@@ -171,14 +192,9 @@ async fn perform_quick_report(runtime: &RuntimeState, body: QuickReportBody) -> 
     secure_json(Json(serde_json::json!({
         "reportedSetId": reported.id,
         "reportedSetState": reported.state,
-        "reportedGameCount": game_data.as_ref().map_or(0, Vec::len)
+        "reportedGameCount": game_data.as_ref().map_or(0, Vec::len),
+        "reportedCharacterSelectionCount": reported_character_selection_count
     })))
-}
-
-fn reported_games(winners: Option<&[String]>) -> Option<Vec<crate::startgg::ReportedGame>> {
-    winners.map(|winners| winners.iter().enumerate().map(|(index, winner_id)| {
-        crate::startgg::ReportedGame { game_num: index + 1, winner_id: winner_id.clone() }
-    }).collect())
 }
 
 async fn begin_report(runtime: &RuntimeState, set_id: &str) -> Option<Response> {

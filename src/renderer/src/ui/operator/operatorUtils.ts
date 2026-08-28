@@ -1,5 +1,5 @@
 import { scoreLimitForBestOf } from '@shared/gameProfiles';
-import { updateRecordedGameHistory } from '@shared/gameHistory';
+import { recordedCharacterSelections, updateRecordedGameHistory } from '@shared/gameHistory';
 import type {
   SelectedSetState,
   SetSummary,
@@ -26,7 +26,8 @@ export function setQuickScoreValue(
       player.entrantId,
       player.score,
       score,
-      otherPlayer.score
+      otherPlayer.score,
+      recordedCharacterSelections(selectedSet)
     ),
     playerOne: side === 'one' ? { ...selectedSet.playerOne, score } : selectedSet.playerOne,
     playerTwo: side === 'two' ? { ...selectedSet.playerTwo, score } : selectedSet.playerTwo

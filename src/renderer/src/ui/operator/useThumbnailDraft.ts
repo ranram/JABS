@@ -108,6 +108,7 @@ function playerFromSet(player: SelectedSetState['playerOne'], gameId: GameId | u
     name: player.name,
     character: characters[0],
     characters: characters.length ? characters : undefined,
+    characterAssetId: characters[0] === player.character ? player.characterAssetId : undefined,
     sponsor: player.sponsor ?? player.prefix,
     country: player.country,
     displayFlag: player.displayFlag

@@ -5,6 +5,7 @@ type GeneratorSubject = {
   sponsor?: string;
   character?: string;
   characters?: string[];
+  characterAssetId?: string;
 };
 
 export function generatorIdentityKey(
@@ -18,5 +19,8 @@ export function generatorIdentityKey(
 }
 
 export function generatorCharacterKey(subjects: readonly GeneratorSubject[]): string {
-  return subjects.map((subject) => playerCharacters(subject).join('\u0001')).join('\u0000');
+  return JSON.stringify(subjects.map((subject) => ({
+    characters: playerCharacters(subject),
+    characterAssetId: subject.characterAssetId
+  })));
 }

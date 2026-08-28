@@ -225,6 +225,18 @@ mutation ReportBracketSet($setId: ID!, $winnerId: ID!) {
 }
 "#;
 
+pub const SET_CHARACTER_CATALOG: &str = r#"
+query SetCharacterCatalog($setId: ID!) {
+  set(id: $setId) {
+    event {
+      videogame {
+        characters { id name }
+      }
+    }
+  }
+}
+"#;
+
 pub const REPORT_SET_WITH_GAMES: &str = r#"
 mutation ReportBracketSet(
   $setId: ID!

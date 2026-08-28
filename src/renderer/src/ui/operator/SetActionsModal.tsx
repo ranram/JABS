@@ -3,6 +3,7 @@ import {
   Button,
   Group,
   Modal,
+  MultiSelect,
   Paper,
   Select,
   SimpleGrid,
@@ -11,7 +12,9 @@ import {
   Title
 } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { useMemo } from 'react';
 import { bestOfOptionsForGame, scoreLimitForBestOf } from '@shared/gameProfiles';
+import { maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
 import type { SelectedSetState, SetSummary } from '@shared/models';
 import type { StartggReportReadiness } from '@shared/startggReporting';
 import { QuickScore } from './ScoreControls';
@@ -26,11 +29,13 @@ type SetActionsModalProps = {
   loading: boolean;
   quickScoreLoading: boolean;
   gameProfileAvailable: boolean;
+  characterOptions: readonly string[];
   onClose(): void;
   onSendToStream(setId: string): void;
   onBeginQuickScore(): void;
   onChangeBestOf(bestOf: number): void;
   onChangeScore(side: 'one' | 'two', score: number): void;
+  onChangeCharacters(side: 'one' | 'two', characters: string[]): void;
   onResetScores(): void;
   onReport(): void;
 };
@@ -44,15 +49,24 @@ export function SetActionsModal({
   loading,
   quickScoreLoading,
   gameProfileAvailable,
+  characterOptions,
   onClose,
   onSendToStream,
   onBeginQuickScore,
   onChangeBestOf,
   onChangeScore,
+  onChangeCharacters,
   onResetScores,
   onReport
 }: SetActionsModalProps) {
-  const { t } = useTranslation(['operator', 'common']);
+  const { t, i18n } = useTranslation(['operator', 'common']);
+  const locale = i18n.resolvedLanguage ?? i18n.language;
+  const characterData = useMemo(
+    () => [...characterOptions]
+      .sort((left, right) => left.localeCompare(right, locale))
+      .map((character) => ({ value: character, label: character })),
+    [characterOptions, locale]
+  );
 
   if (!target) return null;
 
@@ -168,20 +182,38 @@ export function SetActionsModal({
           )}
 
           <SimpleGrid type="container" cols={{ base: 1, '30rem': 2 }}>
-            <QuickScore
-              label={quickScore.playerOne.name}
-              score={quickScore.playerOne.score}
-              maxScore={scoreLimitForBestOf(quickScore.gameId, quickScore.bestOf)}
-              disabled={quickScoreLoading}
-              onChange={(score) => onChangeScore('one', score)}
-            />
-            <QuickScore
-              label={quickScore.playerTwo.name}
-              score={quickScore.playerTwo.score}
-              maxScore={scoreLimitForBestOf(quickScore.gameId, quickScore.bestOf)}
-              disabled={quickScoreLoading}
-              onChange={(score) => onChangeScore('two', score)}
-            />
+            {(['one', 'two'] as const).map((side) => {
+              const player = side === 'one' ? quickScore.playerOne : quickScore.playerTwo;
+              const selectedCharacters = playerCharacters(player);
+              const unavailable = selectedCharacters
+                .filter((character) => !characterOptions.includes(character))
+                .map((character) => ({
+                  value: character,
+                  label: t('operator:editor.unavailableCharacter', { character })
+                }));
+              return (
+                <Stack key={side} gap="xs">
+                  <QuickScore
+                    label={player.name}
+                    score={player.score}
+                    maxScore={scoreLimitForBestOf(quickScore.gameId, quickScore.bestOf)}
+                    disabled={quickScoreLoading}
+                    onChange={(score) => onChangeScore(side, score)}
+                  />
+                  <MultiSelect
+                    searchable
+                    clearable
+                    label={t('operator:setActions.charactersFor', { player: player.name })}
+                    description={t('operator:setActions.characterHelp')}
+                    data={[...unavailable, ...characterData]}
+                    value={selectedCharacters}
+                    maxValues={maxCharactersForGame(quickScore.gameId)}
+                    disabled={quickScoreLoading}
+                    onChange={(characters) => onChangeCharacters(side, characters)}
+                  />
+                </Stack>
+              );
+            })}
           </SimpleGrid>
 
           <Paper withBorder p="md">

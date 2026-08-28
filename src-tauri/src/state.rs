@@ -93,6 +93,8 @@ pub struct Player {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub character: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub character_asset_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub country: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub display_flag: Option<String>,
@@ -120,8 +122,17 @@ pub struct BroadcastPresentation {
 
 #[derive(Clone, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GameCharacterSelection {
+    pub entrant_id: String,
+    pub character: String,
+}
+
+#[derive(Clone, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GameResult {
     pub winner_id: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub selections: Vec<GameCharacterSelection>,
 }
 
 pub struct OverlayStore {
@@ -129,6 +140,7 @@ pub struct OverlayStore {
     updates: broadcast::Sender<String>,
 }
 
+#[derive(Debug)]
 pub enum UpdateSelectedSetError {
     Invalid(String),
     Conflict(String),
@@ -138,7 +150,6 @@ pub struct ReportableResult {
     pub winner_id: String,
     pub winner_score: u32,
     pub loser_score: u32,
-    pub game_winners: Option<Vec<String>>,
 }
 
 impl OverlayStore {
@@ -271,19 +282,33 @@ impl OverlayStore {
         self.mutate(database, |selected_set| {
             let limit = score_limit(selected_set.best_of);
             let score = requested_score.min(limit);
-            let (player, other_score) = match side {
-                "one" => (&mut selected_set.player_one, selected_set.player_two.score),
-                "two" => (&mut selected_set.player_two, selected_set.player_one.score),
+            let selections = recorded_character_selections(selected_set);
+            let (winner_id, previous_score, other_score) = match side {
+                "one" => (
+                    selected_set.player_one.entrant_id.clone(),
+                    selected_set.player_one.score,
+                    selected_set.player_two.score,
+                ),
+                "two" => (
+                    selected_set.player_two.entrant_id.clone(),
+                    selected_set.player_two.score,
+                    selected_set.player_one.score,
+                ),
                 _ => return Err("Choose player side one or two.".to_owned()),
             };
             update_history(
                 &mut selected_set.game_history,
-                &player.entrant_id,
-                player.score,
+                &winner_id,
+                previous_score,
                 score,
                 other_score,
+                &selections,
             );
-            player.score = score;
+            match side {
+                "one" => selected_set.player_one.score = score,
+                "two" => selected_set.player_two.score = score,
+                _ => unreachable!(),
+            }
             Ok(())
         })
     }
@@ -404,6 +429,7 @@ fn default_state() -> OverlayState {
                 sponsor: None,
                 characters: Vec::new(),
                 character: None,
+                character_asset_id: None,
                 country: None,
                 display_flag: None,
                 state: None,
@@ -419,6 +445,7 @@ fn default_state() -> OverlayState {
                 sponsor: None,
                 characters: Vec::new(),
                 character: None,
+                character_asset_id: None,
                 country: None,
                 display_flag: None,
                 state: None,
@@ -444,6 +471,18 @@ fn validate_state(state: &OverlayState) -> Result<(), String> {
         .any(|seed| seed == 0)
     {
         return Err("Player seed must be a positive integer.".to_owned());
+    }
+    if [&selected_set.player_one, &selected_set.player_two]
+        .into_iter()
+        .filter_map(|player| player.character_asset_id.as_deref())
+        .any(|asset_id| {
+            asset_id.is_empty()
+                || asset_id.len() > 255
+                || asset_id.contains('/')
+                || asset_id.contains('\\')
+        })
+    {
+        return Err("Choose a valid local character outfit.".to_owned());
     }
     if !is_supported_game_id(&selected_set.game_id) {
         return Err("Choose a recognized game profile.".to_owned());
@@ -485,6 +524,22 @@ fn validate_state(state: &OverlayState) -> Result<(), String> {
             || counts.len() > 2
         {
             return Err("Recorded game history must match both player scores.".to_owned());
+        }
+        for game in history {
+            if game.selections.len() > 8 {
+                return Err("A recorded game has too many character selections.".to_owned());
+            }
+            for selection in &game.selections {
+                if selection.entrant_id != selected_set.player_one.entrant_id
+                    && selection.entrant_id != selected_set.player_two.entrant_id
+                {
+                    return Err("Recorded character selections must belong to a set entrant.".to_owned());
+                }
+                let character = selection.character.trim();
+                if character.is_empty() || character.chars().count() > 100 {
+                    return Err("Recorded character selections must use a valid character name.".to_owned());
+                }
+            }
         }
     }
     Ok(())
@@ -537,9 +592,6 @@ pub fn report_readiness(selected_set: &SelectedSet) -> Result<ReportableResult, 
         winner_id: winner.entrant_id.clone(),
         winner_score: winner.score,
         loser_score: loser.score,
-        game_winners: selected_set.game_history.as_ref().map(|history| {
-            history.iter().map(|game| game.winner_id.clone()).collect()
-        }),
     })
 }
 
@@ -681,6 +733,7 @@ fn update_history(
     previous_score: u32,
     next_score: u32,
     other_score: u32,
+    selections: &[GameCharacterSelection],
 ) {
     let Some(history) = history.as_mut() else {
         if next_score == 0 && other_score == 0 {
@@ -690,7 +743,10 @@ fn update_history(
     };
     if next_score > previous_score {
         for _ in previous_score..next_score {
-            history.push(GameResult { winner_id: winner_id.to_owned() });
+            history.push(GameResult {
+                winner_id: winner_id.to_owned(),
+                selections: selections.to_vec(),
+            });
         }
         return;
     }
@@ -699,6 +755,23 @@ fn update_history(
             history.remove(index);
         }
     }
+}
+
+fn recorded_character_selections(selected_set: &SelectedSet) -> Vec<GameCharacterSelection> {
+    [&selected_set.player_one, &selected_set.player_two]
+        .into_iter()
+        .flat_map(|player| {
+            let characters = if player.characters.is_empty() {
+                player.character.iter().collect::<Vec<_>>()
+            } else {
+                player.characters.iter().collect::<Vec<_>>()
+            };
+            characters.into_iter().map(|character| GameCharacterSelection {
+                entrant_id: player.entrant_id.clone(),
+                character: character.clone(),
+            })
+        })
+        .collect()
 }
 
 fn next_timestamp(previous: &str) -> Result<String, String> {
@@ -722,10 +795,39 @@ mod tests {
     fn score_history_correction_and_swap_are_persisted() {
         let database = Database::open(std::path::Path::new(":memory:")).unwrap();
         let store = OverlayStore::load(&database).unwrap();
+        let mut selected = store.selected_set().unwrap();
+        selected.player_one.characters = vec!["Ryu".to_owned()];
+        selected.player_one.character = Some("Ryu".to_owned());
+        selected.player_two.characters = vec!["Ken".to_owned()];
+        selected.player_two.character = Some("Ken".to_owned());
+        store.update_selected_set(
+            &database,
+            std::path::Path::new("unused"),
+            std::path::Path::new("unused"),
+            selected,
+        ).unwrap();
         let state = store.set_score(&database, "one", 2).unwrap();
         assert_eq!(state["selectedSet"]["gameHistory"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            state["selectedSet"]["gameHistory"][0]["selections"][0]["character"],
+            "Ryu",
+        );
+        let mut selected = store.selected_set().unwrap();
+        selected.player_one.characters = vec!["Chun-Li".to_owned()];
+        selected.player_one.character = Some("Chun-Li".to_owned());
+        store.update_selected_set(
+            &database,
+            std::path::Path::new("unused"),
+            std::path::Path::new("unused"),
+            selected,
+        ).unwrap();
+        let state = store.set_score(&database, "two", 1).unwrap();
+        assert_eq!(
+            state["selectedSet"]["gameHistory"][2]["selections"][0]["character"],
+            "Chun-Li",
+        );
         let state = store.set_score(&database, "one", 1).unwrap();
-        assert_eq!(state["selectedSet"]["gameHistory"].as_array().unwrap().len(), 1);
+        assert_eq!(state["selectedSet"]["gameHistory"].as_array().unwrap().len(), 2);
         let state = store.swap_players(&database).unwrap();
         assert_eq!(state["selectedSet"]["playerTwo"]["score"], 1);
 
@@ -742,16 +844,15 @@ mod tests {
         selected.player_one.score = 2;
         selected.player_two.score = 1;
         selected.game_history = Some(vec![
-            GameResult { winner_id: "p1".to_owned() },
-            GameResult { winner_id: "p2".to_owned() },
-            GameResult { winner_id: "p1".to_owned() },
+            GameResult { winner_id: "p1".to_owned(), selections: Vec::new() },
+            GameResult { winner_id: "p2".to_owned(), selections: Vec::new() },
+            GameResult { winner_id: "p1".to_owned(), selections: Vec::new() },
         ]);
         let report = report_readiness(&selected).unwrap();
         assert_eq!(report.winner_id, "p1");
-        assert_eq!(report.game_winners.unwrap(), vec!["p1", "p2", "p1"]);
 
         selected.game_history = None;
-        assert!(report_readiness(&selected).unwrap().game_winners.is_none());
+        assert_eq!(report_readiness(&selected).unwrap().winner_id, "p1");
         selected.state = Some("3".to_owned());
         assert!(report_readiness(&selected).is_err());
     }

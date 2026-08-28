@@ -336,7 +336,7 @@ export const api = {
   inspectStartggSet: (
     setId: string,
     gameId: string,
-    context: { eventId?: string; tournamentSlug?: string } = {}
+    context: { eventId?: string; tournamentSlug?: string; assetCatalogSlug?: string } = {}
   ) =>
     request<StartggSetInspectionResult>('/api/startgg/inspect-set', {
       method: 'POST',
@@ -365,7 +365,10 @@ export const api = {
     };
     playerOneScore: number;
     playerTwoScore: number;
-    gameHistory?: Array<{ winnerId: string }>;
+    gameHistory?: Array<{
+      winnerId: string;
+      selections?: Array<{ entrantId: string; character: string }>;
+    }>;
     confirmed: true;
   }) =>
     request<StartggQuickReportResult>('/api/startgg/quick-report-set', {

@@ -24,6 +24,7 @@ import { broadcastSurfaceSpecs } from '@shared/broadcastCompositions';
 import { gameIdForStartggVideogame, type GameProfile } from '@shared/gameProfiles';
 import { gameAssetCatalogSlug } from '@shared/gameAssetCatalog';
 import { characterTeamSelection, maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
+import { characterOutfitOptions } from '@shared/characterAssets';
 import type { CountryOption, LogoAsset } from '@shared/models';
 import type { MediaLayerKind, MediaTransform } from '@shared/mediaPlacement';
 import { MediaFoldersAccordion } from './MediaFoldersAccordion';
@@ -39,6 +40,7 @@ import {
 import { api } from '../../api';
 import { sortByLabel } from './operatorUtils';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
+import { CharacterOutfitSelect } from './CharacterOutfitSelect';
 import {
   TopEightCanvas,
   topEightTrustedText
@@ -82,7 +84,9 @@ export function TopEightGenerator({
   const profile = profiles.find((candidate) => candidate.id === draft.gameId) ?? profiles[0];
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const sortedProfiles = useMemo(() => sortByLabel(profiles, (profile) => profile.styleName, locale), [profiles, locale]);
-  const { previewDraft, media, availableCharacterNames, mediaWarning } = useTopEightMedia(draft, assetCatalogRevision);
+  const {
+    previewDraft, media, availableCharacterNames, characterAssets, mediaWarning
+  } = useTopEightMedia(draft, assetCatalogRevision);
   const canvasDraft = useMemo(() => ({
     ...previewDraft,
     background: draft.background
@@ -463,6 +467,15 @@ export function TopEightGenerator({
                   value={entrant.name}
                   onCommit={(name) => controller.setEntrant(index, { name })}
                 />
+                {characterOutfitOptions(entrant, characterAssets).length > 1 && (
+                  <BufferedTextInput
+                    label={t('operator:topEight.sponsor')}
+                    value={entrant.sponsor ?? ''}
+                    onCommit={(sponsor) => controller.setEntrant(index, {
+                      sponsor: sponsor || undefined
+                    })}
+                  />
+                )}
                 <MultiSelect
                   label={t('operator:editor.characters')}
                   value={playerCharacters(entrant)}
@@ -471,15 +484,27 @@ export function TopEightGenerator({
                   clearable
                   maxValues={maxCharactersForGame(draft.gameId)}
                   data={characters.map((character) => ({ value: character, label: character }))}
-                  onChange={(values) => controller.setEntrant(index, characterTeamSelection(values))}
+                  onChange={(values) => controller.setEntrant(
+                    index,
+                    characterTeamSelection(values, entrant)
+                  )}
                 />
-                <BufferedTextInput
-                  label={t('operator:topEight.sponsor')}
-                  value={entrant.sponsor ?? ''}
-                  onCommit={(sponsor) => controller.setEntrant(index, {
-                    sponsor: sponsor || undefined
+                <CharacterOutfitSelect
+                  subject={entrant}
+                  assets={characterAssets}
+                  onChange={(characterAssetId) => controller.setEntrant(index, {
+                    characterAssetId
                   })}
                 />
+                {characterOutfitOptions(entrant, characterAssets).length <= 1 && (
+                  <BufferedTextInput
+                    label={t('operator:topEight.sponsor')}
+                    value={entrant.sponsor ?? ''}
+                    onCommit={(sponsor) => controller.setEntrant(index, {
+                      sponsor: sponsor || undefined
+                    })}
+                  />
+                )}
                 <DisplayFlagSelect
                   label={t('operator:topEight.displayFlag')}
                   placeholder={t('common:actions.select')}

@@ -11,6 +11,8 @@ export type PlayerState = {
   /** Ordered team roster. `character` remains the backwards-compatible lead slot. */
   characters?: string[];
   character?: string;
+  /** Exact local artwork chosen for the lead character. Never sent to start.gg. */
+  characterAssetId?: string;
   country?: string;
   /** Optional presentation override. The player's actual country remains unchanged. */
   displayFlag?: string;
@@ -71,6 +73,14 @@ export type GameCharacterAsset = {
   assetId?: string;
   /** Optional square face/bust crop from game-assets/<slug>/portraits/. */
   portraitAssetId?: string;
+  variants: GameCharacterAssetVariant[];
+};
+
+export type GameCharacterAssetVariant = {
+  /** Number parsed from the filename, or "Default" for an unnumbered file. */
+  label: string;
+  assetId?: string;
+  portraitAssetId?: string;
 };
 
 export type BroadcastPresentation = {
@@ -81,8 +91,14 @@ export type BroadcastPresentation = {
   logoAssetId?: string;
 };
 
+export type SetGameCharacterSelection = {
+  entrantId: string;
+  character: string;
+};
+
 export type SetGameResult = {
   winnerId: string;
+  selections?: SetGameCharacterSelection[];
 };
 
 export type SelectedSetState = {
@@ -280,10 +296,12 @@ export type StartggReportResult = {
   reportedSetId: string;
   reportedSetState?: string;
   reportedGameCount: number;
+  reportedCharacterSelectionCount: number;
 };
 
 export type StartggQuickReportResult = {
   reportedSetId: string;
   reportedSetState?: string;
   reportedGameCount: number;
+  reportedCharacterSelectionCount: number;
 };

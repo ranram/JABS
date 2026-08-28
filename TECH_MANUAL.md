@@ -256,6 +256,8 @@ pnpm run moderation:check
 
 Review both the source change and generated Rust change before committing them. Test ordinary player names and tournament names as well as terms that should be rejected.
 
+Packaged installations also create `moderation-allowlist.txt` in the application-data directory. This file is for local tournament decisions and is not compiled into JABS. Each non-comment line permits one exact complete field value after capitalization and whitespace normalization. The app loads it at startup and when the user chooses **Reload allowlist**.
+
 ## Add or change a translation
 
 The bundled catalogs are:

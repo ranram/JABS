@@ -36,6 +36,7 @@ import { useThumbnailDraft } from './useThumbnailDraft';
 import { TopEightGenerator } from './TopEightGenerator';
 import { useTopEightDraft } from './useTopEightDraft';
 import { generatorGameContext } from './generatorGameContext';
+import { ModerationAllowlistControls } from './ModerationAllowlistControls';
 
 type StartggPanelProps = {
   tokenInputRef: RefObject<HTMLInputElement | null>;
@@ -256,6 +257,7 @@ export function StartggPanel({
           </Group>
         </Stack>
       </SimpleGrid>
+      <ModerationAllowlistControls />
     </Paper>
 
     <Tabs className="operator-workspaces" defaultValue="bracket" keepMounted={false} mt="md">

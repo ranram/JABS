@@ -16,6 +16,7 @@ import { announcementPresentation } from './announcementPresentation';
 import { displayFlagLabel, displayFlagUrl } from './overlayPlayerPresentation';
 import { api } from '../api';
 import { playerCharacters, playerPortraitCharacters } from '@shared/characterTeams';
+import { selectedCharacterAssetId } from '@shared/characterAssets';
 import { loadCharacterPortraits, type CharacterPortrait } from '../characterPortraits';
 import { CharacterPortraitStrip } from './CharacterPortraitStrip';
 import { BroadcastLayer, MatchChip } from './ScoreOverlayContext';
@@ -182,6 +183,7 @@ function AnnouncementOverlay({
   const characterMedia = useAnnouncementCharacterMedia(
     selectedSet.assetCatalogSlug ?? selectedSet.gameId,
     settings.showCharacter ? winnerCharacters[0] : undefined,
+    settings.showCharacter ? winner?.characterAssetId : undefined,
     settings.showCharacter && winner ? playerPortraitCharacters(winner) : []
   );
   const { characterUrl, characterPortraits } = characterMedia;
@@ -261,6 +263,7 @@ const defaultResultScreenSettings: ResultScreenState = {
 function useAnnouncementCharacterMedia(
   gameId: string,
   leadCharacter: string | undefined,
+  characterAssetId: string | undefined,
   portraitCharacters: string[]
 ): {
   characterUrl?: string;
@@ -281,13 +284,14 @@ function useAnnouncementCharacterMedia(
     }
     void api.gameCharacterAssets(gameId)
       .then(async ({ assets }) => {
-        const leadAsset = leadCharacter
-          ? assets.find((candidate) => candidate.character === leadCharacter)
-          : undefined;
+        const selectedAssetId = selectedCharacterAssetId({
+          character: leadCharacter,
+          characterAssetId
+        }, assets);
         const hasCatalogMedia = assets.some((asset) => Boolean(asset.assetId || asset.portraitAssetId));
         const selectedPortraits = portraitKey ? portraitKey.split('\u0000') : [];
         const [characterUrl, characterPortraits] = await Promise.all([
-          leadAsset?.assetId ? api.gameCharacterAssetUrl(gameId, leadAsset.assetId) : undefined,
+          selectedAssetId ? api.gameCharacterAssetUrl(gameId, selectedAssetId) : undefined,
           loadCharacterPortraits(gameId, selectedPortraits, assets)
         ]);
         if (active) setMedia({ characterUrl, characterPortraits, hasCatalogMedia });
@@ -296,7 +300,7 @@ function useAnnouncementCharacterMedia(
         if (active) setMedia({ characterPortraits: [], hasCatalogMedia: false });
       });
     return () => { active = false; };
-  }, [gameId, leadCharacter, portraitKey]);
+  }, [characterAssetId, gameId, leadCharacter, portraitKey]);
   return media;
 }
 

@@ -21,6 +21,7 @@ import { broadcastSurfaceSpecs } from '@shared/broadcastCompositions';
 import type { GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, LogoAsset, SelectedSetState } from '@shared/models';
 import { characterTeamSelection, maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
+import { characterOutfitOptions } from '@shared/characterAssets';
 import {
   type MediaLayerKind,
   type MediaTransform
@@ -46,6 +47,7 @@ import { useGeneratorWarningToast } from './useGeneratorWarningToast';
 import { useGeneratorMedia, useLogoAssetUrl } from './useGeneratorMedia';
 import { BufferedTextInput } from './BufferedTextInput';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
+import { CharacterOutfitSelect } from './CharacterOutfitSelect';
 import './generatorFonts.css';
 import './adjustableMedia.css';
 import './thumbnail.css';
@@ -71,7 +73,9 @@ export function ThumbnailGenerator({ profiles, activeSet, logos, controller, ass
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const sortedProfiles = useMemo(() => sortByLabel(profiles, (profile) => profile.styleName, locale), [profiles, locale]);
   const sortedLogos = useMemo(() => sortByLabel(logos, (logo) => logo.label, locale), [logos, locale]);
-  const { previewDraft, media, availableCharacterNames, logoUrl, warning } = useThumbnailMedia(draft, assetCatalogRevision);
+  const {
+    previewDraft, media, availableCharacterNames, characterAssets, logoUrl, warning
+  } = useThumbnailMedia(draft, assetCatalogRevision);
   useGeneratorWarningToast(
     'jabs-thumbnail-generator-warning',
     warning,
@@ -333,6 +337,15 @@ export function ThumbnailGenerator({ profiles, activeSet, logos, controller, ass
                 value={player.name}
                 onCommit={(name) => controller.setPlayer(index as 0 | 1, { name })}
               />
+              {characterOutfitOptions(player, characterAssets).length > 1 && (
+                <BufferedTextInput
+                  label={t('operator:topEight.sponsor')}
+                  value={player.sponsor ?? ''}
+                  onCommit={(sponsor) => controller.setPlayer(index as 0 | 1, {
+                    sponsor: sponsor || undefined
+                  })}
+                />
+              )}
               <MultiSelect
                 label={t('operator:editor.characters')}
                 value={playerCharacters(player)}
@@ -343,16 +356,26 @@ export function ThumbnailGenerator({ profiles, activeSet, logos, controller, ass
                 data={characters.map((character) => ({ value: character, label: character }))}
                 onChange={(values) => controller.setPlayer(
                   index as 0 | 1,
-                  characterTeamSelection(values)
+                  characterTeamSelection(values, player)
                 )}
               />
-              <BufferedTextInput
-                label={t('operator:topEight.sponsor')}
-                value={player.sponsor ?? ''}
-                onCommit={(sponsor) => controller.setPlayer(index as 0 | 1, {
-                  sponsor: sponsor || undefined
-                })}
+              <CharacterOutfitSelect
+                subject={player}
+                assets={characterAssets}
+                onChange={(characterAssetId) => controller.setPlayer(
+                  index as 0 | 1,
+                  { characterAssetId }
+                )}
               />
+              {characterOutfitOptions(player, characterAssets).length <= 1 && (
+                <BufferedTextInput
+                  label={t('operator:topEight.sponsor')}
+                  value={player.sponsor ?? ''}
+                  onCommit={(sponsor) => controller.setPlayer(index as 0 | 1, {
+                    sponsor: sponsor || undefined
+                  })}
+                />
+              )}
               <DisplayFlagSelect
                 label={t('operator:topEight.displayFlag')}
                 placeholder={t('common:actions.select')}

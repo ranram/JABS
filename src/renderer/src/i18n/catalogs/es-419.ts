@@ -304,6 +304,18 @@ export const es419 = {
       eventAria: "Evento del torneo",
       selectEvent: "Selecciona un evento",
     },
+    moderation: {
+      title: "Excepciones de moderación",
+      description:
+        "Si encuentras un falso positivo real, agrega el valor completo en su propia línea, guarda el archivo y recárgalo aquí. Las entradas solo coinciden con valores exactos y no desactivan la moderación dentro de otros textos.",
+      path: "Archivo:",
+      open: "Editar lista permitida",
+      reload: "Recargar lista",
+      reloaded_one: "Lista de moderación recargada con {{count}} excepción.",
+      reloaded_other: "Lista de moderación recargada con {{count}} excepciones.",
+      openFailed: "JABS no pudo abrir la lista de moderación.",
+      reloadFailed: "JABS no pudo recargar la lista de moderación.",
+    },
     browser: {
       gameProfile: "Perfil de juego para el set",
       assetSlug: "Carpeta de recursos de personajes:",
@@ -394,6 +406,9 @@ export const es419 = {
       characters: "Personajes",
       notShown: "No mostrar",
       unavailableCharacter: "No disponible: {{character}}",
+      colorOutfit: "Color / atuendo",
+      colorOutfitHelp: "Usa el arte numerado correspondiente del catálogo local.",
+      defaultOutfit: "Predeterminado",
       sponsor: "Patrocinador/equipo",
       state: "Estado / provincia",
       chooseCountryFirst: "Elige primero un país",
@@ -451,6 +466,9 @@ export const es419 = {
       bracketSet: "Set del bracket",
       historyWarning:
         "Este set ya tenía marcador al abrirse, por lo que se desconoce el orden de juegos. Reinicia e ingresa de nuevo el resultado completo para reportar un marcador exacto; de lo contrario solo se enviará G/P.",
+      charactersFor: "Personajes · {{player}}",
+      characterHelp:
+        "Elige los personajes antes de sumar la victoria del juego. Deja este campo vacío para no reportar ningún personaje.",
       resultCheck: "Comprobación del resultado",
       winner: "{{winner}} gana {{winnerScore}}–{{loserScore}}",
       reporting: "Reportando…",
@@ -532,6 +550,8 @@ export const es419 = {
         "Solo se puede reportar G/P porque este set comenzó con marcadores pero sin un orden de juegos registrado.\n",
       reportExactSuccess:
         "{{winner}} y el marcador {{winnerScore}}–{{loserScore}} se reportaron en start.gg.",
+      characterSelectionsReported:
+        "Selecciones de personaje incluidas: {{count}}.",
       reportWinnerSuccess:
         "{{winner}} se reportó como ganador en start.gg. El marcador no se envió porque no había un orden de juegos confiable.",
       selectorRefreshFailed:
