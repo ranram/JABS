@@ -1,0 +1,79 @@
+.custom-scoreboard-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  container-type: inline-size;
+  color: var(--custom-text);
+  font-family: "JABS Bebas Neue", Impact, sans-serif;
+}
+
+.custom-scoreboard-canvas:focus-visible {
+  outline: max(2px, 0.12cqw) solid #d9ff43;
+  outline-offset: min(-2px, -0.12cqw);
+}
+
+.custom-scoreboard-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.custom-scoreboard-region {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  touch-action: none;
+}
+
+.custom-scoreboard-region.is-editing {
+  outline: max(1px, 0.1cqw) dashed #d9ff43;
+  outline-offset: max(1px, 0.08cqw);
+  background: rgb(217 255 67 / 10%);
+  cursor: move;
+}
+
+.custom-scoreboard-editing-boundary {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  width: 50%;
+  height: 23.148%;
+  border: max(1px, 0.08cqw) dashed rgb(217 255 67 / 55%);
+  pointer-events: none;
+}
+
+.custom-scoreboard-editing-boundary.is-one { left: 0; }
+.custom-scoreboard-editing-boundary.is-two { right: 0; }
+.custom-scoreboard-editing-boundary.is-bottom {
+  inset: auto 0 0;
+  width: 100%;
+  height: 27.778%;
+}
+
+.custom-scoreboard-element {
+  overflow: hidden;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.custom-scoreboard-element.is-flag {
+  overflow: hidden;
+  border: 0.08cqw solid currentColor;
+  font-size: var(--custom-meta-size);
+}
+
+.custom-scoreboard-element.is-flag img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.custom-scoreboard-element.is-name { font-size: var(--custom-name-size); font-weight: 800; }
+.custom-scoreboard-element.is-meta { font-size: var(--custom-meta-size); }
+.custom-scoreboard-element.is-score { font-size: var(--custom-score-size); font-weight: 800; }
+.custom-scoreboard-context { font-size: var(--custom-context-size); line-height: 1; }
+.custom-scoreboard-logo img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+.custom-scoreboard-canvas.outline-soft { text-shadow: 0 0.08cqw 0.18cqw rgb(0 0 0 / 75%); }
+.custom-scoreboard-canvas.outline-strong { text-shadow: -0.08cqw -0.08cqw #000, 0.08cqw -0.08cqw #000, -0.08cqw 0.08cqw #000, 0.08cqw 0.08cqw #000; }

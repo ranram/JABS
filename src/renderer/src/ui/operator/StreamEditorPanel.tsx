@@ -1,8 +1,6 @@
 import {
   Accordion,
   Badge,
-  Box,
-  Button,
   Checkbox,
   Group,
   Paper,
@@ -21,12 +19,12 @@ import { MediaFolderControls } from './MediaFolderControls';
 import { emptyToUndefined, sortByLabel } from './operatorUtils';
 import { BufferedTextInput } from './BufferedTextInput';
 import { maxCharactersForGame } from '@shared/characterTeams';
+import { useCustomScoreboardManifest } from '../../hooks/useCustomScoreboard';
 
 type BroadcastPatch = Partial<NonNullable<SelectedSetState['broadcast']>>;
 
 type StreamEditorPanelProps = {
   draft: SelectedSetState;
-  selectedSet: SelectedSetState;
   profiles: GameProfile[];
   countries: CountryOption[];
   logos: LogoAsset[];
@@ -36,16 +34,13 @@ type StreamEditorPanelProps = {
   dirty: boolean;
   saving: boolean;
   blocked: boolean;
-  loading: boolean;
   onPatch(patch: Partial<SelectedSetState>): void;
   onChangeStyling(gameId: GameId): void;
   onPatchBroadcast(patch: BroadcastPatch): void;
-  onReload(): void;
 };
 
 export function StreamEditorPanel({
   draft,
-  selectedSet,
   profiles,
   countries,
   logos,
@@ -55,20 +50,38 @@ export function StreamEditorPanel({
   dirty,
   saving,
   blocked,
-  loading,
   onPatch,
   onChangeStyling,
-  onPatchBroadcast,
-  onReload
+  onPatchBroadcast
 }: StreamEditorPanelProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
   const locale = i18n.resolvedLanguage ?? i18n.language;
+  const customScoreboard = useCustomScoreboardManifest(
+    draft.customScoreboardId,
+    draft.customScoreboardRevision
+  );
+  const customStyleValue = draft.customScoreboardId
+    ? `custom-scoreboard:${draft.customScoreboardId}`
+    : undefined;
   const profileOptions = useMemo(
-    () => sortByLabel(profiles, (profile) => profile.styleName, locale).map((profile) => ({
-      value: profile.id,
-      label: profile.styleName
-    })),
-    [profiles, locale]
+    () => {
+      const options: Array<{ value: string; label: string }> = sortByLabel(
+        profiles,
+        (profile) => profile.styleName,
+        locale
+      ).map((profile) => ({
+        value: profile.id,
+        label: profile.styleName
+      }));
+      if (customStyleValue) options.unshift({
+        value: customStyleValue,
+        label: customScoreboard?.name
+          ? `${t('operator:workspaces.customScoreboard')} · ${customScoreboard.name}`
+          : t('operator:workspaces.customScoreboard')
+      });
+      return options;
+    },
+    [profiles, locale, customStyleValue, customScoreboard?.name, t]
   );
   const logoOptions = useMemo(
     () => sortByLabel(logos, (logo) => logo.label, locale).map((logo) => ({
@@ -117,13 +130,18 @@ export function StreamEditorPanel({
             data-testid="editor-game"
             label={t('operator:editor.styling')}
             data={profileOptions}
-            value={draft.stylingGameId ?? draft.gameId}
+            value={customStyleValue ?? draft.stylingGameId ?? draft.gameId}
             searchable
             allowDeselect={false}
-            onChange={(value) => value && onChangeStyling(value as GameId)}
+            onChange={(value) => value && !value.startsWith('custom-scoreboard:')
+              && onChangeStyling(value as GameId)}
           />
         </SimpleGrid>
-        <Accordion variant="contained" radius="md" data-testid="broadcast-extras">
+        <Accordion
+          variant="contained"
+          radius="md"
+          data-testid="broadcast-extras"
+        >
           <Accordion.Item value="broadcast-extras">
             <Accordion.Control>
               <Group justify="space-between" pr="md">
@@ -191,9 +209,7 @@ export function StreamEditorPanel({
                   />
                 </SimpleGrid>
                 <Text size="xs" c="dimmed">{t('operator:broadcast.logoHint')}</Text>
-                <Box>
-                  <MediaFolderControls kind="tourney-logos" label={t('operator:broadcast.tournamentLogosFolder')} />
-                </Box>
+                <MediaFolderControls kind="tourney-logos" label={t('operator:broadcast.tournamentLogosFolder')} />
               </Stack>
             </Accordion.Panel>
           </Accordion.Item>
@@ -261,13 +277,6 @@ export function StreamEditorPanel({
             onChange={changePlayerTwo}
           />
         </div>
-        <Group className="editor-actions">
-          {selectedSet.setId && (
-            <Button data-testid="reload-startgg-set" variant="subtle" disabled={loading || dirty || saving} onClick={onReload}>
-              {t('operator:editor.reload')}
-            </Button>
-          )}
-        </Group>
       </Stack>
     </Paper>
   );

@@ -1,6 +1,7 @@
 mod local_server;
 mod catalogs;
 mod commentators;
+mod custom_scoreboards;
 mod result_screen;
 mod versus_screen;
 mod database;
@@ -244,6 +245,7 @@ pub fn run() {
             } else {
                 app_data_dir.join("game-assets")
             };
+            let custom_scoreboard_directory = app_data_dir.join("custom-scoreboards");
             // All user-media catalogs follow the same convention: app-data in
             // packaged builds, repository root in development. The bundled
             // reviewed logo catalog is seeded into the user-writable location
@@ -260,7 +262,12 @@ pub fn run() {
             std::fs::create_dir_all(&sponsor_directory)?;
             std::fs::create_dir_all(&player_photo_directory)?;
             std::fs::create_dir_all(&game_asset_directory)?;
-            let moderation_allowlist_path = app_data_dir.join("moderation-allowlist.txt");
+            std::fs::create_dir_all(&custom_scoreboard_directory)?;
+            let moderation_allowlist_path = if cfg!(debug_assertions) {
+                development_root.join("moderation-allowlist.txt")
+            } else {
+                app_data_dir.join("moderation-allowlist.txt")
+            };
             if let Err(error) =
                 moderation::initialize_runtime_allowlist(moderation_allowlist_path.clone())
             {
@@ -272,6 +279,7 @@ pub fn run() {
                 sponsor_directory,
                 player_photo_directory,
                 game_asset_directory,
+                custom_scoreboard_directory,
                 moderation_allowlist_path,
             ).map_err(std::io::Error::other)?);
             secrets::initialize(&runtime);

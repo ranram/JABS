@@ -73,6 +73,8 @@ export const selectedSetStateSchema = z.object({
     (value) => (typeof value === 'string' ? canonicalGameId(value) ?? value : value),
     z.enum(gameIds).optional()
   ),
+    customScoreboardId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/).optional(),
+    customScoreboardRevision: z.string().min(1).max(64).optional(),
   assetCatalogSlug: z.string().refine(
     isSafeGameAssetCatalogSlug,
     'Choose a valid local game asset catalog.'

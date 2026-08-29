@@ -66,6 +66,10 @@ pub struct SelectedSet {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub styling_game_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_scoreboard_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_scoreboard_revision: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub asset_catalog_slug: Option<String>,
     pub best_of: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -411,6 +415,8 @@ fn default_state() -> OverlayState {
             game_id: "street-fighter-6".to_owned(),
             game_name: Some("Street Fighter 6".to_owned()),
             styling_game_id: Some("street-fighter-6".to_owned()),
+            custom_scoreboard_id: None,
+            custom_scoreboard_revision: None,
             asset_catalog_slug: Some("street-fighter-6".to_owned()),
             best_of: 3,
             broadcast: Some(BroadcastPresentation {
@@ -491,6 +497,16 @@ fn validate_state(state: &OverlayState) -> Result<(), String> {
         !is_supported_game_id(game_id)
     }) {
         return Err("Choose a recognized Styling game profile.".to_owned());
+    }
+    if selected_set.custom_scoreboard_id.as_deref().is_some_and(|id| {
+        !crate::custom_scoreboards::valid_id(id)
+    }) {
+        return Err("Choose a valid custom scoreboard.".to_owned());
+    }
+    if selected_set.custom_scoreboard_revision.as_deref().is_some_and(|revision| {
+        revision.trim().is_empty() || revision.len() > 64
+    }) {
+        return Err("Choose a valid custom scoreboard revision.".to_owned());
     }
     if selected_set.asset_catalog_slug.as_deref().is_some_and(|slug| {
         !crate::catalogs::valid_game_asset_catalog_slug(slug)

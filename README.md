@@ -12,6 +12,7 @@ Your token, stream settings, and local media stay on your computer. JABS sends a
 - Update scores and player details while OBS follows the changes.
 - Report a completed set to start.gg after confirmation.
 - Show score, versus, winner, champion, and commentator overlays.
+- Import a custom scoreboard frame and position its live match details.
 - Create downloadable Top 8 graphics and YouTube thumbnails.
 - Use your own character art, player photos, sponsor logos, and tournament logos.
 
@@ -142,6 +143,8 @@ JABS matches local files by their filenames. PNG, JPEG, and WebP are supported.
 | Tournament logo | `tourney-logos/` | Chosen from JABS |
 
 The README inside each folder explains its filename rules. Only use media you have permission to display or redistribute.
+
+Character colors and outfits can share one character entry by adding numbers to their filenames, such as `Mario-1.png` and `Mario-2.png`. See [Game artwork](game-assets/README.md) for the full naming guide. Use **Reload assets** after adding or replacing local media; JABS does not need to restart.
 
 ## Languages
 

@@ -572,6 +572,8 @@ pub async fn selected_set(
         game_id: input.game_id.to_owned(),
         game_name,
         styling_game_id: Some(input.game_id.to_owned()),
+        custom_scoreboard_id: None,
+        custom_scoreboard_revision: None,
         asset_catalog_slug: input.asset_catalog_slug.map(str::to_owned),
         best_of,
         broadcast: Some(BroadcastPresentation {

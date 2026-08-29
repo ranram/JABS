@@ -11,6 +11,7 @@ coverage
 jabs.sqlite
 jabs.sqlite-*
 .startgg-test-token
+moderation-allowlist.txt
 
 # User-provided media catalogs stay local. Commit only their usage notes.
 game-assets/*/characters/

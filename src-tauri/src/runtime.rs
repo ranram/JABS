@@ -18,6 +18,7 @@ pub struct RuntimeState {
     pub sponsor_directory: PathBuf,
     pub player_photo_directory: PathBuf,
     pub game_asset_directory: PathBuf,
+    pub custom_scoreboard_directory: PathBuf,
     pub moderation_allowlist_path: PathBuf,
     pub reporting_set_id: tokio::sync::Mutex<Option<String>>,
 }
@@ -29,6 +30,7 @@ impl RuntimeState {
         sponsor_directory: PathBuf,
         player_photo_directory: PathBuf,
         game_asset_directory: PathBuf,
+        custom_scoreboard_directory: PathBuf,
         moderation_allowlist_path: PathBuf,
     ) -> Result<Self, String> {
         let overlay = OverlayStore::load(&database)?;
@@ -49,6 +51,7 @@ impl RuntimeState {
             sponsor_directory,
             player_photo_directory,
             game_asset_directory,
+            custom_scoreboard_directory,
             moderation_allowlist_path,
             reporting_set_id: tokio::sync::Mutex::new(None),
         })

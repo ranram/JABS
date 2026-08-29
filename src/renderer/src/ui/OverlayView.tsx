@@ -20,6 +20,8 @@ import { selectedCharacterAssetId } from '@shared/characterAssets';
 import { loadCharacterPortraits, type CharacterPortrait } from '../characterPortraits';
 import { CharacterPortraitStrip } from './CharacterPortraitStrip';
 import { BroadcastLayer, MatchChip } from './ScoreOverlayContext';
+import { CustomScoreboardCanvas } from './CustomScoreboardCanvas';
+import { useCustomScoreboard } from '../hooks/useCustomScoreboard';
 import './commentatorOverlay.css';
 import './operator/generatorFonts.css';
 
@@ -84,6 +86,10 @@ function MatchOverlayView() {
   const profile = resolveGameProfile(presentation.gameId);
   const Template = overlayTemplates[presentation.template];
   const logoUrl = useLogoAssetUrl(selectedSet?.broadcast?.logoAssetId);
+  const customScoreboard = useCustomScoreboard(
+    selectedSet?.customScoreboardId,
+    selectedSet?.customScoreboardRevision
+  );
   const playerMedia = usePlayerMediaUrls(selectedSet, Boolean(announcementSurface));
 
   if (!selectedSet) {
@@ -102,6 +108,24 @@ function MatchOverlayView() {
         playerMedia={playerMedia}
         reconnecting={Boolean(error)}
       />
+    );
+  }
+
+  if (customScoreboard.scoreboard && customScoreboard.frameUrl) {
+    return (
+      <main className="overlay" data-custom-scoreboard-id={customScoreboard.scoreboard.id}>
+        <CustomScoreboardCanvas
+          scoreboard={customScoreboard.scoreboard}
+          frameUrl={customScoreboard.frameUrl}
+          selectedSet={selectedSet}
+          logoUrl={logoUrl}
+        />
+        {error && (
+          <div className="overlay-connection-status" role="status">
+            {t('common:status.reconnecting')}
+          </div>
+        )}
+      </main>
     );
   }
 

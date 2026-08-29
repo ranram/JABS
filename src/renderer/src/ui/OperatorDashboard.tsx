@@ -2,7 +2,6 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import { useTranslation } from 'react-i18next';
 import {
   gameIdForStartggVideogame,
-  type GameId,
   type GameProfile
 } from '@shared/gameProfiles';
 import { gameAssetCatalogSlug } from '@shared/gameAssetCatalog';
@@ -24,6 +23,7 @@ import { SetSelectorPanel } from './operator/SetSelectorPanel';
 import { StreamEditorPanel } from './operator/StreamEditorPanel';
 import { LiveControlsPanel } from './operator/LiveControlsPanel';
 import { StartggPanel } from './operator/StartggPanel';
+import { automaticScoreboardSelection, customScoreboardSelection } from '../customScoreboardSelection';
 import { useBracketBrowser } from './operator/useBracketBrowser';
 import { useQuickScoreActions } from './operator/useQuickScoreActions';
 import { OperatorTopbar } from './operator/OperatorTopbar';
@@ -95,11 +95,11 @@ export function OperatorDashboard() {
   } = browser;
 
   useEffect(() => {
-    void Promise.all([api.gameProfiles(), api.countries(), api.logos(), api.tokenStatus(), api.recentTournaments(), api.health()])
-      .then(([profileResponse, countryResponse, logoResponse, tokenStatus, recentResponse, health]) => {
+    void api.logos().then(({ logos }) => setLogos(logos)).catch(() => undefined);
+    void Promise.all([api.gameProfiles(), api.countries(), api.tokenStatus(), api.recentTournaments(), api.health()])
+      .then(([profileResponse, countryResponse, tokenStatus, recentResponse, health]) => {
         setProfiles(profileResponse.profiles);
         setCountries(countryResponse.countries);
-        setLogos(logoResponse.logos);
         setTokenConfigured(tokenStatus.configured);
         setTokenStorageAvailable(tokenStatus.storageAvailable);
         setTokenSessionOnly(tokenStatus.sessionOnly);
@@ -327,11 +327,6 @@ export function OperatorDashboard() {
     );
   }
 
-  function changeDraftStyling(stylingGameId: GameId) {
-    if (!draft) return;
-    patchDraft({ stylingGameId });
-  }
-
   function patchBroadcast(patch: Partial<NonNullable<SelectedSetState['broadcast']>>) {
     if (!draft) return;
     patchDraft({
@@ -535,6 +530,7 @@ export function OperatorDashboard() {
         logos={logos}
         loading={loading}
         reloadingAssets={reloadingAssets}
+        reloadSelectedSetDisabled={!selectedSet?.setId || loading || draftDirty || draftSaving}
         assetCatalogRevision={assetCatalogRevision}
         countries={countries}
         onReloadAssets={() => void reloadAssets()}
@@ -553,6 +549,11 @@ export function OperatorDashboard() {
         onLoadPhaseGroups={(page) => void loadPhaseGroups(page)}
         onBrowseAllSets={() => void browseAllEventSets()}
         onRefreshScope={(scope) => void loadSets(scope, 1)}
+        onReloadSelectedSet={() => void reloadSelectedSetFromStartgg()}
+        onCustomScoreboard={(id, revision) => draft
+          ? patchDraft(customScoreboardSelection(id, revision))
+          : setMessage(t('operator:customScoreboard.loadSetFirst'))}
+        onMessage={setMessage}
       >
       {selectedSet && draft && (
         <section className="grid-layout wide">
@@ -584,7 +585,6 @@ export function OperatorDashboard() {
 
           <StreamEditorPanel
             draft={draft}
-            selectedSet={selectedSet}
             profiles={profiles}
             countries={countries}
             logos={logos}
@@ -594,11 +594,9 @@ export function OperatorDashboard() {
             dirty={draftDirty}
             saving={draftSaving}
             blocked={draftBlocked}
-            loading={loading}
             onPatch={patchDraft}
-            onChangeStyling={changeDraftStyling}
+            onChangeStyling={(gameId) => patchDraft(automaticScoreboardSelection(gameId))}
             onPatchBroadcast={patchBroadcast}
-            onReload={() => void reloadSelectedSetFromStartgg()}
           />
 
           <LiveControlsPanel

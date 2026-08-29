@@ -36,7 +36,8 @@ import { useThumbnailDraft } from './useThumbnailDraft';
 import { TopEightGenerator } from './TopEightGenerator';
 import { useTopEightDraft } from './useTopEightDraft';
 import { generatorGameContext } from './generatorGameContext';
-import { ModerationAllowlistControls } from './ModerationAllowlistControls';
+import { CustomScoreboardPanel } from './CustomScoreboardPanel';
+import { WorkspaceMaintenanceBar } from './WorkspaceMaintenanceBar';
 
 type StartggPanelProps = {
   tokenInputRef: RefObject<HTMLInputElement | null>;
@@ -65,6 +66,7 @@ type StartggPanelProps = {
   logos: LogoAsset[];
   loading: boolean;
   reloadingAssets: boolean;
+  reloadSelectedSetDisabled: boolean;
   assetCatalogRevision: number;
   countries: CountryOption[];
   onReloadAssets(): void;
@@ -83,6 +85,9 @@ type StartggPanelProps = {
   onLoadPhaseGroups(page: number): void;
   onBrowseAllSets(): void;
   onRefreshScope(scope: StartggSetScope): void;
+  onReloadSelectedSet(): void;
+  onCustomScoreboard(scoreboardId?: string, revision?: string): void;
+  onMessage(message: string): void;
   children?: ReactNode;
 };
 
@@ -113,6 +118,7 @@ export function StartggPanel({
   logos,
   loading,
   reloadingAssets,
+  reloadSelectedSetDisabled,
   assetCatalogRevision,
   countries,
   onReloadAssets,
@@ -131,6 +137,9 @@ export function StartggPanel({
   onLoadPhaseGroups,
   onBrowseAllSets,
   onRefreshScope,
+  onReloadSelectedSet,
+  onCustomScoreboard,
+  onMessage,
   children
 }: StartggPanelProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
@@ -249,31 +258,30 @@ export function StartggPanel({
               ))}
             </Group>
           )}
-          <Group gap="xs">
-            <Button data-testid="clear-startgg-cache" variant="subtle" color="red" size="compact-sm" disabled={loading} onClick={onClearCache}>
-              {t('operator:startgg.clearCache')}
-            </Button>
-            <Text size="xs" c="dimmed">{t('operator:startgg.activeStateStays')}</Text>
-          </Group>
         </Stack>
       </SimpleGrid>
-      <ModerationAllowlistControls />
     </Paper>
 
     <Tabs className="operator-workspaces" defaultValue="bracket" keepMounted={false} mt="md">
-      <Tabs.List aria-label={t('operator:workspaces.aria')}
-        style={{ 
-          position: 'sticky', 
-          top: 0, 
-          zIndex: 10, 
-          backgroundColor: 'var(--mantine-color-body)' // Prevents overlapping content from showing underneath
-        }}
-      >
-        <Tabs.Tab value="bracket">{t('operator:workspaces.bracket')}</Tabs.Tab>
-        <Tabs.Tab value="overlays">{t('operator:workspaces.otherOverlays')}</Tabs.Tab>
-        <Tabs.Tab value="top-eight">{t('operator:workspaces.topEight')}</Tabs.Tab>
-        <Tabs.Tab value="thumbnail">{t('operator:workspaces.thumbnail')}</Tabs.Tab>
-      </Tabs.List>
+      <div className="workspace-sticky-header">
+        <Tabs.List aria-label={t('operator:workspaces.aria')}>
+          <Tabs.Tab value="bracket">{t('operator:workspaces.bracket')}</Tabs.Tab>
+          <Tabs.Tab value="custom-scoreboard">{t('operator:workspaces.customScoreboard')}</Tabs.Tab>
+          <Tabs.Tab value="overlays">{t('operator:workspaces.otherOverlays')}</Tabs.Tab>
+          <Tabs.Tab value="top-eight">{t('operator:workspaces.topEight')}</Tabs.Tab>
+          <Tabs.Tab value="thumbnail">{t('operator:workspaces.thumbnail')}</Tabs.Tab>
+        </Tabs.List>
+        <WorkspaceMaintenanceBar
+          loading={loading}
+          reloadingAssets={reloadingAssets}
+          reloadSelectedSetDisabled={reloadSelectedSetDisabled}
+          setScope={setScope}
+          onReloadAssets={onReloadAssets}
+          onReloadBracketData={onRefreshScope}
+          onReloadSelectedSet={onReloadSelectedSet}
+          onClearCache={onClearCache}
+        />
+      </div>
 
       <Tabs.Panel value="bracket" pt="md">
         <Paper className="panel bracket-workspace" p="md" radius="lg" withBorder>
@@ -305,9 +313,6 @@ export function StartggPanel({
             label={t('operator:browser.assetSlug')}
             subpath={`${assetCatalogSlug}/characters`}
           />
-          <Button variant="default" size="compact-sm" loading={reloadingAssets} onClick={onReloadAssets}>
-            {t('operator:browser.reloadAssets')}
-          </Button>
         </Group>
       )}
 
@@ -383,18 +388,20 @@ export function StartggPanel({
             <Button variant="default" disabled={loading} onClick={onBrowseAllSets}>
               {t('operator:browser.allEventSets')}
             </Button>
-            <Button
-              variant="default"
-              disabled={loading || !setScope}
-              onClick={() => setScope && onRefreshScope(setScope)}
-            >
-              {t('operator:browser.refresh')}
-            </Button>
           </Group>
         </div>
       )}
         </Paper>
         {children}
+      </Tabs.Panel>
+
+      <Tabs.Panel value="custom-scoreboard" pt="md">
+        <CustomScoreboardPanel
+          activeSet={activeSet}
+          activeScoreboardId={activeSet?.customScoreboardId}
+          onSelect={onCustomScoreboard}
+          onMessage={onMessage}
+        />
       </Tabs.Panel>
 
       <Tabs.Panel value="overlays" pt="md">

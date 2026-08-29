@@ -1,10 +1,10 @@
 use axum::{
-    body::Body,
+    body::{Body, Bytes},
     Json, Router,
-    extract::{Path as AxumPath, Query, State, WebSocketUpgrade, ws::{Message, WebSocket}},
+    extract::{DefaultBodyLimit, Path as AxumPath, Query, State, WebSocketUpgrade, ws::{Message, WebSocket}},
     http::{HeaderMap, HeaderValue, Method, StatusCode, Uri, header},
     response::{IntoResponse, Response},
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
 };
 use futures_util::StreamExt;
 use serde::Serialize;
@@ -79,6 +79,18 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .route("/api/assets/game-characters", get(game_character_assets))
         .route("/assets/game-characters/{game_id}/{asset_id}", get(game_character_asset))
         .route("/assets/game-character-portraits/{game_id}/{asset_id}", get(game_character_portrait))
+        .route("/api/custom-scoreboards", get(custom_scoreboards))
+        .route(
+            "/api/custom-scoreboards/import",
+            post(import_custom_scoreboard).layer(DefaultBodyLimit::max(
+                crate::custom_scoreboards::MAX_FRAME_BYTES,
+            )),
+        )
+        .route(
+            "/api/custom-scoreboards/{scoreboard_id}",
+            put(update_custom_scoreboard).delete(delete_custom_scoreboard),
+        )
+        .route("/assets/custom-scoreboards/{scoreboard_id}/frame", get(custom_scoreboard_frame))
         .route("/api/locations/countries", get(countries))
         .route("/api/locations/states", get(states))
         .route("/api/startgg/events", get(startgg_events))
@@ -343,6 +355,101 @@ async fn game_character_portrait(
         &asset_id,
     );
     serve_resolved_raster(resolved, "Character portrait").await
+}
+
+#[derive(Deserialize)]
+struct CustomScoreboardImportQuery {
+    name: String,
+}
+
+async fn custom_scoreboards(State(runtime): State<Arc<RuntimeState>>) -> Response {
+    match crate::custom_scoreboards::list(&runtime.custom_scoreboard_directory) {
+        Ok(scoreboards) => secure_json(Json(serde_json::json!({ "scoreboards": scoreboards }))),
+        Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+            "error": error
+        })))),
+    }
+}
+
+async fn import_custom_scoreboard(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+    Query(query): Query<CustomScoreboardImportQuery>,
+    body: Bytes,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    match crate::custom_scoreboards::import(
+        &runtime.custom_scoreboard_directory,
+        &query.name,
+        &body,
+    ) {
+        Ok(scoreboard) => secure_json((StatusCode::CREATED, Json(scoreboard))),
+        Err(error) => secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({
+            "error": error
+        })))),
+    }
+}
+
+async fn update_custom_scoreboard(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+    AxumPath(scoreboard_id): AxumPath<String>,
+    Json(scoreboard): Json<crate::custom_scoreboards::CustomScoreboard>,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    if scoreboard.id != scoreboard_id {
+        return secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({
+            "error": "The custom scoreboard ID cannot be changed."
+        }))));
+    }
+    match crate::custom_scoreboards::save(&runtime.custom_scoreboard_directory, scoreboard.clone()) {
+        Ok(()) => secure_json(Json(scoreboard)),
+        Err(error) => secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({
+            "error": error
+        })))),
+    }
+}
+
+async fn delete_custom_scoreboard(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+    AxumPath(scoreboard_id): AxumPath<String>,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    match crate::custom_scoreboards::delete(&runtime.custom_scoreboard_directory, &scoreboard_id) {
+        Ok(()) => secure_json(Json(serde_json::json!({ "deleted": true }))),
+        Err(error) => secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({
+            "error": error
+        })))),
+    }
+}
+
+async fn custom_scoreboard_frame(
+    State(runtime): State<Arc<RuntimeState>>,
+    AxumPath(scoreboard_id): AxumPath<String>,
+) -> Response {
+    let Some(path) = crate::custom_scoreboards::frame_path(
+        &runtime.custom_scoreboard_directory,
+        &scoreboard_id,
+    ) else {
+        return secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({
+            "error": "Custom scoreboard image not found."
+        }))));
+    };
+    let Ok(bytes) = tokio::fs::read(path).await else {
+        return secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({
+            "error": "Custom scoreboard image not found."
+        }))));
+    };
+    let mut response = Response::new(Body::from(bytes));
+    response.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("image/png"));
+    secure_json(response)
 }
 
 async fn catalog_raster_asset(
@@ -657,6 +764,8 @@ fn retain_broadcast_extras(
     current: &crate::state::SelectedSet,
 ) {
     fresh.broadcast = current.broadcast.clone();
+    fresh.custom_scoreboard_id = current.custom_scoreboard_id.clone();
+    fresh.custom_scoreboard_revision = current.custom_scoreboard_revision.clone();
     if current.set_id == fresh.set_id {
         fresh.styling_game_id = current.styling_game_id.clone();
     }

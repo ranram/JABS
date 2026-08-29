@@ -115,6 +115,9 @@ export type SelectedSetState = {
   gameId: GameId;
   gameName?: string;
   stylingGameId?: GameId;
+  /** Game-agnostic scoreboard artwork and layout selected from the native catalog. */
+  customScoreboardId?: string;
+  customScoreboardRevision?: string;
   assetCatalogSlug?: string;
   bestOf: number;
   broadcast?: BroadcastPresentation;

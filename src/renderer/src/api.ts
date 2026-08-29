@@ -29,6 +29,11 @@ import { commentatorStateSchema, type CommentatorState } from '@shared/commentat
 import { resultScreenStateSchema, type ResultScreenState } from '@shared/resultScreen';
 import { versusScreenStateSchema, type VersusScreenState } from '@shared/versusScreen';
 import { overlayStateSchema } from '@shared/overlayState';
+import {
+  customScoreboardListSchema,
+  customScoreboardSchema,
+  type CustomScoreboard
+} from '@shared/customScoreboards';
 import { gameProfiles as gameProfileCatalog } from '@shared/gameProfiles';
 import { withJsonBodyHeaders } from './requestInit';
 import { BoundedPromiseCache } from './boundedPromiseCache';
@@ -72,13 +77,15 @@ async function resolveApiBase(): Promise<string> {
 
 const apiBasePromise = resolveApiBase();
 const catalogRasterUrls = new BoundedPromiseCache<string>(96);
+const customScoreboardFrameUrls = new BoundedPromiseCache<string>(4);
 
 export function invalidateCatalogRasterCache(): void {
   catalogRasterUrls.clear();
+  customScoreboardFrameUrls.clear();
 }
 
-async function catalogRasterUrl(path: string): Promise<string> {
-  return catalogRasterUrls.getOrCreate(path, async () => {
+async function cachedRasterUrl(cache: BoundedPromiseCache<string>, path: string): Promise<string> {
+  return cache.getOrCreate(path, async () => {
     const apiBase = await apiBasePromise;
     const response = await fetch(`${apiBase}${path}`);
     if (!response.ok) {
@@ -90,6 +97,10 @@ async function catalogRasterUrl(path: string): Promise<string> {
     }
     return blobDataUrl(await response.blob());
   });
+}
+
+async function catalogRasterUrl(path: string): Promise<string> {
+  return cachedRasterUrl(catalogRasterUrls, path);
 }
 
 window.addEventListener('pagehide', invalidateCatalogRasterCache, { once: true });
@@ -258,6 +269,28 @@ export const api = {
   gameCharacterPortraitUrl: (gameId: string, assetId: string) =>
     catalogRasterUrl(
       `/assets/game-character-portraits/${encodeURIComponent(gameId)}/${encodeURIComponent(assetId)}`
+    ),
+  customScoreboards: () => request(
+    '/api/custom-scoreboards', undefined, { decoder: customScoreboardListSchema }
+  ),
+  importCustomScoreboard: (name: string, file: File) => request<CustomScoreboard>(
+    `/api/custom-scoreboards/import?name=${encodeURIComponent(name)}`,
+    { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: file },
+    { decoder: customScoreboardSchema }
+  ),
+  updateCustomScoreboard: (scoreboard: CustomScoreboard) => request<CustomScoreboard>(
+    `/api/custom-scoreboards/${encodeURIComponent(scoreboard.id)}`,
+    { method: 'PUT', body: JSON.stringify(scoreboard) },
+    { decoder: customScoreboardSchema }
+  ),
+  deleteCustomScoreboard: (scoreboardId: string) => request<{ deleted: true }>(
+    `/api/custom-scoreboards/${encodeURIComponent(scoreboardId)}`,
+    { method: 'DELETE' }
+  ),
+  customScoreboardFrameUrl: (scoreboard: Pick<CustomScoreboard, 'id'>) =>
+    cachedRasterUrl(
+      customScoreboardFrameUrls,
+      `/assets/custom-scoreboards/${encodeURIComponent(scoreboard.id)}/frame`
     ),
   countries: () => request<{ countries: CountryOption[] }>('/api/locations/countries'),
   states: (country: string) =>

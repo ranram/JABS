@@ -44,6 +44,19 @@ JABS normally detects the game. If the game is not recognized, choose a **Game p
 
 **Styling** changes colors and presentation only. It does not change the event's game, character list, or reporting rules.
 
+### Utility bar
+
+The utility bar stays below the main tabs while you scroll:
+
+- **Edit allowlist** opens your local moderation exceptions.
+- **Reload allowlist** applies saved exceptions.
+- **Reload assets** rescans artwork, photos, and logos.
+- **Refresh set selector** fetches the latest sets for the current filters.
+- **Reload bracket data** refreshes the set sent to stream.
+- **Clear bracket cache & history** is a recovery action for stale bracket data.
+
+Hover over any of these buttons for a short description.
+
 ## 3. Find a set
 
 Use these optional filters:
@@ -97,7 +110,7 @@ If text is rejected:
 - The text remains available for correction.
 - **Not sent to OBS** confirms viewers did not receive it.
 
-If JABS blocks a legitimate tag or sponsor, open **Moderation exceptions** near the start.gg connection area. Choose **Edit allowlist**, add the complete value on its own line, and save the file. Then choose **Reload allowlist**. Matching ignores capitalization but applies only to the complete field value, so allowing one tag does not weaken checks inside other text.
+If JABS blocks a legitimate tag or sponsor, choose **Edit allowlist** in the utility bar below the main tabs. Add the complete value on its own line and save the file. Then choose **Reload allowlist**. Matching ignores capitalization but applies only to the complete field value, so allowing one tag does not weaken checks inside other text.
 
 ### Match details
 
@@ -131,7 +144,7 @@ Open the accordion to enable:
 
 ### Reload bracket data
 
-Use this when you want the newest start.gg names, scores, round, station, and detected game. It keeps your current Styling and broadcast extras.
+Use **Reload bracket data** in the utility bar when you want the newest start.gg names, scores, round, station, and detected game. It keeps your current Styling and broadcast extras.
 
 ## 6. Score and report the streamed set
 
@@ -168,7 +181,23 @@ If OBS loaded while JABS was closed, open JABS and use **Refresh cache of curren
 
 The Winner source stays empty until the active set has a winner. It automatically uses the Champion presentation when the bracket context confirms a champion.
 
-## 8. Other Overlays
+## 8. Use a custom scoreboard
+
+The **Custom Scoreboard** tab lets you place JABS match information over your own scoreboard artwork.
+
+1. Send a set to stream.
+2. Prepare a transparent PNG that is exactly `1920×1080` and no larger than 20 MiB.
+3. Enter a name, choose the PNG, and select **Import scoreboard**.
+4. Choose the item you want to adjust, such as a player name, score, flag, round, logo, or lower rail.
+5. Drag the selected item in the preview, or use the arrow keys. Hold Shift for larger steps.
+6. Choose which details to show and adjust their alignment, size, color, or outline.
+7. Select **Save layout**. If the scoreboard is not already active, choose **Use in OBS**.
+
+Player details remain within their side of the top scoreboard area. Tournament logos and lower rails remain within the bottom area. These limits keep text from wandering into the middle of the game screen.
+
+The regular active-scoreboard URL does not change. To return to a built-in game layout, choose **Use automatic styling** or select a Styling in **Edit stream state**.
+
+## 9. Other Overlays
 
 Open the **Other Overlays** tab.
 
@@ -208,7 +237,7 @@ Enter the tournament, logo, and both commentator identities. Then choose:
 - **Show persistently**
 - **Hide**
 
-## 9. Add logos, photos, and character art
+## 10. Add logos, photos, and character art
 
 Media sections show the exact folder JABS uses. Choose **Open folder** instead of finding it manually.
 
@@ -233,9 +262,18 @@ game-assets/street-fighter-6/portraits/Elena.webp
 
 For portraits, use a square face or upper-body crop. A 256×256 WebP works well. JABS does not try to detect faces automatically.
 
-Choose **Reload assets** after adding character art or portraits. Restart JABS after adding or renaming tournament logos.
+To add colors or outfits for one character, add a number to each filename:
 
-## 10. Create a Top 8 graphic
+```text
+game-assets/super-smash-bros-ultimate/characters/Mario-1.png
+game-assets/super-smash-bros-ultimate/characters/Mario-2.png
+```
+
+JABS keeps both files under Mario and shows a **Color / outfit** selector. Use the same number in `characters/` and `portraits/` when the images belong together. The [Game artwork guide](game-assets/README.md) lists every supported filename style.
+
+Choose **Reload assets** after adding or replacing any local media, including tournament logos. You do not need to restart JABS.
+
+## 11. Create a Top 8 graphic
 
 Top 8 files download as `1920×1080` PNGs.
 
@@ -257,14 +295,14 @@ Then:
 
 The expected order is first, second, third, fourth, tied fifth, and tied seventh. JABS does not replace your manual draft with incomplete or unusual standings.
 
-## 11. Create a YouTube thumbnail
+## 12. Create a YouTube thumbnail
 
 Thumbnails download as `1280×720` PNGs.
 
 A newly streamed set fills the thumbnail automatically. Choose **Use stream match** to fill it again, or enter both players manually.
 
 1. Choose Styling.
-2. Choose Versus, Spotlight, or Split.
+2. Choose Versus or Spotlight.
 3. Choose Character Art or Player Photos.
 4. Enter the tournament and headline.
 5. Choose logo options.
@@ -272,7 +310,7 @@ A newly streamed set fills the thumbnail automatically. Choose **Use stream matc
 7. Select an image to move or resize it.
 8. Download the PNG.
 
-## 12. Quick fixes
+## 13. Quick fixes
 
 ### Overlay is blank
 
@@ -287,7 +325,7 @@ A newly streamed set fills the thumbnail automatically. Choose **Use stream matc
 - Use PNG, JPEG, or WebP.
 - Check the folder shown by JABS.
 - Match the player, sponsor, or character filename.
-- Reload character assets or restart for a new logo.
+- Choose **Reload assets** after adding or replacing the file.
 
 ### Search is slow
 
@@ -306,9 +344,9 @@ Correct the named field and leave it again. Blocked text was not sent to OBS.
 
 ### Bracket data looks stale
 
-Refresh the current view. Use **Clear bracket cache & history** only as a recovery action. It keeps the active stream state and saved set edits.
+Choose **Refresh set selector**. Use **Clear bracket cache & history** only as a recovery action. It keeps the active stream state and saved set edits.
 
-## 13. End of the event
+## 14. End of the event
 
 1. Check the final bracket on start.gg.
 2. Download the graphics you still need.

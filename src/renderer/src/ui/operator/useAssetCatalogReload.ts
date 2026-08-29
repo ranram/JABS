@@ -16,16 +16,26 @@ export function useAssetCatalogReload({
   const { t } = useTranslation('operator');
   const [reloadingAssets, setReloadingAssets] = useState(false);
   const reloadAssets = useCallback(async () => {
-    if (!assetCatalogSlug || reloadingAssets) return;
+    if (reloadingAssets) return;
     setReloadingAssets(true);
     try {
-      const { logos, counts } = await api.assetCatalogSummary(assetCatalogSlug);
+      let logos: LogoAsset[];
+      let message: string;
+      if (assetCatalogSlug) {
+        const summary = await api.assetCatalogSummary(assetCatalogSlug);
+        logos = summary.logos;
+        message = t('browser.assetsReloaded', summary.counts);
+      } else {
+        const response = await api.logos();
+        logos = response.logos;
+        message = t('browser.logosReloaded', { count: logos.length });
+      }
       invalidateCatalogRasterCache();
       setLogos(logos);
       setAssetCatalogRevision((revision) => revision + 1);
       notifications.show({
         title: t('notices.done'),
-        message: t('browser.assetsReloaded', counts),
+        message,
         color: 'green',
         autoClose: 8_000,
         withCloseButton: true

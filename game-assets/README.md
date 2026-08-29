@@ -17,6 +17,39 @@ Use `characters/` for full artwork and `portraits/` for square face or bust imag
 
 JABS compares each filename with the character name while ignoring capitalization, spaces, punctuation, and accents. For example, `Chun-Li.webp` matches `Chun Li`. If two files resolve to the same name, JABS uses neither because it cannot choose safely.
 
-Files must be PNG, JPEG, or WebP, no larger than 20 MiB, and must contain the image format named by their extension. JABS does not accept SVG files, animations, symlinks, extra folders beneath `characters/` or `portraits/`, or paths outside this catalog.
+## Add colors or outfits
+
+Add a number to the end of a character's filename when you want to provide more than one color or outfit:
+
+```text
+game-assets/
+  super-smash-bros-ultimate/
+    characters/
+      Mario-1.png
+      Mario-2.png
+      Mario-3.png
+    portraits/
+      Mario-1.png
+      Mario-2.png
+      Mario-3.png
+```
+
+JABS groups these files under Mario and adds a Color / outfit selector with options 1, 2, and 3. If you include an unnumbered `Mario.png`, it appears as the Default option.
+
+The number can follow the name directly or use spaces, dashes, parentheses, or brackets. These filenames all work:
+
+```text
+Mario1.png
+Mario-2.png
+Mario 3.png
+Mario (4).png
+Mario [5].png
+```
+
+Use the same number in `characters/` and `portraits/` when both images belong to the same color or outfit. The spelling does not have to be identical: JABS ignores capitalization and common punctuation when matching character names. For example, `Mr Game and Watch 1.png` and `Mr. Game & Watch (1).webp` belong to the same character and outfit.
+
+After adding or replacing images, use **Reload assets** in JABS. You do not need to restart the app.
+
+Files must be PNG, JPEG, or WebP, no larger than 20 MiB, and must contain the image format named by their extension. JABS does not accept SVG files, animations, extra folders beneath `characters/` or `portraits/`, or paths outside this catalog.
 
 Installed copies use the same folder structure inside the JABS app-data folder. Only add artwork you have permission to display or share.

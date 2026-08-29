@@ -63,6 +63,8 @@ The operator interface starts in these files:
 
 Controls for a specific feature normally have a matching component under `src/renderer/src/ui/operator/`. For example, player fields are in `PlayerEditor.tsx`, commentator fields are in `CommentatorControls.tsx`, and score controls are in `ScoreControls.tsx`.
 
+`WorkspaceMaintenanceBar.tsx` renders the sticky reload and maintenance actions below the main tabs. Its asset button calls `useAssetCatalogReload.ts`, which rescans local media and clears the renderer's raster cache. Individual panels use this shared refresh rather than maintaining separate logo or media reload actions.
+
 Run `pnpm run dev` to review interface changes in the desktop window.
 
 ## Change score overlays
@@ -83,6 +85,25 @@ http://127.0.0.1:4279/overlay/active/main
 ```
 
 When adjusting an overlay, open the matching game and check that names, scores, flags, pronouns, characters, round information, and station information fit at both short and long lengths.
+
+## Change custom scoreboards
+
+Custom scoreboards place live match data over a user-provided transparent `1920×1080` PNG. The active scoreboard route remains `/overlay/active/main`.
+
+| Part | File |
+| --- | --- |
+| Shared model, defaults, and bounds | `src/shared/customScoreboards.ts` |
+| Native import, validation, and storage | `src-tauri/src/custom_scoreboards.rs` |
+| Selection helpers | `src/renderer/src/customScoreboardSelection.ts` |
+| Editor controls | `src/renderer/src/ui/operator/CustomScoreboardPanel.tsx` |
+| Preview and OBS canvas | `src/renderer/src/ui/CustomScoreboardCanvas.tsx` |
+| Canvas styling | `src/renderer/src/ui/customScoreboard.css` |
+
+The native importer accepts PNG files up to 20 MiB and verifies their dimensions and transparency. Saved scoreboards live in the JABS application-data directory, including during development.
+
+Player 1 elements use the region `x: 0–960, y: 0–250`; Player 2 elements use `x: 960–1920, y: 0–250`. The tournament logo and lower rails use the bottom `300px`. `customScoreboardRegionBounds()` supplies these limits to the preview controls, while the native importer checks saved layouts against the same regions.
+
+Selecting a custom scoreboard changes presentation only. Returning to automatic styling restores the built-in overlay without changing the detected game, reporting rules, or character catalog.
 
 ## Change Winner and Champion screens
 
@@ -169,7 +190,7 @@ Layout order and placement values are defined in the canvas, shared model, and s
 
 ## Change YouTube thumbnails
 
-Thumbnail exports are 1280×720 PNG files. The available layouts are Versus, Spotlight, and Split.
+Thumbnail exports are 1280×720 PNG files. The available layouts are Versus and Spotlight.
 
 | Part | File |
 | --- | --- |
@@ -210,7 +231,11 @@ game-assets/ultimate-marvel-vs-capcom-3/characters/Doctor Doom.png
 game-assets/ultimate-marvel-vs-capcom-3/portraits/Doctor Doom.webp
 ```
 
-Square portraits work best in the small team slots. After adding files while JABS is open, use **Reload assets** in the relevant workspace.
+Square portraits work best in the small team slots. After adding files while JABS is open, use **Reload assets** in the sticky utility bar.
+
+Numbered filename suffixes group colors or outfits under one character. Supported examples include `Mario1.png`, `Mario-2.png`, `Mario (3).png`, and `Mario [4].png`. Use the same number for matching files in `characters/` and `portraits/`. The parser and matching rules live in `src-tauri/src/catalogs/character_assets.rs`; the user-facing convention is documented in `game-assets/README.md`.
+
+**Reload assets** is global. It clears the raster cache and rescans character art, portraits, player photos, sponsor logos, and tournament logos. It also reloads tournament logos when no game catalog is selected.
 
 ## Update a character roster
 
@@ -256,7 +281,7 @@ pnpm run moderation:check
 
 Review both the source change and generated Rust change before committing them. Test ordinary player names and tournament names as well as terms that should be rejected.
 
-Packaged installations also create `moderation-allowlist.txt` in the application-data directory. This file is for local tournament decisions and is not compiled into JABS. Each non-comment line permits one exact complete field value after capitalization and whitespace normalization. The app loads it at startup and when the user chooses **Reload allowlist**.
+Packaged installations create `moderation-allowlist.txt` in the application-data directory. Development builds use the file at the repository root, where Git ignores it. This file is for local tournament decisions and is not compiled into JABS. Each non-comment line permits one exact complete field value after capitalization and whitespace normalization. The app loads it at startup and when the user chooses **Reload allowlist**.
 
 ## Add or change a translation
 
@@ -287,6 +312,7 @@ The Rust application lives in `src-tauri/src/`:
 | Media catalogs | `catalogs.rs` |
 | Token storage | `secrets.rs` |
 | Moderation | `moderation.rs` |
+| Custom scoreboards | `custom_scoreboards.rs` |
 
 Shared request and response shapes live in `src/shared/`. When a field crosses between Rust and TypeScript, update both sides and check saved-state compatibility.
 

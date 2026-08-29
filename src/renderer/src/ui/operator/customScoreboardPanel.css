@@ -1,0 +1,14 @@
+.custom-scoreboard-preview-shell {
+  position: relative;
+  width: min(100%, 1120px);
+  aspect-ratio: 16 / 9;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background:
+    linear-gradient(45deg, #222 25%, transparent 25% 75%, #222 75%),
+    linear-gradient(45deg, #222 25%, #161616 25% 75%, #222 75%);
+  background-position: 0 0, 12px 12px;
+  background-size: 24px 24px;
+}

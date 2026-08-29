@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Code, Group, Text } from '@mantine/core';
+import { Button, Code, Group, Text, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import {
@@ -47,21 +47,24 @@ export function MediaFolderControls({ kind, label, subpath }: MediaFolderControl
         {label} <Code style={{ wordBreak: 'break-all' }}>{displayPath}</Code>
       </Text>
       {isTauriRuntime() && nativeRoot && (
-        <Button
-          size="compact-xs"
-          variant="subtle"
-          onClick={() => {
-            void openNativeMediaDirectory(kind).catch(() => {
-              notifications.show({
-                message: t('mediaFolder.openFailed'),
-                color: 'red',
-                withCloseButton: true
+        <Tooltip label={t('mediaFolder.openHint')} openDelay={350}>
+          <Button
+            size="compact-sm"
+            variant="light"
+            color="violet"
+            onClick={() => {
+              void openNativeMediaDirectory(kind).catch(() => {
+                notifications.show({
+                  message: t('mediaFolder.openFailed'),
+                  color: 'red',
+                  withCloseButton: true
+                });
               });
-            });
-          }}
-        >
-          {t('mediaFolder.open')}
-        </Button>
+            }}
+          >
+            {t('mediaFolder.open')}
+          </Button>
+        </Tooltip>
       )}
     </Group>
   );

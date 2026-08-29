@@ -36,6 +36,7 @@ export const en = {
     },
     mediaFolder: {
       open: 'Open folder',
+      openHint: 'Open this media folder in your file manager.',
       openFailed: 'JABS could not open the media folder.'
     },
     pagination: 'Page {{page}} of {{totalPages}}'
@@ -63,6 +64,7 @@ export const en = {
     workspaces: {
       aria: 'JABS workspaces',
       bracket: 'Bracket Management',
+      customScoreboard: 'Custom Scoreboard',
       otherOverlays: 'Other Overlays',
       topEight: 'Top 8 Generator',
       thumbnail: 'YouTube Thumbnail Generator',
@@ -108,6 +110,57 @@ export const en = {
       generators: {
         topEight: { title: 'Top 8 Generator', description: 'Create a top 8 graphic with character artwork or player photos.', emptyState: 'You can now control the generator and export files.' },
         thumbnail: { title: 'YouTube Thumbnail Generator', description: 'Create a platform-ready thumbnail for YouTube', emptyState: 'Thumbnail controls, preview, and export will be implemented here without mixing them into OBS overlays.' }
+      }
+    },
+    customScoreboard: {
+      title: 'Custom Scoreboard',
+      description: 'Use your own transparent scoreboard artwork while JABS keeps names, scores, flags, and broadcast details current.',
+      name: 'Scoreboard name',
+      image: 'Transparent scoreboard PNG',
+      imageHelp: 'Exactly 1920×1080, up to 20 MB.',
+      import: 'Import scoreboard',
+      savedScoreboards: 'Saved scoreboards',
+      none: '---- Select ----',
+      loadFailed: 'JABS could not load custom scoreboards.',
+      imageLoadFailed: 'JABS could not load that scoreboard image. Try importing it again.',
+      loadSetFirst: 'Send a set to stream before choosing a custom scoreboard.',
+      chooseFileAndName: 'Choose a PNG and enter a scoreboard name.',
+      imported: 'Custom scoreboard imported and selected for OBS.',
+      importFailed: 'JABS could not import that scoreboard.',
+      saved: 'Custom scoreboard layout saved.',
+      saveFailed: 'JABS could not save the custom scoreboard layout.',
+      deleteConfirm: 'Delete “{{name}}”? This cannot be undone.',
+      deleted: 'Custom scoreboard deleted.',
+      deleteFailed: 'JABS could not delete the custom scoreboard.',
+      savedName: 'Saved name',
+      adjustRegion: 'Adjust content',
+      dragHelp: 'Choose a region, then drag it or use the arrow keys. Hold Shift for 10px steps.',
+      keyboardCanvas: 'Custom scoreboard positioning canvas',
+      alignment: 'Text alignment',
+      textColor: 'Text color',
+      save: 'Save layout',
+      active: 'In use',
+      useInObs: 'Use in OBS',
+      useAutomatic: 'Use automatic styling',
+      delete: 'Delete scoreboard',
+      regions: {
+        playerOneFlag: 'Player 1 · Flag', playerOneSponsor: 'Player 1 · Sponsor',
+        playerOneName: 'Player 1 · Name', playerOnePronouns: 'Player 1 · Pronouns',
+        playerOneSeed: 'Player 1 · Seed', playerOneScore: 'Player 1 · Score',
+        playerTwoFlag: 'Player 2 · Flag', playerTwoSponsor: 'Player 2 · Sponsor',
+        playerTwoName: 'Player 2 · Name', playerTwoPronouns: 'Player 2 · Pronouns',
+        playerTwoSeed: 'Player 2 · Seed', playerTwoScore: 'Player 2 · Score', matchLabel: 'Round',
+        logo: 'Tournament logo', infoLeft: 'Lower-left rail',
+        infoCenter: 'Lower-center rail', infoRight: 'Lower-right rail'
+      },
+      align: { left: 'Left', center: 'Center', right: 'Right' },
+      visibility: {
+        flags: 'Show flags', sponsors: 'Show sponsors and prefixes', pronouns: 'Show pronouns', seeds: 'Show seeds',
+        round: 'Show round', tournamentLogo: 'Show tournament logo', bottomRails: 'Show lower rail details'
+      },
+      outlineLabel: 'Text outline', outline: { none: 'None', soft: 'Soft', strong: 'Strong' },
+      typography: {
+        nameSize: 'Player name', metaSize: 'Player details', scoreSize: 'Score', contextSize: 'Round and rails'
       }
     },
     topEight: {
@@ -217,6 +270,7 @@ export const en = {
       recent: 'Recent',
       recentAria: 'Recent tournaments',
       clearCache: 'Clear bracket cache & history',
+      clearCacheHint: 'Remove cached bracket data and recent tournament history.',
       activeStateStays: 'Active stream state stays on-air.',
       detectedProfile: 'Detected game profile',
       eventAria: 'Tournament event',
@@ -227,7 +281,9 @@ export const en = {
       description: 'For a genuine false positive, add the complete field value on its own line, save the file, then reload it here. Entries match exact values only and do not disable moderation inside other text.',
       path: 'File:',
       open: 'Edit allowlist',
+      openHint: 'Open the moderation exceptions file.',
       reload: 'Reload allowlist',
+      reloadHint: 'Apply your saved moderation exceptions.',
       reloaded_one: 'Moderation allowlist reloaded with {{count}} exception.',
       reloaded_other: 'Moderation allowlist reloaded with {{count}} exceptions.',
       openFailed: 'JABS could not open the moderation allowlist.',
@@ -237,7 +293,9 @@ export const en = {
       gameProfile: 'Game profile for set',
       assetSlug: 'Character asset folder:',
       reloadAssets: 'Reload assets',
+      reloadAssetsHint: 'Rescan local artwork, photos, and logos.',
       assetsReloaded: 'Assets reloaded · Character art: {{characterArt}} · Portraits: {{characterPortraits}} · Tournament logos: {{tournamentLogos}} · Sponsor logos: {{sponsorLogos}} · Player photos: {{playerPhotos}}',
+      logosReloaded: '{{count}} tournament logo(s) found.',
       assetsReloadFailed: 'Unable to reload the local media catalogs.',
       chooseProfile: 'Choose game profile',
       detectedFromEvent: 'Detected from event: {{profile}}',
@@ -251,7 +309,8 @@ export const en = {
       browse: 'Browse',
       poolPages: 'Pool pages',
       allEventSets: 'All event sets',
-      refresh: 'Refresh current view'
+      refresh: 'Refresh set selector',
+      refreshHint: 'Fetch the latest sets for the current filters.'
     },
     selector: {
       title: 'Select set',
@@ -304,6 +363,7 @@ export const en = {
       save: 'Save stream state',
       discard: 'Discard draft',
       reload: 'Reload bracket data',
+      reloadHint: 'Replace this set with the latest data from start.gg.',
       playerTag: 'Player tag',
       prefix: 'Prefix',
       character: 'Character',
@@ -334,7 +394,8 @@ export const en = {
       showLogo: 'Show tournament / sponsor logo',
       logo: 'Logo',
       chooseLogo: 'Choose logo',
-      logoHint: 'Add PNG, JPEG, or WebP files to the tourney-logos directory, then restart JABS to refresh this list.',
+      logoHint: 'Add PNG, JPEG, or WebP files to the tourney-logos directory, then reload the logo list.',
+      reloadLogos: 'Reload logos',
       playerPhotosFolder: 'User-provided player photos:',
       sponsorLogosFolder: 'User-provided sponsor logos:',
       tournamentLogosFolder: 'User-provided tournament logos:'
