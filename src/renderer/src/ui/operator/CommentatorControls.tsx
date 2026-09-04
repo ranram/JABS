@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Code, Group, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Group, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { sortByLabel } from './operatorUtils';
@@ -9,9 +9,9 @@ import type { LogoAsset } from '@shared/models';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
 import { api } from '../../api';
 
-type CommentatorControlsProps = { localBaseUrl?: string; logos: LogoAsset[]; profiles: GameProfile[] };
+type CommentatorControlsProps = { logos: LogoAsset[]; profiles: GameProfile[] };
 
-export function CommentatorControls({ localBaseUrl, logos, profiles }: CommentatorControlsProps) {
+export function CommentatorControls({ logos, profiles }: CommentatorControlsProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
   const [draft, setDraft] = useState<CommentatorState>();
   const [saving, setSaving] = useState(false);
@@ -136,12 +136,6 @@ export function CommentatorControls({ localBaseUrl, logos, profiles }: Commentat
           {t('workspaces.commentator.hide')}
         </Button>
       </Group>
-      <div>
-        <Text fw={700} size="xs" mb={5}>{t('workspaces.obsSource')}</Text>
-        {localBaseUrl
-          ? <Code className="workspace-obs-url" block>{localBaseUrl}/overlay/commentators</Code>
-          : <Text c="dimmed" size="sm">{t('workspaces.resolvingObs')}</Text>}
-      </div>
     </Stack>
   );
 }

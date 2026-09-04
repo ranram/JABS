@@ -11,7 +11,7 @@ Your token, stream settings, and local media stay on your computer. JABS sends a
 - Send a set to stream or report a quick score update.
 - Update scores and player details while OBS follows the changes.
 - Report a completed set to start.gg after confirmation.
-- Show score, versus, winner, champion, and commentator overlays.
+- Show score, versus, Top 8 matchup, winner, champion, and commentator overlays.
 - Import a custom scoreboard frame and position its live match details.
 - Create downloadable Top 8 graphics and YouTube thumbnails.
 - Use your own character art, player photos, sponsor logos, and tournament logos.
@@ -112,6 +112,7 @@ Keep JABS open while its overlays are in use. Add each overlay as an OBS **Brows
 | Winner | `http://127.0.0.1:4279/overlay/active/winner` |
 | Champion | `http://127.0.0.1:4279/overlay/active/champion` |
 | Versus | `http://127.0.0.1:4279/overlay/active/versus` |
+| Top 8 Matchups | `http://127.0.0.1:4279/overlay/active/top-eight-matchups` |
 | Commentators | `http://127.0.0.1:4279/overlay/commentators` |
 
 The active routes follow the match and styling selected in JABS. A fixed game style is also available at:

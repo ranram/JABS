@@ -1,6 +1,6 @@
 import { gameProfiles, type GameId } from './gameProfiles';
 
-export const topEightStyleIds = ['mosaic', 'neon', 'editorial'] as const;
+export const topEightStyleIds = ['mosaic', 'neon'] as const;
 export type TopEightStyleId = (typeof topEightStyleIds)[number];
 export const topEightMediaModeIds = ['character', 'photo'] as const;
 export type TopEightMediaMode = (typeof topEightMediaModeIds)[number];
@@ -10,7 +10,6 @@ export function topEightMediaBaseScale(style: TopEightStyleId, placement: number
   if (placement === 1) return 1;
   if (placement <= 3) return style === 'mosaic' ? 1.08 : 1.05;
   switch (style) {
-    case 'editorial': return 1.65;
     case 'neon': return 1.42;
     case 'mosaic': return 1.12;
   }
@@ -23,6 +22,7 @@ export type TopEightEntrant = {
   characters?: string[];
   characterAssetId?: string;
   sponsor?: string;
+  xHandle?: string;
   country?: string;
   displayFlag?: string;
 };
@@ -58,7 +58,7 @@ export function createTopEightDraft(gameId: GameId = 'street-fighter-6'): TopEig
     gameName: gameProfiles[gameId].label,
     assetCatalogSlug: gameId,
     stylingGameId: gameId,
-    style: 'editorial',
+    style: 'neon',
     mediaMode: 'character',
     tournamentName: 'Tournament Finals',
     headline: 'Top 8',

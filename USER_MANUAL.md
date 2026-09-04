@@ -48,11 +48,11 @@ JABS normally detects the game. If the game is not recognized, choose a **Game p
 
 The utility bar stays below the main tabs while you scroll:
 
-- **Edit allowlist** opens your local moderation exceptions.
-- **Reload allowlist** applies saved exceptions.
+- **Edit allowlist** opens the moderation exceptions editor. Saving applies the changes immediately.
+- **Reload allowlist** applies changes made to the file outside JABS.
 - **Reload assets** rescans artwork, photos, and logos.
 - **Refresh set selector** fetches the latest sets for the current filters.
-- **Reload bracket data** refreshes the set sent to stream.
+- **Refresh current set** updates the on-stream set and its Versus history while keeping its styling and broadcast extras.
 - **Clear bracket cache & history** is a recovery action for stale bracket data.
 
 Hover over any of these buttons for a short description.
@@ -110,7 +110,7 @@ If text is rejected:
 - The text remains available for correction.
 - **Not sent to OBS** confirms viewers did not receive it.
 
-If JABS blocks a legitimate tag or sponsor, choose **Edit allowlist** in the utility bar below the main tabs. Add the complete value on its own line and save the file. Then choose **Reload allowlist**. Matching ignores capitalization but applies only to the complete field value, so allowing one tag does not weaken checks inside other text.
+If JABS blocks a legitimate tag or sponsor, choose **Edit allowlist** in the utility bar below the main tabs. Add the complete value on its own line and save. JABS applies the change immediately. Matching ignores capitalization but applies only to the complete field value, so allowing one tag does not weaken checks inside other text.
 
 ### Match details
 
@@ -142,9 +142,9 @@ Open the accordion to enable:
 - Bottom-left and bottom-right text rails
 - A tournament or organizer logo
 
-### Reload bracket data
+### Refresh current set
 
-Use **Reload bracket data** in the utility bar when you want the newest start.gg names, scores, round, station, and detected game. It keeps your current Styling and broadcast extras.
+Use **Refresh current set** when the set already on stream needs the newest start.gg names, scores, round, station, detected game, or head-to-head history. It keeps your current Styling and broadcast extras. Head-to-head history requires linked start.gg player profiles. To update the list of available sets instead, use **Refresh set selector**.
 
 ## 6. Score and report the streamed set
 
@@ -175,6 +175,7 @@ Copy the complete URL shown by JABS. The port can change, so do not guess it.
 | Active scoreboard | `/overlay/active/main` |
 | Winner or Champion | `/overlay/active/winner` |
 | Versus Screen | `/overlay/active/versus` |
+| Top 8 Matchups | `/overlay/active/top-eight-matchups` |
 | Commentators | `/overlay/commentators` |
 
 If OBS loaded while JABS was closed, open JABS and use **Refresh cache of current page** in the Browser Source properties.
@@ -200,6 +201,14 @@ The regular active-scoreboard URL does not change. To return to a built-in game 
 ## 9. Other Overlays
 
 Open the **Other Overlays** tab.
+
+The browser-source URL appears directly below each overlay's title and description. Copy it into OBS and set the source to `1920×1080`.
+
+### Top 8 Matchups
+
+Load a start.gg event, open **Top 8 Matchups**, and select **Find matchups from the loaded event**. When start.gg provides a phase named **Top 8**, JABS reads that phase directly. Otherwise, JABS traces the bracket backward from Grand Finals to find the two opening Winners matches and two opening Losers matches. Confirm one character for each player. The selector includes the game's full roster, even when some portraits have not been added. If a selected character has no portrait, the overlay displays the character's name in its place. Use the **User media folders** section to open the portrait or tournament-logo folders. The overlay displays the saved matchups as soon as its browser source is open; there is no separate visibility switch.
+
+JABS trusts the character names included in its reviewed game rosters. Character names added through local media files still pass through moderation. Add a legitimate custom name to the moderation allowlist if JABS blocks it.
 
 ### Versus Screen
 
@@ -260,7 +269,7 @@ game-assets/street-fighter-6/characters/Elena.png
 game-assets/street-fighter-6/portraits/Elena.webp
 ```
 
-For portraits, use a square face or upper-body crop. A 256×256 WebP works well. JABS does not try to detect faces automatically.
+For portraits, use a `384×384` square PNG or WebP with the face and upper body near the center. The same portrait works with Top 8 Matchups, the Versus Screen, Top 8 graphics, and YouTube thumbnails. Keep important details away from the outer edges because each layout may frame the image differently. JABS does not detect or reposition faces automatically.
 
 To add colors or outfits for one character, add a number to each filename:
 
@@ -285,7 +294,7 @@ JABS automatically tries to load the active event's finalized Top 8. You may als
 Then:
 
 1. Choose Styling.
-2. Choose Editorial, Mosaic, or Neon.
+2. Choose Mosaic or Neon. Neon is selected by default.
 3. Choose Character Art or Player Photos.
 4. Enter the tournament and headline.
 5. Optionally choose a logo and background.

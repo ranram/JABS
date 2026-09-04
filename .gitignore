@@ -2,6 +2,8 @@ node_modules
 .pnpm-store/
 dist
 src-tauri/target
+crates/*/target/
+crates/*/Cargo.lock
 .vite
 coverage
 *.local

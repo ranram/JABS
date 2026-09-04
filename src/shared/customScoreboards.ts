@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const customScoreboardRegionIds = [
-  'playerOneFlag', 'playerOneSponsor', 'playerOneName', 'playerOnePronouns',
-  'playerOneSeed', 'playerOneScore', 'playerTwoFlag', 'playerTwoSponsor',
+  'playerOneFlag', 'playerOneSponsor', 'playerOneXHandle', 'playerOneName', 'playerOnePronouns',
+  'playerOneSeed', 'playerOneScore', 'playerTwoFlag', 'playerTwoSponsor', 'playerTwoXHandle',
   'playerTwoName', 'playerTwoPronouns', 'playerTwoSeed', 'playerTwoScore',
   'matchLabel', 'logo',
   'infoLeft', 'infoCenter', 'infoRight'
@@ -28,6 +28,7 @@ const regionSchema = z.object({
 const playerElementRegionsSchema = z.object({
   flag: regionSchema,
   sponsor: regionSchema,
+  xHandle: regionSchema.optional(),
   name: regionSchema,
   pronouns: regionSchema,
   seed: regionSchema,
@@ -56,6 +57,7 @@ export const customScoreboardSchema = z.object({
   visibility: z.object({
     flags: z.boolean(),
     sponsors: z.boolean(),
+    xHandles: z.boolean(),
     pronouns: z.boolean(),
     seeds: z.boolean(),
     round: z.boolean(),
@@ -79,8 +81,21 @@ export const customScoreboardListSchema = z.object({
 export type CustomScoreboard = z.infer<typeof customScoreboardSchema>;
 export type CustomScoreboardRegion = z.infer<typeof regionSchema>;
 
-type PlayerElement = keyof CustomScoreboard['playerElements']['playerOne'];
+type PlayerElement = keyof NonNullable<CustomScoreboard['playerElements']['playerOne']>;
 type PlayerSide = keyof CustomScoreboard['playerElements'];
+
+const defaultPlayerOneXHandle: CustomScoreboardRegion = { x: 116, y: 76, width: 520, height: 22, align: 'left' };
+const defaultPlayerTwoXHandle: CustomScoreboardRegion = { x: 1284, y: 76, width: 520, height: 22, align: 'right' };
+
+function defaultPlayerElementRegion(side: PlayerSide, element: PlayerElement): CustomScoreboardRegion {
+  if (element === 'xHandle') {
+    return side === 'playerOne' ? defaultPlayerOneXHandle : defaultPlayerTwoXHandle;
+  }
+  return {
+    x: 0, y: 0, width: 100, height: 40,
+    align: side === 'playerOne' ? 'left' : 'right'
+  };
+}
 
 const playerRegionLocations: Partial<Record<CustomScoreboardRegionId, {
   side: PlayerSide;
@@ -88,12 +103,14 @@ const playerRegionLocations: Partial<Record<CustomScoreboardRegionId, {
 }>> = {
   playerOneFlag: { side: 'playerOne', element: 'flag' },
   playerOneSponsor: { side: 'playerOne', element: 'sponsor' },
+  playerOneXHandle: { side: 'playerOne', element: 'xHandle' },
   playerOneName: { side: 'playerOne', element: 'name' },
   playerOnePronouns: { side: 'playerOne', element: 'pronouns' },
   playerOneSeed: { side: 'playerOne', element: 'seed' },
   playerOneScore: { side: 'playerOne', element: 'score' },
   playerTwoFlag: { side: 'playerTwo', element: 'flag' },
   playerTwoSponsor: { side: 'playerTwo', element: 'sponsor' },
+  playerTwoXHandle: { side: 'playerTwo', element: 'xHandle' },
   playerTwoName: { side: 'playerTwo', element: 'name' },
   playerTwoPronouns: { side: 'playerTwo', element: 'pronouns' },
   playerTwoSeed: { side: 'playerTwo', element: 'seed' },
@@ -105,7 +122,11 @@ export function customScoreboardRegion(
   id: CustomScoreboardRegionId
 ): CustomScoreboardRegion {
   const location = playerRegionLocations[id];
-  if (location) return scoreboard.playerElements[location.side][location.element];
+  if (location) {
+    const side = scoreboard.playerElements[location.side];
+    const region = side[location.element];
+    return region ?? defaultPlayerElementRegion(location.side, location.element);
+  }
   return scoreboard.regions[id as keyof CustomScoreboard['regions']];
 }
 

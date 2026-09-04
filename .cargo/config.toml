@@ -1,0 +1,3 @@
+[build]
+# Desktop and shared crates reuse compatible native build artifacts.
+target-dir = "src-tauri/target"

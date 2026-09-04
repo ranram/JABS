@@ -35,7 +35,9 @@ export function BroadcastLayer({
   const matchDetails = [
     profile.overlay.showMatchChip === false ? roundLabel(selectedSet, profile) : undefined,
     phaseLabel(selectedSet),
-    t('common:match.bestOf', { count: selectedSet.bestOf }),
+    selectedSet.matchFormat === 'first-to'
+      ? t('common:match.firstTo', { count: Math.ceil(selectedSet.bestOf / 2) })
+      : t('common:match.bestOf', { count: selectedSet.bestOf }),
     stationLabel(selectedSet, t('common:match.stream'))
   ].filter(Boolean).join(' · ');
   const leftText = broadcast?.infoLeft?.trim();

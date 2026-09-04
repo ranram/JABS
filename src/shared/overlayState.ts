@@ -34,6 +34,7 @@ export const playerStateSchema = z.object({
   name: z.string().trim().min(1, 'Player names cannot be empty.'),
   prefix: optionalDisplayText,
   sponsor: optionalDisplayText,
+  xHandle: optionalDisplayText,
   characters: z.array(z.string().trim().min(1)).max(4).optional(),
   character: optionalDisplayText,
   characterAssetId: z.string().trim().min(1).max(255).optional(),
@@ -79,10 +80,11 @@ export const selectedSetStateSchema = z.object({
     isSafeGameAssetCatalogSlug,
     'Choose a valid local game asset catalog.'
   ).optional(),
+  matchFormat: z.enum(['best-of', 'first-to']).optional().default('best-of'),
   bestOf: z
     .number()
     .int()
-    .refine((value) => value === 3 || value === 5, 'Best-of must be 3 or 5.')
+    .refine((value) => [3, 5, 9, 19].includes(value), 'Choose a supported match length.')
     .default(3),
   broadcast: broadcastPresentationSchema.optional(),
   gameHistory: z.array(setGameResultSchema).max(99).optional(),
@@ -90,6 +92,13 @@ export const selectedSetStateSchema = z.object({
   playerTwo: playerStateSchema,
   updatedAt: z.string().datetime()
 }).superRefine((selectedSet, context) => {
+  if (selectedSet.matchFormat !== 'first-to' && ![3, 5].includes(selectedSet.bestOf)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['bestOf'],
+      message: 'Best-of must be 3 or 5.'
+    });
+  }
   if (
     selectedSet.winnersSideEntrantId !== undefined &&
     selectedSet.winnersSideEntrantId !== selectedSet.playerOne.entrantId &&

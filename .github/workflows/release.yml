@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Release tag matching the committed application version
         required: true
-        default: v0.2.0
+        default: v1.0.0
   push:
     tags:
       - "v*"
@@ -157,11 +157,11 @@ jobs:
           tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
           releaseName: JABS ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
           releaseBody: |
-            Unsigned JABS beta packages built from ${{ github.sha }}.
+            Unsigned JABS packages built from ${{ github.sha }}.
 
             Review and test every native package before publishing this draft.
           releaseDraft: true
-          prerelease: true
+          prerelease: false
           generateReleaseNotes: true
           uploadUpdaterJson: false
           # Everything after `--` is forwarded by the Tauri CLI to Cargo.

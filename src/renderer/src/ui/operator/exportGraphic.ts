@@ -434,11 +434,7 @@ function drawShapeLayer(
   };
   context.save();
   if (layer.kind === 'top8-identity') {
-    const gradient = context.createLinearGradient(0, box.y, 0, box.y + box.height);
-    gradient.addColorStop(0, 'rgba(0,0,0,0)');
-    gradient.addColorStop(0.32, layer.background);
-    gradient.addColorStop(1, layer.background);
-    context.fillStyle = gradient;
+    context.fillStyle = layer.background;
     context.fillRect(box.x, box.y, box.width, box.height);
   } else {
     context.shadowColor = 'rgba(0,0,0,.34)';

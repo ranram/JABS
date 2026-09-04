@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Badge, Button, Code, Group, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
+import { Badge, Button, Group, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
 import type { SelectedSetState } from '@shared/models';
@@ -13,12 +13,11 @@ import { MediaFoldersAccordion } from './MediaFoldersAccordion';
 
 type VersusScreenControlsProps = {
   activeSet?: SelectedSetState;
-  localBaseUrl?: string;
   profiles: GameProfile[];
   assetCatalogSlug?: string;
 };
 
-export function VersusScreenControls({ activeSet, localBaseUrl, profiles, assetCatalogSlug }: VersusScreenControlsProps) {
+export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: VersusScreenControlsProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
   const [state, setState] = useState<VersusScreenState>();
   const [saving, setSaving] = useState(false);
@@ -179,7 +178,6 @@ export function VersusScreenControls({ activeSet, localBaseUrl, profiles, assetC
         <Switch label={t('thumbnail.showSponsorLogo')} checked={state.showSponsorLogos} disabled={saving} onChange={(event) => void update({ showSponsorLogos: event.currentTarget.checked })} />
       </Group>
       <MediaFoldersAccordion gameAssetSubpath={assetCatalogSlug ? `${assetCatalogSlug}/characters` : undefined} />
-      {localBaseUrl && <Code className="workspace-obs-url" block>{localBaseUrl}/overlay/active/versus</Code>}
     </Stack>
   );
 }

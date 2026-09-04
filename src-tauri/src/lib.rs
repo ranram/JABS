@@ -12,6 +12,7 @@ mod reporting_routes;
 mod runtime;
 mod secrets;
 mod state;
+mod top_eight_matchups;
 mod startgg;
 mod startgg_queries;
 #[cfg(not(debug_assertions))]
@@ -96,11 +97,14 @@ struct ModerationAllowlistStatus {
 }
 
 #[tauri::command]
-fn open_moderation_allowlist(
-    state: tauri::State<'_, Arc<RuntimeState>>,
-) -> Result<(), String> {
-    moderation::ensure_runtime_allowlist_file(&state.moderation_allowlist_path)?;
-    open_with_default_app(&state.moderation_allowlist_path)
+fn get_moderation_allowlist() -> Result<String, String> {
+    moderation::runtime_allowlist_contents()
+}
+
+#[tauri::command]
+fn save_moderation_allowlist(contents: String) -> Result<ModerationAllowlistStatus, String> {
+    moderation::save_runtime_allowlist(&contents)
+        .map(|entry_count| ModerationAllowlistStatus { entry_count })
 }
 
 #[tauri::command]
@@ -138,34 +142,6 @@ fn open_in_file_manager(directory: &std::path::Path) -> Result<(), String> {
         .spawn()
         .map(|_| ())
         .map_err(|_| "JABS could not open the media folder.".to_owned())
-}
-
-#[cfg(target_os = "windows")]
-fn open_with_default_app(path: &std::path::Path) -> Result<(), String> {
-    std::process::Command::new("rundll32")
-        .arg("url.dll,FileProtocolHandler")
-        .arg(path)
-        .spawn()
-        .map(|_| ())
-        .map_err(|_| "JABS could not open the moderation allowlist.".to_owned())
-}
-
-#[cfg(target_os = "macos")]
-fn open_with_default_app(path: &std::path::Path) -> Result<(), String> {
-    std::process::Command::new("open")
-        .arg(path)
-        .spawn()
-        .map(|_| ())
-        .map_err(|_| "JABS could not open the moderation allowlist.".to_owned())
-}
-
-#[cfg(all(unix, not(target_os = "macos")))]
-fn open_with_default_app(path: &std::path::Path) -> Result<(), String> {
-    std::process::Command::new("xdg-open")
-        .arg(path)
-        .spawn()
-        .map(|_| ())
-        .map_err(|_| "JABS could not open the moderation allowlist.".to_owned())
 }
 
 #[cfg(target_os = "macos")]
@@ -303,7 +279,8 @@ pub fn run() {
             clear_startgg_token,
             get_media_directories,
             open_media_directory,
-            open_moderation_allowlist,
+            get_moderation_allowlist,
+            save_moderation_allowlist,
             reload_moderation_allowlist,
             report_renderer_diagnostic
         ])

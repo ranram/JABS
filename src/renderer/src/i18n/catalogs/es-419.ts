@@ -1,5 +1,4 @@
 import type { LocaleCatalog } from "./en";
-
 export const es419 = {
   common: {
     language: "Idioma",
@@ -27,6 +26,7 @@ export const es419 = {
     },
     match: {
       bestOf: "Mejor de {{count}}",
+      firstTo: "Primero en llegar a {{count}}",
       seed: "Seed {{seed}}",
       set: "Set {{id}}",
       stream: "Stream",
@@ -42,11 +42,12 @@ export const es419 = {
   overlay: {
     invalidTitle: "URL de overlay no válida",
     invalidBody:
-      "Usa /overlay/active/main, /overlay/active/winner, /overlay/commentators o una ruta fija de juego compatible.",
+      "Usa /overlay/active/main, /overlay/active/winner, /overlay/active/versus, /overlay/active/top-eight-matchups, /overlay/commentators o una ruta fija de juego compatible.",
     waiting: "Esperando el estado local de la partida…",
     broadcastInformation: "Información de stream",
     winnerAnnouncement: "Ganador del set",
     championAnnouncement: "Campeón",
+    topEightMatchups: { title: "Enfrentamientos del Top 8", winners: "Ganadores", losers: "Perdedores", loading: "Cargando enfrentamientos del Top 8…" },
     playerScore: "Marcador de {{player}}: {{score}}",
   },
   operator: {
@@ -125,6 +126,10 @@ export const es419 = {
           title: "Vista de comentaristas",
           description: "Presenta dos comentaristas al aire y sus redes sociales.",
         },
+        topEightMatchups: {
+          title: "Enfrentamientos del Top 8",
+          description: "Presenta los dos enfrentamientos iniciales de ganadores y los dos de perdedores con un retrato por jugador.",
+        },
       },
       generators: {
         topEight: {
@@ -177,21 +182,43 @@ export const es419 = {
       useInObs: "Usar en OBS", useAutomatic: "Usar estilo automático",
       delete: "Eliminar marcador",
       regions: {
-        playerOneFlag: "Jugador 1 · Bandera", playerOneSponsor: "Jugador 1 · Patrocinador", playerOneName: "Jugador 1 · Nombre",
+        playerOneFlag: "Jugador 1 · Bandera", playerOneSponsor: "Jugador 1 · Patrocinador",
+        playerOneXHandle: "Jugador 1 · Usuario de x.com",
+        playerOneName: "Jugador 1 · Nombre",
         playerOnePronouns: "Jugador 1 · Pronombres", playerOneSeed: "Jugador 1 · Seed", playerOneScore: "Jugador 1 · Puntaje",
-        playerTwoFlag: "Jugador 2 · Bandera", playerTwoSponsor: "Jugador 2 · Patrocinador", playerTwoName: "Jugador 2 · Nombre",
+        playerTwoFlag: "Jugador 2 · Bandera", playerTwoSponsor: "Jugador 2 · Patrocinador",
+        playerTwoXHandle: "Jugador 2 · Usuario de x.com",
+        playerTwoName: "Jugador 2 · Nombre",
         playerTwoPronouns: "Jugador 2 · Pronombres", playerTwoSeed: "Jugador 2 · Seed", playerTwoScore: "Jugador 2 · Puntaje",
         matchLabel: "Ronda", logo: "Logo del torneo", infoLeft: "Riel inferior izquierdo", infoCenter: "Riel inferior central", infoRight: "Riel inferior derecho",
       },
       align: { left: "Izquierda", center: "Centro", right: "Derecha" },
       visibility: {
-        flags: "Mostrar banderas", sponsors: "Mostrar patrocinadores y prefijos", pronouns: "Mostrar pronombres", seeds: "Mostrar seeds",
+        flags: "Mostrar banderas", sponsors: "Mostrar patrocinadores y prefijos", xHandles: "Mostrar usuarios de x.com",
+        pronouns: "Mostrar pronombres", seeds: "Mostrar seeds",
         round: "Mostrar ronda", tournamentLogo: "Mostrar logo del torneo", bottomRails: "Mostrar datos en los rieles inferiores",
       },
       outlineLabel: "Contorno del texto", outline: { none: "Ninguno", soft: "Suave", strong: "Fuerte" },
       typography: {
         nameSize: "Nombre del jugador", metaSize: "Datos del jugador", scoreSize: "Puntaje", contextSize: "Ronda y rieles",
       },
+    },
+    topEightMatchups: {
+      title: "Enfrentamientos del Top 8", description: "Presenta los dos enfrentamientos iniciales de ganadores y los dos de perdedores con un retrato por jugador.",
+      eventName: "Nombre del evento", detect: "Buscar enfrentamientos en el evento cargado",
+      loading: "Cargando la configuración de enfrentamientos…", retry: "Intentar de nuevo", winners: "Ganadores", losers: "Perdedores", player: "Jugador {{number}}", portrait: "Retrato del personaje",
+      firstPage: "Cargando la primera página del bracket…", explicitPhase: "Cargando la fase «{{phase}}»…", topologyFallback: "No se encontró una fase Top 8. Se revisará el bracket del evento…",
+      pages: "Cargando las páginas {{start}}–{{end}} de {{total}}…", analyzePhase: "Buscando los cuatro enfrentamientos iniciales en «{{phase}}»…", analyzeEvent: "Revisando {{count}} sets del evento…",
+      notDetected: "JABS no pudo identificar un único bracket de Top 8. Revisa la estructura del evento o ingresa los jugadores manualmente.",
+      tooLarge: "El evento es demasiado grande para revisarlo de una vez. Primero selecciona la fase o el grupo final.", detected: "Se cargaron los cuatro enfrentamientos iniciales del Top 8.",
+      unavailable: "La configuración de enfrentamientos del Top 8 no está disponible.", serializeFailed: "JABS no pudo preparar la configuración de enfrentamientos del Top 8.",
+      invalidStyling: "Elige un estilo compatible.", invalidCatalog: "Elige un catálogo válido de retratos de personajes.",
+      invalidTournamentName: "Ingresa un nombre de torneo de 1 a 120 caracteres.", invalidMatchupCount: "Los enfrentamientos del Top 8 requieren exactamente cuatro partidas.",
+      invalidBracketOrder: "Los enfrentamientos del Top 8 requieren dos partidas de ganadores seguidas de dos de perdedores.", invalidPlayerName: "Ingresa un nombre de 1 a 100 caracteres para cada jugador.",
+      blockedCharacter: "El nombre de ese personaje personalizado contiene texto bloqueado. Elige otro personaje o agrega el nombre completo a la lista de moderación.",
+      blockedTournamentName: "El nombre del torneo contiene texto bloqueado.", blockedEventName: "El nombre del evento contiene texto bloqueado.",
+      blockedPlayerName: "El nombre de un jugador contiene texto bloqueado.", blockedSponsor: "El nombre de un patrocinador contiene texto bloqueado.",
+      preview: "Vista previa de enfrentamientos del Top 8"
     },
     topEight: {
       description:
@@ -200,7 +227,7 @@ export const es419 = {
       draft: "Faltan detalles",
       game: "Catálogo de arte del juego",
       style: "Estilo de composición",
-      styles: { mosaic: "Mosaico", neon: "Neón", editorial: "Editorial" },
+      styles: { mosaic: "Mosaico", neon: "Neón" },
       mediaMode: "Arte del Top 8",
       mediaModes: {
         character: "Arte de personajes",
@@ -252,6 +279,7 @@ export const es419 = {
       character: "Personaje",
       characters: "Personajes",
       sponsor: "Patrocinador / prefijo",
+      xHandle: "Usuario de x.com",
       country: "País",
       displayFlag: "Bandera mostrada",
       validation: {
@@ -321,8 +349,6 @@ export const es419 = {
       offline: "Sin conexión",
       apiAccess: "Acceso a la API",
       tokenLocal: "Tu token permanece en este dispositivo.",
-      secureStorage:
-        "Se guarda con el almacenamiento de credenciales nativo del sistema operativo. El token nunca es visto por JABS.",
       sessionStorage:
         "El almacenamiento seguro de credenciales del sistema no está disponible. Puedes mantener el token en la memoria del proceso principal durante esta sesión; JABS no lo guardará y se descartará al salir.",
       tokenPlaceholder: "Pega el token de start.gg",
@@ -333,6 +359,8 @@ export const es419 = {
       tournamentHint: "Slug o URL oficial de start.gg.",
       tournamentPlaceholder: "Slug del torneo o URL de start.gg",
       loadEvents: "Cargar eventos",
+      unloadTournament: "Cerrar torneo",
+      unloadTournamentHint: "Quita el torneo cargado, los filtros, el selector de sets y el estado activo de la transmisión.",
       recent: "Recientes",
       recentAria: "Torneos recientes",
       clearCache: "Borrar caché e historial del bracket", clearCacheHint: "Borra los datos guardados del bracket y el historial de torneos recientes.",
@@ -344,16 +372,19 @@ export const es419 = {
     moderation: {
       title: "Excepciones de moderación",
       description:
-        "Si encuentras un falso positivo real, agrega el valor completo en su propia línea, guarda el archivo y recárgalo aquí. Las entradas solo coinciden con valores exactos y no desactivan la moderación dentro de otros textos.",
+        "Si encuentras un falso positivo real, agrega el valor completo en su propia línea y guarda. Las entradas solo coinciden con valores exactos y no desactivan la moderación dentro de otros textos.",
       path: "Archivo:",
-      open: "Editar lista permitida", openHint: "Abre el archivo de excepciones de moderación.",
-      reload: "Recargar lista", reloadHint: "Aplica las excepciones de moderación que guardaste.",
-      reloaded_one: "Lista de moderación recargada con {{count}} excepción.",
-      reloaded_other: "Lista de moderación recargada con {{count}} excepciones.",
-      openFailed: "JABS no pudo abrir la lista de moderación.",
-      reloadFailed: "JABS no pudo recargar la lista de moderación.",
+      open: "Editar lista permitida", openHint: "Edita las excepciones de moderación en JABS.",
+      reload: "Recargar lista", reloadHint: "Vuelve a leer los cambios hechos fuera de JABS.", editorTitle: "Editar lista de moderación", editorLabel: "Excepciones de moderación",
+      editorDescription: "Agrega en cada línea un tag de jugador, patrocinador, pronombre u otro valor completo. Las líneas que comienzan con # son comentarios.", cancel: "Cancelar", save: "Guardar",
+      saved_one: "Lista de moderación guardada con {{count}} excepción.", saved_other: "Lista de moderación guardada con {{count}} excepciones.",
+      reloaded_one: "Lista de moderación recargada con {{count}} excepción.", reloaded_other: "Lista de moderación recargada con {{count}} excepciones.",
+      openFailed: "JABS no pudo abrir la lista de moderación.", saveFailed: "JABS no pudo guardar la lista de moderación.", reloadFailed: "JABS no pudo recargar la lista de moderación.",
+      fileTooLarge: "La lista de moderación debe tener 256 KiB o menos.",
+      tooManyEntries: "La lista de moderación admite como máximo 4,096 entradas.",
+      lineTooLong: "La línea {{line}} de la lista de moderación supera los 256 caracteres."
     },
-    browser: {
+    utilityGroups: { moderation: "Moderación", media: "Recursos", bracket: "Bracket" }, browser: {
       gameProfile: "Perfil de juego para el set",
       assetSlug: "Carpeta de recursos de personajes:",
       reloadAssets: "Recargar recursos", reloadAssetsHint: "Busca de nuevo ilustraciones, fotos y logos locales.",
@@ -437,7 +468,7 @@ export const es419 = {
       playerTwo: "Jugador 2",
       save: "Guardar estado de transmisión",
       discard: "Descartar borrador",
-      reload: "Recargar datos del bracket", reloadHint: "Reemplaza este set con los datos más recientes de start.gg.",
+      reload: "Actualizar set actual", reloadHint: "Actualiza jugadores, marcadores, datos del bracket e historial de Versus.",
       playerTag: "Tag del jugador",
       prefix: "Prefijo",
       character: "Personaje",
@@ -445,9 +476,11 @@ export const es419 = {
       notShown: "No mostrar",
       unavailableCharacter: "No disponible: {{character}}",
       colorOutfit: "Color / atuendo",
-      colorOutfitHelp: "Usa el arte numerado correspondiente del catálogo local.",
+      colorOutfitHelp: "Selecciona qué arte del personaje se muestra.",
       defaultOutfit: "Predeterminado",
-      sponsor: "Patrocinador/equipo",
+      selectCharacterFirst: "Selecciona primero un personaje",
+      noExtraOutfits: "No hay atuendos extra disponibles",
+      xHandle: "Usuario de x.com",
       state: "Estado / provincia",
       chooseCountryFirst: "Elige primero un país",
       pronouns: "Pronombres",
@@ -506,6 +539,7 @@ export const es419 = {
       charactersFor: "Personajes · {{player}}",
       characterHelp:
         "Elige los personajes antes de sumar la victoria del juego. Deja este campo vacío para no reportar ningún personaje.",
+      mobileCharacterPrompt: "Opcional: elige un personaje antes de agregar una victoria.",
       resultCheck: "Comprobación del resultado",
       winner: "{{winner}} gana {{winnerScore}}–{{loserScore}}",
       reporting: "Reportando…",
@@ -538,6 +572,10 @@ export const es419 = {
       saveTokenFailed: "No se pudo guardar el token.",
       tokenRemoved: "El token de start.gg se eliminó de este dispositivo.",
       removeTokenFailed: "No se pudo eliminar el token.",
+      tournamentUnloaded:
+        "Se cerró el torneo y se borró el estado activo de la transmisión.",
+      tournamentUnloadFailed:
+        "No se pudieron cerrar el torneo y borrar el estado activo de la transmisión.",
       clearCacheConfirm:
         "¿Borrar las respuestas almacenadas del bracket de start.gg y el historial de torneos recientes? El estado activo y los cambios guardados permanecerán intactos.",
       cacheCleared:
@@ -546,6 +584,8 @@ export const es419 = {
         "No se pudieron borrar los datos almacenados del bracket.",
       tournamentRequired:
         "Ingresa primero el slug de un torneo o una URL de start.gg.",
+      recentHistoryNotSaved:
+        "El torneo se cargó, pero JABS no pudo guardarlo en Torneos recientes.",
       cachedEvents: "Se cargaron {{count}} eventos almacenados.",
       noEvents:
         "No se encontraron eventos. Revisa el slug o la URL y confirma que el torneo sea visible en start.gg.",
@@ -595,8 +635,9 @@ export const es419 = {
         "No se pudo actualizar el selector de sets; usa Actualizar vista actual.",
       reportFailed: "No se pudo reportar el set a start.gg.",
       reloadConfirm:
-        "¿Reemplazar los jugadores, marcadores, ronda y estación guardados con los últimos datos disponibles de start.gg? Se conservará el perfil de juego actual. Esto no se puede deshacer.",
-      reloadFailed: "No se pudo recargar este set de start.gg.",
+        "¿Actualizar jugadores, marcadores, ronda, estación e historial de Versus desde start.gg? Se conservarán el perfil de juego, el estilo y los extras de transmisión.",
+      reloadSuccess: "Se actualizaron el set actual y el historial de Versus desde start.gg.", reloadSetSuccess: "Se actualizó el set actual.", reloadSetOnly: "Se actualizó el set actual. El historial entre jugadores requiere perfiles de start.gg vinculados.",
+      reloadHistoryFailed: "Se actualizó el set actual, pero no su historial de Versus.", reloadFailed: "No se pudo actualizar este set desde start.gg.",
       scoreFailed: "No se pudo actualizar el marcador.",
       scoresReset: "Se reiniciaron los marcadores.",
       playersSwapped: "Se intercambiaron los lados de los jugadores.",
@@ -639,11 +680,12 @@ export const es419 = {
       network:
         "JABS no pudo comunicarse con start.gg. Revisa la conexión a internet e inténtalo de nuevo.",
       upstream:
-        "start.gg no está disponible temporalmente. Inténtalo de nuevo en breve.",
+        "La API de start.gg devolvió un error temporal del servidor. El sitio web puede seguir en línea; intenta cargar de nuevo en breve.",
       invalidResponse:
         "start.gg devolvió datos que JABS no pudo interpretar de forma segura.",
       graphql:
         "start.gg rechazó la solicitud del bracket. Revisa los datos del torneo seleccionado y los permisos.",
+      conflict: "Este set cambió después de abrirlo. Vuelve a abrirlo y revisa el resultado más reciente.",
     },
   },
 } satisfies LocaleCatalog;

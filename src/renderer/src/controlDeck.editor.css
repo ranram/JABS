@@ -20,7 +20,7 @@
   display: grid;
   width: 100%;
   min-width: 0;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -70,7 +70,6 @@
   grid-column: 1 / -1;
 }
 
-.broadcast-logo-grid,
 .tournament-lookup-row {
   width: 100%;
   min-width: 0;
@@ -79,10 +78,6 @@
 .bracket-filter-row {
   width: 100%;
   min-width: 0;
-}
-
-.broadcast-logo-grid {
-  align-items: end;
 }
 
 .tournament-lookup-row > .mantine-InputWrapper-root {
@@ -190,6 +185,12 @@
 @media (max-width: 820px) {
   .logo-control-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .player-editor-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -354,5 +355,3 @@
   color: #918b9a;
   font-size: 10px;
 }
-
-

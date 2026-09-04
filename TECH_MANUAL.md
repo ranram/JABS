@@ -144,6 +144,25 @@ http://127.0.0.1:4279/overlay/active/versus
 
 Media placement is handled by `AdjustableMediaImage.tsx` and `adjustableMedia.css`. The preview supports dragging, arrow-key movement, scaling, and resetting a layer.
 
+## Change the Top 8 Matchups overlay
+
+The operator preview and OBS route share the same presentation component:
+
+- `src/renderer/src/ui/TopEightMatchupsOverlay.tsx`
+- `src/renderer/src/ui/topEightMatchupsOverlay.css`
+- `src/renderer/src/ui/operator/TopEightMatchupsPreview.tsx`
+- `src/renderer/src/ui/operator/TopEightMatchupsControls.tsx`
+- `src/shared/topEightMatchups.ts`
+- `src-tauri/src/top_eight_matchups.rs`
+
+The OBS route is:
+
+```text
+http://127.0.0.1:4279/overlay/active/top-eight-matchups
+```
+
+The route always renders the saved state. If the event contains a phase named **Top 8**, detection reads that phase first. Otherwise, it uses bracket topology to find the four opening matches. Each player is limited to one portrait character.
+
 ## Change the Commentator overlay
 
 The main files are:
@@ -174,7 +193,7 @@ These values control the rail height, angled ends, border thickness, and logo ar
 
 ## Change Top 8 graphics
 
-Top 8 exports are 1920×1080 PNG files. The available layouts are Editorial, Mosaic, and Neon.
+Top 8 exports are 1920×1080 PNG files. The available layouts are Mosaic and Neon, with Neon used by default.
 
 | Part | File |
 | --- | --- |

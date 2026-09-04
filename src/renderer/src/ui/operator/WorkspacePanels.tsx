@@ -1,10 +1,11 @@
-import { Accordion, Badge, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { Accordion, Badge, Code, Group, Paper, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import type { LogoAsset, SelectedSetState } from '@shared/models';
+import type { LogoAsset, SelectedSetState, StartggPhase } from '@shared/models';
 import type { GameProfile } from '@shared/gameProfiles';
 import { CommentatorControls } from './CommentatorControls';
 import { ResultScreenControls } from './ResultScreenControls';
 import { VersusScreenControls } from './VersusScreenControls';
+import { TopEightMatchupsControls } from './TopEightMatchupsControls';
 
 type OtherOverlaysPanelProps = {
   localBaseUrl?: string;
@@ -12,11 +13,20 @@ type OtherOverlaysPanelProps = {
   activeSet?: SelectedSetState;
   profiles: GameProfile[];
   assetCatalogSlug?: string;
+  selectedEventId?: string;
+  selectedEventName?: string;
+  phases: StartggPhase[];
 };
 
-const overlayTypes = ['versus', 'winner', 'commentators'] as const;
+const overlayTypes = ['versus', 'winner', 'commentators', 'topEightMatchups'] as const;
+const overlayPaths: Record<(typeof overlayTypes)[number], string> = {
+  versus: '/overlay/active/versus',
+  winner: '/overlay/active/winner',
+  commentators: '/overlay/commentators',
+  topEightMatchups: '/overlay/active/top-eight-matchups'
+};
 
-export function OtherOverlaysPanel({ localBaseUrl, logos, activeSet, profiles, assetCatalogSlug }: OtherOverlaysPanelProps) {
+export function OtherOverlaysPanel({ localBaseUrl, logos, activeSet, profiles, assetCatalogSlug, selectedEventId, selectedEventName, phases }: OtherOverlaysPanelProps) {
   const { t } = useTranslation('operator');
 
   return (
@@ -37,8 +47,16 @@ export function OtherOverlaysPanel({ localBaseUrl, logos, activeSet, profiles, a
                 <Text c="dimmed" size="sm">
                   {t(`workspaces.tools.${overlayType}.description`)}
                 </Text>
-                {overlayType === 'commentators' ? (
-                  <CommentatorControls localBaseUrl={localBaseUrl} logos={logos} profiles={profiles} />
+                <div>
+                  <Text fw={700} size="xs" mb={5}>{t('workspaces.obsSource')}</Text>
+                  {localBaseUrl
+                    ? <Code className="workspace-obs-url" block>{localBaseUrl}{overlayPaths[overlayType]}</Code>
+                    : <Text c="dimmed" size="sm">{t('workspaces.resolvingObs')}</Text>}
+                </div>
+                {overlayType === 'topEightMatchups' ? (
+                  <TopEightMatchupsControls profiles={profiles} logos={logos} selectedEventId={selectedEventId} selectedEventName={selectedEventName} phases={phases} assetCatalogSlug={assetCatalogSlug} />
+                ) : overlayType === 'commentators' ? (
+                  <CommentatorControls logos={logos} profiles={profiles} />
                 ) : overlayType === 'winner' ? (
                   <>
                     <Group gap="xs">
@@ -47,7 +65,6 @@ export function OtherOverlaysPanel({ localBaseUrl, logos, activeSet, profiles, a
                     </Group>
                     <ResultScreenControls
                       activeSet={activeSet}
-                      localBaseUrl={localBaseUrl}
                       logos={logos}
                       profiles={profiles}
                       assetCatalogSlug={assetCatalogSlug}
@@ -55,7 +72,6 @@ export function OtherOverlaysPanel({ localBaseUrl, logos, activeSet, profiles, a
                   </>
                 ) : <VersusScreenControls
                   activeSet={activeSet}
-                  localBaseUrl={localBaseUrl}
                   profiles={profiles}
                   assetCatalogSlug={assetCatalogSlug}
                 />}

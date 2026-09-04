@@ -12,3 +12,10 @@
   background-position: 0 0, 12px 12px;
   background-size: 24px 24px;
 }
+
+@media (min-width: 62em) {
+  .custom-scoreboard-import-button {
+    align-self: start;
+    margin-top: 25px;
+  }
+}

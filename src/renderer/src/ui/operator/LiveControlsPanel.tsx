@@ -69,7 +69,7 @@ export function LiveControlsPanel({
           </Button>
         </Group>
 
-        <Paper withBorder p="sm" className="report-result-card">
+        {selectedSet.matchFormat !== 'first-to' && <Paper withBorder p="sm" className="report-result-card">
           <Stack gap="xs">
             <Text fw={700}>{t('operator:live.startggResult')}</Text>
             <Text size="sm" c="dimmed">
@@ -91,7 +91,7 @@ export function LiveControlsPanel({
               {t('operator:live.report')}
             </Button>
           </Stack>
-        </Paper>
+        </Paper>}
 
         <div>
           <Title order={2} size="h4">{t('operator:live.obsTitle')}</Title>
@@ -110,7 +110,11 @@ export function LiveControlsPanel({
           <Text fw={800}>{selectedSet.playerOne.score} - {selectedSet.playerTwo.score}</Text>
           <Text ta="right">{selectedSet.playerTwo.name}</Text>
         </Group>
-        <Text size="sm" c="dimmed">{t('common:match.bestOf', { count: selectedSet.bestOf })}</Text>
+        <Text size="sm" c="dimmed">
+          {selectedSet.matchFormat === 'first-to'
+            ? t('common:match.firstTo', { count: maxScore })
+            : t('common:match.bestOf', { count: selectedSet.bestOf })}
+        </Text>
       </Stack>
     </Paper>
   );

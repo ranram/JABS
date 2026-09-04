@@ -11,6 +11,7 @@ export type BroadcastSurfaceId =
   | 'champion'
   | 'commentators'
   | 'top-eight'
+  | 'top-eight-matchups'
   | 'thumbnail';
 
 export type ParticipantMedia = {
@@ -95,6 +96,16 @@ export const broadcastSurfaceSpecs: Readonly<Record<BroadcastSurfaceId, Broadcas
       third: { x: 0.71, y: 0.2, width: 0.25, height: 0.35 },
       placements: { x: 0.04, y: 0.66, width: 0.92, height: 0.27 },
       headline: { x: 0.25, y: 0.02, width: 0.5, height: 0.1 }
+    }
+  },
+  'top-eight-matchups': {
+    id: 'top-eight-matchups',
+    canvas: { width: 1920, height: 1080 },
+    participantRange: [8, 8],
+    regions: {
+      winners: { x: 0.03, y: 0.17, width: 0.455, height: 0.76 },
+      losers: { x: 0.515, y: 0.17, width: 0.455, height: 0.76 },
+      headline: { x: 0.03, y: 0.04, width: 0.94, height: 0.1 }
     }
   },
   thumbnail: {

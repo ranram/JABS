@@ -96,7 +96,32 @@ export function useThumbnailDraft(activeSet?: SelectedSetState) {
         ? { ...placement, [layer]: defaultMediaTransform() }
         : placement) as [PlayerMediaPlacement, PlayerMediaPlacement]);
     },
-    useActiveSet
+    useActiveSet,
+    restoreModeratedActiveSet(selectedSet: SelectedSetState) {
+      const refreshedPlayers = [
+        playerFromSet(selectedSet.playerOne, selectedSet.gameId),
+        playerFromSet(selectedSet.playerTwo, selectedSet.gameId)
+      ] as [ThumbnailPlayer, ThumbnailPlayer];
+      setDraft((current) => ({
+        ...current,
+        headline: current.headline.includes('[blocked]')
+          ? thumbnailMatchHeadline(selectedSet)
+          : current.headline,
+        players: current.players.map((player, index) => ({
+          ...player,
+          name: player.name === '[blocked]' ? refreshedPlayers[index]!.name : player.name,
+          sponsor: player.sponsor === '[blocked]' ? refreshedPlayers[index]!.sponsor : player.sponsor,
+          character: player.character === '[blocked]'
+            ? refreshedPlayers[index]!.character
+            : player.character,
+          characters: player.characters?.map((character, characterIndex) =>
+            character === '[blocked]'
+              ? refreshedPlayers[index]!.characters?.[characterIndex] ?? character
+              : character
+          )
+        })) as [ThumbnailPlayer, ThumbnailPlayer]
+      }));
+    }
   };
 }
 

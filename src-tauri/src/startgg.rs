@@ -6,93 +6,19 @@ use crate::{
     state::{BroadcastPresentation, GameResult, Player, SelectedSet},
 };
 use futures_util::future::join_all;
-use reqwest::{Client, StatusCode};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+pub use jabs_startgg_client::{
+    ApiError,
+    StartggClient as StartggService,
+};
+use serde::Serialize;
 use serde_json::{Map, Value, json};
 use std::collections::HashSet;
-use std::time::Duration;
-use tokio::{sync::Mutex, time::Instant};
-
-const ENDPOINT: &str = "https://api.start.gg/gql/alpha";
-const REQUEST_REFILL_INTERVAL: Duration = Duration::from_millis(800);
-const REQUEST_BURST_CAPACITY: f64 = 4.0;
+#[cfg(test)]
+const REQUEST_REFILL_INTERVAL: std::time::Duration = jabs_startgg_client::REFILL_INTERVAL;
+#[cfg(test)]
+const REQUEST_BURST_CAPACITY: f64 = jabs_startgg_client::BURST_CAPACITY;
 const MAX_EVENT_HEAD_TO_HEAD_PAGES: u32 = 5;
 const MAX_GLOBAL_HEAD_TO_HEAD_PAGES: u32 = 5;
-
-struct RequestBudget {
-    available: f64,
-    last_refill: Instant,
-}
-
-pub struct StartggService {
-    client: Client,
-    request_budget: Mutex<RequestBudget>,
-}
-
-impl Default for StartggService {
-    fn default() -> Self {
-        Self {
-            client: Client::builder()
-                .timeout(Duration::from_secs(15))
-                // JABS only ever calls https://api.start.gg directly, so skip
-                // system-proxy detection. On Windows that probing reads the
-                // registry (winreg) and can stall on WPAD auto-discovery,
-                // adding seconds of latency before requests even start.
-                .no_proxy()
-                .build()
-                .expect("static start.gg HTTP client configuration must be valid"),
-            request_budget: Mutex::new(RequestBudget {
-                available: REQUEST_BURST_CAPACITY,
-                last_refill: Instant::now(),
-            }),
-        }
-    }
-}
-
-impl StartggService {
-    async fn throttle(&self) {
-        loop {
-            let wait = {
-                let mut budget = self.request_budget.lock().await;
-                let now = Instant::now();
-                let replenished = budget.available
-                    + now.duration_since(budget.last_refill).as_secs_f64()
-                        / REQUEST_REFILL_INTERVAL.as_secs_f64();
-                budget.available = replenished.min(REQUEST_BURST_CAPACITY);
-                budget.last_refill = now;
-                if budget.available >= 1.0 {
-                    budget.available -= 1.0;
-                    None
-                } else {
-                    Some(REQUEST_REFILL_INTERVAL.mul_f64(1.0 - budget.available))
-                }
-            };
-            match wait {
-                Some(wait) => tokio::time::sleep(wait).await,
-                None => return,
-            }
-        }
-    }
-}
-
-#[derive(Debug, Serialize)]
-pub struct ApiError {
-    pub error: String,
-    pub code: &'static str,
-}
-
-#[derive(Deserialize)]
-struct GraphqlEnvelope<T> {
-    data: Option<T>,
-    errors: Option<Vec<GraphqlError>>,
-    success: Option<bool>,
-    message: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct GraphqlError {
-    message: Option<String>,
-}
 
 pub async fn events(runtime: &RuntimeState, slug: &str) -> Result<Value, ApiError> {
     required_text(slug, "Enter a tournament slug or start.gg URL first.")?;
@@ -112,9 +38,11 @@ pub async fn events(runtime: &RuntimeState, slug: &str) -> Result<Value, ApiErro
         });
         Some(json!({ "id": id, "name": name, "videogame": videogame }))
     }).collect::<Vec<_>>();
-    runtime.database.record_recent_tournament(slug)
-        .map_err(|_| upstream("Tournament data loaded, but recent history could not be saved.", "upstream"))?;
-    Ok(live_result(json!({ "events": events })))
+    let mut result = json!({ "events": events });
+    if runtime.database.record_recent_tournament(slug).is_err() {
+        result["warning"] = Value::String("recent-history-not-saved".to_owned());
+    }
+    Ok(live_result(result))
 }
 
 pub async fn stream_queue(runtime: &RuntimeState, slug: &str) -> Result<Value, ApiError> {
@@ -225,6 +153,9 @@ fn map_event_standings(data: Value) -> Result<Value, ApiError> {
             .and_then(|participant| optional_text(participant.get("gamerTag")))
             .or_else(|| optional_text(entrant.get("name")))?;
         let prefix = participant.and_then(|participant| optional_text(participant.get("prefix")));
+        let x_handle = participant
+            .map(|participant| x_handle_from_participant(Some(participant)))
+            .flatten();
         let country = participant
             .and_then(|participant| participant.get("user"))
             .and_then(|user| user.get("location"))
@@ -234,6 +165,7 @@ fn map_event_standings(data: Value) -> Result<Value, ApiError> {
             "placement": placement,
             "name": crate::moderation::censor(Some(name)).unwrap_or_else(|| "[blocked]".to_owned()),
             "prefix": crate::moderation::censor(prefix),
+            "xHandle": crate::moderation::censor(x_handle),
             "country": country_code,
             "isFinal": is_final
         }))
@@ -575,6 +507,7 @@ pub async fn selected_set(
         custom_scoreboard_id: None,
         custom_scoreboard_revision: None,
         asset_catalog_slug: input.asset_catalog_slug.map(str::to_owned),
+        match_format: Some("best-of".to_owned()),
         best_of,
         broadcast: Some(BroadcastPresentation {
             info_bar_enabled: false,
@@ -987,6 +920,49 @@ fn is_winners_final(value: &str) -> bool {
     matches!(normalized_round(value).as_str(), "winners final" | "winners finals")
 }
 
+fn x_handle_from_participant(participant: Option<&Map<String, Value>>) -> Option<String> {
+    let participant = participant?;
+    if let Some(connected) = participant.get("connectedAccounts").and_then(Value::as_object) {
+        for key in ["twitter", "Twitter", "x", "X"] {
+            if let Some(value) = connected.get(key) {
+                let raw = if let Some(text) = value.as_str() {
+                    Some(text.to_owned())
+                } else if let Some(obj) = value.as_object() {
+                    obj.get("username")
+                        .or_else(|| obj.get("handle"))
+                        .or_else(|| obj.get("value"))
+                        .and_then(Value::as_str)
+                        .map(str::to_owned)
+                } else {
+                    None
+                };
+                if let Some(raw) = raw {
+                    let handle = raw.trim().trim_start_matches('@').trim().to_owned();
+                    if !handle.is_empty() {
+                        return Some(handle);
+                    }
+                }
+            }
+        }
+    }
+    participant
+        .get("user")
+        .and_then(Value::as_object)
+        .and_then(|user| user.get("authorizations"))
+        .and_then(Value::as_array)
+        .and_then(|authorizations| {
+            authorizations.iter().find_map(|authorization| {
+                authorization
+                    .as_object()
+                    .and_then(|obj| obj.get("externalUsername"))
+                    .and_then(Value::as_str)
+                    .map(str::to_owned)
+            })
+        })
+        .map(|raw| raw.trim().trim_start_matches('@').trim().to_owned())
+        .filter(|handle| !handle.is_empty())
+}
+
 fn character_for_entrant_from_games(games: Option<&Value>, entrant_id: &str) -> Option<String> {
     let games = games.and_then(Value::as_array)?;
     for game in games {
@@ -1053,6 +1029,9 @@ fn player_from_slot(slot: Option<&Value>, games: Option<&Value>, set_id: &str, s
         location.and_then(|location| location.get("country")).and_then(Value::as_str),
         location.and_then(|location| location.get("state")).and_then(Value::as_str),
     );
+    let x_handle = x_handle_from_participant(participant)
+        .map(|handle| crate::moderation::censor(Some(handle)))
+        .flatten();
     let score = slot.and_then(slot_score).unwrap_or(0).clamp(0, 3) as u32;
     let character = entrant_id_for_character
         .and_then(|entrant_id| character_for_entrant_from_games(games, &entrant_id))
@@ -1070,6 +1049,7 @@ fn player_from_slot(slot: Option<&Value>, games: Option<&Value>, set_id: &str, s
         display_flag: None,
         state,
         pronouns,
+        x_handle,
         seed,
         score,
     }
@@ -1079,48 +1059,14 @@ fn optional_context(value: Option<&str>) -> Option<String> {
     value.map(str::trim).filter(|value| !value.is_empty()).map(str::to_owned)
 }
 
-async fn request<T: DeserializeOwned>(
+async fn request<T: serde::de::DeserializeOwned>(
     runtime: &RuntimeState,
     query: &str,
     variables: Value,
 ) -> Result<T, ApiError> {
     let token = secrets::token(runtime).map_err(|_| token_missing())?
         .ok_or_else(token_missing)?;
-    runtime.startgg.throttle().await;
-    let response = runtime.startgg.client
-        .post(ENDPOINT)
-        .bearer_auth(token.as_str())
-        .json(&json!({ "query": query, "variables": variables }))
-        .send()
-        .await
-        .map_err(|error| {
-            if error.is_timeout() {
-                upstream("start.gg did not respond in time. Check the connection and try again.", "timeout")
-            } else {
-                upstream("Unable to reach start.gg. Check the internet connection and try again.", "network")
-            }
-        })?;
-    let status = response.status();
-    if !status.is_success() {
-        return Err(http_error(status));
-    }
-    let envelope = response.json::<GraphqlEnvelope<T>>().await
-        .map_err(|_| invalid_response("start.gg returned an invalid response."))?;
-    if envelope.success == Some(false) {
-        return Err(classify_message(envelope.message.as_deref().unwrap_or("start.gg rejected the request.")));
-    }
-    if let Some(errors) = envelope.errors.filter(|errors| !errors.is_empty()) {
-        let message = errors.into_iter()
-            .filter_map(|error| error.message)
-            .collect::<Vec<_>>()
-            .join("; ");
-        return Err(classify_message(if message.is_empty() {
-            "start.gg returned an error without a readable message."
-        } else {
-            &message
-        }));
-    }
-    envelope.data.ok_or_else(|| invalid_response("start.gg response did not include data."))
+    runtime.startgg.request(token.as_str(), query, variables).await
 }
 
 fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
@@ -1135,23 +1081,40 @@ fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
     let phase = phase_group
         .and_then(|group| optional_object(group.get("phase")))
         .and_then(|phase| optional_text(phase.get("name")));
+    let phase_order = phase_group
+        .and_then(|group| optional_object(group.get("phase")))
+        .and_then(|phase| finite_i64(phase.get("phaseOrder")));
     let phase_group_name = phase_group
         .and_then(|group| optional_text(group.get("displayIdentifier")));
+    let phase_group_id = phase_group
+        .and_then(|group| group.get("id"))
+        .and_then(normalized_id);
+    let prerequisites = slots.iter().filter_map(|slot| {
+        if !optional_text(slot.get("prereqType"))?.eq_ignore_ascii_case("set") { return None; }
+        Some(json!({
+            "setId": optional_text(slot.get("prereqId"))?,
+            "placement": finite_u64(slot.get("prereqPlacement"))?
+        }))
+    }).collect::<Vec<_>>();
     let station = optional_object(object.get("station"))
         .and_then(|station| finite_i64(station.get("number")))
         .map(|number| format!("Station {number}"));
     Ok(Some(json!({
         "id": id,
+        "roundNumber": finite_i64(object.get("round")),
         "displayScore": optional_text(object.get("displayScore")),
         "entrantOneScore": entrant_one_score,
         "entrantTwoScore": entrant_two_score,
         "phase": phase,
+        "phaseOrder": phase_order,
         "phaseGroup": phase_group_name,
+        "phaseGroupId": phase_group_id,
         "round": optional_text(object.get("fullRoundText")),
         "state": object.get("state").and_then(normalized_id),
         "station": station,
         "entrantOne": entrant_one,
-        "entrantTwo": entrant_two
+        "entrantTwo": entrant_two,
+        "prerequisites": prerequisites
     })))
 }
 
@@ -1164,10 +1127,15 @@ fn entrant_summary(slot: &Value) -> Option<Value> {
         .and_then(|participants| participants.first())
         .and_then(Value::as_object)
         .and_then(|participant| optional_text(participant.get("gamerTag")));
+    let sponsor = entrant.get("participants")
+        .and_then(Value::as_array)
+        .and_then(|participants| participants.first())
+        .and_then(Value::as_object)
+        .and_then(|participant| optional_text(participant.get("prefix")));
     let name = participant_name
         .or_else(|| optional_text(entrant.get("name")))
         .unwrap_or_else(|| "TBD".to_owned());
-    Some(json!({ "id": id, "name": name }))
+    Some(json!({ "id": id, "name": name, "sponsor": sponsor }))
 }
 
 fn slot_score(slot: &Value) -> Option<i64> {
@@ -1253,50 +1221,24 @@ fn token_missing() -> ApiError {
     upstream("Enter a start.gg token in Connect start.gg first.", "token-missing")
 }
 
-fn http_error(status: StatusCode) -> ApiError {
-    match status.as_u16() {
-        401 => upstream("start.gg rejected the token. Check that it is current, then save it again.", "authentication"),
-        403 => upstream("This start.gg token does not have permission to read the requested tournament data.", "permission"),
-        429 => upstream("start.gg rate limit reached. Wait about a minute before trying again.", "rate-limit"),
-        value if value >= 500 => upstream("start.gg is temporarily unavailable. Try again shortly.", "upstream"),
-        _ => upstream("start.gg request failed.", "upstream"),
-    }
-}
-
-fn classify_message(message: &str) -> ApiError {
-    let normalized = message.to_lowercase();
-    if normalized.contains("rate limit") || normalized.contains("too many requests") {
-        return upstream("start.gg rate limit reached. Wait about a minute before trying again.", "rate-limit");
-    }
-    if normalized.contains("query complexity") {
-        return upstream("start.gg rejected the request because it returned too many objects.", "query-complexity");
-    }
-    if normalized.contains("unauth") || normalized.contains("invalid token") || normalized.contains("expired token") {
-        return upstream("start.gg rejected the token. It may be invalid or expired.", "authentication");
-    }
-    if normalized.contains("forbidden") || normalized.contains("permission") {
-        return upstream("This start.gg token does not have permission to read the requested tournament data.", "permission");
-    }
-    upstream(message, "graphql")
-}
-
 fn invalid_response(message: &str) -> ApiError {
     upstream(message, "invalid-response")
 }
 
 fn upstream(message: &str, code: &'static str) -> ApiError {
-    ApiError { error: message.to_owned(), code }
+    jabs_startgg_client::api_error(message, code)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        character_for_entrant_from_games, classify_message, grand_final_prerequisite,
+        character_for_entrant_from_games, grand_final_prerequisite,
         is_initial_grand_final, is_winners_final, node_list, player_from_slot, set_summary,
         validate_event_slug, MAX_EVENT_HEAD_TO_HEAD_PAGES, MAX_GLOBAL_HEAD_TO_HEAD_PAGES,
         REQUEST_BURST_CAPACITY, REQUEST_REFILL_INTERVAL, SAFE_SET_PAGE_SIZE,
     };
     use crate::startgg_queries;
+    use jabs_startgg_client::classify_message;
     use serde_json::json;
     use std::time::Duration;
 
@@ -1380,6 +1322,38 @@ mod tests {
     }
 
     #[test]
+    fn selected_set_mapper_imports_x_handle_from_connected_accounts_and_authorizations() {
+        let from_connected = player_from_slot(Some(&json!({
+            "entrant": {
+                "id": "entrant-1",
+                "name": "TEAM | Player",
+                "participants": [{
+                    "gamerTag": "Player",
+                    "connectedAccounts": { "twitter": { "username": "@PlayerTag" } }
+                }]
+            }
+        })), None, "set-1", 1);
+        assert_eq!(from_connected.x_handle.as_deref(), Some("PlayerTag"));
+
+        let from_authorization = player_from_slot(Some(&json!({
+            "entrant": {
+                "id": "entrant-2",
+                "name": "Player",
+                "participants": [{
+                    "gamerTag": "Player",
+                    "user": { "authorizations": [{ "externalUsername": "@OtherHandle" }] }
+                }]
+            }
+        })), None, "set-1", 2);
+        assert_eq!(from_authorization.x_handle.as_deref(), Some("OtherHandle"));
+
+        let none = player_from_slot(Some(&json!({
+            "entrant": { "id": "entrant-3", "name": "Player", "participants": [{ "gamerTag": "Player" }] }
+        })), None, "set-1", 1);
+        assert_eq!(none.x_handle, None);
+    }
+
+    #[test]
     fn versus_history_query_is_bounded_and_uses_stable_player_ids() {
         assert!(startgg_queries::VERSUS_HISTORY.contains("player(id: $playerOneId)"));
         assert!(startgg_queries::VERSUS_HISTORY.contains("player(id: $playerTwoId)"));
@@ -1404,12 +1378,16 @@ mod tests {
         assert!(startgg_queries::EVENT_STANDINGS.contains("prefix"));
         assert!(startgg_queries::EVENT_STANDINGS.contains("videogame"));
         assert!(startgg_queries::EVENT_STANDINGS.contains("country"));
+        assert!(startgg_queries::EVENT_STANDINGS.contains("connectedAccounts"));
+        assert!(startgg_queries::EVENT_STANDINGS.contains("authorizations(types: [TWITTER])"));
         assert!(startgg_queries::EVENT_STANDINGS.contains("player { id"));
         assert!(startgg_queries::EVENT_STANDINGS.contains("slug"));
         assert!(startgg_queries::EVENT_STANDINGS.contains("numEntrants"));
         assert!(!startgg_queries::EVENT_STANDINGS.contains("$videogameId"));
         assert!(startgg_queries::EVENT_STANDINGS_BY_SLUG.contains("event(slug: $eventSlug)"));
         assert!(!startgg_queries::SET_BY_ID.contains("$videogameId"));
+        assert!(startgg_queries::SET_BY_ID.contains("connectedAccounts"));
+        assert!(startgg_queries::SET_BY_ID.contains("authorizations(types: [TWITTER])"));
         assert!(validate_event_slug("tournament/ceo-2026/event/street-fighter-6").is_ok());
         assert!(validate_event_slug("https://start.gg/tournament/ceo/event/sf6").is_err());
         assert!(validate_event_slug("tournament/ceo/event/../../token").is_err());

@@ -10,8 +10,9 @@ import { useOverlayState } from '../hooks/useOverlayState';
 import { useCommentatorState } from '../hooks/useCommentatorState';
 import { useResultScreenState } from '../hooks/useResultScreenState';
 import type { ResultScreenState } from '@shared/resultScreen';
-import { announcementSurfaceFromOverlayPath, isCommentatorOverlayPath, isVersusOverlayPath, resolveOverlayPresentation } from './overlayPresentation';
+import { announcementSurfaceFromOverlayPath, isCommentatorOverlayPath, isTopEightMatchupsOverlayPath, isVersusOverlayPath, resolveOverlayPresentation } from './overlayPresentation';
 import { VersusOverlay } from './VersusOverlay';
+import { TopEightMatchupsOverlay } from './TopEightMatchupsOverlay';
 import { announcementPresentation } from './announcementPresentation';
 import { displayFlagLabel, displayFlagUrl } from './overlayPlayerPresentation';
 import { api } from '../api';
@@ -61,6 +62,7 @@ const overlayTemplates: Record<OverlayTemplateId, ComponentType<OverlayTemplateP
 export function OverlayView() {
   if (isCommentatorOverlayPath(window.location.pathname)) return <CommentatorOverlay />;
   if (isVersusOverlayPath(window.location.pathname)) return <VersusOverlay />;
+  if (isTopEightMatchupsOverlayPath(window.location.pathname)) return <TopEightMatchupsOverlay />;
   return <MatchOverlayView />;
 }
 
@@ -527,6 +529,7 @@ function PlayerPlate({ player, side }: PlayerPlateProps) {
       ? undefined
       : t('common:match.seed', { seed: player.seed });
   const flagUrl = displayFlagUrl(player.country, player.displayFlag);
+  const xHandle = player.xHandle ? `@${player.xHandle}` : undefined;
 
   return (
     <article className={`overlay-player overlay-player-${side}${flagUrl ? ' has-country-flag' : ''}`}>
@@ -548,8 +551,9 @@ function PlayerPlate({ player, side }: PlayerPlateProps) {
         <span className="overlay-player-identity">
           <strong className="overlay-player-name">{player.name}</strong>
         </span>
-        {(player.pronouns || details) && (
+        {(xHandle || player.pronouns || details) && (
           <span className="overlay-player-meta">
+            {xHandle && <span className="overlay-player-x-handle">{xHandle}</span>}
             {player.pronouns && <span className="overlay-player-pronouns">{player.pronouns}</span>}
             {details && <span className="overlay-player-details">{details}</span>}
           </span>

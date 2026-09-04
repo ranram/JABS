@@ -102,17 +102,21 @@ export function CustomScoreboardCanvas({
   const matchContext = [
     selectedSet?.phase,
     selectedSet?.phaseGroup,
-    selectedSet ? `Best of ${selectedSet.bestOf}` : 'BEST OF 3',
+    selectedSet
+      ? selectedSet.matchFormat === 'first-to'
+        ? `First to ${Math.ceil(selectedSet.bestOf / 2)}`
+        : `Best of ${selectedSet.bestOf}`
+      : 'BEST OF 3',
     selectedSet?.station
   ].filter(Boolean).join(' · ');
   const editingBounds = editingRegion ? customScoreboardRegionBounds(editingRegion) : undefined;
 
   function playerElements(player: PlayerState | undefined, side: 'one' | 'two') {
     const ids = side === 'one' ? {
-      flag: 'playerOneFlag', sponsor: 'playerOneSponsor', name: 'playerOneName',
+      flag: 'playerOneFlag', sponsor: 'playerOneSponsor', xHandle: 'playerOneXHandle', name: 'playerOneName',
       pronouns: 'playerOnePronouns', seed: 'playerOneSeed', score: 'playerOneScore'
     } as const : {
-      flag: 'playerTwoFlag', sponsor: 'playerTwoSponsor', name: 'playerTwoName',
+      flag: 'playerTwoFlag', sponsor: 'playerTwoSponsor', xHandle: 'playerTwoXHandle', name: 'playerTwoName',
       pronouns: 'playerTwoPronouns', seed: 'playerTwoSeed', score: 'playerTwoScore'
     } as const;
     const flagUrl = player && scoreboard.visibility.flags
@@ -121,8 +125,10 @@ export function CustomScoreboardCanvas({
     const sponsor = player
       ? [...new Set([player.prefix, player.sponsor].filter(Boolean))].join(' · ')
       : 'SPONSOR';
+    const xHandle = player?.xHandle ? `@${player.xHandle}` : '';
     const values = [
       { id: ids.sponsor, value: scoreboard.visibility.sponsors ? sponsor : '', className: ' is-meta' },
+      { id: ids.xHandle, value: scoreboard.visibility.xHandles ? xHandle : '', className: ' is-meta is-x-handle' },
       { id: ids.name, value: player?.name || `PLAYER ${side === 'one' ? '1' : '2'}`, className: ' is-name' },
       { id: ids.pronouns, value: scoreboard.visibility.pronouns ? player?.pronouns || 'PRONOUNS' : '', className: ' is-meta' },
       { id: ids.seed, value: scoreboard.visibility.seeds ? player?.seed ? `Seed ${player.seed}` : 'SEED' : '', className: ' is-meta' },

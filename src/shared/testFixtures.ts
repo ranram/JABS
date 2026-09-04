@@ -8,6 +8,7 @@ export function createTestOverlayState(gameId: GameId = 'street-fighter-6'): Ove
       gameId,
       assetCatalogSlug: gameId,
       bestOf: 3,
+      matchFormat: 'best-of',
       broadcast: { infoBarEnabled: false, logoEnabled: false },
       gameHistory: [],
       playerOne: { entrantId: 'p1', name: 'Player 1', score: 0 },

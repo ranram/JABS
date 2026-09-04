@@ -48,6 +48,7 @@ import { useGeneratorMedia, useLogoAssetUrl } from './useGeneratorMedia';
 import { BufferedTextInput } from './BufferedTextInput';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
 import { CharacterOutfitSelect } from './CharacterOutfitSelect';
+import { api } from '../../api';
 import './generatorFonts.css';
 import './adjustableMedia.css';
 import './thumbnail.css';
@@ -55,6 +56,7 @@ import './thumbnail.css';
 type ThumbnailGeneratorProps = {
   profiles: GameProfile[];
   activeSet?: SelectedSetState;
+  moderationRevision: number;
   logos: LogoAsset[];
   controller: ThumbnailDraftController;
   assetCatalogRevision: number;
@@ -64,7 +66,7 @@ type ThumbnailGeneratorProps = {
 
 const noMediaSelection = '__none__';
 
-export function ThumbnailGenerator({ profiles, activeSet, logos, controller, assetCatalogRevision, assetCatalogSlug, countries }: ThumbnailGeneratorProps) {
+export function ThumbnailGenerator({ profiles, activeSet, moderationRevision, logos, controller, assetCatalogRevision, assetCatalogSlug, countries }: ThumbnailGeneratorProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
   const { draft } = controller;
   const resolvedAssetCatalogSlug = assetCatalogSlug ?? draft.assetCatalogSlug;
@@ -125,6 +127,26 @@ export function ThumbnailGenerator({ profiles, activeSet, logos, controller, ass
   useEffect(() => {
     setSelectedLayer(undefined);
   }, [draft.gameId, draft.stylingGameId, draft.style, draft.mediaMode, draft.players[0].name, draft.players[1].name]);
+  useEffect(() => {
+    if (!moderationRevision || !activeSet?.setId) return;
+    let active = true;
+    void api.inspectStartggSet(activeSet.setId, activeSet.gameId, {
+      eventId: activeSet.eventId,
+      tournamentSlug: activeSet.tournamentSlug,
+      assetCatalogSlug: activeSet.assetCatalogSlug
+    }).then((response) => {
+      if (active) controller.restoreModeratedActiveSet(response.selectedSet);
+    }).catch((error) => {
+      if (active) notifications.show({
+        title: t('operator:notices.actionFailed'),
+        message: error instanceof Error ? error.message : t('operator:messages.reloadFailed'),
+        color: 'red',
+        autoClose: false,
+        withCloseButton: true
+      });
+    });
+    return () => { active = false; };
+  }, [moderationRevision]);
 
   function setMediaTransform(player: 0 | 1, layer: MediaLayerKind, transform: MediaTransform) {
     controller.setMediaTransform(player, layer, transform);

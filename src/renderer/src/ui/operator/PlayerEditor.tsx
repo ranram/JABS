@@ -1,14 +1,17 @@
-import { MultiSelect, NumberInput, Select } from '@mantine/core';
+import { MultiSelect, NumberInput } from '@mantine/core';
 import type { GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, GameCharacterAsset, SelectedSetState } from '@shared/models';
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../api';
 import { emptyToUndefined, sortByLabel } from './operatorUtils';
 import { BufferedTextInput } from './BufferedTextInput';
 import { characterTeamSelection } from '@shared/characterTeams';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
 import { CharacterOutfitSelect } from './CharacterOutfitSelect';
+
+function normalizeXHandle(value: string): string {
+  return value.trim().replace(/^@+/, '').trim();
+}
 
 type PlayerEditorProps = {
   side: 'one' | 'two';
@@ -28,23 +31,9 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
     maxCharacters, editableFields, onChange
   } = props;
   const { t, i18n } = useTranslation('operator');
-  const [states, setStates] = useState<Array<{ code: string; name: string }>>([]);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const hasField = (...fields: GameProfile['editableFields']) =>
     fields.some((field) => editableFields.includes(field));
-
-  useEffect(() => {
-    let active = true;
-    if (!player.country) {
-      setStates([]);
-      return () => { active = false; };
-    }
-    void api.states(player.country).then(
-      (response) => { if (active) setStates(response.states); },
-      () => { if (active) setStates([]); }
-    );
-    return () => { active = false; };
-  }, [player.country]);
 
   const characterData = useMemo(
     () => sortByLabel(characters, (character) => character, locale).map((value) => ({ value, label: value })),
@@ -54,9 +43,6 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
     ? player.characters
     : player.character ? [player.character] : [];
   const unavailableCharacters = selectedCharacters.filter((character) => !characters.includes(character));
-  const hasOutfits = characterAssets.find(
-    (asset) => asset.character === selectedCharacters[0]
-  )?.variants.filter((variant) => variant.assetId).length ?? 0;
   const visibleCharacterData = [
     ...unavailableCharacters.map((character) => ({
       value: character,
@@ -64,10 +50,6 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
     })),
     ...characterData
   ];
-  const stateData = useMemo(
-    () => sortByLabel(states, (state) => state.name, locale).map((state) => ({ value: state.code, label: state.name })),
-    [states, locale]
-  );
 
   return (
     <fieldset className="player-editor">
@@ -104,7 +86,7 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
             })}
           />
         )}
-        {hasField('character') && hasOutfits > 1 && (
+        {hasField('character') && (
           <CharacterOutfitSelect
             subject={player}
             assets={characterAssets}
@@ -112,27 +94,7 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
             onChange={(characterAssetId) => onChange({ ...player, characterAssetId })}
           />
         )}
-        {hasField('team', 'sponsor') && hasOutfits <= 1 && (
-          <BufferedTextInput
-            data-stream-free-text={side === 'one' ? 'playerOneSponsor' : 'playerTwoSponsor'}
-            data-testid={`editor-${side}-sponsor`}
-            label={t('editor.sponsor')}
-            value={player.sponsor ?? ''}
-            onCommit={(value) => onChange({ ...player, sponsor: emptyToUndefined(value) })}
-          />
-        )}
       </div>
-      {hasField('team', 'sponsor') && hasOutfits > 1 && (
-        <div className="player-field-row">
-          <BufferedTextInput
-            data-stream-free-text={side === 'one' ? 'playerOneSponsor' : 'playerTwoSponsor'}
-            data-testid={`editor-${side}-sponsor`}
-            label={t('editor.sponsor')}
-            value={player.sponsor ?? ''}
-            onCommit={(value) => onChange({ ...player, sponsor: emptyToUndefined(value) })}
-          />
-        </div>
-      )}
       <div className="player-field-row">
         {hasField('country') && (
           <DisplayFlagSelect
@@ -150,17 +112,13 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
             })}
           />
         )}
-        {hasField('state') && (
-          <Select
-            searchable
-            clearable
-            data-testid={`editor-${side}-state`}
-            label={t('editor.state')}
-            placeholder={player.country ? t('editor.notShown') : t('editor.chooseCountryFirst')}
-            disabled={!player.country || states.length === 0}
-            data={stateData}
-            value={player.state ?? null}
-            onChange={(state) => onChange({ ...player, state: state ?? undefined })}
+        {hasField('xHandle') && (
+          <BufferedTextInput
+            data-stream-free-text={side === 'one' ? 'playerOneXHandle' : 'playerTwoXHandle'}
+            data-testid={`editor-${side}-x-handle`}
+            label={t('editor.xHandle')}
+            value={player.xHandle ?? ''}
+            onCommit={(value) => onChange({ ...player, xHandle: emptyToUndefined(normalizeXHandle(value)) })}
           />
         )}
       </div>

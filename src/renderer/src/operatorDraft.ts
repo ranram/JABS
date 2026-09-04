@@ -73,6 +73,7 @@ export function reconcileDirtyDraft(
     stylingGameId: changed('stylingGameId', draft, baseline, live),
     customScoreboardId: changed('customScoreboardId', draft, baseline, live),
     customScoreboardRevision: changed('customScoreboardRevision', draft, baseline, live),
+    matchFormat: changed('matchFormat', draft, baseline, live),
     bestOf: changed('bestOf', draft, baseline, live),
     broadcast: changed('broadcast', draft, baseline, live),
     playerOne: mergePlayer(live.playerOne, draft, baseline),

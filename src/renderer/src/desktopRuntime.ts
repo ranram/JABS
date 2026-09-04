@@ -70,9 +70,12 @@ export type ModerationAllowlistStatus = {
   entryCount: number;
 };
 
-export async function openNativeModerationAllowlist(): Promise<void> {
-  if (!isTauriRuntime()) return;
-  await invoke<void>('open_moderation_allowlist');
+export function getNativeModerationAllowlist(): Promise<string> {
+  return invoke<string>('get_moderation_allowlist');
+}
+
+export function saveNativeModerationAllowlist(contents: string): Promise<ModerationAllowlistStatus> {
+  return invoke<ModerationAllowlistStatus>('save_moderation_allowlist', { contents });
 }
 
 export function reloadNativeModerationAllowlist(): Promise<ModerationAllowlistStatus> {

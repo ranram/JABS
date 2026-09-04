@@ -1,6 +1,6 @@
 [package]
 name = "jabs"
-version = "0.2.0"
+version = "1.0.0"
 description = "JABS — Just Another Bracketing System, a local-first fighting game bracket and OBS score manager."
 authors = ["JABS contributors"]
 license = "Apache-2.0"
@@ -18,7 +18,7 @@ tauri-build = { version = "=2.6.3", features = [] }
 [dependencies]
 axum = { version = "=0.8.9", default-features = false, features = ["http1", "json", "query", "tokio", "ws"] }
 futures-util = { version = "=0.3.34", default-features = false, features = ["sink", "std"] }
-reqwest = { version = "=0.13.4", default-features = false, features = ["json", "rustls"] }
+jabs-startgg-client = { path = "../crates/jabs-startgg-client" }
 rusqlite = { version = "=0.40.2", default-features = false, features = ["bundled"] }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"

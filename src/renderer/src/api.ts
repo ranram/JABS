@@ -9,6 +9,7 @@ import type {
   OverlayState,
   RecentTournament,
   SelectedSetState,
+  StartggErrorCode,
   StartggEventsResult,
   StartggEventStandingsResult,
   StartggPhaseGroupsResult,
@@ -23,11 +24,12 @@ import type {
   StateOption,
   TokenStatus
 } from '@shared/models';
-import type { StartggErrorCode } from '@shared/models';
 import type { GameProfile } from '@shared/gameProfiles';
+import type { StartggQuickReportInput } from '@shared/startggGateway';
 import { commentatorStateSchema, type CommentatorState } from '@shared/commentators';
 import { resultScreenStateSchema, type ResultScreenState } from '@shared/resultScreen';
 import { versusScreenStateSchema, type VersusScreenState } from '@shared/versusScreen';
+import { topEightMatchupsStateSchema, type TopEightMatchupsState } from '@shared/topEightMatchups';
 import { overlayStateSchema } from '@shared/overlayState';
 import {
   customScoreboardListSchema,
@@ -39,6 +41,7 @@ import { withJsonBodyHeaders } from './requestInit';
 import { BoundedPromiseCache } from './boundedPromiseCache';
 import { decodeResponse, type ResponseDecoder } from './responseDecoder';
 import { i18n } from './i18n';
+import { localizedStartggError } from './i18n/startggErrors';
 import {
   clearNativeStartggToken,
   copyActiveOverlayUrl,
@@ -176,27 +179,11 @@ async function request<T>(path: string, init?: RequestInit, options: RequestOpti
   return decodeResponse(await response.json(), options.decoder, path);
 }
 
-const startggErrorTranslationKeys = {
-  'token-missing': 'errors:startgg.tokenMissing',
-  authentication: 'errors:startgg.authentication',
-  permission: 'errors:startgg.permission',
-  'rate-limit': 'errors:startgg.rateLimit',
-  'query-complexity': 'errors:startgg.queryComplexity',
-  timeout: 'errors:startgg.timeout',
-  network: 'errors:startgg.network',
-  upstream: 'errors:startgg.upstream',
-  'invalid-response': 'errors:startgg.invalidResponse',
-  graphql: 'errors:startgg.graphql'
-} as const satisfies Record<StartggErrorCode, string>;
-
 function localizedResponseError(
   payload: { error?: string; code?: StartggErrorCode } | undefined,
   status: number
 ): string {
-  if (payload?.code && payload.code in startggErrorTranslationKeys) {
-    return i18n.t(startggErrorTranslationKeys[payload.code]);
-  }
-  return payload?.error ?? i18n.t('errors:http', { status });
+  return localizedStartggError(payload, i18n.t('errors:http', { status }));
 }
 
 export async function websocketUrl(): Promise<string> {
@@ -236,6 +223,14 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(state)
     }, { decoder: versusScreenStateSchema }),
+  topEightMatchupsState: () => request<TopEightMatchupsState>(
+    '/api/broadcast/top-eight-matchups', undefined, { decoder: topEightMatchupsStateSchema }
+  ),
+  updateTopEightMatchupsState: (state: TopEightMatchupsState) =>
+    request<TopEightMatchupsState>('/api/broadcast/top-eight-matchups', {
+      method: 'PUT',
+      body: JSON.stringify(state)
+    }, { decoder: topEightMatchupsStateSchema }),
   refreshVersusHistory: () => request<VersusScreenState>('/api/broadcast/versus-screen/history', {
     method: 'POST'
   }, { decoder: versusScreenStateSchema }),
@@ -360,6 +355,8 @@ export const api = {
       assetCatalogSlug?: string;
       restoreOverrides?: boolean;
       preserveBroadcast?: boolean;
+      preserveStation?: boolean;
+      preserveMatchLength?: boolean;
     } = {}
   ) =>
     request<StartggSelectionResult>('/api/startgg/select-set', {
@@ -385,25 +382,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(input)
     }),
-  quickReportStartggSet: (input: {
-    setId: string;
-    gameId: string;
-    bestOf: number;
-    expected: {
-      state?: string;
-      playerOneEntrantId: string;
-      playerTwoEntrantId: string;
-      playerOneScore: number;
-      playerTwoScore: number;
-    };
-    playerOneScore: number;
-    playerTwoScore: number;
-    gameHistory?: Array<{
-      winnerId: string;
-      selections?: Array<{ entrantId: string; character: string }>;
-    }>;
-    confirmed: true;
-  }) =>
+  quickReportStartggSet: (input: StartggQuickReportInput) =>
     request<StartggQuickReportResult>('/api/startgg/quick-report-set', {
       method: 'POST',
       body: JSON.stringify(input)
@@ -413,6 +392,10 @@ export const api = {
     request<OverlayState>('/api/state/selected-set', {
       method: 'PUT',
       body: JSON.stringify(selectedSet)
+    }, { retryNetworkFailure: true, decoder: overlayStateSchema }),
+  clearSelectedSet: () =>
+    request<OverlayState>('/api/state/selected-set', {
+      method: 'DELETE'
     }, { retryNetworkFailure: true, decoder: overlayStateSchema }),
   validateModerationText: (field: string, value: string) =>
     request<{ safe: true }>('/api/moderation/text', {

@@ -1,4 +1,7 @@
-# Supply-chain policy applies to the root package and every future workspace package.
+packages:
+  - "."
+
+# Supply-chain policy applies to the public desktop project.
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   # Exact, reviewed fix for GHSA-2v37-7h3g-55p8; published just under seven days before migration.

@@ -108,6 +108,7 @@ export function useTopEightDraft(initialGameId?: GameId): TopEightDraftControlle
               ? existing?.characterAssetId
               : undefined,
             sponsor: standing.prefix ?? existing?.sponsor,
+            xHandle: standing.xHandle ?? existing?.xHandle,
             country: standing.country ?? existing?.country,
             displayFlag: existing?.displayFlag
           };

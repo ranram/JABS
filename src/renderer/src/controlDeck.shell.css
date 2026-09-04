@@ -6,8 +6,40 @@
 }
 
 .operator-shell .grid-layout.wide {
-  grid-template-columns: minmax(390px, 1.08fr) minmax(430px, 1.2fr) minmax(270px, 0.72fr);
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 0.72fr);
+  align-items: start;
   margin-top: 18px;
+}
+
+.operator-shell .grid-layout.wide .editor-panel {
+  grid-column: 1;
+}
+
+.operator-shell .grid-layout.wide .preview-panel {
+  grid-column: 2;
+}
+
+.bracket-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 2fr);
+  align-items: stretch;
+  gap: 18px;
+}
+
+.bracket-overview-grid > .panel {
+  height: 100%;
+}
+
+.bracket-overview-grid .set-list {
+  display: flex;
+  flex-direction: column;
+  container-name: set-selector;
+  container-type: inline-size;
+}
+
+.bracket-overview-grid .set-results-scroll {
+  flex: 1 1 220px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .operator-shell .panel {
@@ -151,11 +183,14 @@
 
 .set-results-scroll {
   contain: layout paint style;
+  display: grid !important;
   min-height: 0;
-  max-height: clamp(240px, 150vh, 1200px);
+  max-height: clamp(220px, 30vh, 300px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-content: start;
   padding: 2px 7px 2px 2px;
   scrollbar-color: rgba(217, 255, 67, 0.52) rgba(255, 255, 255, 0.035);
   scrollbar-gutter: stable;
@@ -165,6 +200,12 @@
 .set-results-scroll .set-row {
   content-visibility: auto;
   contain-intrinsic-block-size: 112px;
+  margin-bottom: 0;
+}
+
+.set-results-scroll > .mantine-Text-root,
+.set-load-more-sentinel {
+  grid-column: 1 / -1;
 }
 
 .set-results-scroll:focus-visible {

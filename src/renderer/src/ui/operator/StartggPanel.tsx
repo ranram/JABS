@@ -67,7 +67,9 @@ type StartggPanelProps = {
   loading: boolean;
   reloadingAssets: boolean;
   reloadSelectedSetDisabled: boolean;
+  unloadTournamentDisabled: boolean;
   assetCatalogRevision: number;
+  moderationRevision: number;
   countries: CountryOption[];
   onReloadAssets(): void;
   onTokenInputReady(ready: boolean): void;
@@ -75,6 +77,7 @@ type StartggPanelProps = {
   onRemoveToken(): void;
   onTournamentSlug(slug: string): void;
   onLoadEvents(slug?: string): void;
+  onUnloadTournament(): void;
   onClearCache(): void;
   onSelectEvent(eventId: string): void;
   onSelectionGame(gameId: GameId | ''): void;
@@ -88,6 +91,8 @@ type StartggPanelProps = {
   onReloadSelectedSet(): void;
   onCustomScoreboard(scoreboardId?: string, revision?: string): void;
   onMessage(message: string): void;
+  onModerationApplied(): void;
+  setSelector?: ReactNode;
   children?: ReactNode;
 };
 
@@ -119,6 +124,7 @@ export function StartggPanel({
   loading,
   reloadingAssets,
   reloadSelectedSetDisabled,
+  unloadTournamentDisabled,
   assetCatalogRevision,
   countries,
   onReloadAssets,
@@ -127,6 +133,7 @@ export function StartggPanel({
   onRemoveToken,
   onTournamentSlug,
   onLoadEvents,
+  onUnloadTournament,
   onClearCache,
   onSelectEvent,
   onSelectionGame,
@@ -140,6 +147,9 @@ export function StartggPanel({
   onReloadSelectedSet,
   onCustomScoreboard,
   onMessage,
+  moderationRevision,
+  onModerationApplied,
+  setSelector,
   children
 }: StartggPanelProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
@@ -204,11 +214,6 @@ export function StartggPanel({
             <Text fw={700}>{t('operator:startgg.apiAccess')}</Text>
             <Text size="xs" c="dimmed">{t('operator:startgg.tokenLocal')}</Text>
           </div>
-          <Text size="sm" c="dimmed">
-            {tokenStorageAvailable
-              ? t('operator:startgg.secureStorage')
-              : t('operator:startgg.sessionStorage')}
-          </Text>
           <PasswordInput
             ref={tokenInputRef}
             autoComplete="off"
@@ -219,6 +224,9 @@ export function StartggPanel({
               if (event.key === 'Enter' && tokenInputReady) onSaveToken();
             }}
           />
+          {!tokenStorageAvailable && (
+            <Text size="sm" c="dimmed">{t('operator:startgg.sessionStorage')}</Text>
+          )}
           <Group>
             <Button disabled={loading || !tokenInputReady} onClick={onSaveToken}>
               {tokenStorageAvailable ? t('operator:startgg.saveToken') : t('operator:startgg.useForSession')}
@@ -275,123 +283,132 @@ export function StartggPanel({
           loading={loading}
           reloadingAssets={reloadingAssets}
           reloadSelectedSetDisabled={reloadSelectedSetDisabled}
+          unloadTournamentDisabled={unloadTournamentDisabled}
+          tournamentLoaded={events.length > 0}
           setScope={setScope}
           onReloadAssets={onReloadAssets}
           onReloadBracketData={onRefreshScope}
           onReloadSelectedSet={onReloadSelectedSet}
+          onUnloadTournament={onUnloadTournament}
           onClearCache={onClearCache}
+          onModerationApplied={onModerationApplied}
         />
       </div>
 
       <Tabs.Panel value="bracket" pt="md">
-        <Paper className="panel bracket-workspace" p="md" radius="lg" withBorder>
+        <div className="bracket-overview-grid">
+          <Paper className="panel bracket-workspace" p="md" radius="lg" withBorder>
 
-      {detectedProfile && (
-        <Group mt="md" gap="xs">
-          <Text size="sm">{t('operator:startgg.detectedProfile')}</Text>
-          <Badge variant="light">{detectedProfile.shortLabel}</Badge>
-        </Group>
-      )}
+            {detectedProfile && (
+              <Group mt="md" gap="xs">
+                <Text size="sm">{t('operator:startgg.detectedProfile')}</Text>
+                <Badge variant="light">{detectedProfile.shortLabel}</Badge>
+              </Group>
+            )}
 
-      <Select
-        data-testid="event-select"
-        mt="md"
-        value={selectedEventId || null}
-        disabled={loading}
-        aria-label={t('operator:startgg.eventAria')}
-        placeholder={t('operator:startgg.selectEvent')}
-        searchable
-        clearable
-        data={sortedEvents.map((event) => ({ value: String(event.id), label: event.name }))}
-        onChange={(value) => onSelectEvent(value ?? '')}
-      />
-
-      {assetCatalogSlug && (
-        <Group mt="md" justify="space-between" align="center" wrap="wrap">
-          <MediaFolderControls
-            kind="game-assets"
-            label={t('operator:browser.assetSlug')}
-            subpath={`${assetCatalogSlug}/characters`}
-          />
-        </Group>
-      )}
-
-      {selectedEventId && (
-        <div className="bracket-browser">
-          <div className="bracket-filter-row">
             <Select
-              data-testid="selection-game-profile"
-              label={t('operator:browser.gameProfile')}
-              value={(detectedGameId ?? selectionGameId) || null}
-              disabled={loading || Boolean(detectedGameId)}
-              placeholder={t('operator:browser.chooseProfile')}
-              searchable
-              clearable
-              description={detectedProfile
-                ? t('operator:browser.detectedFromEvent', { profile: detectedProfile.label })
-                : t('operator:browser.unknownGame')}
-              data={sortedGameProfiles.map((profile) => ({ value: profile.id, label: profile.label }))}
-              onChange={(value) => onSelectionGame((value ?? '') as GameId | '')}
-            />
-            <Select
-              label={t('operator:browser.phase')}
-              value={selectedPhaseId || null}
-              disabled={loading || phases.length === 0}
-              placeholder={t('operator:browser.allPhases')}
-              searchable
-              clearable
-              data={sortedPhases.map((phase) => ({ value: String(phase.id), label: phase.name }))}
-              onChange={(value) => onSelectPhase(value ?? '')}
-            />
-          </div>
-          <div className="bracket-filter-row">
-            <Select
-              label={t('operator:browser.pool')}
-              value={selectedPhaseGroupId || null}
-              disabled={loading || !selectedPhaseId || phaseGroups.length === 0}
-              placeholder={t('operator:browser.allPools')}
-              searchable
-              clearable
-              data={sortedPhaseGroups.map((group) => ({ value: String(group.id), label: group.displayIdentifier }))}
-              onChange={(value) => onSelectPhaseGroup(value ?? '')}
-            />
-            <Group align="flex-end" wrap="nowrap">
-              <NumberInput
-                label={t('operator:browser.stationNumber')}
-                min={1}
-                step={1}
-                value={stationNumber}
-                placeholder={t('operator:browser.stationPlaceholder')}
-                disabled={loading}
-                allowDecimal={false}
-                onChange={(value) => onStationNumber(String(value))}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') onBrowseStation();
-                }}
-                style={{ flex: 1 }}
-              />
-              <Button disabled={loading || !stationNumber} onClick={onBrowseStation}>
-                {t('operator:browser.browse')}
-              </Button>
-            </Group>
-          </div>
-
-          {phaseGroupPageInfo && phaseGroupPageInfo.totalPages > 1 && (
-            <PaginationControls
-              label={t('operator:browser.poolPages')}
-              pageInfo={phaseGroupPageInfo}
+              data-testid="event-select"
+              mt="md"
+              label={t('operator:startgg.selectEvent')}
+              value={selectedEventId || null}
               disabled={loading}
-              onPage={onLoadPhaseGroups}
+              aria-label={t('operator:startgg.eventAria')}
+              placeholder={t('operator:startgg.selectEvent')}
+              searchable
+              clearable
+              data={sortedEvents.map((event) => ({ value: String(event.id), label: event.name }))}
+              onChange={(value) => onSelectEvent(value ?? '')}
             />
-          )}
-          <Group>
-            <Button variant="default" disabled={loading} onClick={onBrowseAllSets}>
-              {t('operator:browser.allEventSets')}
-            </Button>
-          </Group>
+
+            {assetCatalogSlug && (
+              <Group mt="md" justify="space-between" align="center" wrap="wrap">
+                <MediaFolderControls
+                  kind="game-assets"
+                  label={t('operator:browser.assetSlug')}
+                  subpath={`${assetCatalogSlug}/characters`}
+                />
+              </Group>
+            )}
+
+            {selectedEventId && (
+              <div className="bracket-browser">
+                <div className="bracket-filter-row">
+                  <Select
+                    data-testid="selection-game-profile"
+                    label={t('operator:browser.gameProfile')}
+                    value={(detectedGameId ?? selectionGameId) || null}
+                    disabled={loading || Boolean(detectedGameId)}
+                    placeholder={t('operator:browser.chooseProfile')}
+                    searchable
+                    clearable
+                    description={detectedProfile
+                      ? t('operator:browser.detectedFromEvent', { profile: detectedProfile.label })
+                      : t('operator:browser.unknownGame')}
+                    inputWrapperOrder={['label', 'input', 'description', 'error']}
+                    data={sortedGameProfiles.map((profile) => ({ value: profile.id, label: profile.label }))}
+                    onChange={(value) => onSelectionGame((value ?? '') as GameId | '')}
+                  />
+                  <Select
+                    label={t('operator:browser.phase')}
+                    value={selectedPhaseId || null}
+                    disabled={loading || phases.length === 0}
+                    placeholder={t('operator:browser.allPhases')}
+                    searchable
+                    clearable
+                    data={sortedPhases.map((phase) => ({ value: String(phase.id), label: phase.name }))}
+                    onChange={(value) => onSelectPhase(value ?? '')}
+                  />
+                </div>
+                <div className="bracket-filter-row">
+                  <Select
+                    label={t('operator:browser.pool')}
+                    value={selectedPhaseGroupId || null}
+                    disabled={loading || !selectedPhaseId || phaseGroups.length === 0}
+                    placeholder={t('operator:browser.allPools')}
+                    searchable
+                    clearable
+                    data={sortedPhaseGroups.map((group) => ({ value: String(group.id), label: group.displayIdentifier }))}
+                    onChange={(value) => onSelectPhaseGroup(value ?? '')}
+                  />
+                  <Group align="flex-end" wrap="nowrap">
+                    <NumberInput
+                      label={t('operator:browser.stationNumber')}
+                      min={1}
+                      step={1}
+                      value={stationNumber}
+                      placeholder={t('operator:browser.stationPlaceholder')}
+                      disabled={loading}
+                      allowDecimal={false}
+                      onChange={(value) => onStationNumber(String(value))}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') onBrowseStation();
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                    <Button disabled={loading || !stationNumber} onClick={onBrowseStation}>
+                      {t('operator:browser.browse')}
+                    </Button>
+                  </Group>
+                </div>
+
+                {phaseGroupPageInfo && phaseGroupPageInfo.totalPages > 1 && (
+                  <PaginationControls
+                    label={t('operator:browser.poolPages')}
+                    pageInfo={phaseGroupPageInfo}
+                    disabled={loading}
+                    onPage={onLoadPhaseGroups}
+                  />
+                )}
+                <Group>
+                  <Button variant="default" disabled={loading} onClick={onBrowseAllSets}>
+                    {t('operator:browser.allEventSets')}
+                  </Button>
+                </Group>
+              </div>
+            )}
+          </Paper>
+          {setSelector}
         </div>
-      )}
-        </Paper>
         {children}
       </Tabs.Panel>
 
@@ -411,6 +428,9 @@ export function StartggPanel({
           activeSet={activeSet}
           profiles={profiles}
           assetCatalogSlug={assetCatalogSlug}
+          selectedEventId={selectedEventId}
+          selectedEventName={selectedEvent?.name}
+          phases={phases}
         />
       </Tabs.Panel>
 
@@ -419,6 +439,7 @@ export function StartggPanel({
           controller={topEight}
           profiles={profiles}
           selectedEventId={selectedEventId}
+          moderationRevision={moderationRevision}
           logos={logos}
           assetCatalogRevision={assetCatalogRevision}
           countries={countries}
@@ -430,6 +451,7 @@ export function StartggPanel({
           controller={thumbnail}
           profiles={profiles}
           activeSet={activeSet}
+          moderationRevision={moderationRevision}
           logos={logos}
           assetCatalogRevision={assetCatalogRevision}
           countries={countries}

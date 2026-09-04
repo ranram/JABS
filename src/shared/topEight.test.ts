@@ -13,6 +13,6 @@ describe('Top 8 model', () => {
     const draft = createTopEightDraft();
     draft.entrants[4] = { ...draft.entrants[4], placement: 2 };
     expect(validateTopEightDraft(draft)).toBe('placements');
-    expect([topEightMediaBaseScale('editorial', 4), topEightMediaBaseScale('neon', 5), topEightMediaBaseScale('mosaic', 7)]).toEqual([1.65, 1.42, 1.12]);
+    expect([topEightMediaBaseScale('neon', 5), topEightMediaBaseScale('mosaic', 7)]).toEqual([1.42, 1.12]);
   });
 });

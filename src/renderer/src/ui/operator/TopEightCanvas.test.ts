@@ -10,4 +10,18 @@ describe('Top 8 trusted export text', () => {
     for (let index = 1; index <= 8; index += 1) expect(text).toContain(`Player ${index}`);
     expect(text).not.toContain('Ryu');
   });
+
+  it('orders each entrant text to match the rendered DOM order', () => {
+    const draft = createTopEightDraft('street-fighter-6');
+    draft.entrants = [{
+      placement: 1,
+      name: 'Tweek',
+      sponsor: 'TSM',
+      xHandle: 'TweekSsb'
+    }];
+    const text = topEightTrustedText(draft).join('');
+    expect(text.indexOf('1st')).toBeLessThan(text.indexOf('TSM'));
+    expect(text.indexOf('TSM')).toBeLessThan(text.indexOf('Tweek'));
+    expect(text.indexOf('Tweek')).toBeLessThan(text.indexOf('@TweekSsb'));
+  });
 });

@@ -49,7 +49,8 @@ query EventStandings($eventId: ID!) {
             id
             gamerTag
             prefix
-            user { location { country } }
+            connectedAccounts
+            user { location { country } authorizations(types: [TWITTER]) { externalUsername } }
             player { id }
           }
         }
@@ -79,7 +80,8 @@ query EventStandingsBySlug($eventSlug: String!) {
             id
             gamerTag
             prefix
-            user { location { country } }
+            connectedAccounts
+            user { location { country } authorizations(types: [TWITTER]) { externalUsername } }
             player { id }
           }
         }
@@ -110,7 +112,7 @@ query SetById($setId: ID!) {
     phaseGroup {
       id
       displayIdentifier
-      phase { id name }
+      phase { id name phaseOrder }
     }
     state
     station { id number }
@@ -128,10 +130,12 @@ query SetById($setId: ID!) {
           id
           gamerTag
           prefix
+          connectedAccounts
           player { id }
           user {
             genderPronoun
             location { country state }
+            authorizations(types: [TWITTER]) { externalUsername }
           }
         }
       }
@@ -251,17 +255,21 @@ const SET_FIELDS: &str = r#"
   pageInfo { total totalPages }
   nodes {
     id
+    round
     displayScore
     fullRoundText
     phaseGroup {
       id
       displayIdentifier
-      phase { id name }
+      phase { id name phaseOrder }
     }
     state
     station { id number }
     slots {
       id
+      prereqId
+      prereqPlacement
+      prereqType
       entrant {
         id
         name

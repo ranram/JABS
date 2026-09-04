@@ -61,13 +61,14 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         }))
         .route("/api/state", get(current_state))
         .route("/api/moderation/text", post(validate_moderation_text))
-        .route("/api/state/selected-set", axum::routing::put(update_selected_set))
+        .route("/api/state/selected-set", put(update_selected_set).delete(clear_selected_set))
         .route("/api/state/score", post(set_score))
         .route("/api/state/scores/reset", post(reset_scores))
         .route("/api/state/players/swap", post(swap_players))
         .route("/api/broadcast/commentators", get(commentator_state).put(update_commentator_state))
         .route("/api/broadcast/result-screen", get(result_screen_state).put(update_result_screen_state))
         .route("/api/broadcast/versus-screen", get(versus_screen_state).put(update_versus_screen_state))
+        .route("/api/broadcast/top-eight-matchups", get(top_eight_matchups_state).put(update_top_eight_matchups_state))
         .route("/api/broadcast/versus-screen/history", post(refresh_versus_history))
         .route("/api/assets/logos", get(logos))
         .route("/api/assets/catalog-summary", get(asset_catalog_summary))
@@ -176,6 +177,25 @@ async fn versus_screen_state(State(runtime): State<Arc<RuntimeState>>) -> Respon
     match runtime.versus_screen.current() {
         Ok(state) => secure_json(Json(state)),
         Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
+    }
+}
+
+async fn top_eight_matchups_state(State(runtime): State<Arc<RuntimeState>>) -> Response {
+    match runtime.top_eight_matchups.current() {
+        Ok(state) => secure_json(Json(state)),
+        Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
+    }
+}
+
+async fn update_top_eight_matchups_state(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+    Json(body): Json<crate::top_eight_matchups::TopEightMatchupsState>,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) { return response; }
+    match runtime.top_eight_matchups.replace(&runtime.database, body) {
+        Ok(state) => secure_json(Json(state)),
+        Err(error) => secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({ "error": error })))),
     }
 }
 
@@ -664,6 +684,10 @@ struct SelectedSetBody {
     restore_overrides: bool,
     #[serde(default = "default_true")]
     preserve_broadcast: bool,
+    #[serde(default)]
+    preserve_station: bool,
+    #[serde(default)]
+    preserve_match_length: bool,
 }
 
 fn default_true() -> bool {
@@ -738,6 +762,17 @@ async fn select_startgg_set(
     if body.preserve_broadcast {
         if let Ok(current) = runtime.overlay.selected_set() {
             retain_broadcast_extras(&mut fresh, &current);
+        }
+    }
+    if body.preserve_station || body.preserve_match_length {
+        if let Ok(current) = runtime.overlay.selected_set() {
+            if body.preserve_station {
+                fresh.station = current.station;
+            }
+            if body.preserve_match_length {
+                fresh.match_format = current.match_format;
+                fresh.best_of = current.best_of;
+            }
         }
     }
     crate::state::censor_untrusted_selected_set(&mut fresh);
@@ -851,6 +886,22 @@ async fn update_selected_set(
         )),
         Err(crate::state::UpdateSelectedSetError::Conflict(error)) => secure_json((
             StatusCode::CONFLICT,
+            Json(serde_json::json!({ "error": error })),
+        )),
+    }
+}
+
+async fn clear_selected_set(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    match runtime.overlay.clear_selected_set(&runtime.database) {
+        Ok(state) => secure_json(Json(state)),
+        Err(error) => secure_json((
+            StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": error })),
         )),
     }
@@ -978,6 +1029,7 @@ async fn websocket_session(mut socket: WebSocket, runtime: Arc<RuntimeState>) {
     let mut commentator_updates = runtime.commentators.subscribe();
     let mut result_screen_updates = runtime.result_screen.subscribe();
     let mut versus_screen_updates = runtime.versus_screen.subscribe();
+    let mut top_eight_matchups_updates = runtime.top_eight_matchups.subscribe();
     let Ok(initial) = runtime.overlay.current().and_then(overlay_state_message) else {
         return;
     };
@@ -1035,6 +1087,17 @@ async fn websocket_session(mut socket: WebSocket, runtime: Arc<RuntimeState>) {
                 Err(broadcast::error::RecvError::Lagged(_)) => continue,
                 Err(broadcast::error::RecvError::Closed) => break,
             },
+            update = top_eight_matchups_updates.recv() => match update {
+                Ok(update) => {
+                    let Ok(payload) = serde_json::from_str::<serde_json::Value>(&update)
+                        .map_err(|_| "State serialization failed.".to_owned())
+                        .and_then(top_eight_matchups_state_message)
+                    else { continue; };
+                    if socket.send(Message::Text(payload.into())).await.is_err() { break; }
+                }
+                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                Err(broadcast::error::RecvError::Closed) => break,
+            },
             incoming = socket.next() => match incoming {
                 Some(Ok(Message::Ping(payload))) => {
                     if socket.send(Message::Pong(payload)).await.is_err() {
@@ -1065,6 +1128,13 @@ fn result_screen_state_message(state: serde_json::Value) -> Result<String, Strin
 fn versus_screen_state_message(state: serde_json::Value) -> Result<String, String> {
     serde_json::to_string(&serde_json::json!({
         "event": "versus-screen-state",
+        "payload": state
+    })).map_err(|_| "State serialization failed.".to_owned())
+}
+
+fn top_eight_matchups_state_message(state: serde_json::Value) -> Result<String, String> {
+    serde_json::to_string(&serde_json::json!({
+        "event": "top-eight-matchups-state",
         "payload": state
     })).map_err(|_| "State serialization failed.".to_owned())
 }

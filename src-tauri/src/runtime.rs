@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::{Mutex, atomic::{AtomicBool, AtomicU16}}};
 use zeroize::Zeroizing;
-use crate::{commentators::CommentatorStore, database::Database, result_screen::ResultScreenStore, startgg::StartggService, state::OverlayStore, versus_screen::VersusScreenStore};
+use crate::{commentators::CommentatorStore, database::Database, result_screen::ResultScreenStore, startgg::StartggService, state::OverlayStore, top_eight_matchups::TopEightMatchupsStore, versus_screen::VersusScreenStore};
 
 pub const DEFAULT_API_PORT: u16 = 4279;
 
@@ -12,6 +12,7 @@ pub struct RuntimeState {
     pub commentators: CommentatorStore,
     pub result_screen: ResultScreenStore,
     pub versus_screen: VersusScreenStore,
+    pub top_eight_matchups: TopEightMatchupsStore,
     pub startgg: StartggService,
     pub database: Database,
     pub logo_directory: PathBuf,
@@ -37,6 +38,7 @@ impl RuntimeState {
         let commentators = CommentatorStore::load(&database, &logo_directory)?;
         let result_screen = ResultScreenStore::load(&database)?;
         let versus_screen = VersusScreenStore::load(&database)?;
+        let top_eight_matchups = TopEightMatchupsStore::load(&database)?;
         Ok(Self {
             api_port: AtomicU16::new(0),
             secure_storage_available: AtomicBool::new(false),
@@ -45,6 +47,7 @@ impl RuntimeState {
             commentators,
             result_screen,
             versus_screen,
+            top_eight_matchups,
             startgg: StartggService::default(),
             database,
             logo_directory,

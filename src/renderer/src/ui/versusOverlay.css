@@ -186,7 +186,7 @@
   display: block;
   color: #fff;
   font:
-    900 clamp(44px, 4vw, 72px)/0.96 "Bebas Neue",
+    900 clamp(44px, 4vw, 48px)/0.96 "Bebas Neue",
     Impact,
     sans-serif;
   letter-spacing: 0.025em;

@@ -2,8 +2,8 @@ use crate::generated_moderation_terms as terms;
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::{LazyLock, RwLock};
-use unicode_normalization::UnicodeNormalization;
+use std::sync::{LazyLock, OnceLock, RwLock};
+use unicode_normalization::{UnicodeNormalization, char::is_combining_mark};
 
 static ALL_TERMS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     [
@@ -19,12 +19,41 @@ static SAFE_COMPOUND_PARTS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     terms::SAFE_COMPOUND_PARTS.iter().copied().collect()
 });
 
+const CHARACTER_ROSTERS_JSON: &str = include_str!("../resources/character_rosters.json");
+
+fn known_character_names() -> &'static HashSet<String> {
+    static NAMES: OnceLock<HashSet<String>> = OnceLock::new();
+    NAMES.get_or_init(|| {
+        let rosters: HashMap<String, Vec<String>> = serde_json::from_str(CHARACTER_ROSTERS_JSON)
+            .expect("compiled character rosters must be valid");
+        rosters
+            .values()
+            .flat_map(|characters| characters.iter())
+            .map(|name| normalize_character_name(name))
+            .collect()
+    })
+}
+
+fn normalize_character_name(value: &str) -> String {
+    value
+        .replace('&', " and ")
+        .nfkd()
+        .filter(|character| !is_combining_mark(*character) && character.is_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+fn is_known_character_name(value: &str) -> bool {
+    let normalized = normalize_character_name(value);
+    !normalized.is_empty() && known_character_names().contains(&normalized)
+}
+
 const RESULT_CACHE_LIMIT: usize = 512;
 static RESULT_CACHE: LazyLock<RwLock<HashMap<String, bool>>> =
     LazyLock::new(|| RwLock::new(HashMap::with_capacity(RESULT_CACHE_LIMIT)));
 
-const RUNTIME_ALLOWLIST_MAX_BYTES: u64 = 64 * 1024;
-const RUNTIME_ALLOWLIST_MAX_ENTRIES: usize = 1_024;
+const RUNTIME_ALLOWLIST_MAX_BYTES: u64 = 256 * 1024;
+const RUNTIME_ALLOWLIST_MAX_ENTRIES: usize = 4_096;
 const RUNTIME_ALLOWLIST_MAX_ENTRY_CHARS: usize = 256;
 const RUNTIME_ALLOWLIST_TEMPLATE: &str = "# JABS moderation allowlist\n\
 # Add one exact player tag, sponsor, pronoun value, or other field value per line.\n\
@@ -67,6 +96,45 @@ pub fn reload_runtime_allowlist() -> Result<usize, String> {
     Ok(count)
 }
 
+pub fn runtime_allowlist_contents() -> Result<String, String> {
+    let path = runtime_allowlist_path()?;
+    ensure_runtime_allowlist_file(&path)?;
+    let metadata = std::fs::metadata(&path)
+        .map_err(|_| "JABS could not read the moderation allowlist.".to_owned())?;
+    if metadata.len() > RUNTIME_ALLOWLIST_MAX_BYTES {
+        return Err("moderation.fileTooLarge".to_owned());
+    }
+    std::fs::read_to_string(path)
+        .map_err(|_| "The moderation allowlist must be valid UTF-8 text.".to_owned())
+}
+
+pub fn save_runtime_allowlist(contents: &str) -> Result<usize, String> {
+    if contents.len() as u64 > RUNTIME_ALLOWLIST_MAX_BYTES {
+        return Err("moderation.fileTooLarge".to_owned());
+    }
+    let entries = parse_runtime_allowlist(contents)?;
+    let path = runtime_allowlist_path()?;
+    ensure_runtime_allowlist_file(&path)?;
+    std::fs::write(path, contents)
+        .map_err(|_| "JABS could not save the moderation allowlist.".to_owned())?;
+    let count = entries.len();
+    RUNTIME_ALLOWLIST
+        .write()
+        .map_err(|_| "The moderation allowlist is unavailable.".to_owned())?
+        .entries = entries;
+    clear_result_cache();
+    Ok(count)
+}
+
+fn runtime_allowlist_path() -> Result<PathBuf, String> {
+    RUNTIME_ALLOWLIST
+        .read()
+        .map_err(|_| "The moderation allowlist is unavailable.".to_owned())?
+        .path
+        .clone()
+        .ok_or_else(|| "The moderation allowlist has not been initialized.".to_owned())
+}
+
 pub fn ensure_runtime_allowlist_file(path: &Path) -> Result<(), String> {
     if path.exists() {
         if path.is_file() {
@@ -92,7 +160,7 @@ fn read_runtime_allowlist(path: &Path) -> Result<HashSet<String>, String> {
     let metadata = std::fs::metadata(path)
         .map_err(|_| "JABS could not read the moderation allowlist.".to_owned())?;
     if metadata.len() > RUNTIME_ALLOWLIST_MAX_BYTES {
-        return Err("The moderation allowlist must be 64 KiB or smaller.".to_owned());
+        return Err("moderation.fileTooLarge".to_owned());
     }
     let contents = std::fs::read_to_string(path)
         .map_err(|_| "The moderation allowlist must be valid UTF-8 text.".to_owned())?;
@@ -108,14 +176,11 @@ fn parse_runtime_allowlist(contents: &str) -> Result<HashSet<String>, String> {
         }
         let entry = normalize_runtime_allowlist_value(line);
         if entry.chars().count() > RUNTIME_ALLOWLIST_MAX_ENTRY_CHARS {
-            return Err(format!(
-                "Moderation allowlist line {} exceeds 256 characters.",
-                index + 1
-            ));
+            return Err(format!("moderation.lineTooLong|{}", index + 1));
         }
         entries.insert(entry);
         if entries.len() > RUNTIME_ALLOWLIST_MAX_ENTRIES {
-            return Err("The moderation allowlist supports at most 1,024 entries.".to_owned());
+            return Err("moderation.tooManyEntries".to_owned());
         }
     }
     Ok(entries)
@@ -149,6 +214,23 @@ pub fn censor(value: Option<String>) -> Option<String> {
     value.map(|value| {
         if contains_blocked_text(&value) { "[blocked]".to_owned() } else { value }
     })
+}
+
+/// Censors a character selection while preserving reviewed roster names such as
+/// "Banjo and Kazooie" that should not require per-tournament allowlist entries.
+pub fn censor_character(value: Option<String>) -> Option<String> {
+    value.map(|value| {
+        if is_known_character_name(&value) || !contains_blocked_text(&value) {
+            value
+        } else {
+            "[blocked]".to_owned()
+        }
+    })
+}
+
+/// Checks character selections for blocked text, exempting reviewed roster names.
+pub fn contains_blocked_text_for_character(value: &str) -> bool {
+    !is_known_character_name(value) && contains_blocked_text(value)
 }
 
 pub fn assert_safe(field_values: &[(&str, Option<&str>)]) -> Result<(), String> {
@@ -333,7 +415,10 @@ fn collapse_repeats(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{assert_safe, censor, contains_blocked_text, parse_runtime_allowlist};
+    use super::{
+        assert_safe, censor, censor_character, contains_blocked_text,
+        contains_blocked_text_for_character, parse_runtime_allowlist,
+    };
 
     #[test]
     fn blocks_reviewed_slur_obfuscation_without_common_tag_false_positive() {
@@ -395,6 +480,22 @@ mod tests {
         assert!(contains_blocked_text("iFag"));
         assert!(!contains_blocked_text("iPodTouch"));
         assert_eq!(censor(Some("faggot".to_owned())).as_deref(), Some("[blocked]"));
+    }
+
+    #[test]
+    fn reviewed_character_roster_names_bypass_moderation() {
+        assert!(!contains_blocked_text_for_character("Banjo and Kazooie"));
+        assert!(!contains_blocked_text_for_character("Banjo & Kazooie"));
+        assert_eq!(
+            censor_character(Some("Banjo and Kazooie".to_owned())).as_deref(),
+            Some("Banjo and Kazooie")
+        );
+        // Offensive text that is not a known character name is still blocked.
+        assert!(contains_blocked_text_for_character("faggot"));
+        assert_eq!(
+            censor_character(Some("faggot".to_owned())).as_deref(),
+            Some("[blocked]")
+        );
     }
 
     #[test]

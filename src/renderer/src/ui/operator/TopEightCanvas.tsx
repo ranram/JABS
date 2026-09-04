@@ -34,7 +34,8 @@ export function topEightTrustedText(draft: TopEightDraft): string[] {
     ...draft.entrants.flatMap((entrant) => [
       placementText(entrant.placement),
       entrant.sponsor ?? '',
-      entrant.name
+      entrant.name,
+      entrant.xHandle ? `@${entrant.xHandle}` : ''
     ]),
     topEightFooterText(draft) ?? ''
   ];
@@ -114,12 +115,6 @@ export function TopEightCanvas({
         <>
           <div className="top8-neon-feature">{cards[0]}</div>
           <div className="top8-neon-finalists">{cards.slice(1)}</div>
-        </>
-      )}
-      {draft.style === 'editorial' && (
-        <>
-          <div className="top8-editorial-champion">{cards[0]}</div>
-          <div className="top8-editorial-results">{cards.slice(1)}</div>
         </>
       )}
       <CanvasFooter draft={draft} />
@@ -209,18 +204,31 @@ function TopEightCard({
         portraits={media?.characterPortraits ?? []}
         className="top8-character-portraits"
       />
-      <div className="top8-card-copy" data-export-shape="top8-identity">
-        <span className="top8-placement" data-export-text>{placementLabel(entrant.placement)}</span>
-        {entrant.sponsor && <span className="top8-sponsor-text" data-export-text>{entrant.sponsor}</span>}
-        <span className="top8-name-row">
-          <strong data-export-text>{entrant.name}</strong>
-          {flagUrl && <LoadedImage src={flagUrl} className={`top8-country-flag${prideFlag ? ' is-pride' : ''}`} layer="foreground" />}
-        </span>
-        {(media?.sponsorLogoUrl || entrant.character) && (
-          <span className="top8-card-meta">
+      <div className="top8-card-identity">
+        <div className="top8-card-copy" data-export-shape="top8-identity">
+          <span className="top8-placement" data-export-text>{placementLabel(entrant.placement)}</span>
+          <span
+            className={`top8-sponsor-text${entrant.sponsor ? '' : ' is-empty'}`}
+            data-export-text={entrant.sponsor ? true : undefined}
+            aria-hidden={entrant.sponsor ? undefined : true}
+          >
+            {entrant.sponsor || '\u00a0'}
+          </span>
+          <span className="top8-name-row">
+            <strong data-export-text>{entrant.name}</strong>
+            {flagUrl && <LoadedImage src={flagUrl} className={`top8-country-flag${prideFlag ? ' is-pride' : ''}`} layer="foreground" />}
+          </span>
+          <span
+            className={`top8-x-handle${entrant.xHandle ? '' : ' is-empty'}`}
+            data-export-text={entrant.xHandle ? true : undefined}
+            aria-hidden={entrant.xHandle ? undefined : true}
+          >
+            {entrant.xHandle ? `@${entrant.xHandle}` : '\u00a0'}
+          </span>
+          <span className={`top8-card-meta${media?.sponsorLogoUrl ? '' : ' is-empty'}`} aria-hidden={media?.sponsorLogoUrl ? undefined : true}>
             {media?.sponsorLogoUrl && <LoadedImage src={media.sponsorLogoUrl} className="top8-sponsor-logo" layer="foreground" />}
           </span>
-        )}
+        </div>
       </div>
     </article>
   );

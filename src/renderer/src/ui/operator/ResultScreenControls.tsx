@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Badge, Code, Group, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
+import { Badge, Group, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { sortByLabel } from './operatorUtils';
@@ -12,7 +12,6 @@ import { announcementPresentation } from '../announcementPresentation';
 
 type ResultScreenControlsProps = {
   activeSet?: SelectedSetState;
-  localBaseUrl?: string;
   logos: LogoAsset[];
   profiles: GameProfile[];
   assetCatalogSlug?: string;
@@ -26,7 +25,7 @@ const emptyAvailability: AssetAvailability = {
   character: false
 };
 
-export function ResultScreenControls({ activeSet, localBaseUrl, logos, profiles, assetCatalogSlug }: ResultScreenControlsProps) {
+export function ResultScreenControls({ activeSet, logos, profiles, assetCatalogSlug }: ResultScreenControlsProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
   const [state, setState] = useState<ResultScreenState>();
   const [availability, setAvailability] = useState<AssetAvailability>(emptyAvailability);
@@ -137,12 +136,6 @@ export function ResultScreenControls({ activeSet, localBaseUrl, logos, profiles,
         ))}
       </SimpleGrid>
       <MediaFoldersAccordion gameAssetSubpath={assetCatalogSlug ? `${assetCatalogSlug}/characters` : undefined} />
-      <div>
-        <Text fw={700} size="xs" mb={5}>{t('workspaces.obsSource')}</Text>
-        {localBaseUrl
-          ? <Code className="workspace-obs-url" block>{localBaseUrl}/overlay/active/winner</Code>
-          : <Text c="dimmed" size="sm">{t('workspaces.resolvingObs')}</Text>}
-      </div>
     </Stack>
   );
 }

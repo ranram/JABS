@@ -12,7 +12,7 @@ import {
   Title
 } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { bestOfOptionsForGame, scoreLimitForBestOf } from '@shared/gameProfiles';
 import { maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
 import type { SelectedSetState, SetSummary } from '@shared/models';
@@ -30,6 +30,8 @@ type SetActionsModalProps = {
   quickScoreLoading: boolean;
   gameProfileAvailable: boolean;
   characterOptions: readonly string[];
+  showSendToStream?: boolean;
+  renderCharacterSelect?(props: CharacterSelectRenderProps): ReactNode;
   onClose(): void;
   onSendToStream(setId: string): void;
   onBeginQuickScore(): void;
@@ -50,6 +52,8 @@ export function SetActionsModal({
   quickScoreLoading,
   gameProfileAvailable,
   characterOptions,
+  showSendToStream = true,
+  renderCharacterSelect,
   onClose,
   onSendToStream,
   onBeginQuickScore,
@@ -104,23 +108,25 @@ export function SetActionsModal({
     >
       {!quickScore && !receipt ? (
         <Stack gap="md">
-          <SimpleGrid className="set-action-choices" type="container" cols={{ base: 1, '32rem': 2 }}>
-            <Button
-              className="set-action-choice stream-choice"
-              variant="light"
-              size="lg"
-              h="auto"
-              py="md"
-              disabled={loading || quickScoreLoading || !gameProfileAvailable}
-              onClick={() => onSendToStream(target.id)}
-            >
-              <Stack gap={4} align="flex-start">
-                <Text fw={700}>{t('operator:setActions.send')}</Text>
-                <Text className="set-action-description" size="sm" fw={400} lh={1.45}>
-                  {t('operator:setActions.sendHelp')}
-                </Text>
-              </Stack>
-            </Button>
+          <SimpleGrid className="set-action-choices" type="container" cols={{ base: 1, '32rem': showSendToStream ? 2 : 1 }}>
+            {showSendToStream && (
+              <Button
+                className="set-action-choice stream-choice"
+                variant="light"
+                size="lg"
+                h="auto"
+                py="md"
+                disabled={loading || quickScoreLoading || !gameProfileAvailable}
+                onClick={() => onSendToStream(target.id)}
+              >
+                <Stack gap={4} align="flex-start">
+                  <Text fw={700}>{t('operator:setActions.send')}</Text>
+                  <Text className="set-action-description" size="sm" fw={400} lh={1.45}>
+                    {t('operator:setActions.sendHelp')}
+                  </Text>
+                </Stack>
+              </Button>
+            )}
             <Button
               className="set-action-choice score-choice"
               variant="light"
@@ -200,17 +206,28 @@ export function SetActionsModal({
                     disabled={quickScoreLoading}
                     onChange={(score) => onChangeScore(side, score)}
                   />
-                  <MultiSelect
-                    searchable
-                    clearable
-                    label={t('operator:setActions.charactersFor', { player: player.name })}
-                    description={t('operator:setActions.characterHelp')}
-                    data={[...unavailable, ...characterData]}
-                    value={selectedCharacters}
-                    maxValues={maxCharactersForGame(quickScore.gameId)}
-                    disabled={quickScoreLoading}
-                    onChange={(characters) => onChangeCharacters(side, characters)}
-                  />
+                  {renderCharacterSelect ? renderCharacterSelect({
+                    label: t('operator:setActions.charactersFor', { player: player.name }),
+                    description: t('operator:setActions.characterHelp'),
+                    options: [...unavailable, ...characterData],
+                    value: selectedCharacters,
+                    maxValues: maxCharactersForGame(quickScore.gameId),
+                    disabled: quickScoreLoading,
+                    onChange: (characters) => onChangeCharacters(side, characters)
+                  }) : (
+                    <MultiSelect
+                      searchable
+                      clearable
+                      label={t('operator:setActions.charactersFor', { player: player.name })}
+                      description={t('operator:setActions.characterHelp')}
+                      inputWrapperOrder={['label', 'input', 'description', 'error']}
+                      data={[...unavailable, ...characterData]}
+                      value={selectedCharacters}
+                      maxValues={maxCharactersForGame(quickScore.gameId)}
+                      disabled={quickScoreLoading}
+                      onChange={(characters) => onChangeCharacters(side, characters)}
+                    />
+                  )}
                 </Stack>
               );
             })}
@@ -248,3 +265,13 @@ export function SetActionsModal({
     </Modal>
   );
 }
+
+export type CharacterSelectRenderProps = {
+  label: string;
+  description: string;
+  options: Array<{ value: string; label: string }>;
+  value: string[];
+  maxValues: number;
+  disabled: boolean;
+  onChange(value: string[]): void;
+};

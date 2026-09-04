@@ -76,7 +76,7 @@ export type GameProfile = {
     broadcastSafeZone: OverlayBroadcastSafeZone;
     showMatchChip?: boolean;
   };
-  editableFields: Array<'character' | 'team' | 'country' | 'state' | 'pronouns' | 'seed' | 'sponsor'>;
+  editableFields: Array<'character' | 'team' | 'country' | 'state' | 'pronouns' | 'seed' | 'xHandle'>;
 };
 
 export const gameProfiles: Record<GameId, GameProfile> = {
@@ -107,7 +107,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       },
       broadcastSafeZone: { bottom: 5, height: 22, railWidth: 500, centerWidth: 180, logoHeight: 64 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'tekken-8': {
     id: 'tekken-8',
@@ -136,7 +136,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       },
       broadcastSafeZone: { bottom: 5, height: 22, railWidth: 520, centerWidth: 180, logoHeight: 62 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'avatar-legends': {
     id: 'avatar-legends',
@@ -165,7 +165,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       },
       broadcastSafeZone: { bottom: 5, height: 22, railWidth: 510, centerWidth: 170, logoHeight: 62 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'marvel-tokon': {
     id: 'marvel-tokon',
@@ -194,7 +194,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       },
       broadcastSafeZone: { bottom: 4, height: 22, railWidth: 500, centerWidth: 170, logoHeight: 64 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'guilty-gear-strive': {
     id: 'guilty-gear-strive',
@@ -223,7 +223,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       },
       broadcastSafeZone: { bottom: 4, height: 22, railWidth: 500, centerWidth: 180, logoHeight: 64 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   '2xko': {
     id: '2xko',
@@ -241,7 +241,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: { top: 2, bottom: 38, sidePadding: 430, centerWidth: 360, gap: 20 },
       broadcastSafeZone: { bottom: 4, height: 22, railWidth: 460, centerWidth: 180, logoHeight: 64 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'blazblue-centralfiction': {
     id: 'blazblue-centralfiction',
@@ -259,7 +259,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: { top: 3, bottom: 43, sidePadding: 470, centerWidth: 360, gap: 10 },
       broadcastSafeZone: { bottom: 4, height: 22, railWidth: 490, centerWidth: 170, logoHeight: 62 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'fatal-fury-city-of-the-wolves': {
     id: 'fatal-fury-city-of-the-wolves',
@@ -277,7 +277,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: { top: 3, bottom: 39, sidePadding: 300, centerWidth: 360, gap: 50 },
       broadcastSafeZone: { bottom: 4, height: 22, railWidth: 480, centerWidth: 170, logoHeight: 62 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'granblue-fantasy-versus-rising': {
     id: 'granblue-fantasy-versus-rising',
@@ -295,7 +295,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: { top: 2, bottom: 36, sidePadding: 360, centerWidth: 400, gap: 30 },
       broadcastSafeZone: { bottom: 4, height: 22, railWidth: 470, centerWidth: 180, logoHeight: 62 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'king-of-fighters-xv': {
     id: 'king-of-fighters-xv',
@@ -313,7 +313,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: { top: 3, bottom: 39, sidePadding: 260, centerWidth: 520, gap: 80 },
       broadcastSafeZone: { bottom: 4, height: 22, railWidth: 460, centerWidth: 180, logoHeight: 62 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'melty-blood-type-lumina': {
     id: 'melty-blood-type-lumina',
@@ -331,7 +331,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: { top: 38, bottom: 72, sidePadding: 320, centerWidth: 380, gap: 80 },
       broadcastSafeZone: { bottom: 4, height: 22, railWidth: 460, centerWidth: 170, logoHeight: 60 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'mortal-kombat-1': {
     id: 'mortal-kombat-1',
@@ -350,7 +350,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       broadcastSafeZone: { bottom: 4, height: 22, railWidth: 450, centerWidth: 170, logoHeight: 60 },
       showMatchChip: false
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'ultimate-marvel-vs-capcom-3': {
     id: 'ultimate-marvel-vs-capcom-3',
@@ -368,7 +368,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: { top: 2, bottom: 36, sidePadding: 400, centerWidth: 340, gap: 30 },
       broadcastSafeZone: { bottom: 4, height: 22, railWidth: 460, centerWidth: 170, logoHeight: 60 }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'super-smash-bros-ultimate': {
     id: 'super-smash-bros-ultimate',
@@ -394,7 +394,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
         logoTop: 38
       }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
   'under-night-in-birth-ii-sys-celes': {
     id: 'under-night-in-birth-ii-sys-celes',
@@ -420,7 +420,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
         logoTop: 156
       }
     },
-    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'sponsor']
+    editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   }
 };
 

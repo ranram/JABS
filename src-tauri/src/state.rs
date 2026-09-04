@@ -71,6 +71,8 @@ pub struct SelectedSet {
     pub custom_scoreboard_revision: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub asset_catalog_slug: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub match_format: Option<String>,
     pub best_of: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub broadcast: Option<BroadcastPresentation>,
@@ -92,6 +94,8 @@ pub struct Player {
     pub prefix: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sponsor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x_handle: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub characters: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -282,6 +286,21 @@ impl OverlayStore {
             .map_err(|_| UpdateSelectedSetError::Invalid("Unable to serialize local stream state.".to_owned()))
     }
 
+    pub fn clear_selected_set(&self, database: &Database) -> Result<Value, String> {
+        let mut current = self.state.write()
+            .map_err(|_| "Local stream state is unavailable.".to_owned())?;
+        let mut next = default_state();
+        next.selected_set.updated_at = next_timestamp(&current.selected_set.updated_at)?;
+        let payload = serde_json::to_string(&next)
+            .map_err(|_| "Unable to serialize local stream state.".to_owned())?;
+        persist_stream_state(database, &next, &payload)?;
+        *current = next;
+        drop(current);
+        let _ = self.updates.send(payload.clone());
+        serde_json::from_str(&payload)
+            .map_err(|_| "Unable to serialize local stream state.".to_owned())
+    }
+
     pub fn set_score(&self, database: &Database, side: &str, requested_score: u32) -> Result<Value, String> {
         self.mutate(database, |selected_set| {
             let limit = score_limit(selected_set.best_of);
@@ -418,6 +437,7 @@ fn default_state() -> OverlayState {
             custom_scoreboard_id: None,
             custom_scoreboard_revision: None,
             asset_catalog_slug: Some("street-fighter-6".to_owned()),
+            match_format: Some("best-of".to_owned()),
             best_of: 3,
             broadcast: Some(BroadcastPresentation {
                 info_bar_enabled: false,
@@ -433,6 +453,7 @@ fn default_state() -> OverlayState {
                 name: "Player 1".to_owned(),
                 prefix: None,
                 sponsor: None,
+                x_handle: None,
                 characters: Vec::new(),
                 character: None,
                 character_asset_id: None,
@@ -449,6 +470,7 @@ fn default_state() -> OverlayState {
                 name: "Player 2".to_owned(),
                 prefix: None,
                 sponsor: None,
+                x_handle: None,
                 characters: Vec::new(),
                 character: None,
                 character_asset_id: None,
@@ -513,7 +535,15 @@ fn validate_state(state: &OverlayState) -> Result<(), String> {
     }) {
         return Err("Choose a valid local game asset catalog.".to_owned());
     }
-    if !matches!(selected_set.best_of, 3 | 5) {
+    if !matches!(selected_set.best_of, 3 | 5 | 9 | 19) {
+        return Err("Choose a supported match length.".to_owned());
+    }
+    if !matches!(selected_set.match_format.as_deref(), None | Some("best-of") | Some("first-to")) {
+        return Err("Choose a supported match format.".to_owned());
+    }
+    if selected_set.match_format.as_deref() != Some("first-to")
+        && !matches!(selected_set.best_of, 3 | 5)
+    {
         return Err("Best-of must be 3 or 5.".to_owned());
     }
     if selected_set.winners_side_entrant_id.as_ref().is_some_and(|entrant_id| {
@@ -565,6 +595,9 @@ pub fn migrate_match_format(selected_set: &mut SelectedSet) {
     if selected_set.best_of == 1 {
         selected_set.best_of = 3;
     }
+    if selected_set.match_format.is_none() {
+        selected_set.match_format = Some("best-of".to_owned());
+    }
     if selected_set.styling_game_id.is_none() {
         selected_set.styling_game_id = Some(selected_set.game_id.clone());
     }
@@ -584,6 +617,9 @@ pub fn report_readiness(selected_set: &SelectedSet) -> Result<ReportableResult, 
     }
     if selected_set.set_id.is_none() {
         return Err("Load a start.gg set before reporting a result.".to_owned());
+    }
+    if selected_set.match_format.as_deref() == Some("first-to") {
+        return Err("First-to exhibition scores are local-only and cannot be reported to start.gg.".to_owned());
     }
     required(&selected_set.player_one.entrant_id, "Player one entrant ID")?;
     required(&selected_set.player_two.entrant_id, "Player two entrant ID")?;
@@ -612,13 +648,26 @@ pub fn report_readiness(selected_set: &SelectedSet) -> Result<ReportableResult, 
 }
 
 pub fn censor_untrusted_selected_set(selected_set: &mut SelectedSet) {
-    selected_set.display_name = censor_required(&selected_set.display_name);
+    let generated_display_name = selected_set.display_name == "[blocked]"
+        || selected_set.display_name
+        == format!(
+            "{} vs {}",
+            selected_set.player_one.name, selected_set.player_two.name
+        );
     selected_set.phase = moderation::censor(selected_set.phase.take());
     selected_set.phase_group = moderation::censor(selected_set.phase_group.take());
     selected_set.round = moderation::censor(selected_set.round.take());
     selected_set.station = moderation::censor(selected_set.station.take());
     censor_player(&mut selected_set.player_one);
     censor_player(&mut selected_set.player_two);
+    selected_set.display_name = if generated_display_name {
+        format!(
+            "{} vs {}",
+            selected_set.player_one.name, selected_set.player_two.name
+        )
+    } else {
+        censor_required(&selected_set.display_name)
+    };
     if let Some(broadcast) = &mut selected_set.broadcast {
         broadcast.info_left = moderation::censor(broadcast.info_left.take());
         broadcast.info_right = moderation::censor(broadcast.info_right.take());
@@ -629,8 +678,9 @@ fn censor_player(player: &mut Player) {
     player.name = censor_required(&player.name);
     player.prefix = moderation::censor(player.prefix.take());
     player.sponsor = moderation::censor(player.sponsor.take());
+    player.x_handle = moderation::censor(player.x_handle.take());
     player.characters = player.characters.drain(..)
-        .filter_map(|character| moderation::censor(Some(character)))
+        .filter_map(|character| moderation::censor_character(Some(character)))
         .collect();
     player.character = player.characters.first().cloned();
     player.pronouns = moderation::censor(player.pronouns.take());
@@ -641,8 +691,17 @@ fn censor_required(value: &str) -> String {
 }
 
 fn assert_safe_state(selected_set: &SelectedSet) -> Result<(), String> {
+    let generated_display_name = format!(
+        "{} vs {}",
+        selected_set.player_one.name, selected_set.player_two.name
+    );
+    if selected_set.display_name != generated_display_name {
+        moderation::assert_safe(&[(
+            "Display name",
+            Some(selected_set.display_name.as_str()),
+        )])?;
+    }
     moderation::assert_safe(&[
-        ("Display name", Some(selected_set.display_name.as_str())),
         ("Phase", selected_set.phase.as_deref()),
         ("Pool", selected_set.phase_group.as_deref()),
         ("Round", selected_set.round.as_deref()),
@@ -650,10 +709,12 @@ fn assert_safe_state(selected_set: &SelectedSet) -> Result<(), String> {
         ("Player one name", Some(selected_set.player_one.name.as_str())),
         ("Player one prefix", selected_set.player_one.prefix.as_deref()),
         ("Player one sponsor", selected_set.player_one.sponsor.as_deref()),
+        ("Player one x.com handle", selected_set.player_one.x_handle.as_deref()),
         ("Player one pronouns", selected_set.player_one.pronouns.as_deref()),
         ("Player two name", Some(selected_set.player_two.name.as_str())),
         ("Player two prefix", selected_set.player_two.prefix.as_deref()),
         ("Player two sponsor", selected_set.player_two.sponsor.as_deref()),
+        ("Player two x.com handle", selected_set.player_two.x_handle.as_deref()),
         ("Player two pronouns", selected_set.player_two.pronouns.as_deref()),
         ("Left broadcast text", selected_set.broadcast.as_ref().and_then(|value| value.info_left.as_deref())),
         ("Right broadcast text", selected_set.broadcast.as_ref().and_then(|value| value.info_right.as_deref())),
@@ -663,7 +724,12 @@ fn assert_safe_state(selected_set: &SelectedSet) -> Result<(), String> {
         ("Player two character", &selected_set.player_two),
     ] {
         for character in &player.characters {
-            moderation::assert_safe(&[(label, Some(character.as_str()))])?;
+            if moderation::contains_blocked_text_for_character(character) {
+                return Err(format!(
+                    "Blocked offensive text in {}. Remove it before saving stream state.",
+                    label
+                ));
+            }
         }
     }
     Ok(())

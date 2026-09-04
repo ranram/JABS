@@ -93,25 +93,58 @@
   scrollbar-width: thin;
 }
 
+.workspace-maintenance-group {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.workspace-maintenance-group + .workspace-maintenance-group {
+  padding-left: 14px;
+  border-left: 1px solid rgba(181, 170, 205, 0.2);
+}
+
+.workspace-maintenance-label {
+  margin: 0 0 5px;
+  color: var(--deck-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.workspace-maintenance-actions {
+  min-height: 22px;
+  align-items: center;
+}
+
+.workspace-maintenance-actions .mantine-Button-root {
+  min-height: 22px;
+  white-space: nowrap;
+}
+
 .operator-workspaces .mantine-Tabs-list {
-  gap: 6px;
+  gap: 0;
+  align-items: stretch;
   flex-wrap: wrap;
-  padding: 7px 8px 0;
+  padding: 0;
   border-bottom-color: rgba(255, 255, 255, 0.1);
   background: rgba(139, 92, 246, 0.055);
 }
 
 .operator-workspaces .mantine-Tabs-tab {
   min-height: 42px;
-  border-radius: 10px 10px 0 0;
+  align-self: stretch;
+  border: 0;
+  border-radius: 0;
   color: #aaa5b5;
   font-size: 12px;
   font-weight: 800;
 }
 
 .operator-workspaces .mantine-Tabs-tab[data-active] {
-  border-color: #8b5cf6;
   background: rgba(139, 92, 246, 0.12);
+  box-shadow: inset 0 0 0 1px #8b5cf6;
   color: var(--deck-ink);
 }
 
@@ -243,26 +276,62 @@
   gap: 6px;
 }
 
+@container set-selector (max-width: 760px) {
+  .bracket-overview-grid .set-results-scroll {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container set-selector (max-width: 480px) {
+  .bracket-overview-grid .set-results-scroll {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 1120px) {
   .startgg-entry-grid {
     grid-template-columns: 1fr;
   }
 
-  .operator-shell .grid-layout,
-  .operator-shell .grid-layout.wide {
+  .operator-shell .grid-layout {
     grid-template-columns: 1fr 1fr;
   }
 
-  .operator-shell .grid-layout.wide .set-list {
-    grid-column: 1;
+  .operator-shell .grid-layout.wide {
+    grid-template-columns: minmax(0, 2fr) minmax(270px, 0.75fr);
+  }
+
+  .bracket-overview-grid {
+    grid-template-columns: minmax(270px, 0.75fr) minmax(0, 2fr);
   }
 
   .operator-shell .grid-layout.wide .editor-panel {
-    grid-column: 2;
+    grid-column: 1;
   }
 
   .operator-shell .grid-layout.wide .preview-panel {
-    grid-column: 1 / -1;
+    grid-column: 2;
+  }
+
+  .bracket-overview-grid .set-results-scroll,
+  .set-results-scroll {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .bracket-overview-grid,
+  .operator-shell .grid-layout.wide {
+    grid-template-columns: 1fr;
+  }
+
+  .operator-shell .grid-layout.wide .editor-panel,
+  .operator-shell .grid-layout.wide .preview-panel {
+    grid-column: auto;
+  }
+
+  .set-results-scroll {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -302,7 +371,7 @@
   }
 
   .set-results-scroll {
-    max-height: min(440px, 55vh);
+    max-height: min(340px, 45vh);
   }
 
   .operator-shell .inline-form {
@@ -315,6 +384,11 @@
 }
 
 @media (max-width: 560px) {
+  .bracket-overview-grid .set-results-scroll,
+  .set-results-scroll {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .player-field-row,
   .bracket-filter-row {
     grid-template-columns: minmax(0, 1fr);

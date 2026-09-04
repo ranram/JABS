@@ -55,6 +55,7 @@ export function TopEightEventDetails({
             <TextInput
               label={t('operator:topEight.manualEventUrl')}
               description={t('operator:topEight.manualEventUrlHint')}
+              inputWrapperOrder={['label', 'input', 'description', 'error']}
               placeholder="https://..."
               value={draft.eventUrl ?? ''}
               onChange={(event) => controller.setEventUrl(event.currentTarget.value)}

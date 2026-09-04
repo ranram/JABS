@@ -53,10 +53,16 @@ pub struct PlayerElementRegions {
 pub struct SideElementRegions {
     pub flag: ScoreboardRegion,
     pub sponsor: ScoreboardRegion,
+    #[serde(default = "default_x_handle")]
+    pub x_handle: ScoreboardRegion,
     pub name: ScoreboardRegion,
     pub pronouns: ScoreboardRegion,
     pub seed: ScoreboardRegion,
     pub score: ScoreboardRegion,
+}
+
+fn default_x_handle() -> ScoreboardRegion {
+    region(0, 0, 100, 20, "left")
 }
 
 impl Default for PlayerElementRegions {
@@ -65,17 +71,19 @@ impl Default for PlayerElementRegions {
             player_one: SideElementRegions {
                 flag: region(32, 28, 68, 46, "center"),
                 sponsor: region(116, 18, 500, 26, "left"),
-                name: region(116, 48, 520, 48, "left"),
-                pronouns: region(116, 102, 240, 26, "left"),
-                seed: region(368, 102, 180, 26, "left"),
+                x_handle: region(116, 46, 520, 20, "left"),
+                name: region(116, 68, 520, 46, "left"),
+                pronouns: region(116, 118, 240, 24, "left"),
+                seed: region(368, 118, 180, 24, "left"),
                 score: region(680, 26, 92, 72, "center"),
             },
             player_two: SideElementRegions {
                 flag: region(1820, 28, 68, 46, "center"),
                 sponsor: region(1304, 18, 500, 26, "right"),
-                name: region(1284, 48, 520, 48, "right"),
-                pronouns: region(1564, 102, 240, 26, "right"),
-                seed: region(1372, 102, 180, 26, "right"),
+                x_handle: region(1284, 46, 520, 20, "right"),
+                name: region(1284, 68, 520, 46, "right"),
+                pronouns: region(1564, 118, 240, 24, "right"),
+                seed: region(1372, 118, 180, 24, "right"),
                 score: region(1148, 26, 92, 72, "center"),
             },
         }
@@ -87,6 +95,8 @@ impl Default for PlayerElementRegions {
 pub struct ScoreboardVisibility {
     pub flags: bool,
     pub sponsors: bool,
+    #[serde(default)]
+    pub x_handles: bool,
     #[serde(default = "default_true")]
     pub pronouns: bool,
     #[serde(default = "default_true")]
@@ -298,10 +308,11 @@ fn clamp_region(region: &mut ScoreboardRegion, x: u32, y: u32, width: u32, heigh
     region.y = region.y.clamp(y, y + height - region.height);
 }
 
-fn player_regions(side: &SideElementRegions) -> [&ScoreboardRegion; 6] {
+fn player_regions(side: &SideElementRegions) -> [&ScoreboardRegion; 7] {
     [
         &side.flag,
         &side.sponsor,
+        &side.x_handle,
         &side.name,
         &side.pronouns,
         &side.seed,
@@ -363,6 +374,7 @@ fn default_scoreboard(id: String, name: String, frame_revision: String) -> Custo
         visibility: ScoreboardVisibility {
             flags: true,
             sponsors: true,
+            x_handles: false,
             pronouns: true,
             seeds: true,
             round: true,

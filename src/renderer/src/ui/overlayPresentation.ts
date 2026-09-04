@@ -10,6 +10,7 @@ const activeOverlayPathPattern = /^\/overlay\/active\/main\/?$/;
 const activeAnnouncementPathPattern = /^\/overlay\/active\/(winner|champion)\/?$/;
 const commentatorPathPattern = /^\/overlay\/commentators\/?$/;
 const versusPathPattern = /^\/overlay\/active\/versus\/?$/;
+const topEightMatchupsPathPattern = /^\/overlay\/active\/top-eight-matchups\/?$/;
 
 export function isCommentatorOverlayPath(pathname: string): boolean {
   return commentatorPathPattern.test(pathname);
@@ -17,6 +18,10 @@ export function isCommentatorOverlayPath(pathname: string): boolean {
 
 export function isVersusOverlayPath(pathname: string): boolean {
   return versusPathPattern.test(pathname);
+}
+
+export function isTopEightMatchupsOverlayPath(pathname: string): boolean {
+  return topEightMatchupsPathPattern.test(pathname);
 }
 
 export function gameIdFromOverlayPath(pathname: string): GameId | undefined {

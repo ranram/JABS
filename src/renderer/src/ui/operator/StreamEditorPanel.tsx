@@ -12,7 +12,7 @@ import {
 } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useRef } from 'react';
-import { bestOfOptionsForGame, type GameId, type GameProfile } from '@shared/gameProfiles';
+import { type GameId, type GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, GameCharacterAsset, LogoAsset, SelectedSetState } from '@shared/models';
 import { PlayerEditor } from './PlayerEditor';
 import { MediaFolderControls } from './MediaFolderControls';
@@ -31,6 +31,7 @@ type StreamEditorPanelProps = {
   selectedProfile?: GameProfile;
   characters: readonly string[];
   characterAssets: readonly GameCharacterAsset[];
+  allowExhibitionFormats: boolean;
   dirty: boolean;
   saving: boolean;
   blocked: boolean;
@@ -47,6 +48,7 @@ export function StreamEditorPanel({
   selectedProfile,
   characters,
   characterAssets,
+  allowExhibitionFormats,
   dirty,
   saving,
   blocked,
@@ -100,6 +102,19 @@ export function StreamEditorPanel({
   }, []);
   const extrasEnabled = Number(Boolean(draft.broadcast?.infoBarEnabled))
     + Number(Boolean(draft.broadcast?.logoEnabled));
+  const matchLengthOptions = [
+    { value: 'best-of:3', label: t('common:match.bestOf', { count: 3 }) },
+    { value: 'best-of:5', label: t('common:match.bestOf', { count: 5 }) },
+    ...(allowExhibitionFormats
+      ? [2, 3, 5, 10].map((firstTo) => ({
+          value: `first-to:${firstTo}`,
+          label: t('common:match.firstTo', { count: firstTo })
+        }))
+      : [])
+  ];
+  const matchLengthValue = draft.matchFormat === 'first-to'
+    ? `first-to:${Math.ceil(draft.bestOf / 2)}`
+    : `best-of:${draft.bestOf}`;
 
   return (
     <Paper className="panel editor-panel" p="md" radius="lg" withBorder>
@@ -154,38 +169,36 @@ export function StreamEditorPanel({
               </Group>
             </Accordion.Control>
             <Accordion.Panel>
-              <Stack gap="md">
-                <Checkbox
-                  data-testid="editor-info-bar-enabled"
-                  checked={draft.broadcast?.infoBarEnabled ?? false}
-                  label={t('operator:broadcast.showRails')}
-                  onChange={(event) => onPatchBroadcast({ infoBarEnabled: event.currentTarget.checked })}
-                />
-                <SimpleGrid type="container" cols={{ base: 1, '30rem': 2 }}>
-                  <BufferedTextInput
-                    data-stream-free-text="infoLeft"
-                    data-testid="editor-info-left"
-                    label={t('operator:broadcast.leftRail')}
-                    value={draft.broadcast?.infoLeft ?? ''}
-                    disabled={!draft.broadcast?.infoBarEnabled}
-                    placeholder={t('operator:broadcast.leftPlaceholder')}
-                    onCommit={(value) => onPatchBroadcast({ infoLeft: emptyToUndefined(value) })}
+              <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
+                <Stack gap="sm">
+                  <Checkbox
+                    data-testid="editor-info-bar-enabled"
+                    checked={draft.broadcast?.infoBarEnabled ?? false}
+                    label={t('operator:broadcast.showRails')}
+                    onChange={(event) => onPatchBroadcast({ infoBarEnabled: event.currentTarget.checked })}
                   />
-                  <BufferedTextInput
-                    data-stream-free-text="infoRight"
-                    data-testid="editor-info-right"
-                    label={t('operator:broadcast.rightRail')}
-                    value={draft.broadcast?.infoRight ?? ''}
-                    disabled={!draft.broadcast?.infoBarEnabled}
-                    placeholder={t('operator:broadcast.rightPlaceholder')}
-                    onCommit={(value) => onPatchBroadcast({ infoRight: emptyToUndefined(value) })}
-                  />
-                </SimpleGrid>
-                <SimpleGrid
-                  type="container"
-                  cols={{ base: 1, '32rem': 2 }}
-                  className="broadcast-logo-grid"
-                >
+                  <SimpleGrid type="container" cols={{ base: 1, '30rem': 2 }}>
+                    <BufferedTextInput
+                      data-stream-free-text="infoLeft"
+                      data-testid="editor-info-left"
+                      label={t('operator:broadcast.leftRail')}
+                      value={draft.broadcast?.infoLeft ?? ''}
+                      disabled={!draft.broadcast?.infoBarEnabled}
+                      placeholder={t('operator:broadcast.leftPlaceholder')}
+                      onCommit={(value) => onPatchBroadcast({ infoLeft: emptyToUndefined(value) })}
+                    />
+                    <BufferedTextInput
+                      data-stream-free-text="infoRight"
+                      data-testid="editor-info-right"
+                      label={t('operator:broadcast.rightRail')}
+                      value={draft.broadcast?.infoRight ?? ''}
+                      disabled={!draft.broadcast?.infoBarEnabled}
+                      placeholder={t('operator:broadcast.rightPlaceholder')}
+                      onCommit={(value) => onPatchBroadcast({ infoRight: emptyToUndefined(value) })}
+                    />
+                  </SimpleGrid>
+                </Stack>
+                <Stack gap="sm">
                   <Checkbox
                     data-testid="editor-logo-enabled"
                     checked={draft.broadcast?.logoEnabled ?? false}
@@ -207,10 +220,10 @@ export function StreamEditorPanel({
                     clearable
                     onChange={(value) => onPatchBroadcast({ logoAssetId: value ?? undefined })}
                   />
-                </SimpleGrid>
-                <Text size="xs" c="dimmed">{t('operator:broadcast.logoHint')}</Text>
-                <MediaFolderControls kind="tourney-logos" label={t('operator:broadcast.tournamentLogosFolder')} />
-              </Stack>
+                  <Text size="xs" c="dimmed">{t('operator:broadcast.logoHint')}</Text>
+                  <MediaFolderControls kind="tourney-logos" label={t('operator:broadcast.tournamentLogosFolder')} />
+                </Stack>
+              </SimpleGrid>
             </Accordion.Panel>
           </Accordion.Item>
         </Accordion>
@@ -218,13 +231,18 @@ export function StreamEditorPanel({
           <Select
             data-testid="editor-best-of"
             label={t('operator:editor.matchLength')}
-            data={bestOfOptionsForGame(draft.gameId).map((bestOf) => ({
-              value: String(bestOf),
-              label: t('common:match.bestOf', { count: bestOf })
-            }))}
-            value={String(draft.bestOf)}
+            data={matchLengthOptions}
+            value={matchLengthValue}
             allowDeselect={false}
-            onChange={(value) => value && onPatch({ bestOf: Number(value) })}
+            onChange={(value) => {
+              if (!value) return;
+              const [matchFormat, length] = value.split(':') as ['best-of' | 'first-to', string];
+              const amount = Number(length);
+              onPatch({
+                matchFormat,
+                bestOf: matchFormat === 'first-to' ? amount * 2 - 1 : amount
+              });
+            }}
           />
           <BufferedTextInput
             data-stream-free-text="displayName"

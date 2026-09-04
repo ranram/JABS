@@ -424,6 +424,7 @@ body {
 .overlay-player-team,
 .overlay-player-details,
 .overlay-player-pronouns,
+.overlay-player-x-handle,
 .overlay-player-meta {
   overflow: hidden;
   color: rgba(255, 255, 255, 0.72);
@@ -462,9 +463,16 @@ body {
   min-width: 0;
 }
 
+.overlay-player-x-handle + .overlay-player-pronouns::before,
+.overlay-player-x-handle + .overlay-player-details::before,
 .overlay-player-pronouns + .overlay-player-details::before {
   content: "·";
   margin-right: 6px;
+}
+
+.overlay-player-x-handle {
+  color: rgba(255, 255, 255, 0.86);
+  flex: 0 0 auto;
 }
 
 .overlay-player-name {
@@ -923,6 +931,7 @@ body {
 .tokon-frame .overlay-player-team,
 .tokon-frame .overlay-player-details,
 .tokon-frame .overlay-player-pronouns,
+.tokon-frame .overlay-player-x-handle,
 .tokon-frame .overlay-player-flag,
 .tokon-frame .overlay-player-meta {
   color: rgba(21, 16, 20, 0.68);

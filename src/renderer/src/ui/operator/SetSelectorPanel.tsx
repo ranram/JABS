@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { Badge, Box, Button, Center, Group, Loader, Paper, Progress, Stack, Text, TextInput, UnstyledButton } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type {
@@ -28,6 +28,7 @@ type SetSelectorPanelProps = {
   loading: boolean;
   loadingMore: boolean;
   gameProfileAvailable: boolean;
+  headerAction?: ReactNode;
   onSearchFocus(): void;
   onSearchChange(search: string): void;
   onCancelSearch(): void;
@@ -141,6 +142,7 @@ function SetSelectorPanelComponent({
   loading,
   loadingMore,
   gameProfileAvailable,
+  headerAction,
   onSearchFocus,
   onSearchChange,
   onCancelSearch,
@@ -184,7 +186,10 @@ function SetSelectorPanelComponent({
             </Text>
           )}
         </Box>
-        {loading && <Loader size="sm" aria-label={t('common:status.loading')} />}
+        <Group gap="xs">
+          {headerAction}
+          {loading && <Loader size="sm" aria-label={t('common:status.loading')} />}
+        </Group>
       </Group>
 
       {draftDirty && <Text c="dimmed" size="sm">{t('operator:selector.dirtyWarning')}</Text>}
@@ -206,6 +211,7 @@ function SetSelectorPanelComponent({
                 : pageInfo && pageInfo.totalPages > 1
                   ? t('operator:selector.focusSearch')
                   : t('operator:selector.searchView')}
+            inputWrapperOrder={['label', 'input', 'description', 'error']}
           />
           {searchLoading && searchProgress && (
             <Group gap="sm" wrap="nowrap">

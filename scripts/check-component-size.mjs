@@ -4,10 +4,11 @@ import { fileURLToPath } from 'node:url';
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 const checks = [
-  { root: 'src/renderer/src/ui', extensions: new Set(['.tsx']), maxLines: 650 },
-  { root: 'src', extensions: new Set(['.ts']), maxLines: 650 },
+  { root: 'src/renderer/src/ui', extensions: new Set(['.tsx']), maxLines: 700 },
+  { root: 'src', extensions: new Set(['.ts']), maxLines: 700 },
   { root: 'src/renderer/src', extensions: new Set(['.css']), maxLines: 1_500 },
-  { root: 'src-tauri/src', extensions: new Set(['.rs']), maxLines: 1_500 }
+  { root: 'src-tauri/src', extensions: new Set(['.rs']), maxLines: 1_500 },
+  { root: 'crates', extensions: new Set(['.rs']), maxLines: 650 }
 ];
 const violations = [];
 

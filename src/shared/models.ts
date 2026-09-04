@@ -8,6 +8,7 @@ export type PlayerState = {
   name: string;
   prefix?: string;
   sponsor?: string;
+  xHandle?: string;
   /** Ordered team roster. `character` remains the backwards-compatible lead slot. */
   characters?: string[];
   character?: string;
@@ -119,6 +120,7 @@ export type SelectedSetState = {
   customScoreboardId?: string;
   customScoreboardRevision?: string;
   assetCatalogSlug?: string;
+  matchFormat?: 'best-of' | 'first-to';
   bestOf: number;
   broadcast?: BroadcastPresentation;
   gameHistory?: SetGameResult[];
@@ -133,22 +135,31 @@ export type OverlayState = {
 
 export type SetSummary = {
   id: string;
+  roundNumber?: number;
   displayScore?: string;
   entrantOneScore?: number;
   entrantTwoScore?: number;
   phase?: string;
+  phaseOrder?: number;
   phaseGroup?: string;
+  phaseGroupId?: string;
   round?: string;
   state?: string;
   station?: string;
   entrantOne?: {
     id: string;
     name: string;
+    sponsor?: string;
   };
   entrantTwo?: {
     id: string;
     name: string;
+    sponsor?: string;
   };
+  prerequisites?: Array<{
+    setId: string;
+    placement: number;
+  }>;
 };
 
 export type StartggPageInfo = {
@@ -243,7 +254,8 @@ export type StartggErrorCode =
   | 'network'
   | 'upstream'
   | 'invalid-response'
-  | 'graphql';
+  | 'graphql'
+  | 'conflict';
 
 export type StartggResultMeta = {
   source: StartggSource;
@@ -260,6 +272,7 @@ export type StartggEventStanding = {
   name: string;
   prefix?: string;
   country?: string;
+  xHandle?: string;
   character?: string;
   isFinal: boolean;
 };

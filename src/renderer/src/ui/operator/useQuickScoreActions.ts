@@ -4,10 +4,12 @@ import { scoreLimitForBestOf, type GameId } from '@shared/gameProfiles';
 import { characterTeamSelection } from '@shared/characterTeams';
 import type { SelectedSetState, SetSummary, StartggResultMeta } from '@shared/models';
 import { startggReportReadiness, type StartggReportReadiness } from '@shared/startggReporting';
-import { api } from '../../api';
+import type { StartggGateway } from '@shared/startggGateway';
 import { errorMessage, setQuickScoreValue } from './operatorUtils';
+import { restoreModeratedSet, restoreModeratedSummary } from './moderationRefresh';
 
 type UseQuickScoreActionsOptions = {
+  startgg: StartggGateway;
   setLoadGameId?: GameId;
   selectedEventId: string;
   tournamentSlug: string;
@@ -25,6 +27,7 @@ const missingSetReadiness = {
 };
 
 export function useQuickScoreActions({
+  startgg,
   setLoadGameId,
   selectedEventId,
   tournamentSlug,
@@ -61,8 +64,8 @@ export function useQuickScoreActions({
     setReceipt(undefined);
   }
 
-  async function begin(): Promise<void> {
-    if (!target || !setLoadGameId) {
+  async function begin(nextTarget = target, closeOnFailure = false): Promise<void> {
+    if (!nextTarget || !setLoadGameId) {
       setMessage(t('browser.chooseProfile'));
       return;
     }
@@ -70,7 +73,7 @@ export function useQuickScoreActions({
     setReceipt(undefined);
     setMessage(undefined);
     try {
-      const response = await api.inspectStartggSet(target.id, setLoadGameId, {
+      const response = await startgg.inspectStartggSet(nextTarget.id, setLoadGameId, {
         eventId: selectedEventId || undefined,
         tournamentSlug: tournamentSlug || undefined,
         assetCatalogSlug
@@ -81,9 +84,29 @@ export function useQuickScoreActions({
     } catch (error) {
       setTokenVerified(false);
       setMessage(errorMessage(error, t('messages.quickLoadFailed')));
+      if (closeOnFailure) setTarget(undefined);
     } finally {
       setLoading(false);
     }
+  }
+
+  async function refreshModerated(): Promise<void> {
+    if (!target || !setLoadGameId) return;
+    const response = await startgg.inspectStartggSet(target.id, setLoadGameId, {
+      eventId: selectedEventId || undefined,
+      tournamentSlug: tournamentSlug || undefined,
+      assetCatalogSlug
+    });
+    recordResult(response);
+    setTarget((current) => current
+      ? restoreModeratedSummary(current, response.selectedSet)
+      : current);
+    setScoreState((current) => current
+      ? restoreModeratedSet(current, response.selectedSet)
+      : current);
+    setBaseline((current) => current
+      ? restoreModeratedSet(current, response.selectedSet)
+      : current);
   }
 
   function changeScore(side: 'one' | 'two', score: number): void {
@@ -145,7 +168,7 @@ export function useQuickScoreActions({
     setLoading(true);
     setMessage(undefined);
     try {
-      const response = await api.quickReportStartggSet({
+      const response = await startgg.quickReportStartggSet({
         setId: result.setId,
         gameId: scoreState.gameId,
         bestOf: scoreState.bestOf,
@@ -195,6 +218,7 @@ export function useQuickScoreActions({
     open,
     close,
     begin,
+    refreshModerated,
     changeScore,
     changeBestOf,
     changeCharacters,

@@ -33,6 +33,7 @@ import { useStreamDraftAutosave } from './operator/useStreamDraftAutosave';
 import { useAssetCatalogReload } from './operator/useAssetCatalogReload';
 import { useCharacterCatalogOptions } from './operator/useCharacterCatalogOptions';
 import type { LocalHandoffUrl } from '../desktopRuntime';
+import { useModerationRefresh } from './operator/useModerationRefresh';
 export function OperatorDashboard() {
   const { t } = useTranslation(['operator', 'common', 'errors']);
   const { state, setState, error: stateError } = useOverlayState();
@@ -50,8 +51,9 @@ export function OperatorDashboard() {
   const [message, setMessage] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [draftState, setDraftState] = useState<OperatorDraftState>();
+  const persistentSetOverrides = useRef({ station: false, matchLength: false });
   const [copiedHandoff, setCopiedHandoff] = useState<LocalHandoffUrl>();
-  const browser = useBracketBrowser({ setMessage, setLoading, setTokenVerified });
+  const browser = useBracketBrowser({ startgg: api, setMessage, setLoading, setTokenVerified });
   const {
     tournamentSlug,
     setTournamentSlug,
@@ -81,6 +83,7 @@ export function OperatorDashboard() {
     searchCatalogIsCurrent,
     ensureCompleteSetSearchCatalog,
     cancelSetSearch,
+    unloadTournament: unloadBracketTournament,
     clearCachedBracketData,
     loadEvents,
     selectEvent,
@@ -93,7 +96,6 @@ export function OperatorDashboard() {
     loadMoreSets,
     refreshAfterReport: refreshSetSelectorAfterReport
   } = browser;
-
   useEffect(() => {
     void api.logos().then(({ logos }) => setLogos(logos)).catch(() => undefined);
     void Promise.all([api.gameProfiles(), api.countries(), api.tokenStatus(), api.recentTournaments(), api.health()])
@@ -147,7 +149,6 @@ export function OperatorDashboard() {
   const reportReadiness = selectedSet
     ? startggReportReadiness(selectedSet)
     : { ready: false as const, reason: 'Load a start.gg set before reporting a result.', reasonCode: 'set-missing' as const };
-
   function localizedReadinessReason(readiness: StartggReportReadiness): string {
     if (readiness.ready) return '';
     switch (readiness.reasonCode) {
@@ -166,8 +167,8 @@ export function OperatorDashboard() {
         return t('operator:readiness.historyMismatch');
     }
   }
-
   const quickScore = useQuickScoreActions({
+    startgg: api,
     setLoadGameId,
     selectedEventId,
     tournamentSlug,
@@ -176,6 +177,13 @@ export function OperatorDashboard() {
     setTokenVerified,
     refreshAfterReport: refreshSetSelectorAfterReport,
     readinessReason: localizedReadinessReason
+  });
+  const moderation = useModerationRefresh({
+    selectedSet, assetCatalogSlug, setScope,
+    quickScoreOpen: Boolean(quickScore.target),
+    refreshQuickScore: quickScore.refreshModerated,
+    refreshSets: (scope) => loadSets(scope, 1),
+    setOverlayState: setState, setDraftState
   });
   const openSetRef = useRef(quickScore.open);
   const completeSearchRef = useRef(ensureCompleteSetSearchCatalog);
@@ -195,15 +203,12 @@ export function OperatorDashboard() {
     void loadMoreSetsRef.current();
   }, []);
   useOperatorNotifications(message, stateError);
-
   function recordStartggResult(result: StartggResultMeta): void {
     setTokenVerified(result.source === 'live');
   }
-
   function recordStartggFailure(): void {
     setTokenVerified(false);
   }
-
   useEffect(() => {
     if (!selectedSet) {
       return;
@@ -225,7 +230,6 @@ export function OperatorDashboard() {
       };
     });
   }, [selectedSet]);
-
   async function saveToken() {
     const token = tokenInputRef.current?.value.trim() ?? '';
     if (!token) {
@@ -258,7 +262,6 @@ export function OperatorDashboard() {
       setLoading(false);
     }
   }
-
   async function removeToken() {
     setLoading(true);
     setMessage(undefined);
@@ -275,7 +278,6 @@ export function OperatorDashboard() {
       setLoading(false);
     }
   }
-
   async function selectSet(setId: string) {
     if (!selectedSet) {
       return;
@@ -292,7 +294,10 @@ export function OperatorDashboard() {
         eventId: selectedEventId || undefined,
         tournamentSlug: tournamentSlug || undefined,
         assetCatalogSlug,
-        preserveBroadcast: true
+        preserveBroadcast: true,
+        preserveStation: persistentSetOverrides.current.station,
+        preserveMatchLength: persistentSetOverrides.current.matchLength
+          && selectedSet.matchFormat !== 'first-to'
       });
       recordStartggResult(response);
       setState(response.state);
@@ -309,8 +314,16 @@ export function OperatorDashboard() {
       setLoading(false);
     }
   }
-
   function patchDraft(patch: Partial<SelectedSetState>) {
+    if (Object.prototype.hasOwnProperty.call(patch, 'station')) {
+      persistentSetOverrides.current.station = true;
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(patch, 'bestOf')
+      || Object.prototype.hasOwnProperty.call(patch, 'matchFormat')
+    ) {
+      persistentSetOverrides.current.matchLength = true;
+    }
     setDraftState((current) =>
       current
         ? {
@@ -326,7 +339,6 @@ export function OperatorDashboard() {
         : current
     );
   }
-
   function patchBroadcast(patch: Partial<NonNullable<SelectedSetState['broadcast']>>) {
     if (!draft) return;
     patchDraft({
@@ -337,6 +349,26 @@ export function OperatorDashboard() {
         ...patch
       }
     });
+  }
+
+  async function unloadTournament() {
+    setLoading(true);
+    setMessage(undefined);
+    try {
+      const response = await api.clearSelectedSet();
+      setState(response);
+      setDraftState({
+        value: response.selectedSet,
+        baseline: response.selectedSet,
+        dirty: false
+      });
+      persistentSetOverrides.current = { station: false, matchLength: false };
+      unloadBracketTournament();
+    } catch (error) {
+      setMessage(errorMessage(error, t('operator:messages.tournamentUnloadFailed')));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function reportStartggResult() {
@@ -424,7 +456,10 @@ export function OperatorDashboard() {
           tournamentSlug: selectedSet.tournamentSlug,
           assetCatalogSlug: selectedSet.assetCatalogSlug ?? assetCatalogSlug,
           restoreOverrides: false,
-          preserveBroadcast: true
+          preserveBroadcast: true,
+          preserveStation: persistentSetOverrides.current.station,
+          preserveMatchLength: persistentSetOverrides.current.matchLength
+            && selectedSet.matchFormat !== 'first-to'
         }
       );
       recordStartggResult(response);
@@ -434,7 +469,22 @@ export function OperatorDashboard() {
         baseline: response.state.selectedSet,
         dirty: false
       });
-      setMessage(resultMessage('Bracket fields replaced with start.gg set data.', response));
+      const refreshedSet = response.state.selectedSet;
+      const canRefreshHistory = Boolean(
+        refreshedSet?.eventId
+        && refreshedSet.playerOne.playerId
+        && refreshedSet.playerTwo.playerId
+      );
+      if (!canRefreshHistory) {
+        setMessage(resultMessage(t('operator:messages.reloadSetOnly'), response));
+        return;
+      }
+      try {
+        await api.refreshVersusHistory();
+        setMessage(resultMessage(t('operator:messages.reloadSuccess'), response));
+      } catch (error) {
+        setMessage(`${resultMessage(t('operator:messages.reloadSetSuccess'), response)} ${errorMessage(error, t('operator:messages.reloadHistoryFailed'))}`);
+      }
     } catch (error) {
       recordStartggFailure();
       setMessage(errorMessage(error, t('operator:messages.reloadFailed')));
@@ -531,7 +581,9 @@ export function OperatorDashboard() {
         loading={loading}
         reloadingAssets={reloadingAssets}
         reloadSelectedSetDisabled={!selectedSet?.setId || loading || draftDirty || draftSaving}
+        unloadTournamentDisabled={loading || draftSaving}
         assetCatalogRevision={assetCatalogRevision}
+        moderationRevision={moderation.moderationRevision}
         countries={countries}
         onReloadAssets={() => void reloadAssets()}
         onTokenInputReady={setTokenInputReady}
@@ -539,6 +591,7 @@ export function OperatorDashboard() {
         onRemoveToken={() => void removeToken()}
         onTournamentSlug={setTournamentSlug}
         onLoadEvents={(slug) => void loadEvents(slug)}
+        onUnloadTournament={() => void unloadTournament()}
         onClearCache={() => void clearCachedBracketData()}
         onSelectEvent={(eventId) => void selectEvent(eventId)}
         onSelectionGame={setSelectionGameId}
@@ -554,35 +607,26 @@ export function OperatorDashboard() {
           ? patchDraft(customScoreboardSelection(id, revision))
           : setMessage(t('operator:customScoreboard.loadSetFirst'))}
         onMessage={setMessage}
-      >
-      {selectedSet && draft && (
-        <section className="grid-layout wide">
+        onModerationApplied={() => void moderation.refreshAfterModeration()}
+        setSelector={(
           <SetSelectorPanel
-            sets={sets}
-            visibleSets={visibleSets}
-            assignments={streamAssignments}
-            scope={setScope}
-            scopeLabel={localizedScope}
-            pageInfo={setPageInfo}
-            activeSetId={selectedSet.setId}
-            search={setSearch}
-            searchLoading={setSearchLoading}
-            searchProgress={setSearchProgress}
-            searchCatalogCount={setSearchCatalog?.length}
-            searchCatalogIsCurrent={searchCatalogIsCurrent}
-            selectedEvent={Boolean(selectedEventId)}
-            draftDirty={draftDirty}
-            modalOpen={Boolean(quickScore.target)}
-            loading={loading}
-            loadingMore={setPageLoading}
+            sets={sets} visibleSets={visibleSets} assignments={streamAssignments}
+            scope={setScope} scopeLabel={localizedScope} pageInfo={setPageInfo}
+            activeSetId={selectedSet?.setId} search={setSearch}
+            searchLoading={setSearchLoading} searchProgress={setSearchProgress}
+            searchCatalogCount={setSearchCatalog?.length} searchCatalogIsCurrent={searchCatalogIsCurrent}
+            selectedEvent={Boolean(selectedEventId)} draftDirty={draftDirty}
+            modalOpen={Boolean(quickScore.target)} loading={loading} loadingMore={setPageLoading}
             gameProfileAvailable={Boolean(setLoadGameId)}
-            onSearchFocus={focusSetSearch}
-            onSearchChange={changeSetSearch}
+            onSearchFocus={focusSetSearch} onSearchChange={changeSetSearch}
             onCancelSearch={cancelSetSearch}
             onOpenSet={openSetFromSelector}
             onLoadMore={loadMoreSetsFromSelector}
           />
-
+        )}
+      >
+      {selectedSet && draft && (
+        <section className="grid-layout wide">
           <StreamEditorPanel
             draft={draft}
             profiles={profiles}
@@ -591,6 +635,7 @@ export function OperatorDashboard() {
             selectedProfile={selectedProfile}
             characters={characterOptions}
             characterAssets={characterCatalog.assets}
+            allowExhibitionFormats={!selectedEventId && events.length === 0}
             dirty={draftDirty}
             saving={draftSaving}
             blocked={draftBlocked}

@@ -24,7 +24,7 @@ import { broadcastSurfaceSpecs } from '@shared/broadcastCompositions';
 import { gameIdForStartggVideogame, type GameProfile } from '@shared/gameProfiles';
 import { gameAssetCatalogSlug } from '@shared/gameAssetCatalog';
 import { characterTeamSelection, maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
-import { characterOutfitOptions } from '@shared/characterAssets';
+
 import type { CountryOption, LogoAsset } from '@shared/models';
 import type { MediaLayerKind, MediaTransform } from '@shared/mediaPlacement';
 import { MediaFoldersAccordion } from './MediaFoldersAccordion';
@@ -61,6 +61,7 @@ type TopEightGeneratorProps = {
   controller: TopEightDraftController;
   profiles: GameProfile[];
   selectedEventId?: string;
+  moderationRevision: number;
   logos: LogoAsset[];
   assetCatalogRevision: number;
   assetCatalogSlug?: string;
@@ -69,10 +70,16 @@ type TopEightGeneratorProps = {
 
 const noMediaSelection = '__none__';
 
+function normalizeTopEightXHandle(value: string): string | undefined {
+  const normalized = value.trim().replace(/^@+/, '').trim();
+  return normalized || undefined;
+}
+
 export function TopEightGenerator({
   controller,
   profiles,
   selectedEventId,
+  moderationRevision,
   logos,
   assetCatalogRevision,
   assetCatalogSlug,
@@ -128,6 +135,7 @@ export function TopEightGenerator({
   const canvasRef = useRef<HTMLElement>(null);
   const automaticStandingsRequest = useRef<{
     eventId: string;
+    moderationRevision: number;
     promise: ReturnType<typeof api.eventStandings>;
   } | undefined>(undefined);
   const placementOptions = useMemo(() => visibleMedia.flatMap((entrantMedia, index) => {
@@ -145,9 +153,13 @@ export function TopEightGenerator({
   }, [draft.gameId, draft.stylingGameId, draft.style, draft.mediaMode, ...draft.entrants.map(({ name }) => name)]);
   useEffect(() => {
     if (!selectedEventId) return;
-    if (automaticStandingsRequest.current?.eventId !== selectedEventId) {
+    if (
+      automaticStandingsRequest.current?.eventId !== selectedEventId
+      || automaticStandingsRequest.current?.moderationRevision !== moderationRevision
+    ) {
       automaticStandingsRequest.current = {
         eventId: selectedEventId,
+        moderationRevision,
         promise: api.eventStandings(selectedEventId)
       };
     }
@@ -162,7 +174,7 @@ export function TopEightGenerator({
       if (active) setStandingsLoading(false);
     });
     return () => { active = false; };
-  }, [selectedEventId]);
+  }, [selectedEventId, moderationRevision]);
 
   function resetSelectedPlacement() {
     if (selectedEntrant === undefined) return;
@@ -461,21 +473,21 @@ export function TopEightGenerator({
                 <Badge variant="filled">#{entrant.placement}</Badge>
                 <Text fw={800}>{t('operator:topEight.placement', { count: entrant.placement })}</Text>
               </Group>
-              <SimpleGrid type="container" cols={{ base: 1, '24rem': 2 }}>
+              <div className="player-field-row">
                 <BufferedTextInput
                   label={t('operator:topEight.playerTag')}
                   value={entrant.name}
                   onCommit={(name) => controller.setEntrant(index, { name })}
                 />
-                {characterOutfitOptions(entrant, characterAssets).length > 1 && (
-                  <BufferedTextInput
-                    label={t('operator:topEight.sponsor')}
-                    value={entrant.sponsor ?? ''}
-                    onCommit={(sponsor) => controller.setEntrant(index, {
-                      sponsor: sponsor || undefined
-                    })}
-                  />
-                )}
+                <BufferedTextInput
+                  label={t('operator:topEight.sponsor')}
+                  value={entrant.sponsor ?? ''}
+                  onCommit={(sponsor) => controller.setEntrant(index, {
+                    sponsor: sponsor || undefined
+                  })}
+                />
+              </div>
+              <div className="player-field-row">
                 <MultiSelect
                   label={t('operator:editor.characters')}
                   value={playerCharacters(entrant)}
@@ -496,15 +508,8 @@ export function TopEightGenerator({
                     characterAssetId
                   })}
                 />
-                {characterOutfitOptions(entrant, characterAssets).length <= 1 && (
-                  <BufferedTextInput
-                    label={t('operator:topEight.sponsor')}
-                    value={entrant.sponsor ?? ''}
-                    onCommit={(sponsor) => controller.setEntrant(index, {
-                      sponsor: sponsor || undefined
-                    })}
-                  />
-                )}
+              </div>
+              <div className="player-field-row">
                 <DisplayFlagSelect
                   label={t('operator:topEight.displayFlag')}
                   placeholder={t('common:actions.select')}
@@ -513,7 +518,14 @@ export function TopEightGenerator({
                   displayFlag={entrant.displayFlag}
                   onChange={(selection) => controller.setEntrant(index, selection)}
                 />
-              </SimpleGrid>
+                <BufferedTextInput
+                  label={t('operator:topEight.xHandle')}
+                  value={entrant.xHandle ?? ''}
+                  onCommit={(xHandle) => controller.setEntrant(index, {
+                    xHandle: normalizeTopEightXHandle(xHandle)
+                  })}
+                />
+              </div>
             </Paper>
           ))}
         </SimpleGrid>

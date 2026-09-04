@@ -179,12 +179,18 @@ export function CustomScoreboardPanel({
           <FileInput
             label={t('customScoreboard.image')}
             description={t('customScoreboard.imageHelp')}
+            inputWrapperOrder={['label', 'input', 'description', 'error']}
             accept="image/png"
             value={file}
             clearable
             onChange={setFile}
           />
-          <Button mt="xl" loading={working} disabled={!file || !name.trim()} onClick={() => void importScoreboard()}>
+          <Button
+            className="custom-scoreboard-import-button"
+            loading={working}
+            disabled={!file || !name.trim()}
+            onClick={() => void importScoreboard()}
+          >
             {t('customScoreboard.import')}
           </Button>
         </SimpleGrid>
@@ -265,7 +271,7 @@ export function CustomScoreboardPanel({
             )}
 
             <SimpleGrid cols={{ base: 2, md: 3 }}>
-              {(['flags', 'sponsors', 'pronouns', 'seeds', 'round', 'tournamentLogo', 'bottomRails'] as const).map((field) => (
+              {(['flags', 'sponsors', 'xHandles', 'pronouns', 'seeds', 'round', 'tournamentLogo', 'bottomRails'] as const).map((field) => (
                 <Switch
                   key={field}
                   label={t(`customScoreboard.visibility.${field}`)}

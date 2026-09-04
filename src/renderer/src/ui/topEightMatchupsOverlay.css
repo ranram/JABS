@@ -1,0 +1,186 @@
+.top8-matchups-overlay {
+  --matchups-accent: #7cf3ff;
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--matchups-accent) 22%, transparent), transparent 38%),
+    linear-gradient(135deg, color-mix(in srgb, var(--matchups-background, #080b17) 82%, #05070d), var(--matchups-background, #121b35) 52%, #070a13);
+  color: #fff;
+  font-family: "JABS Bebas Neue", Impact, sans-serif;
+}
+
+.top8-matchups-preview-shell {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-md);
+  background: #090b12;
+}
+.top8-matchups-preview-stage {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+}
+@media (min-width: 1600px) {
+  .top8-matchups-preview-shell {
+    width: min(100%, 1180px);
+    margin-inline: auto;
+  }
+}
+.top8-matchups-status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, .78);
+  font-size: 42px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.top8-matchups-overlay::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: repeating-linear-gradient(118deg, transparent 0 72px, rgb(255 255 255 / 4%) 73px 76px);
+  opacity: .55;
+  pointer-events: none;
+}
+.top8-matchups-overlay::after {
+  position: absolute;
+  z-index: 2;
+  top: 12.5%;
+  right: 3%;
+  left: 3%;
+  height: 5px;
+  background: linear-gradient(
+    90deg,
+    var(--game-accent, var(--matchups-accent)) 0 50%,
+    var(--broadcast-right, var(--matchups-accent)) 50% 100%
+  );
+  content: "";
+  pointer-events: none;
+}
+.top8-matchups-overlay > header {
+  position: absolute;
+  top: 3.5%;
+  right: 15%;
+  left: 3.5%;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 28px;
+  text-transform: uppercase;
+}
+.top8-matchups-overlay > header span { color: var(--matchups-accent); font-size: 42px; letter-spacing: .08em; }
+.top8-matchups-overlay > header div { display: grid; min-width: 0; }
+.top8-matchups-overlay > header strong { overflow: hidden; font-size: 52px; letter-spacing: .025em; line-height: .95; text-overflow: ellipsis; white-space: nowrap; }
+.top8-matchups-overlay > header small { margin-top: 4px; font-size: 25px; line-height: 1; opacity: .72; }
+.top8-matchups-logo {
+  position: absolute;
+  z-index: 3;
+  top: 3.2%;
+  right: 3.5%;
+  width: auto;
+  max-width: 10%;
+  height: 7%;
+  object-fit: fill;
+}
+.top8-matchups-column {
+  position: absolute;
+  top: 15%;
+  bottom: 4%;
+  display: grid;
+  width: 45.5%;
+  grid-template-rows: auto 1fr 1fr;
+  gap: 18px;
+}
+.top8-matchups-column.is-winners { left: 3%; }
+.top8-matchups-column.is-losers { right: 3%; }
+.top8-matchups-column.is-winners { --column-accent: var(--game-accent, var(--matchups-accent)); }
+.top8-matchups-column.is-losers { --column-accent: var(--broadcast-right, var(--matchups-accent)); }
+.top8-matchups-column h2 {
+  margin: 0;
+  padding: 7px 24px 3px;
+  background: var(--column-accent);
+  color: #070a13;
+  font-size: 46px;
+  letter-spacing: .1em;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+}
+.top8-matchup {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  overflow: hidden;
+  border: 4px solid var(--column-accent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--matchups-background) 88%, #05070d);
+}
+.top8-matchup::before {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 72px;
+  left: 50%;
+  width: 4px;
+  background: var(--column-accent);
+  content: "";
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+.top8-matchup-player {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+.top8-matchup-portrait {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--matchups-background) 88%, #05070d);
+}
+.top8-matchup-portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  object-position: center;
+}
+.top8-matchup-character-fallback {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  padding: 34px;
+  place-items: center;
+  color: color-mix(in srgb, var(--column-accent) 78%, white);
+  font: 400 58px/0.95 "JABS Bungee Shade", "JABS Anton", Impact, sans-serif;
+  letter-spacing: 0.025em;
+  overflow-wrap: anywhere;
+  text-align: center;
+  text-transform: uppercase;
+}
+.top8-matchup-identity { position: absolute; z-index: 1; right: 0; bottom: 0; left: 0; display: grid; min-height: 72px; padding: 8px 18px 10px; border-top: 4px solid var(--column-accent); background: color-mix(in srgb, var(--matchups-background) 88%, #05070d); text-align: center; text-transform: uppercase; }
+.top8-matchup-identity small { color: var(--column-accent); font-size: 18px; letter-spacing: .08em; line-height: 1; }
+.top8-matchup-identity strong { overflow: hidden; font-family: "JABS Anton", Impact, sans-serif; font-size: 34px; font-weight: 400; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
+.top8-matchup-vs {
+  position: absolute;
+  z-index: 2;
+  bottom: 36px;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  color: #fff;
+  font: 900 76px/.78 "Bungee Shade", "Bebas Neue", Impact, sans-serif;
+  text-shadow:
+    -6px 0 var(--matchups-accent),
+    6px 0 color-mix(in srgb, var(--matchups-accent) 55%, #fff);
+}

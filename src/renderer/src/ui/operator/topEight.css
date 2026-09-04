@@ -13,6 +13,9 @@
 }
 
 .top8-entrant-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mantine-spacing-sm);
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
 }
@@ -66,9 +69,7 @@
 
 .top8-mosaic-grid,
 .top8-neon-feature,
-.top8-neon-finalists,
-.top8-editorial-champion,
-.top8-editorial-results {
+.top8-neon-finalists {
   z-index: 1;
 }
 
@@ -138,6 +139,8 @@
 
 .top8-card {
   position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   min-width: 0;
   height: 100%;
   overflow: hidden;
@@ -146,8 +149,9 @@
 }
 
 .top8-card-art {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  grid-row: 1;
+  min-height: 0;
   overflow: hidden;
   background:
     linear-gradient(145deg, color-mix(in srgb, var(--top8-accent) 36%, var(--top8-background)), var(--top8-background));
@@ -226,20 +230,27 @@
   height: 2.5cqw;
 }
 
+.top8-card-identity {
+  display: contents;
+  pointer-events: none;
+}
+
 .top8-card-copy {
-  position: absolute;
+  position: relative;
   z-index: 3;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  grid-row: 2;
   display: grid;
   gap: 0.25cqw;
+  align-content: end;
   min-width: 0;
-  padding: 1cqw 1.2cqw 0.9cqw;
-  background: linear-gradient(0deg, var(--top8-background) 0 68%, transparent);
+  padding: 0.9cqw 1.2cqw;
+  background: var(--top8-background);
 }
 
 .top8-placement {
+  position: absolute;
+  bottom: calc(100% + 0.25cqw);
+  left: 1.2cqw;
   color: var(--top8-accent);
   font-family: "JABS Bebas Neue", Impact, sans-serif;
   font-size: 64px;
@@ -284,6 +295,7 @@
 
 .top8-card-meta {
   display: flex;
+  min-height: 1.2cqw;
   min-width: 0;
   align-items: center;
   gap: 0.45cqw;
@@ -314,7 +326,24 @@
   white-space: nowrap;
 }
 
-.top8-editorial .top8-sponsor-text { color: rgba(255, 255, 255, 0.82); }
+.top8-x-handle {
+  overflow: hidden;
+  color: var(--top8-accent);
+  font-size: 0.86cqw;
+  font-family: "JABS Bebas Neue", Impact, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.07em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.top8-sponsor-text.is-empty,
+.top8-x-handle.is-empty,
+.top8-card-meta.is-empty {
+  visibility: hidden;
+}
 
 .top8-country-flag {
   display: none;
@@ -387,6 +416,7 @@
 .top8-mosaic .placement-1 { border-width: 0.28cqw; }
 .top8-mosaic .placement-1 .top8-name-row > strong { font-size: 3.1cqw; }
 .top8-mosaic-position:not(.position-1) .top8-card-copy { padding: 0.55cqw 0.7cqw; }
+.top8-mosaic-position:not(.position-1) .top8-placement { left: 0.7cqw; }
 .top8-mosaic-position:not(.position-1) .top8-name-row > strong { font-size: 1.45cqw; }
 .top8-mosaic-position:not(.position-1) .top8-placement { font-size: 3.3cqw; }
 .top8-mosaic-position:not(.position-1) .top8-card-meta { display: none; }
@@ -447,6 +477,7 @@
 .top8-neon-feature .top8-card { border-width: 0.3cqw; }
 .top8-neon-feature .top8-name-row > strong { font-size: 3.2cqw; }
 .top8-neon-finalists .top8-card-copy { padding: 0.55cqw 0.7cqw; }
+.top8-neon-finalists .top8-placement { left: 0.7cqw; }
 .top8-neon-finalists .top8-name-row > strong { font-size: 1.4cqw; }
 .top8-neon-finalists .top8-card-meta { display: none; }
 .top8-neon-finalists .top8-placement { font-size: 3.3cqw; }
@@ -454,55 +485,6 @@
 .top8-neon-finalists > .top8-card:nth-child(2) .top8-name-row > strong { font-size: 1.7cqw; }
 .top8-neon-finalists > .top8-card:nth-child(3) .top8-name-row > strong { font-size: 1.55cqw; }
 
-/* Editorial: restrained print-like blocks, large champion image, ordered results column. */
-.top8-editorial {
-  --editorial-paper: color-mix(in srgb, var(--top8-accent) 7%, #eee7da);
-  background: var(--editorial-paper);
-  color: #171514;
-}
-
-.top8-editorial::before {
-  top: 0;
-  right: 0;
-  width: 31%;
-  height: 100%;
-  background: var(--top8-accent);
-}
-
-.top8-editorial .top8-canvas-header span,
-.top8-editorial .top8-canvas-header small { color: #4f4942; }
-.top8-editorial .top8-canvas-header strong { color: #171514; }
-.top8-editorial-champion {
-  position: absolute;
-  top: 18%;
-  left: 4%;
-  width: 47%;
-  height: 76%;
-}
-.top8-editorial-results {
-  position: absolute;
-  top: 18%;
-  right: 4%;
-  display: grid;
-  width: 42%;
-  height: 76%;
-  grid-template-columns: repeat(22, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, 1fr));
-  gap: 0.55cqw;
-}
-.top8-editorial-results > .top8-card:nth-child(1) { grid-column: 1 / 14; grid-row: 1 / 3; }
-.top8-editorial-results > .top8-card:nth-child(2) { grid-column: 14 / 23; grid-row: 1 / 3; }
-.top8-editorial-results > .top8-card:nth-child(3) { grid-column: 1 / 7; grid-row: 3 / 5; }
-.top8-editorial-results > .top8-card:nth-child(4) { grid-column: 7 / 11; grid-row: 3 / 5; }
-.top8-editorial-results > .top8-card:nth-child(5) { grid-column: 11 / 15; grid-row: 3 / 5; }
-.top8-editorial-results > .top8-card:nth-child(6) { grid-column: 15 / 19; grid-row: 3 / 5; }
-.top8-editorial-results > .top8-card:nth-child(7) { grid-column: 19 / 23; grid-row: 3 / 5; }
-.top8-editorial .top8-card {
-  border: 0.16cqw solid #171514;
-  border-radius: 0;
-  background: #171514;
-}
-.top8-editorial .top8-name-row > strong { color: #fff; opacity: 1; }
 .top8-canvas-footer {
   position: absolute;
   z-index: 6;
@@ -523,20 +505,6 @@
   line-height: 1.2;
   text-transform: uppercase;
 }
-
-.top8-editorial .top8-canvas-footer span { color: #4f4942; }
-
-.top8-editorial .top8-card-meta { color: rgba(255, 255, 255, 0.74); }
-.top8-editorial-champion .top8-card { border-width: 0.35cqw; border-color: var(--top8-accent); }
-.top8-editorial-champion .top8-name-row > strong { font-size: 3.8cqw; }
-.top8-editorial-results .top8-card-copy { padding: 0.45cqw 0.65cqw; }
-.top8-editorial-results .top8-name-row > strong { font-size: 1.35cqw; }
-.top8-editorial-results > .top8-card:nth-child(1) .top8-name-row > strong { font-size: 2.05cqw; }
-.top8-editorial-results > .top8-card:nth-child(2) .top8-name-row > strong { font-size: 1.7cqw; }
-.top8-editorial-results > .top8-card:nth-child(3) .top8-name-row > strong { font-size: 1.5cqw; }
-.top8-editorial-results > .top8-card:nth-child(-n + 2) .top8-placement { font-size: 3.3cqw; }
-.top8-editorial-results .top8-card-meta { display: none; }
-.top8-editorial-results .top8-placement { font-size: 3cqw; }
 
 @media (max-width: 700px) {
   .top8-canvas { border-radius: 10px; }
