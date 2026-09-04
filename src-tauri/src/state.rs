@@ -535,7 +535,7 @@ fn validate_state(state: &OverlayState) -> Result<(), String> {
     }) {
         return Err("Choose a valid local game asset catalog.".to_owned());
     }
-    if !matches!(selected_set.best_of, 3 | 5 | 9 | 19) {
+    if !matches!(selected_set.best_of, 3 | 5 | 9 | 13 | 19) {
         return Err("Choose a supported match length.".to_owned());
     }
     if !matches!(selected_set.match_format.as_deref(), None | Some("best-of") | Some("first-to")) {

@@ -84,7 +84,7 @@ export const selectedSetStateSchema = z.object({
   bestOf: z
     .number()
     .int()
-    .refine((value) => [3, 5, 9, 19].includes(value), 'Choose a supported match length.')
+    .refine((value) => [3, 5, 9, 13, 19].includes(value), 'Choose a supported match length.')
     .default(3),
   broadcast: broadcastPresentationSchema.optional(),
   gameHistory: z.array(setGameResultSchema).max(99).optional(),

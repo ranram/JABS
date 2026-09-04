@@ -106,7 +106,7 @@ export function StreamEditorPanel({
     { value: 'best-of:3', label: t('common:match.bestOf', { count: 3 }) },
     { value: 'best-of:5', label: t('common:match.bestOf', { count: 5 }) },
     ...(allowExhibitionFormats
-      ? [2, 3, 5, 10].map((firstTo) => ({
+      ? [2, 3, 5, 7, 10].map((firstTo) => ({
           value: `first-to:${firstTo}`,
           label: t('common:match.firstTo', { count: firstTo })
         }))
