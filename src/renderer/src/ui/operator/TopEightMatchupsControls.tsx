@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Paper, Select, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Button, Paper, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import type { GameProfile } from '@shared/gameProfiles';
@@ -12,7 +12,8 @@ import { CharacterOutfitSelect } from './CharacterOutfitSelect';
 import { MediaFoldersAccordion } from './MediaFoldersAccordion';
 import { TopEightMatchupsPreview } from './TopEightMatchupsPreview';
 
-export function TopEightMatchupsControls({ profiles, logos, selectedEventId, selectedEventName, phases, assetCatalogSlug }: {
+export function TopEightMatchupsControls({ profiles, logos, selectedEventId, selectedEventName, phases, assetCatalogSlug, assetCatalogRevision }: {
+  assetCatalogRevision: number;
   profiles: GameProfile[]; logos: LogoAsset[]; selectedEventId?: string; selectedEventName?: string; phases: StartggPhase[]; assetCatalogSlug?: string;
 }) {
   const { t } = useTranslation(['operator', 'common']);
@@ -24,9 +25,14 @@ export function TopEightMatchupsControls({ profiles, logos, selectedEventId, sel
   const stateRef = useRef(state); stateRef.current = state;
   useEffect(() => { void loadState(); }, []);
   useEffect(() => {
-    if (!state?.assetCatalogSlug) return;
-    void api.gameCharacterAssets(state.assetCatalogSlug).then(({ assets }) => setAssets(assets)).catch(showError);
-  }, [state?.assetCatalogSlug]);
+    let cancelled = false;
+    if (!state?.assetCatalogSlug) { setAssets([]); return; }
+    setAssets([]);
+    void api.gameCharacterAssets(state.assetCatalogSlug)
+      .then(({ assets }) => { if (!cancelled) setAssets(assets); })
+      .catch((error) => { if (!cancelled) showError(error); });
+    return () => { cancelled = true; };
+  }, [state?.assetCatalogSlug, assetCatalogRevision]);
   useEffect(() => {
     if (!state || !assetCatalogSlug || state.assetCatalogSlug === assetCatalogSlug) return;
     const stylingGameId = profiles.some(({ id }) => id === assetCatalogSlug) ? assetCatalogSlug as typeof state.stylingGameId : state.stylingGameId;
@@ -91,10 +97,13 @@ export function TopEightMatchupsControls({ profiles, logos, selectedEventId, sel
   if (!state) return <Stack gap="sm"><Text c={loadError ? 'red' : 'dimmed'}>{loadError ?? t('operator:topEightMatchups.loading')}</Text>{loadError && <Button variant="default" onClick={() => void loadState()}>{t('operator:topEightMatchups.retry')}</Button>}</Stack>;
   return <Stack gap="md">
     <SimpleGrid cols={{ base: 1, sm: 2 }}><Select label={t('operator:workspaces.styling')} value={state.stylingGameId} data={profiles.map((profile) => ({ value: profile.id, label: profile.styleName }))} onChange={(value) => value && void update({ stylingGameId: value as typeof state.stylingGameId })} /><BufferedTextInput label={t('operator:topEight.tournament')} value={state.tournamentName} onCommit={(tournamentName) => void update({ tournamentName })} /><BufferedTextInput label={t('operator:topEightMatchups.eventName')} value={state.eventName ?? ''} onCommit={(eventName) => void update({ eventName: eventName || undefined })} /><Select searchable clearable label={t('operator:topEight.tournamentLogo')} placeholder={t('operator:topEight.noLogo')} value={state.logoAssetId ?? null} data={logos.map((logo) => ({ value: logo.id, label: logo.label }))} onChange={(logoAssetId) => void update({ logoAssetId: logoAssetId || undefined })} /></SimpleGrid>
+    <Switch label={t('operator:workspaces.transparentBackground')} description={t('operator:workspaces.transparentBackgroundHelp')} checked={!state.showBackground} onChange={(event) => void update({ showBackground: !event.currentTarget.checked })} />
+    <Switch label={t('operator:thumbnail.showTournamentLogo')} description={t('operator:broadcast.sharedLogoHelp')} checked={state.showTournamentLogo} onChange={(event) => void update({ showTournamentLogo: event.currentTarget.checked })} />
+    <Switch label={t('operator:topEightMatchups.flipPlayerTwo')} description={t('operator:topEightMatchups.flipPlayerTwoHelp')} checked={state.flipPlayerTwoPortraits} onChange={(event) => void update({ flipPlayerTwoPortraits: event.currentTarget.checked })} />
     <Button loading={loading} disabled={!selectedEventId} onClick={() => void detect()}>{t('operator:topEightMatchups.detect')}</Button>
     {progress && <Text role="status" c="dimmed" size="sm">{progress}</Text>}
     <TopEightMatchupsPreview state={state} />
-    <SimpleGrid cols={{ base: 1, md: 2 }}>{state.matchups.flatMap((matchup, matchupIndex) => matchup.players.map((player, playerIndex) => { const index = matchupIndex * 2 + playerIndex; return <Paper key={index} p="sm" withBorder><Text fw={800} mb="xs">{t(`operator:topEightMatchups.${matchup.bracket}`)} {matchupIndex % 2 + 1} · {t('operator:topEightMatchups.player', { number: playerIndex + 1 })}</Text><Stack gap="xs"><BufferedTextInput label={t('operator:topEight.playerTag')} value={player.name} onCommit={(name) => updatePlayer(index, { name })} /><BufferedTextInput label={t('operator:topEight.sponsor')} value={player.sponsor ?? ''} onCommit={(sponsor) => updatePlayer(index, { sponsor: sponsor || undefined })} /><Select searchable clearable label={t('operator:topEightMatchups.portrait')} value={player.character ?? null} data={characters} onChange={(character) => updatePlayer(index, { character: character || undefined, characterAssetId: undefined })} /><CharacterOutfitSelect subject={player} assets={assets} onChange={(characterAssetId) => updatePlayer(index, { characterAssetId })} /></Stack></Paper>; }))}</SimpleGrid>
+    <SimpleGrid cols={{ base: 1, md: 2 }}>{state.matchups.flatMap((matchup, matchupIndex) => matchup.players.map((player, playerIndex) => { const index = matchupIndex * 2 + playerIndex; return <Paper key={index} p="sm" withBorder><Text fw={800} mb="xs">{t(`operator:topEightMatchups.${matchup.bracket}`)} {matchupIndex % 2 + 1} · {t('operator:topEightMatchups.player', { number: playerIndex + 1 })}</Text><Stack gap="xs"><BufferedTextInput label={t('operator:topEight.playerTag')} value={player.name} onCommit={(name) => updatePlayer(index, { name })} /><BufferedTextInput label={t('operator:topEight.sponsor')} value={player.sponsor ?? ''} onCommit={(sponsor) => updatePlayer(index, { sponsor: sponsor || undefined })} /><Select searchable clearable label={t('operator:topEightMatchups.portrait')} value={player.character ?? null} data={characters} onChange={(character) => updatePlayer(index, { character: character || undefined, characterAssetId: undefined })} /><CharacterOutfitSelect subject={player} assets={assets} mediaKind="portrait" onChange={(characterAssetId) => updatePlayer(index, { characterAssetId })} /></Stack></Paper>; }))}</SimpleGrid>
     <MediaFoldersAccordion gameAssetSubpath={`${state.assetCatalogSlug}/characters`} />
   </Stack>;
 

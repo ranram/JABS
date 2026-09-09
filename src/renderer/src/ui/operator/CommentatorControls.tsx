@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Group, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { Button, Group, Kbd, Select, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { sortByLabel } from './operatorUtils';
@@ -8,6 +8,7 @@ import type { CommentatorPresentation, CommentatorState } from '@shared/commenta
 import type { LogoAsset } from '@shared/models';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
 import { api } from '../../api';
+import { saveSwappedCommentators } from './swapCommentators';
 
 type CommentatorControlsProps = { logos: LogoAsset[]; profiles: GameProfile[] };
 
@@ -52,11 +53,11 @@ export function CommentatorControls({ logos, profiles }: CommentatorControlsProp
     }
   }
 
-  async function updateStyling(stylingGameId: GameId) {
+  async function updateSettings(patch: Partial<Pick<CommentatorState, 'stylingGameId' | 'showTournamentLogo'>>) {
     if (!draft) return;
     setSaving(true);
     try {
-      const next = await api.updateCommentatorState({ ...draft, stylingGameId });
+      const next = await api.updateCommentatorState({ ...draft, ...patch });
       setDraft(next);
     } catch (error) {
       notifyError(
@@ -78,6 +79,18 @@ export function CommentatorControls({ logos, profiles }: CommentatorControlsProp
     }));
   }
 
+  async function swapCommentators() {
+    if (!draft) return;
+    setSaving(true);
+    try {
+      setDraft(await saveSwappedCommentators(draft));
+    } catch (error) {
+      notifyError(error, t('workspaces.commentator.failedTitle'), t('workspaces.commentator.failed'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (!draft) return <Text c="dimmed" size="sm">{t('workspaces.commentator.loading')}</Text>;
   return (
     <Stack gap="md">
@@ -88,7 +101,7 @@ export function CommentatorControls({ logos, profiles }: CommentatorControlsProp
           value={draft.stylingGameId}
           disabled={saving}
           data={sortedProfiles.map((profile) => ({ value: profile.id, label: profile.styleName }))}
-          onChange={(value) => value && void updateStyling(value as GameId)}
+          onChange={(value) => value && void updateSettings({ stylingGameId: value as GameId })}
         />
         <TextInput
           label={t('workspaces.commentator.tournament')}
@@ -96,18 +109,24 @@ export function CommentatorControls({ logos, profiles }: CommentatorControlsProp
           onChange={(event) => setDraft({ ...draft, tournamentName: event.currentTarget.value })}
         />
       </SimpleGrid>
-      <Select
-        w="100%"
-        maw={520}
-        mx="auto"
-        label={t('workspaces.commentator.logo')}
-        searchable
-        clearable
-        value={draft.logoAssetId ?? null}
-        data={logoOptions}
-        onChange={(value) => setDraft({ ...draft, logoAssetId: value ?? undefined })}
-      />
+      <Group align="flex-end" wrap="wrap">
+        <Select
+          style={{ flex: '1 1 320px' }}
+          label={t('workspaces.commentator.logo')}
+          searchable
+          clearable
+          value={draft.logoAssetId ?? null}
+          data={logoOptions}
+          onChange={(value) => setDraft({ ...draft, logoAssetId: value ?? undefined })}
+        />
+        <Button variant="default" loading={saving} onClick={() => void swapCommentators()}>
+          {t('workspaces.commentator.swap')} <Kbd ml="xs">Ctrl+Shift+C</Kbd>
+        </Button>
+      </Group>
       <MediaFolderControls kind="tourney-logos" label={t('broadcast.tournamentLogosFolder')} />
+      <Switch label={t('thumbnail.showTournamentLogo')} description={t('broadcast.sharedLogoHelp')}
+        checked={draft.showTournamentLogo} disabled={saving}
+        onChange={(event) => void updateSettings({ showTournamentLogo: event.currentTarget.checked })} />
       <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         {draft.commentators.map((commentator, index) => (
           <Stack key={index} gap="xs">

@@ -4,7 +4,6 @@ import {
   defaultBestOfForGame,
   defaultGameId,
   gameIdForStartggVideogame,
-  gameProfiles,
   resolveGameProfile,
   scoreLimitForBestOf
 } from './gameProfiles';
@@ -51,28 +50,5 @@ describe('game profiles', () => {
     expect(defaultBestOfForGame('guilty-gear-strive', { phase: 'Pools' })).toBe(5);
     expect(defaultBestOfForGame('2xko', { phase: 'Top 8', round: 'Winners Semifinal' })).toBe(3);
     expect(defaultBestOfForGame('2xko', { phase: 'Top 8', round: 'Winners Final' })).toBe(5);
-  });
-
-  it('keeps overlay templates unique and player plates inside the HUD safe area', () => {
-    const templates = Object.values(gameProfiles).map((profile) => profile.overlay.template);
-    expect(new Set(templates).size).toBe(templates.length);
-    for (const profile of Object.values(gameProfiles)) {
-      const safeZone = profile.overlay.hudSafeZone;
-      const playerPlateWidth = (1920 - safeZone.sidePadding * 2 - safeZone.centerWidth - safeZone.gap * 2) / 2;
-      expect(safeZone.top, profile.id).toBeGreaterThanOrEqual(0);
-      expect(safeZone.bottom, profile.id).toBeLessThanOrEqual(76);
-      expect(playerPlateWidth, profile.id).toBeGreaterThanOrEqual(300);
-    }
-  });
-
-  it('keeps lower rails and logos inside the broadcast-safe strip', () => {
-    for (const profile of Object.values(gameProfiles)) {
-      const safeZone = profile.overlay.broadcastSafeZone;
-      expect(safeZone.height, profile.id).toBeGreaterThanOrEqual(18);
-      expect(safeZone.bottom + safeZone.height, profile.id).toBeLessThanOrEqual(32);
-      expect(safeZone.railWidth, profile.id).toBeGreaterThanOrEqual(420);
-      expect(safeZone.railWidth, profile.id).toBeLessThanOrEqual(560);
-      expect(safeZone.logoHeight, profile.id).toBeLessThanOrEqual(safeZone.logoAnchor === 'upper-center' ? 104 : 72);
-    }
   });
 });

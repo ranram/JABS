@@ -39,7 +39,7 @@ export function VersusPreview({
   }, []);
 
   return (
-    <div ref={shellRef} className="versus-preview-shell">
+    <div ref={shellRef} className={`versus-preview-shell${settings.showBackground ? '' : ' is-transparent-preview'}`}>
       <div className="versus-preview-stage" style={{ transform: `scale(${scale})` }}>
         <VersusPresentation
           selectedSet={activeSet}

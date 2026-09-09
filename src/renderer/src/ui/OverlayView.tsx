@@ -8,6 +8,7 @@ import {
 import type { PlayerState, SelectedSetState } from '@shared/models';
 import { useOverlayState } from '../hooks/useOverlayState';
 import { useCommentatorState } from '../hooks/useCommentatorState';
+import { useBroadcastLogo } from '../hooks/useBroadcastLogo';
 import { useResultScreenState } from '../hooks/useResultScreenState';
 import type { ResultScreenState } from '@shared/resultScreen';
 import { announcementSurfaceFromOverlayPath, isCommentatorOverlayPath, isTopEightMatchupsOverlayPath, isVersusOverlayPath, resolveOverlayPresentation } from './overlayPresentation';
@@ -150,7 +151,8 @@ function MatchOverlayView() {
 
 function CommentatorOverlay() {
   const { state, error } = useCommentatorState();
-  const logoUrl = useLogoAssetUrl(state?.logoAssetId);
+  const logoAssetId = useBroadcastLogo(state?.logoAssetId, state?.showTournamentLogo ?? true);
+  const logoUrl = useLogoAssetUrl(logoAssetId);
   if (!state || state.presentation === 'hidden') return <main className="overlay commentator-overlay" />;
   const stylingProfile = resolveGameProfile(state.stylingGameId);
   return (
@@ -162,7 +164,7 @@ function CommentatorOverlay() {
       >
         <CommentatorIdentity side="left" {...state.commentators[0]} />
         <div className="commentator-event-mark">
-          {logoUrl && <CatalogImage className="commentator-event-logo" src={logoUrl} />}
+          {state.showTournamentLogo && logoUrl && <CatalogImage className="commentator-event-logo" src={logoUrl} />}
           <span>{state.tournamentName}</span>
         </div>
         <CommentatorIdentity side="right" {...state.commentators[1]} />
@@ -227,7 +229,7 @@ function AnnouncementOverlay({
 
   return (
     <main
-      className={`overlay overlay-announcement overlay-announcement-${presentation?.kind ?? 'winner'} ${stylingProfile.overlay.themeClass}`}
+      className={`overlay overlay-announcement overlay-announcement-${presentation?.kind ?? 'winner'} ${stylingProfile.overlay.themeClass}${settings.showBackground ? '' : ' is-transparent-background'}`}
       data-game-id={profile.id}
       data-announcement-surface="result"
       data-announcement-kind={presentation?.kind}
@@ -280,6 +282,7 @@ function AnnouncementOverlay({
 
 const defaultResultScreenSettings: ResultScreenState = {
   stylingGameId: 'street-fighter-6',
+  showBackground: true,
   showTournamentLogo: true,
   showPlayerPhoto: true,
   showSponsorLogo: true,

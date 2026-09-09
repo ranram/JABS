@@ -6,12 +6,13 @@ Your token, stream settings, and local media stay on your computer. JABS sends a
 
 ## What JABS can do
 
-- Browse events, phases, pools, stations, and sets.
+- Browse public events, phases, pools, stations, and sets without a token.
 - Search for a set by player, round, station, score, or set ID.
 - Send a set to stream or report a quick score update.
 - Update scores and player details while OBS follows the changes.
+- Use keyboard shortcuts to change or reset scores, or swap players and commentators.
 - Report a completed set to start.gg after confirmation.
-- Show score, versus, Top 8 matchup, winner, champion, and commentator overlays.
+- Show Scoreboard, Versus Screen, Winner & Champion, Top 8 Matchups, and Commentators overlays.
 - Import a custom scoreboard frame and position its live match details.
 - Create downloadable Top 8 graphics and YouTube thumbnails.
 - Use your own character art, player photos, sponsor logos, and tournament logos.
@@ -78,7 +79,9 @@ You can still load events for other games. If JABS does not recognize a game's r
 
 ## Connect to start.gg
 
-JABS needs a start.gg API token to load tournament information.
+You can browse public tournaments, load matches, and control your OBS overlays without a token. Local score changes do not update the bracket on start.gg.
+
+Add a token if you want to report results to start.gg. Your account must have permission to report for that tournament. A token also lets JABS use the developer API if public browsing stops working.
 
 1. Follow the official [start.gg authentication instructions](https://developer.start.gg/docs/authentication/).
 2. Sign in and open **Developer Settings**.
@@ -102,18 +105,23 @@ Treat the token like a password. No one working on JABS, running a tournament, o
 
 Changes that pass validation appear in OBS automatically. JABS asks for confirmation before reporting a completed result to start.gg and never reports one on its own.
 
+If an unplayed set still appears complete in JABS after you reset it on start.gg, choose **Refresh current set** in the sticky actions bar. This reloads the on-stream set’s status, players, and scores from start.gg; it does not reset the match on the website. Review the confirmation before continuing, since the imported scores replace your local scores.
+
+Upcoming sets assigned to a broadcast show `Twitch · Stream Name` or `YouTube · Stream Name`. Completed sets leave the stream pill hidden.
+
 ## Add JABS to OBS
 
-Keep JABS open while its overlays are in use. Add each overlay as an OBS **Browser Source** with a width of `1920` and height of `1080`.
+Keep JABS open while its overlays are in use. Copy each URL from the dropdown in the sticky actions bar, then add it as an OBS **Browser Source** with a width of `1920` and height of `1080`.
 
 | Overlay | URL |
 |---|---|
-| Active score | `http://127.0.0.1:4279/overlay/active/main` |
-| Winner | `http://127.0.0.1:4279/overlay/active/winner` |
-| Champion | `http://127.0.0.1:4279/overlay/active/champion` |
-| Versus | `http://127.0.0.1:4279/overlay/active/versus` |
+| Scoreboard | `http://127.0.0.1:4279/overlay/active/main` |
+| Versus Screen | `http://127.0.0.1:4279/overlay/active/versus` |
+| Winner & Champion | `http://127.0.0.1:4279/overlay/active/winner` |
 | Top 8 Matchups | `http://127.0.0.1:4279/overlay/active/top-eight-matchups` |
 | Commentators | `http://127.0.0.1:4279/overlay/commentators` |
+
+The Winner & Champion source chooses the correct presentation automatically. The older `/overlay/active/champion` route remains available for existing OBS scenes.
 
 The active routes follow the match and styling selected in JABS. A fixed game style is also available at:
 
@@ -146,6 +154,8 @@ JABS matches local files by their filenames. PNG, JPEG, and WebP are supported.
 The README inside each folder explains its filename rules. Only use media you have permission to display or redistribute.
 
 Character colors and outfits can share one character entry by adding numbers to their filenames, such as `Mario-1.png` and `Mario-2.png`. See [Game artwork](game-assets/README.md) for the full naming guide. Use **Reload assets** after adding or replacing local media; JABS does not need to restart.
+
+In the Versus Screen and YouTube thumbnail editors, select an artwork layer and press `F` to flip it horizontally. Both player sides use the image’s original orientation until you flip it.
 
 ## Languages
 

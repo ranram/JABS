@@ -18,9 +18,11 @@ import { maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
 import type { SelectedSetState, SetSummary } from '@shared/models';
 import type { StartggReportReadiness } from '@shared/startggReporting';
 import { QuickScore } from './ScoreControls';
+import { ControlWarning } from './ControlWarning';
 import { phaseContext, setPhaseContext } from './operatorUtils';
 
 type SetActionsModalProps = {
+  reportingEnabled: boolean;
   target?: SetSummary;
   quickScore?: SelectedSetState;
   receipt?: string;
@@ -43,6 +45,7 @@ type SetActionsModalProps = {
 };
 
 export function SetActionsModal({
+  reportingEnabled,
   target,
   quickScore,
   receipt,
@@ -134,7 +137,7 @@ export function SetActionsModal({
               size="lg"
               h="auto"
               py="md"
-              disabled={quickScoreLoading || !gameProfileAvailable || target.state === '3'}
+              disabled={!reportingEnabled || quickScoreLoading || !gameProfileAvailable || target.state === '3'}
               loading={quickScoreLoading}
               onClick={onBeginQuickScore}
             >
@@ -148,12 +151,13 @@ export function SetActionsModal({
               </Stack>
             </Button>
           </SimpleGrid>
+          <ControlWarning message={!reportingEnabled ? t('operator:startgg.reportToken') : undefined} />
           {target.state === '3' && (
-            <Alert color="yellow">{t('operator:setActions.alreadyComplete')}</Alert>
+            <Alert color="yellow" w="100%" miw={0}>{t('operator:setActions.alreadyComplete')}</Alert>
           )}
         </Stack>
       ) : receipt ? (
-        <Alert color="green" title={t('operator:setActions.accepted')}>
+        <Alert color="green" w="100%" miw={0} style={{ overflowWrap: 'anywhere' }} title={t('operator:setActions.accepted')}>
           <Stack gap="sm">
             <Text fw={700}>{receipt}</Text>
             <Text size="sm">{t('operator:setActions.streamUnchanged')}</Text>
@@ -233,7 +237,7 @@ export function SetActionsModal({
             })}
           </SimpleGrid>
 
-          <Paper withBorder p="md">
+          <Paper withBorder p="md" w="100%" miw={0} style={{ overflowWrap: 'anywhere' }}>
             <Text size="xs" c="dimmed">{t('operator:setActions.resultCheck')}</Text>
             <Text fw={700}>
               {quickReadiness.ready
@@ -244,6 +248,7 @@ export function SetActionsModal({
                   })
                 : quickReadinessReason}
             </Text>
+            <ControlWarning message={!reportingEnabled ? t('operator:startgg.reportToken') : undefined} />
           </Paper>
 
           <Group justify="space-between">
@@ -253,7 +258,7 @@ export function SetActionsModal({
             <Button
               data-testid="quick-report-startgg-result"
               loading={quickScoreLoading}
-              disabled={!quickReadiness.ready}
+              disabled={!reportingEnabled || !quickReadiness.ready}
               onClick={onReport}
             >
               {t('operator:setActions.confirm')}

@@ -28,20 +28,36 @@ export function useStreamDraftAutosave({
   setDraftState,
   setMessage,
   failureMessage
-}: StreamDraftAutosaveOptions): { saving: boolean; blocked: boolean } {
+}: StreamDraftAutosaveOptions) {
   const [saving, setSaving] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const failedKeyRef = useRef<string | undefined>(undefined);
+  const pausedRef = useRef(false);
+  const timerRef = useRef<number | undefined>(undefined);
+  const inFlightRef = useRef<Promise<void> | undefined>(undefined);
+
+  async function withAutosavePaused(action: () => Promise<void>): Promise<void> {
+    pausedRef.current = true;
+    window.clearTimeout(timerRef.current);
+    try {
+      await inFlightRef.current;
+      await action();
+      failedKeyRef.current = undefined;
+      setBlocked(false);
+    } finally {
+      pausedRef.current = false;
+    }
+  }
 
   useEffect(() => {
-    if (!dirty || !draft || saving) return;
+    if (pausedRef.current || !dirty || !draft || saving) return;
     if (!draft.displayName.trim() || !draft.playerOne.name.trim() || !draft.playerTwo.name.trim()) return;
     const submitted = normalizeOperatorDraft(draft, assetCatalogSlug);
     const submittedKey = operatorDraftContentKey(draft, assetCatalogSlug);
     if (failedKeyRef.current === submittedKey) return;
     setBlocked(false);
 
-    const timeout = window.setTimeout(async () => {
+    async function save() {
       setSaving(true);
       // Re-arm identical moderation errors so each rejected edit produces a fresh toast.
       setMessage(undefined);
@@ -74,9 +90,12 @@ export function useStreamDraftAutosave({
       } finally {
         setSaving(false);
       }
+    }
+    timerRef.current = window.setTimeout(() => {
+      if (!pausedRef.current) inFlightRef.current = save();
     }, AUTOSAVE_DEBOUNCE_MS);
-    return () => window.clearTimeout(timeout);
+    return () => window.clearTimeout(timerRef.current);
   }, [assetCatalogSlug, dirty, draft, failureMessage, saving, setDraftState, setMessage, setOverlayState]);
 
-  return { saving, blocked };
+  return { saving, blocked, withAutosavePaused };
 }

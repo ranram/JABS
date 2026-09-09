@@ -1,5 +1,5 @@
-import { memo, useEffect, useMemo, useRef, type ReactNode } from 'react';
-import { Badge, Box, Button, Center, Group, Loader, Paper, Progress, Stack, Text, TextInput, UnstyledButton } from '@mantine/core';
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Box, Button, Center, Chip, Group, Loader, Paper, Progress, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type {
   SetSummary,
@@ -7,7 +7,13 @@ import type {
   StartggSetScope,
   StartggStreamAssignment
 } from '@shared/models';
-import { setPhaseContext, setStatusTone } from './operatorUtils';
+import { SetResultRow } from './SetResultRow';
+import {
+  matchesSetPills,
+  streamAssignmentFilterValue,
+  streamPlatform,
+  visibleStreamAssignment
+} from './setPillFilters';
 
 type SetSelectorPanelProps = {
   sets: SetSummary[];
@@ -36,92 +42,6 @@ type SetSelectorPanelProps = {
   onLoadMore(): void;
 };
 
-const statusColors = {
-  stream: 'green',
-  completed: 'blue',
-  pending: 'gray'
-} as const;
-
-type SetResultRowProps = {
-  set: SetSummary;
-  assignment?: StartggStreamAssignment;
-  activeSetId?: string;
-  disabled: boolean;
-  onOpenSet(set: SetSummary): void;
-};
-
-const SetResultRow = memo(function SetResultRow({
-  set,
-  assignment,
-  activeSetId,
-  disabled,
-  onOpenSet
-}: SetResultRowProps) {
-  const { t } = useTranslation(['operator', 'common']);
-  const status = setStatusTone(set, activeSetId);
-  const hasDecisiveResult = set.state === '3'
-    && set.entrantOneScore !== undefined
-    && set.entrantTwoScore !== undefined
-    && set.entrantOneScore !== set.entrantTwoScore;
-  const playerOneWon = hasDecisiveResult && set.entrantOneScore! > set.entrantTwoScore!;
-
-  return (
-    <UnstyledButton
-      data-testid={`set-${set.id}`}
-      className="set-row"
-      disabled={disabled}
-      onClick={() => onOpenSet(set)}
-    >
-      <div className="set-row-topline">
-        <span className="set-row-context">
-          {[setPhaseContext(set), set.round ?? `Set ${set.id}`].filter(Boolean).join(' · ')}
-        </span>
-        <div className="set-row-flag-stack">
-          <div className="set-row-flags set-row-assignment-flags">
-            {assignment && <Badge size="sm" variant="light">{t('operator:selector.streamAssignment', { name: assignment.streamName })}</Badge>}
-            {set.station && <Badge size="sm" variant="outline">{set.station}</Badge>}
-          </div>
-          <Badge className="set-flag-status" color={statusColors[status]} size="sm" variant="light">
-            {set.id === activeSetId
-              ? t('common:status.onStream')
-              : set.state === '3'
-                ? t('common:status.completed')
-                : t('common:status.pending')}
-          </Badge>
-        </div>
-      </div>
-      <div className="set-row-matchup">
-        <span className="set-row-player set-row-player-one">
-          {hasDecisiveResult && (
-            <span className={`set-row-outcome ${playerOneWon ? 'is-winner' : 'is-loser'}`} title={playerOneWon ? t('operator:selector.winner') : t('operator:selector.loser')} aria-label={playerOneWon ? t('operator:selector.winner') : t('operator:selector.loser')}>
-              {playerOneWon ? 'W' : 'L'}
-            </span>
-          )}
-          <span className="set-row-player-name">{set.entrantOne?.name ?? t('operator:selector.tbd')}</span>
-        </span>
-        <span className="set-row-versus">{t('common:match.versus')}</span>
-        <span className="set-row-player set-row-player-two">
-          <span className="set-row-player-name">{set.entrantTwo?.name ?? t('operator:selector.tbd')}</span>
-          {hasDecisiveResult && (
-            <span className={`set-row-outcome ${playerOneWon ? 'is-loser' : 'is-winner'}`} title={playerOneWon ? t('operator:selector.loser') : t('operator:selector.winner')} aria-label={playerOneWon ? t('operator:selector.loser') : t('operator:selector.winner')}>
-              {playerOneWon ? 'L' : 'W'}
-            </span>
-          )}
-        </span>
-      </div>
-      {set.state === '3' && set.entrantOneScore !== undefined && set.entrantTwoScore !== undefined && (
-        <span className="set-row-final-score">
-          {t('common:match.finalScore', { one: set.entrantOneScore, two: set.entrantTwoScore })}
-        </span>
-      )}
-    </UnstyledButton>
-  );
-}, (previous, next) => (
-  previous.set === next.set
-  && previous.assignment === next.assignment
-  && previous.activeSetId === next.activeSetId
-  && previous.disabled === next.disabled
-));
 
 function SetSelectorPanelComponent({
   sets,
@@ -152,11 +72,43 @@ function SetSelectorPanelComponent({
   const { t } = useTranslation(['operator', 'common']);
   const resultsRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [pillFilters, setPillFilters] = useState<string[]>([]);
+  const scopeKey = JSON.stringify(scope);
+  useEffect(() => { setPillFilters([]); }, [scopeKey]);
   const assignmentBySetId = useMemo(
-    () => new Map(assignments.map((assignment) => [assignment.setId, assignment])),
-    [assignments]
+    () => {
+      const queuedBySetId = new Map(assignments.map((assignment) => [assignment.setId, assignment]));
+      const bySetId = new Map<string, StartggStreamAssignment>();
+      for (const set of visibleSets) {
+        const assignment = visibleStreamAssignment(set, queuedBySetId.get(set.id));
+        if (assignment) bySetId.set(set.id, assignment);
+      }
+      return bySetId;
+    },
+    [assignments, visibleSets]
   );
   const hasMore = !search.trim() && Boolean(pageInfo && pageInfo.page < pageInfo.totalPages);
+  const filteredSets = visibleSets.filter((set) => matchesSetPills(set, pillFilters, assignmentBySetId.get(set.id), activeSetId));
+  const streamFilterOptions = [...new Map([...assignmentBySetId.values()].map((assignment) => [
+    streamAssignmentFilterValue(assignment), assignment
+  ])).values()]
+    .sort((left, right) => left.streamName.localeCompare(right.streamName))
+    .map((assignment) => ({
+      value: `stream:${streamAssignmentFilterValue(assignment)}`,
+      label: t('operator:selector.streamAssignment', {
+        platform: t(`operator:selector.streamPlatforms.${streamPlatform(assignment.streamSource, assignment.streamName)}`),
+        name: assignment.streamName
+      })
+    }));
+  const filterOptions = [
+    { group: t('operator:selector.statusFilter'), items: [
+      { value: 'status:pending', label: t('common:status.pending') },
+      { value: 'status:completed', label: t('common:status.completed') },
+      { value: 'status:stream', label: t('common:status.onStream') }
+    ] },
+    { group: t('operator:selector.stationFilter'), items: [...new Set(visibleSets.flatMap((set) => set.station ? [set.station] : []))].sort().map((station) => ({ value: `station:${station}`, label: station })) },
+    { group: t('operator:selector.streamFilter'), items: streamFilterOptions }
+  ];
 
   useEffect(() => {
     const root = resultsRef.current;
@@ -176,16 +128,26 @@ function SetSelectorPanelComponent({
   return (
     <Paper className="panel set-list" p="md" radius="lg" withBorder>
       <Group justify="space-between" align="flex-start">
-        <Box>
+        <Box style={{ flexShrink: 0 }}>
           <Text component="h2" fw={800} size="lg">{t('operator:selector.title')}</Text>
           {scope && (
             <Text c="dimmed" size="sm">
               {t('operator:selector.view', { scope: scopeLabel })}
               {pageInfo ? ` · ${t('operator:selector.total', { count: pageInfo.total })}` : ''}
-              {/*` · ${t('operator:selector.bracketOrder')}`*/}
             </Text>
           )}
         </Box>
+      {selectedEvent && <Group gap={6} wrap="wrap" justify="flex-end" style={{ flex: '1 1 280px', minWidth: 0, marginLeft: 'auto', paddingTop: 3 }} role="group" aria-label={t('operator:selector.pillFilters')}>
+        <Tooltip label={t('operator:selector.pillFiltersHelp')} multiline w={260}>
+          <Text size="xs" fw={700}>{t('operator:selector.pillFilters')}</Text>
+        </Tooltip>
+        <Chip.Group multiple value={pillFilters} onChange={setPillFilters}>
+          {filterOptions.flatMap(({ items }) => items).map(({ value, label }) => (
+            <Chip key={value} value={value} size="xs" radius="xl">{label}</Chip>
+          ))}
+        </Chip.Group>
+        {pillFilters.length > 0 && <Button variant="subtle" size="compact-xs" onClick={() => setPillFilters([])}>{t('operator:selector.clearFilters')}</Button>}
+      </Group>}
         <Group gap="xs">
           {headerAction}
           {loading && <Loader size="sm" aria-label={t('common:status.loading')} />}
@@ -229,6 +191,8 @@ function SetSelectorPanelComponent({
         </Stack>
       )}
 
+
+
       <Stack
         ref={resultsRef}
         className={`set-results-scroll${modalOpen ? ' is-modal-open' : ''}`}
@@ -240,13 +204,13 @@ function SetSelectorPanelComponent({
       >
         {sets.length === 0 ? (
           <Text c="dimmed">{loading ? t('operator:selector.loadingSets') : t('operator:selector.none')}</Text>
-        ) : visibleSets.length === 0 ? (
+        ) : filteredSets.length === 0 ? (
           <Text c="dimmed">
-            {searchLoading
+            {pillFilters.length > 0 ? t('operator:selector.noFilterMatch') : searchLoading
               ? t('operator:selector.scanningFor', { query: search.trim() })
               : t('operator:selector.noMatch', { query: search.trim() })}
           </Text>
-        ) : visibleSets.map((set) => (
+        ) : filteredSets.map((set) => (
           <SetResultRow
             key={set.id}
             set={set}

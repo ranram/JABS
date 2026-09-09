@@ -33,6 +33,12 @@ pub struct Matchup {
 #[serde(rename_all = "camelCase")]
 pub struct TopEightMatchupsState {
     pub styling_game_id: String,
+    #[serde(default = "default_true")]
+    pub show_background: bool,
+    #[serde(default = "default_true")]
+    pub show_tournament_logo: bool,
+    #[serde(default)]
+    pub flip_player_two_portraits: bool,
     pub asset_catalog_slug: String,
     pub tournament_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -138,6 +144,9 @@ fn default_state() -> TopEightMatchupsState {
     };
     TopEightMatchupsState {
         styling_game_id: "street-fighter-6".to_owned(),
+        show_background: true,
+        show_tournament_logo: true,
+        flip_player_two_portraits: false,
         asset_catalog_slug: "street-fighter-6".to_owned(),
         tournament_name: "Tournament Top 8".to_owned(),
         event_name: None,
@@ -149,5 +158,40 @@ fn default_state() -> TopEightMatchupsState {
             Matchup { set_id: None, bracket: "losers".to_owned(), players: [player(7), player(8)] },
         ],
         updated_at: now_rfc3339().unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_owned()),
+    }
+}
+
+fn default_true() -> bool { true }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn logo_visibility_migrates_and_round_trips_for_both_overlays() {
+        let mut top_eight = serde_json::to_value(default_state()).unwrap();
+        top_eight.as_object_mut().unwrap().remove("showTournamentLogo");
+        let mut restored: TopEightMatchupsState = serde_json::from_value(top_eight).unwrap();
+        assert!(restored.show_tournament_logo);
+        assert!(!restored.flip_player_two_portraits);
+        restored.show_tournament_logo = false;
+        restored.logo_asset_id = Some("tournament.png".to_owned());
+        let saved = serde_json::to_value(&restored).unwrap();
+        let restored: TopEightMatchupsState = serde_json::from_value(saved).unwrap();
+        assert!(!restored.show_tournament_logo);
+        assert_eq!(restored.logo_asset_id.as_deref(), Some("tournament.png"));
+
+        let legacy = serde_json::json!({
+            "tournamentName": "Tournament", "commentators": [],
+            "presentation": "hidden", "updatedAt": "2026-09-08T00:00:00Z"
+        });
+        let mut restored: crate::commentators::CommentatorState = serde_json::from_value(legacy).unwrap();
+        assert!(restored.show_tournament_logo);
+        restored.show_tournament_logo = false;
+        restored.logo_asset_id = Some("tournament.png".to_owned());
+        let saved = serde_json::to_value(&restored).unwrap();
+        let restored: crate::commentators::CommentatorState = serde_json::from_value(saved).unwrap();
+        assert!(!restored.show_tournament_logo);
+        assert_eq!(restored.logo_asset_id.as_deref(), Some("tournament.png"));
     }
 }

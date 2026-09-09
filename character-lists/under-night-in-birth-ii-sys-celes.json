@@ -1,0 +1,116 @@
+{
+  "characters": [
+    {
+      "name": "Hyde",
+      "aliases": []
+    },
+    {
+      "name": "Linne",
+      "aliases": []
+    },
+    {
+      "name": "Waldstein",
+      "aliases": []
+    },
+    {
+      "name": "Carmine",
+      "aliases": []
+    },
+    {
+      "name": "Orie",
+      "aliases": []
+    },
+    {
+      "name": "Gordeau",
+      "aliases": []
+    },
+    {
+      "name": "Merkava",
+      "aliases": []
+    },
+    {
+      "name": "Vatista",
+      "aliases": []
+    },
+    {
+      "name": "Seth",
+      "aliases": []
+    },
+    {
+      "name": "Yuzuriha",
+      "aliases": []
+    },
+    {
+      "name": "Hilda",
+      "aliases": []
+    },
+    {
+      "name": "Chaos",
+      "aliases": []
+    },
+    {
+      "name": "Nanase",
+      "aliases": []
+    },
+    {
+      "name": "Byakuya",
+      "aliases": []
+    },
+    {
+      "name": "Phonon",
+      "aliases": []
+    },
+    {
+      "name": "Mika",
+      "aliases": []
+    },
+    {
+      "name": "Wagner",
+      "aliases": []
+    },
+    {
+      "name": "Enkidu",
+      "aliases": []
+    },
+    {
+      "name": "Londrekia",
+      "aliases": []
+    },
+    {
+      "name": "Tsurugi",
+      "aliases": []
+    },
+    {
+      "name": "Kaguya",
+      "aliases": []
+    },
+    {
+      "name": "Kuon",
+      "aliases": []
+    },
+    {
+      "name": "Eltnum",
+      "aliases": []
+    },
+    {
+      "name": "Akatsuki",
+      "aliases": []
+    },
+    {
+      "name": "Uzuki",
+      "aliases": []
+    },
+    {
+      "name": "Ogre",
+      "aliases": []
+    },
+    {
+      "name": "Izumi",
+      "aliases": []
+    },
+    {
+      "name": "Zohar",
+      "aliases": []
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "characters": [
+    {
+      "name": "Yasuo",
+      "aliases": []
+    },
+    {
+      "name": "Warwick",
+      "aliases": []
+    },
+    {
+      "name": "Vi",
+      "aliases": []
+    },
+    {
+      "name": "Teemo",
+      "aliases": []
+    },
+    {
+      "name": "Jinx",
+      "aliases": []
+    },
+    {
+      "name": "Illaoi",
+      "aliases": []
+    },
+    {
+      "name": "Ekko",
+      "aliases": []
+    },
+    {
+      "name": "Darius",
+      "aliases": []
+    },
+    {
+      "name": "Caitlyn",
+      "aliases": []
+    },
+    {
+      "name": "Braum",
+      "aliases": []
+    },
+    {
+      "name": "Blitzcrank",
+      "aliases": []
+    },
+    {
+      "name": "Akali",
+      "aliases": []
+    },
+    {
+      "name": "Ahri",
+      "aliases": []
+    },
+    {
+      "name": "Thresh",
+      "aliases": []
+    },
+    {
+      "name": "Senna",
+      "aliases": []
+    },
+    {
+      "name": "Lux",
+      "aliases": []
+    }    
+  ]
+}

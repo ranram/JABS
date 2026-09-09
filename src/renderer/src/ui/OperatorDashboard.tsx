@@ -1,9 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  gameIdForStartggVideogame,
-  type GameProfile
-} from '@shared/gameProfiles';
+import { gameIdForStartggVideogame, type GameProfile } from '@shared/gameProfiles';
 import { gameAssetCatalogSlug } from '@shared/gameAssetCatalog';
 import type {
   CountryOption,
@@ -34,6 +31,8 @@ import { useAssetCatalogReload } from './operator/useAssetCatalogReload';
 import { useCharacterCatalogOptions } from './operator/useCharacterCatalogOptions';
 import type { LocalHandoffUrl } from '../desktopRuntime';
 import { useModerationRefresh } from './operator/useModerationRefresh';
+import { useScoreShortcuts } from './operator/useScoreShortcuts';
+import { swapSavedCommentators } from './operator/swapCommentators';
 export function OperatorDashboard() {
   const { t } = useTranslation(['operator', 'common', 'errors']);
   const { state, setState, error: stateError } = useOverlayState();
@@ -53,7 +52,7 @@ export function OperatorDashboard() {
   const [draftState, setDraftState] = useState<OperatorDraftState>();
   const persistentSetOverrides = useRef({ station: false, matchLength: false });
   const [copiedHandoff, setCopiedHandoff] = useState<LocalHandoffUrl>();
-  const browser = useBracketBrowser({ startgg: api, setMessage, setLoading, setTokenVerified });
+  const browser = useBracketBrowser({ startgg: api, setMessage, setLoading, setTokenVerified, onContextChange: clearStreamState });
   const {
     tournamentSlug,
     setTournamentSlug,
@@ -129,7 +128,7 @@ export function OperatorDashboard() {
   const characterCatalog = useCharacterCatalogOptions(assetCatalogSlug, assetCatalogRevision);
   const characterOptions = characterCatalog.characters;
   const localBaseUrl = apiPort === undefined ? undefined : `http://127.0.0.1:${apiPort}`;
-  const { saving: draftSaving, blocked: draftBlocked } = useStreamDraftAutosave({
+  const { saving: draftSaving, blocked: draftBlocked, withAutosavePaused } = useStreamDraftAutosave({
     draft,
     dirty: draftDirty,
     assetCatalogSlug,
@@ -351,18 +350,18 @@ export function OperatorDashboard() {
     });
   }
 
-  async function unloadTournament() {
-    setLoading(true);
-    setMessage(undefined);
-    try {
+  async function clearStreamState() {
+    await withAutosavePaused(async () => {
       const response = await api.clearSelectedSet();
       setState(response);
-      setDraftState({
-        value: response.selectedSet,
-        baseline: response.selectedSet,
-        dirty: false
-      });
+      setDraftState({ value: response.selectedSet, baseline: response.selectedSet, dirty: false });
       persistentSetOverrides.current = { station: false, matchLength: false };
+    });
+  }
+  async function unloadTournament() {
+    setLoading(true); setMessage(undefined);
+    try {
+      await clearStreamState();
       unloadBracketTournament();
     } catch (error) {
       setMessage(errorMessage(error, t('operator:messages.tournamentUnloadFailed')));
@@ -524,7 +523,7 @@ export function OperatorDashboard() {
 
   async function copyHandoffUrl(kind: LocalHandoffUrl) {
     try {
-      await api.copyLocalUrl();
+      await api.copyLocalUrl(kind);
       setCopiedHandoff(kind);
       setMessage(t('operator:messages.obsCopied'));
     } catch (error) {
@@ -532,6 +531,13 @@ export function OperatorDashboard() {
       setMessage(errorMessage(error, t('operator:messages.copyFailed')));
     }
   }
+
+  const keyboardShortcuts = useScoreShortcuts({
+    selectedSet,
+    disabled: loading || draftDirty || draftSaving,
+    modalOpen: Boolean(quickScore.target),
+    onScore: updateScore, onReset: () => void runStateAction('reset'), onSwap: () => void runStateAction('swap'), onSwapCommentators: () => void swapSavedCommentators().then(() => setMessage(t('operator:messages.commentatorsSwapped'))).catch((error) => setMessage(errorMessage(error, t('operator:messages.stateFailed'))))
+  });
 
   const localizedScope = setScope
     ? setScope.type === 'event'
@@ -575,7 +581,10 @@ export function OperatorDashboard() {
         phaseGroupPageInfo={phaseGroupPageInfo}
         stationNumber={stationNumber}
         setScope={setScope}
+        keyboardShortcuts={keyboardShortcuts} bracketRefresh={browser.bracketRefresh}
+        reloadWarning={!selectedSet?.setId ? t('operator:editor.selectMatch') : draftDirty || draftSaving ? t('operator:editor.waitSave') : undefined}
         localBaseUrl={localBaseUrl}
+        copiedHandoff={copiedHandoff}
         activeSet={selectedSet}
         logos={logos}
         loading={loading}
@@ -608,6 +617,7 @@ export function OperatorDashboard() {
           : setMessage(t('operator:customScoreboard.loadSetFirst'))}
         onMessage={setMessage}
         onModerationApplied={() => void moderation.refreshAfterModeration()}
+        onCopy={(kind) => void copyHandoffUrl(kind)}
         setSelector={(
           <SetSelectorPanel
             sets={sets} visibleSets={visibleSets} assignments={streamAssignments}
@@ -645,16 +655,16 @@ export function OperatorDashboard() {
           />
 
           <LiveControlsPanel
-            selectedSet={selectedSet}
+            selectedSet={selectedSet} reportingEnabled={tokenConfigured}
             reportReadiness={reportReadiness}
             reportReadinessReason={localizedReadinessReason(reportReadiness)}
             localBaseUrl={localBaseUrl}
             copiedHandoff={copiedHandoff}
-            loading={loading}
+            loading={loading || draftSaving}
             draftDirty={draftDirty}
             onScore={(side, score) => void updateScore(side, score)}
             onReset={() => void runStateAction('reset')}
-            onSwap={() => void runStateAction('swap')}
+            onSwap={() => void runStateAction('swap')} shortcutsEnabled={keyboardShortcuts.enabled}
             onReport={() => void reportStartggResult()}
             onCopy={(kind) => void copyHandoffUrl(kind)}
           />
@@ -663,7 +673,7 @@ export function OperatorDashboard() {
       </StartggPanel>
 
       <SetActionsModal
-        target={quickScore.target}
+        target={quickScore.target} reportingEnabled={tokenConfigured}
         quickScore={quickScore.scoreState}
         receipt={quickScore.receipt}
         quickReadiness={quickScore.readiness}

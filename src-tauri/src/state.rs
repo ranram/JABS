@@ -940,7 +940,7 @@ mod tests {
     }
 
     #[test]
-    fn character_teams_migrate_legacy_state_and_enforce_game_limits() {
+    fn legacy_state_migrates_character_teams_and_styling_safely() {
         let mut selected = default_state().selected_set;
         selected.game_id = "2xko".to_owned();
         selected.asset_catalog_slug = Some("2xko".to_owned());
@@ -954,18 +954,15 @@ mod tests {
 
         selected.player_one.characters.push("Darius".to_owned());
         assert!(validate_characters(&selected, std::path::Path::new("unused")).is_err());
-    }
 
-    #[test]
-    fn legacy_state_migrates_style_without_overwriting_game_identity() {
-        let mut selected = default_state().selected_set;
-        selected.game_id = "tekken-8".to_owned();
-        selected.styling_game_id = None;
-        migrate_match_format(&mut selected);
-        assert_eq!(selected.styling_game_id.as_deref(), Some("tekken-8"));
+        let mut legacy = default_state().selected_set;
+        legacy.game_id = "tekken-8".to_owned();
+        legacy.styling_game_id = None;
+        migrate_match_format(&mut legacy);
+        assert_eq!(legacy.styling_game_id.as_deref(), Some("tekken-8"));
 
-        selected.styling_game_id = Some("street-fighter-6".to_owned());
-        assert!(validate_selected_set(&selected).is_ok());
-        assert_eq!(selected.game_id, "tekken-8");
+        legacy.styling_game_id = Some("street-fighter-6".to_owned());
+        assert!(validate_selected_set(&legacy).is_ok());
+        assert_eq!(legacy.game_id, "tekken-8");
     }
 }

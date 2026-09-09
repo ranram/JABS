@@ -1,6 +1,6 @@
 import { Select } from '@mantine/core';
 import type { GameCharacterAsset } from '@shared/models';
-import { characterOutfitOptions, selectedCharacterAssetId } from '@shared/characterAssets';
+import { characterOutfitOptions, selectedCharacterAssetId, type CharacterMediaKind } from '@shared/characterAssets';
 import { playerCharacters } from '@shared/characterTeams';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +8,7 @@ type CharacterOutfitSelectProps = {
   subject: { character?: string; characters?: string[]; characterAssetId?: string };
   assets: readonly GameCharacterAsset[];
   disabled?: boolean;
+  mediaKind?: CharacterMediaKind;
   testId?: string;
   onChange(assetId: string): void;
 };
@@ -16,11 +17,12 @@ export function CharacterOutfitSelect({
   subject,
   assets,
   disabled,
+  mediaKind = 'artwork',
   testId,
   onChange
 }: CharacterOutfitSelectProps) {
   const { t } = useTranslation('operator');
-  const options = characterOutfitOptions(subject, assets);
+  const options = characterOutfitOptions(subject, assets, mediaKind);
   const selectedCharacters = playerCharacters(subject);
   const hasCharacter = selectedCharacters.length > 0;
   const hasExtraOutfits = options.length >= 2;
@@ -42,7 +44,7 @@ export function CharacterOutfitSelect({
         ...option,
         label: option.label === 'Default' ? t('editor.defaultOutfit') : option.label
       }))}
-      value={selectedCharacterAssetId(subject, assets) ?? null}
+      value={selectedCharacterAssetId(subject, assets, mediaKind) ?? null}
       allowDeselect={false}
       disabled={isDisabled}
       onChange={(value) => value && onChange(value)}

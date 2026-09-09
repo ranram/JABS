@@ -11,6 +11,8 @@ const SURFACE_ID: &str = "result-screen";
 pub struct ResultScreenState {
     #[serde(default = "default_styling_game_id")]
     pub styling_game_id: String,
+    #[serde(default = "default_true")]
+    pub show_background: bool,
     pub show_tournament_logo: bool,
     pub show_player_photo: bool,
     pub show_sponsor_logo: bool,
@@ -31,6 +33,7 @@ impl ResultScreenStore {
             .filter(|state| crate::state::is_supported_game_id(&state.styling_game_id))
             .unwrap_or(ResultScreenState {
                 styling_game_id: default_styling_game_id(),
+                show_background: true,
                 show_tournament_logo: true,
                 show_player_photo: true,
                 show_sponsor_logo: true,
@@ -81,3 +84,4 @@ impl ResultScreenStore {
 }
 
 fn default_styling_game_id() -> String { "street-fighter-6".to_owned() }
+fn default_true() -> bool { true }

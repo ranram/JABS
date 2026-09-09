@@ -7,6 +7,8 @@ type CharacterArtworkSubject = {
   characterAssetId?: string;
 };
 
+export type CharacterMediaKind = 'artwork' | 'portrait';
+
 export function leadCharacterAsset(
   subject: CharacterArtworkSubject,
   assets: readonly GameCharacterAsset[]
@@ -17,24 +19,33 @@ export function leadCharacterAsset(
 
 export function selectedCharacterAssetId(
   subject: CharacterArtworkSubject,
-  assets: readonly GameCharacterAsset[]
+  assets: readonly GameCharacterAsset[],
+  mediaKind: CharacterMediaKind = 'artwork'
 ): string | undefined {
   const asset = leadCharacterAsset(subject, assets);
   if (!asset) return undefined;
   const selected = subject.characterAssetId;
-  if (selected && asset.variants.some((variant) => variant.assetId === selected)) {
-    return selected;
+  const variantId = mediaKind === 'portrait' ? 'portraitAssetId' : 'assetId';
+  if (selected) {
+    const selectedVariant = asset.variants.find((variant) =>
+      variant.assetId === selected || variant.portraitAssetId === selected
+    );
+    const selectedMediaId = selectedVariant?.[variantId];
+    if (selectedMediaId) return selectedMediaId;
   }
-  return asset.assetId;
+  return mediaKind === 'portrait' ? asset.portraitAssetId : asset.assetId;
 }
 
 export function characterOutfitOptions(
   subject: CharacterArtworkSubject,
-  assets: readonly GameCharacterAsset[]
+  assets: readonly GameCharacterAsset[],
+  mediaKind: CharacterMediaKind = 'artwork'
 ): Array<{ value: string; label: string }> {
   const asset = leadCharacterAsset(subject, assets);
   if (!asset) return [];
-  return asset.variants.flatMap((variant) => variant.assetId
-    ? [{ value: variant.assetId, label: variant.label }]
-    : []);
+  const variantId = mediaKind === 'portrait' ? 'portraitAssetId' : 'assetId';
+  return asset.variants.flatMap((variant) => {
+    const value = variant[variantId];
+    return value ? [{ value, label: variant.label }] : [];
+  });
 }

@@ -48,6 +48,7 @@ import { useGeneratorMedia, useLogoAssetUrl } from './useGeneratorMedia';
 import { BufferedTextInput } from './BufferedTextInput';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
 import { CharacterOutfitSelect } from './CharacterOutfitSelect';
+import { MediaControlHint } from './MediaControlHint';
 import { api } from '../../api';
 import './generatorFonts.css';
 import './adjustableMedia.css';
@@ -333,7 +334,7 @@ export function ThumbnailGenerator({ profiles, activeSet, moderationRevision, lo
                 </Button>
               </Group>
             </SimpleGrid>
-            <Text c="dimmed" size="xs">{t('operator:thumbnail.adjustHint')}</Text>
+            <MediaControlHint />
           </Stack>
         )}
         <ThumbnailCanvas

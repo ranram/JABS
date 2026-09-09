@@ -7,6 +7,7 @@ const stylingGameIdSchema = z.custom<GameId>(
 
 export const resultScreenStateSchema = z.object({
   stylingGameId: stylingGameIdSchema,
+  showBackground: z.boolean().default(true),
   showTournamentLogo: z.boolean(),
   showPlayerPhoto: z.boolean(),
   showSponsorLogo: z.boolean(),

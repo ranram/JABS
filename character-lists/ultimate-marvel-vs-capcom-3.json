@@ -1,0 +1,215 @@
+{
+  "characters": [
+    {
+      "name": "Wolverine",
+      "aliases": []
+    },
+    {
+      "name": "Spider-Man",
+      "aliases": []
+    },
+    {
+      "name": "Iron Man",
+      "aliases": []
+    },
+    {
+      "name": "Hulk",
+      "aliases": []
+    },
+    {
+      "name": "Deadpool",
+      "aliases": []
+    },
+    {
+      "name": "Captain America",
+      "aliases": []
+    },
+    {
+      "name": "Thor",
+      "aliases": []
+    },
+    {
+      "name": "Dormammu",
+      "aliases": []
+    },
+    {
+      "name": "Doctor Doom",
+      "aliases": [
+      	"Doom"
+      ]
+    },
+    {
+      "name": "Super-Skrull",
+      "aliases": [
+      	"Skrull"
+      ]
+    },
+    {
+      "name": "Chun-Li",
+      "aliases": []
+    },
+    {
+      "name": "Ryu",
+      "aliases": []
+    },
+    {
+      "name": "Chris Redfield",
+      "aliases": []
+    },
+    {
+      "name": "Morrigan Aensland",
+      "aliases": [
+      	"Morrigan"
+      ]
+    },
+    {
+      "name": "Felicia",
+      "aliases": []
+    },
+    {
+      "name": "Dante",
+      "aliases": []
+    },
+    {
+      "name": "Trish",
+      "aliases": []
+    },
+    {
+      "name": "Amaterasu",
+      "aliases": []
+    },
+    {
+      "name": "Albert Wesker",
+      "aliases": [
+      	"Wesker"
+      ]
+    },
+    {
+      "name": "Tron Bonne",
+      "aliases": []
+    },
+    {
+      "name": "Magneto",
+      "aliases": []
+    },
+    {
+      "name": "M.O.D.O.K.",
+      "aliases": []
+    },
+    {
+      "name": "X-23",
+      "aliases": []
+    },
+    {
+      "name": "Arthur",
+      "aliases": []
+    },
+    {
+      "name": "Nathan Spencer",
+      "aliases": [
+      	"Spencer"
+      ]
+    },
+    {
+      "name": "Zero",
+      "aliases": []
+    },
+    {
+      "name": "Crimson Viper",
+      "aliases": [
+      	"C. Viper",
+      	"Viper"
+      ]
+    },
+    {
+      "name": "She-Hulk",
+      "aliases": []
+    },
+    {
+      "name": "Shuma-Gorath",
+      "aliases": []
+    },
+    {
+      "name": "Jill Valentine",
+      "aliases": ["Jill"]
+    },
+    {
+      "name": "Phoenix",
+      "aliases": []
+    },
+    {
+      "name": "Storm",
+      "aliases": []
+    },
+    {
+      "name": "Sentinel",
+      "aliases": []
+    },
+    {
+      "name": "Hsien-Ko",
+      "aliases": []
+    },
+    {
+      "name": "Taskmaster",
+      "aliases": []
+    },
+    {
+      "name": "Akuma",
+      "aliases": []
+    },
+    {
+      "name": "Hawkeye",
+      "aliases": []
+    },
+    {
+      "name": "Ghost Rider",
+      "aliases": []
+    },
+    {
+      "name": "Dr Strange",
+      "aliases": []
+    },
+    {
+      "name": "Iron Fist",
+      "aliases": []
+    },
+    {
+      "name": "Nova",
+      "aliases": []
+    },
+    {
+      "name": "Rocket Raccoon",
+      "aliases": [
+      	"Rocket"
+      ]
+    },
+    {
+      "name": "Firebrand",
+      "aliases": []
+    },
+    {
+      "name": "Strider Hiryu",
+      "aliases": [
+      	"Hiryu"
+      ]
+    },
+    {
+      "name": "Nemesis T-Type",
+      "aliases": [
+      	"Nemesis"
+      ]
+    },
+    {
+      "name": "Vergil",
+      "aliases": []
+    },
+    {
+      "name": "Phoenix Wright",
+      "aliases": []
+    },
+    {
+      "name": "Frank West",
+      "aliases": []
+    }
+  ]
+}

@@ -46,6 +46,8 @@ describe('start.gg cache contracts', () => {
             id: ' set-1 ',
             round: ' Winners Final ',
             station: '   ',
+            streamName: ' mainstage ',
+            streamSource: ' TWITCH ',
             entrantOne: { id: ' entrant-1 ', name: ' Alpha ' }
           }
         ],
@@ -57,6 +59,8 @@ describe('start.gg cache contracts', () => {
           id: 'set-1',
           round: 'Winners Final',
           station: undefined,
+          streamName: 'mainstage',
+          streamSource: 'TWITCH',
           entrantOne: { id: 'entrant-1', name: 'Alpha' }
         }
       ],

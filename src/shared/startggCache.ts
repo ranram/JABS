@@ -50,6 +50,8 @@ const setSummarySchema = z.object({
   round: optionalText,
   state: optionalText,
   station: optionalText,
+  streamName: optionalText,
+  streamSource: optionalText,
   entrantOne: entrantSchema.optional(),
   entrantTwo: entrantSchema.optional()
 });

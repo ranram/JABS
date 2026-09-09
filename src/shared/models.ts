@@ -146,6 +146,8 @@ export type SetSummary = {
   round?: string;
   state?: string;
   station?: string;
+  streamName?: string;
+  streamSource?: string;
   entrantOne?: {
     id: string;
     name: string;
@@ -239,12 +241,14 @@ export type RecentTournament = {
 export type StartggStreamAssignment = {
   setId: string;
   streamName: string;
+  streamSource?: string;
   queuePosition: number;
 };
 
 export type StartggSource = 'live' | 'cache';
 
 export type StartggErrorCode =
+  | 'anonymous-unavailable'
   | 'token-missing'
   | 'authentication'
   | 'permission'

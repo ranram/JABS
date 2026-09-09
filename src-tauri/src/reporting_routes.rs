@@ -198,6 +198,11 @@ async fn perform_quick_report(runtime: &RuntimeState, body: QuickReportBody) -> 
 }
 
 async fn begin_report(runtime: &RuntimeState, set_id: &str) -> Option<Response> {
+    if !matches!(crate::secrets::token(runtime), Ok(Some(_))) {
+        return Some(startgg_error(jabs_startgg_client::api_error(
+            "Add a start.gg token to report results. Local overlay controls do not need one.", "token-missing",
+        )));
+    }
     let mut reporting = runtime.reporting_set_id.lock().await;
     if reporting.is_some() {
         return Some(secure_json((

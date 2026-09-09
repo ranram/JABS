@@ -433,6 +433,10 @@ mod tests {
         assert!(valid_game_asset_catalog_slug("samurai-shodown"));
         assert!(!valid_game_asset_catalog_slug("../samurai-shodown"));
         assert!(!valid_game_asset_catalog_slug("Samurai Shodown"));
+        assert!(valid_raster_bytes(b"\x89PNG\r\n\x1a\nrest", "image/png"));
+        assert!(valid_raster_bytes(b"\xff\xd8\xffrest", "image/jpeg"));
+        assert!(valid_raster_bytes(b"RIFF0000WEBPrest", "image/webp"));
+        assert!(!valid_raster_bytes(b"<svg></svg>", "image/png"));
     }
 
     #[test]
@@ -451,14 +455,6 @@ mod tests {
             match_unique_asset_id(&["Honda.png".to_owned()], "E. Honda"),
             Some("Honda.png".to_owned())
         );
-    }
-
-    #[test]
-    fn raster_signatures_must_match_the_served_content_type() {
-        assert!(valid_raster_bytes(b"\x89PNG\r\n\x1a\nrest", "image/png"));
-        assert!(valid_raster_bytes(b"\xff\xd8\xffrest", "image/jpeg"));
-        assert!(valid_raster_bytes(b"RIFF0000WEBPrest", "image/webp"));
-        assert!(!valid_raster_bytes(b"<svg></svg>", "image/png"));
     }
 
 }

@@ -18,6 +18,9 @@ const matchupSchema = z.object({
 
 export const topEightMatchupsStateSchema = z.object({
   stylingGameId: z.custom<GameId>((value) => typeof value === 'string' && canonicalGameId(value) === value),
+  showBackground: z.boolean().default(true),
+  showTournamentLogo: z.boolean().default(true),
+  flipPlayerTwoPortraits: z.boolean().default(false),
   assetCatalogSlug: z.string().trim().min(1),
   tournamentName: z.string().trim().min(1).max(120),
   eventName: z.string().trim().max(120).optional(),

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   clampMediaTransform,
+  mediaMirrorX,
+  toggleMediaFlip,
   type MediaTransform
 } from '@shared/mediaPlacement';
 
@@ -27,6 +29,7 @@ export function AdjustableMediaImage({
   onSelect,
   onChange
 }: AdjustableMediaImageProps) {
+  const effectiveMirrorX = mediaMirrorX(mirrorX, transform);
   const imageRef = useRef<HTMLImageElement>(null);
   const liveTransformRef = useRef(transform);
   const pendingTransformRef = useRef<MediaTransform | undefined>(undefined);
@@ -49,9 +52,9 @@ export function AdjustableMediaImage({
   useEffect(() => {
     liveTransformRef.current = transform;
     if (imageRef.current) {
-      imageRef.current.style.transform = transformCss(transform, mirrorX, baseScale);
+      imageRef.current.style.transform = transformCss(transform, effectiveMirrorX, baseScale);
     }
-  }, [baseScale, mirrorX, transform]);
+  }, [baseScale, effectiveMirrorX, transform]);
 
   useEffect(() => () => {
     if (publishTimerRef.current !== undefined) window.clearTimeout(publishTimerRef.current);
@@ -66,8 +69,8 @@ export function AdjustableMediaImage({
       aria-label={label}
       tabIndex={selected ? 0 : -1}
       draggable={false}
-      data-export-mirror-x={mirrorX || undefined}
-      style={{ transform: transformCss(transform, mirrorX, baseScale) }}
+      data-export-mirror-x={effectiveMirrorX || undefined}
+      style={{ transform: transformCss(transform, effectiveMirrorX, baseScale) }}
       onFocus={onSelect}
       onPointerDown={(event) => {
         if (event.button !== 0) return;
@@ -107,6 +110,9 @@ export function AdjustableMediaImage({
         if (event.key === 'ArrowDown') next = { ...current, y: current.y + movement };
         if (event.key === '+' || event.key === '=') next = { ...current, scale: current.scale + scale };
         if (event.key === '-' || event.key === '_') next = { ...current, scale: current.scale - scale };
+        if (event.key.toLowerCase() === 'f' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          next = toggleMediaFlip(current);
+        }
         if (!next) return;
         event.preventDefault();
         previewTransform(next);
@@ -130,7 +136,7 @@ export function AdjustableMediaImage({
     liveTransformRef.current = clamped;
     pendingTransformRef.current = clamped;
     if (imageRef.current) {
-      imageRef.current.style.transform = transformCss(clamped, mirrorX, baseScale);
+      imageRef.current.style.transform = transformCss(clamped, mediaMirrorX(mirrorX, clamped), baseScale);
     }
     if (publishTimerRef.current !== undefined) window.clearTimeout(publishTimerRef.current);
     publishTimerRef.current = window.setTimeout(flushPendingTransform, 90);

@@ -1,5 +1,6 @@
 import { canonicalGameId, type GameId } from './gameProfiles';
 import { generatedCharacterRosters } from './generatedCharacterRosters';
+import { generatedCharacterAliases } from './generatedCharacterAliases';
 
 export function charactersForGame(gameId: GameId): readonly string[] {
   return generatedCharacterRosters[gameId];
@@ -16,12 +17,11 @@ export function charactersForAssetCatalog(assetCatalogSlug: string): readonly st
 
 function normalizeCharacterName(value: string): string {
   return value
+    .replaceAll('&', ' and ')
     .normalize('NFKD')
     .replace(/\p{Mark}+/gu, '')
     .toLowerCase()
-    .replace(/[\p{Punctuation}\p{Symbol}]+/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/[^\p{Letter}\p{Number}]/gu, '');
 }
 
 /**
@@ -35,5 +35,7 @@ export function matchCharacterName(gameId: GameId, rawName: string | undefined):
   const needle = normalizeCharacterName(rawName);
   if (!needle) return undefined;
   const roster = charactersForGame(gameId);
-  return roster.find((candidate) => normalizeCharacterName(candidate) === needle);
+  return roster.find((candidate) => normalizeCharacterName(candidate) === needle)
+    ?? (Object.hasOwn(generatedCharacterAliases[gameId] ?? {}, needle)
+      ? generatedCharacterAliases[gameId][needle] : undefined);
 }

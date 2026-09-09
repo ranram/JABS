@@ -1,5 +1,6 @@
 {
   "street-fighter-6": [
+    "Arjun",
     "Yasmine",
     "Ingrid",
     "Terry",
@@ -33,6 +34,8 @@
     "Ryu"
   ],
   "tekken-8": [
+    "Bob",
+    "Kunimitsu",
     "Zafina",
     "Yoshimitsu",
     "Xiaoyu",
@@ -162,7 +165,8 @@
     "Akali",
     "Ahri",
     "Thresh",
-    "Senna"
+    "Senna",
+    "Lux"
   ],
   "blazblue-centralfiction": [
     "Amane",
@@ -234,6 +238,7 @@
     "B. Jenet"
   ],
   "granblue-fantasy-versus-rising": [
+    "Id",
     "Zeta",
     "Wilnas",
     "Vira",
@@ -338,29 +343,28 @@
     "Vice"
   ],
   "melty-blood-type-lumina": [
+    "Akiha Tohno",
     "Aoko Aozaki",
     "Arcueid Brunestud",
-    "Archetype Earth",
-    "Aria",
     "Ciel",
     "Count of Monte Cristo",
-    "Dan",
     "Dead Apostle Noel",
     "Hisui",
+    "Hisui & Kohaku",
     "Kohaku",
     "Kouma Kishima",
+    "Mario Gallo Bestino",
     "Mash Kyrielight",
+    "Michael Roa Valdamjong",
     "Miyako Arima",
-    "Neco Arc",
+    "Neco-Arc",
     "Noel",
-    "Powerd Ciel",
+    "Powered Ciel",
     "Red Arcueid",
-    "Roa",
     "Saber",
     "Shiki Tohno",
     "Ushiwakamaru",
-    "Vlov Arkhangel",
-    "Yushiro"
+    "Vlov Arkhangel"
   ],
   "mortal-kombat-1": [
     "Ashrah",
@@ -432,7 +436,6 @@
     "Jill Valentine",
     "Phoenix",
     "Storm",
-    "C. Viper",
     "Sentinel",
     "Hsien-Ko",
     "Taskmaster",

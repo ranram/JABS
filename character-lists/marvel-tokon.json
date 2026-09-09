@@ -1,0 +1,94 @@
+{
+  "characters": [
+    {
+      "name": "Storm",
+      "aliases": []
+    },
+    {
+      "name": "Magik",
+      "aliases": []
+    },
+    {
+      "name": "Wolverine",
+      "aliases": []
+    },
+    {
+      "name": "Danger",
+      "aliases": []
+    },
+    {
+      "name": "Spider-Man",
+      "aliases": []
+    },
+    {
+      "name": "Ms Marvel",
+      "aliases": []
+    },
+    {
+      "name": "Star-Lord",
+      "aliases": []
+    },
+    {
+      "name": "Peni Parker",
+      "aliases": [
+      	"Peni"
+      ]
+    },
+    {
+      "name": "Captain America",
+      "aliases": []
+    },
+    {
+      "name": "Iron Man",
+      "aliases": []
+    },
+    {
+      "name": "Black Panther",
+      "aliases": []
+    },
+    {
+      "name": "Hulk",
+      "aliases": []
+    },
+    {
+      "name": "Doctor Doom",
+      "aliases": [
+      	"Doom"
+      ]
+    },
+    {
+      "name": "Magneto",
+      "aliases": []
+    },
+    {
+      "name": "Green Goblin",
+      "aliases": [
+      	"Goblin"
+      ]
+    },
+    {
+      "name": "Carnage",
+      "aliases": []
+    },
+    {
+      "name": "Ghost Rider",
+      "aliases": []
+    },
+    {
+      "name": "Blade",
+      "aliases": []
+    },
+    {
+      "name": "Deadpool",
+      "aliases": []
+    },
+    {
+      "name": "Loki",
+      "aliases": []
+    },
+    {
+      "name": "Phoenix Cyclops",
+      "aliases": []
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { charactersForAssetCatalog, charactersForGame, isCharacterForGame, matchCharacterName } from './characterRosters';
 import { gameProfiles } from './gameProfiles';
+import { generatedCharacterAliases } from './generatedCharacterAliases';
 
 describe('character rosters', () => {
   it('keeps every reviewed roster nonempty, trimmed, and unique', () => {
@@ -9,10 +10,11 @@ describe('character rosters', () => {
       expect(roster.length, gameId).toBeGreaterThan(0);
       expect(roster.every((character) => character === character.trim() && character.length > 0)).toBe(true);
       expect(new Set(roster.map((character) => character.toLocaleLowerCase('en-US'))).size).toBe(roster.length);
+      for (const [alias, canonical] of Object.entries(generatedCharacterAliases[gameId])) {
+        expect(matchCharacterName(gameId, alias), `${gameId}: ${alias}`).toBe(canonical);
+        expect(roster).toContain(canonical);
+      }
     }
-  });
-
-  it('validates canonical names and normalizes reviewed external names', () => {
     expect(isCharacterForGame('tekken-8', 'Jin Kazama')).toBe(true);
     expect(isCharacterForGame('tekken-8', 'jin kazama')).toBe(false);
     expect(charactersForAssetCatalog('street-fighter-6')).toContain('Ryu');
@@ -24,5 +26,13 @@ describe('character rosters', () => {
     expect(charactersForGame('super-smash-bros-ultimate')).not.toContain('Mythra');
     expect(matchCharacterName('street-fighter-6', 'Sheng Long')).toBeUndefined();
     expect(matchCharacterName('street-fighter-6', undefined)).toBeUndefined();
+    expect(matchCharacterName('street-fighter-6', 'AKI')).toBe('A.K.I.');
+    expect(matchCharacterName('street-fighter-6', 'Bison')).toBe('M. Bison');
+    expect(matchCharacterName('street-fighter-6', 'Viper')).toBe('C. Viper');
+    expect(matchCharacterName('street-fighter-6', 'Vega')).toBeUndefined();
+    expect(matchCharacterName('street-fighter-6', 'Koopa')).toBeUndefined();
+    expect(matchCharacterName('super-smash-bros-ultimate', 'Yusha')).toBe('Hero');
+    expect(matchCharacterName('super-smash-bros-ultimate', 'Rosetta and Chico')).toBe('Rosalina and Luma');
+    expect(matchCharacterName('street-fighter-6', 'constructor')).toBeUndefined();
   });
 });

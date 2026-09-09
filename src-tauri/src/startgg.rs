@@ -65,9 +65,13 @@ pub async fn stream_queue(runtime: &RuntimeState, slug: &str) -> Result<Value, A
     let mut assignments = Vec::new();
     for entry in entries {
         let Some(entry) = entry.as_object() else { continue };
-        let stream_name = optional_object(entry.get("stream"))
+        let stream = optional_object(entry.get("stream"));
+        let stream_name = stream
             .and_then(|stream| optional_text(stream.get("streamName")))
             .unwrap_or_else(|| "Stream".to_owned());
+        let stream_source = stream
+            .and_then(|stream| optional_text(stream.get("streamSource")))
+            .unwrap_or_else(|| "UNKNOWN".to_owned());
         let sets = node_list(entry.get("sets"), "stream queue sets")?;
         for (index, set) in sets.into_iter().enumerate() {
             let Some(set_id) = set.as_object()
@@ -77,6 +81,7 @@ pub async fn stream_queue(runtime: &RuntimeState, slug: &str) -> Result<Value, A
             assignments.push(json!({
                 "setId": set_id,
                 "streamName": stream_name,
+                "streamSource": stream_source,
                 "queuePosition": index + 1
             }));
         }
@@ -420,7 +425,7 @@ pub async fn report_set(
             json!({ "setId": set_id, "winnerId": winner_id }),
         ),
     };
-    let data: Value = request(runtime, query, variables).await?;
+    let data: Value = authenticated_request(runtime, query, variables).await?;
     let nodes = node_list(data.get("reportBracketSet"), "set-reporting response")?;
     let reported = nodes.into_iter().find_map(|node| {
         let object = node.as_object()?;
@@ -1064,6 +1069,18 @@ async fn request<T: serde::de::DeserializeOwned>(
     query: &str,
     variables: Value,
 ) -> Result<T, ApiError> {
+    match secrets::token(runtime) {
+        Ok(Some(token)) => runtime.startgg.request(token.as_str(), query, variables).await,
+        // Public reads remain available on systems without credential storage.
+        Ok(None) | Err(_) => runtime.startgg.request_anonymous(query, variables).await,
+    }
+}
+
+async fn authenticated_request<T: serde::de::DeserializeOwned>(
+    runtime: &RuntimeState,
+    query: &str,
+    variables: Value,
+) -> Result<T, ApiError> {
     let token = secrets::token(runtime).map_err(|_| token_missing())?
         .ok_or_else(token_missing)?;
     runtime.startgg.request(token.as_str(), query, variables).await
@@ -1099,6 +1116,7 @@ fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
     let station = optional_object(object.get("station"))
         .and_then(|station| finite_i64(station.get("number")))
         .map(|number| format!("Station {number}"));
+    let stream = optional_object(object.get("stream"));
     Ok(Some(json!({
         "id": id,
         "roundNumber": finite_i64(object.get("round")),
@@ -1112,6 +1130,8 @@ fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
         "round": optional_text(object.get("fullRoundText")),
         "state": object.get("state").and_then(normalized_id),
         "station": station,
+        "streamName": stream.and_then(|value| optional_text(value.get("streamName"))),
+        "streamSource": stream.and_then(|value| optional_text(value.get("streamSource"))),
         "entrantOne": entrant_one,
         "entrantTwo": entrant_two,
         "prerequisites": prerequisites
@@ -1252,12 +1272,13 @@ mod tests {
     }
 
     #[test]
-    fn maps_set_summary_with_participant_tag_and_phase_context() {
+    fn maps_set_summary_and_selected_player_metadata() {
         let summary = set_summary(&json!({
             "id": 42,
             "fullRoundText": "Winners Semi-Final",
             "phaseGroup": { "displayIdentifier": "A1", "phase": { "name": "Pools" } },
             "station": { "number": 3 },
+            "stream": { "streamSource": "TWITCH", "streamName": "mainstage" },
             "slots": [
                 { "entrant": { "id": 1, "name": "TEAM | Player", "participants": [{ "gamerTag": "Player" }] }, "standing": { "stats": { "score": { "value": 2 } } } },
                 { "entrant": { "id": 2, "name": "Opponent", "participants": [] }, "standing": { "stats": { "score": { "value": 1 } } } }
@@ -1268,10 +1289,9 @@ mod tests {
         assert_eq!(summary["phase"], "Pools");
         assert_eq!(summary["phaseGroup"], "A1");
         assert_eq!(summary["station"], "Station 3");
-    }
+        assert_eq!(summary["streamSource"], "TWITCH");
+        assert_eq!(summary["streamName"], "mainstage");
 
-    #[test]
-    fn selected_set_mapper_imports_player_identity_and_character_selections() {
         assert!(startgg_queries::SET_BY_ID.contains("initialSeedNum"));
         assert!(startgg_queries::SET_BY_ID.contains("genderPronoun"));
         assert!(startgg_queries::SET_BY_ID.contains("prereqPlacement"));
@@ -1319,10 +1339,7 @@ mod tests {
         );
         assert!(character_for_entrant_from_games(Some(&games), "entrant-3").is_none());
         assert!(character_for_entrant_from_games(None, "entrant-1").is_none());
-    }
 
-    #[test]
-    fn selected_set_mapper_imports_x_handle_from_connected_accounts_and_authorizations() {
         let from_connected = player_from_slot(Some(&json!({
             "entrant": {
                 "id": "entrant-1",
@@ -1355,6 +1372,7 @@ mod tests {
 
     #[test]
     fn versus_history_query_is_bounded_and_uses_stable_player_ids() {
+        assert!(startgg_queries::STREAM_QUEUE.contains("streamSource"));
         assert!(startgg_queries::VERSUS_HISTORY.contains("player(id: $playerOneId)"));
         assert!(startgg_queries::VERSUS_HISTORY.contains("player(id: $playerTwoId)"));
         assert!(startgg_queries::VERSUS_HISTORY.contains("recentStandings"));

@@ -122,6 +122,13 @@ export function ResultScreenControls({ activeSet, logos, profiles, assetCatalogS
         onChange={(value) => value && void update('stylingGameId', value as GameId)}
       />
       <SimpleGrid type="container" cols={{ base: 1, '32rem': 2 }}>
+        <Switch
+          checked={!state.showBackground}
+          disabled={saving !== undefined}
+          label={t('workspaces.transparentBackground')}
+          description={t('workspaces.transparentBackgroundHelp')}
+          onChange={(event) => void update('showBackground', !event.currentTarget.checked)}
+        />
         {controls.map(([setting, asset]) => (
           <Switch
             key={setting}

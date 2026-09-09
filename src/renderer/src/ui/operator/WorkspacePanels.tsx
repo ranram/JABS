@@ -8,6 +8,7 @@ import { VersusScreenControls } from './VersusScreenControls';
 import { TopEightMatchupsControls } from './TopEightMatchupsControls';
 
 type OtherOverlaysPanelProps = {
+  assetCatalogRevision: number;
   localBaseUrl?: string;
   logos: LogoAsset[];
   activeSet?: SelectedSetState;
@@ -26,7 +27,7 @@ const overlayPaths: Record<(typeof overlayTypes)[number], string> = {
   topEightMatchups: '/overlay/active/top-eight-matchups'
 };
 
-export function OtherOverlaysPanel({ localBaseUrl, logos, activeSet, profiles, assetCatalogSlug, selectedEventId, selectedEventName, phases }: OtherOverlaysPanelProps) {
+export function OtherOverlaysPanel({ localBaseUrl, logos, activeSet, profiles, assetCatalogSlug, selectedEventId, selectedEventName, phases, assetCatalogRevision }: OtherOverlaysPanelProps) {
   const { t } = useTranslation('operator');
 
   return (
@@ -54,7 +55,7 @@ export function OtherOverlaysPanel({ localBaseUrl, logos, activeSet, profiles, a
                     : <Text c="dimmed" size="sm">{t('workspaces.resolvingObs')}</Text>}
                 </div>
                 {overlayType === 'topEightMatchups' ? (
-                  <TopEightMatchupsControls profiles={profiles} logos={logos} selectedEventId={selectedEventId} selectedEventName={selectedEventName} phases={phases} assetCatalogSlug={assetCatalogSlug} />
+                  <TopEightMatchupsControls profiles={profiles} logos={logos} selectedEventId={selectedEventId} selectedEventName={selectedEventName} phases={phases} assetCatalogSlug={assetCatalogSlug} assetCatalogRevision={assetCatalogRevision} />
                 ) : overlayType === 'commentators' ? (
                   <CommentatorControls logos={logos} profiles={profiles} />
                 ) : overlayType === 'winner' ? (

@@ -81,6 +81,17 @@ body {
     linear-gradient(112deg, color-mix(in srgb, var(--game-accent) 30%, var(--game-bg)) 0 39%, var(--game-bg) 39% 100%);
 }
 
+.overlay-announcement.is-transparent-background,
+.overlay-announcement.is-transparent-background .announcement-composition,
+.overlay-announcement.is-transparent-background .announcement-subject {
+  background: transparent;
+}
+
+.overlay-announcement.is-transparent-background .announcement-composition::before,
+.overlay-announcement.is-transparent-background .announcement-subject-placeholder {
+  display: none;
+}
+
 .announcement-composition {
   position: relative;
   display: grid;
@@ -489,14 +500,16 @@ body {
 .overlay-player-score {
   display: grid;
   grid-area: score;
+  align-self: stretch;
   width: clamp(34px, var(--hud-plate-height, 56px), 52px);
-  height: 100%;
+  min-height: 0;
   place-items: center;
   color: var(--game-accent);
   font-size: clamp(24px, calc(var(--hud-plate-height, 56px) * 0.78), 44px);
   font-weight: 1000;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--game-bg) 72%, var(--player-side-accent));
 }
 
 .top-hud-frame {

@@ -1,0 +1,150 @@
+{
+  "characters": [
+    {
+      "name": "Ashrah",
+      "aliases": []
+    },
+    {
+      "name": "Baraka",
+      "aliases": []
+    },
+    {
+      "name": "General Shao",
+      "aliases": [
+      	"Shao"
+      ]
+    },
+    {
+      "name": "Geras",
+      "aliases": []
+    },
+    {
+      "name": "Havik",
+      "aliases": []
+    },
+    {
+      "name": "Johnny Cage",
+      "aliases": []
+    },
+    {
+      "name": "Kenshi",
+      "aliases": []
+    },
+    {
+      "name": "Kitana",
+      "aliases": []
+    },
+    {
+      "name": "Kung Lao",
+      "aliases": []
+    },
+    {
+      "name": "Li Mei",
+      "aliases": []
+    },
+    {
+      "name": "Liu Kang",
+      "aliases": []
+    },
+    {
+      "name": "Mileena",
+      "aliases": []
+    },
+    {
+      "name": "Nitara",
+      "aliases": []
+    },
+    {
+      "name": "Raiden",
+      "aliases": []
+    },
+    {
+      "name": "Rain",
+      "aliases": []
+    },
+    {
+      "name": "Reiko",
+      "aliases": []
+    },
+    {
+      "name": "Reptile",
+      "aliases": []
+    },
+    {
+      "name": "Scorpion",
+      "aliases": []
+    },
+    {
+      "name": "Sindel",
+      "aliases": []
+    },
+    {
+      "name": "Smoke",
+      "aliases": []
+    },
+    {
+      "name": "Sub-Zero",
+      "aliases": []
+    },
+    {
+      "name": "Tanya",
+      "aliases": []
+    },
+    {
+      "name": "Shang Tsung",
+      "aliases": []
+    },
+    {
+      "name": "Ermac",
+      "aliases": []
+    },
+    {
+      "name": "Homelander",
+      "aliases": []
+    },
+    {
+      "name": "Omni-Man",
+      "aliases": []
+    },
+    {
+      "name": "Peacemaker",
+      "aliases": []
+    },
+    {
+      "name": "Quan Chi",
+      "aliases": []
+    },
+    {
+      "name": "Takeda",
+      "aliases": []
+    },
+    {
+      "name": "Cyrax",
+      "aliases": []
+    },
+    {
+      "name": "Sektor",
+      "aliases": []
+    },
+    {
+      "name": "Noob Saibot",
+      "aliases": [
+      	"Noob"
+      ]
+    },
+    {
+      "name": "Ghostface",
+      "aliases": []
+    },
+    {
+      "name": "Conan the Barbarian",
+      "aliases": [
+      	"Conan"
+      ]
+    },
+    {
+      "name": "T-1000",
+      "aliases": []
+    }
+  ]
+}

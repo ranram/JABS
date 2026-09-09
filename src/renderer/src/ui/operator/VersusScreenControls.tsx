@@ -10,6 +10,7 @@ import { VersusPreview } from './VersusPreview';
 import { useTranslation } from 'react-i18next';
 import { sortByLabel } from './operatorUtils';
 import { MediaFoldersAccordion } from './MediaFoldersAccordion';
+import { MediaControlHint } from './MediaControlHint';
 
 type VersusScreenControlsProps = {
   activeSet?: SelectedSetState;
@@ -144,7 +145,7 @@ export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: 
               </Button>
             </Group>
           </SimpleGrid>
-          <Text c="dimmed" size="xs">{t('topEight.adjustHint')}</Text>
+          <MediaControlHint />
           <VersusPreview
             activeSet={activeSet}
             settings={state}
@@ -174,8 +175,9 @@ export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: 
         />
       </div>
       <Group grow align="center">
-        <Switch label={t('thumbnail.showTournamentLogo')} checked={state.showTournamentLogo} disabled={saving} onChange={(event) => void update({ showTournamentLogo: event.currentTarget.checked })} />
-        <Switch label={t('thumbnail.showSponsorLogo')} checked={state.showSponsorLogos} disabled={saving} onChange={(event) => void update({ showSponsorLogos: event.currentTarget.checked })} />
+        <Switch label={t('workspaces.transparentBackground')} description={t('workspaces.transparentBackgroundHelp')} checked={!state.showBackground} disabled={saving} onChange={(event) => void update({ showBackground: !event.currentTarget.checked })} />
+        <Switch label={t('thumbnail.showTournamentLogo')} description={t('broadcast.tournamentLogoHelp')} checked={state.showTournamentLogo} disabled={saving} onChange={(event) => void update({ showTournamentLogo: event.currentTarget.checked })} />
+        <Switch label={t('thumbnail.showSponsorLogo')} description={t('broadcast.sponsorLogoHelp')} checked={state.showSponsorLogos} disabled={saving} onChange={(event) => void update({ showSponsorLogos: event.currentTarget.checked })} />
       </Group>
       <MediaFoldersAccordion gameAssetSubpath={assetCatalogSlug ? `${assetCatalogSlug}/characters` : undefined} />
     </Stack>

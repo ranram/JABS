@@ -6,6 +6,8 @@ use tokio::sync::broadcast;
 
 const SURFACE_ID: &str = "commentators";
 
+fn default_true() -> bool { true }
+
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Commentator {
@@ -21,6 +23,8 @@ pub struct CommentatorState {
     pub tournament_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logo_asset_id: Option<String>,
+    #[serde(default = "default_true")]
+    pub show_tournament_logo: bool,
     pub commentators: Vec<Commentator>,
     pub presentation: String,
     pub updated_at: String,
@@ -40,6 +44,7 @@ impl CommentatorStore {
             styling_game_id: default_styling_game_id(),
             tournament_name: "Tournament Broadcast".to_owned(),
             logo_asset_id: None,
+            show_tournament_logo: true,
             commentators: vec![
                 Commentator { name: "Commentator 1".to_owned(), handle: "@handle".to_owned() },
                 Commentator { name: "Commentator 2".to_owned(), handle: "@handle".to_owned() },

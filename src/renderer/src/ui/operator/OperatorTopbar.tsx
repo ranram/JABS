@@ -16,20 +16,15 @@ export function OperatorTopbar({
   tokenVerified,
   tokenSessionOnly,
   tokenConfigured,
-  tokenStorageAvailable,
   loading,
   selectedSet
 }: OperatorTopbarProps) {
   const { t } = useTranslation(['operator', 'common']);
-  const tokenStatus = tokenVerified
+  const tokenStatus = !tokenConfigured ? t('operator:startgg.publicAccess') : tokenVerified
     ? t('operator:topbar.apiVerified')
     : tokenSessionOnly
       ? t('operator:topbar.sessionToken')
-      : tokenConfigured
-        ? t('operator:topbar.tokenStored')
-        : !tokenStorageAvailable
-          ? t('operator:topbar.sessionMode')
-          : t('operator:topbar.needsToken');
+      : t('operator:topbar.tokenStored');
 
   return (
     <header className="operator-topbar">

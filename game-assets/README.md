@@ -15,7 +15,13 @@ game-assets/
 
 Use `characters/` for full artwork and `portraits/` for square face or bust images. Give both images the same character filename when you provide both.
 
-JABS compares each filename with the character name while ignoring capitalization, spaces, punctuation, and accents. For example, `Chun-Li.webp` matches `Chun Li`. If two files resolve to the same name, JABS uses neither because it cannot choose safely.
+JABS compares each filename with the character name while ignoring capitalization, spaces, punctuation, and accents. For example, `Chun-Li.webp` matches `Chun Li`, and `AKI.png` matches `A.K.I.`.
+
+You can also use recognized alternate names. In Street Fighter 6, `Bison.png` and `Dictator.png` both match M. Bison, while `Viper.png` matches C. Viper. In Smash Ultimate, `Koopa.png` matches Bowser and `Purin.png` matches Jigglypuff. Numbered versions work too, such as `Bison2.png` or `Koopa3.png`.
+
+Keep one image per character and outfit in each folder. If you have both `M.Bison2.png` and `Bison2.png`, JABS uses `M.Bison2.png` because it matches the roster name. Other duplicate matches are chosen by filename in alphabetical order.
+
+For a game without a built-in roster, your filenames supply the character names. No roster file is needed.
 
 ## Add colors or outfits
 

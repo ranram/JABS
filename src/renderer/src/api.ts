@@ -44,11 +44,12 @@ import { i18n } from './i18n';
 import { localizedStartggError } from './i18n/startggErrors';
 import {
   clearNativeStartggToken,
-  copyActiveOverlayUrl,
+  copyOverlayUrl,
   getDesktopApiPort,
   getNativeTokenStatus,
   isTauriRuntime,
   reportNativeRendererDiagnostic,
+  type LocalHandoffUrl,
   type RendererDiagnosticEvent,
   setNativeStartggToken
 } from './desktopRuntime';
@@ -294,9 +295,9 @@ export const api = {
   setToken: (token: string) => setNativeStartggToken(token, false),
   setSessionToken: (token: string) => setNativeStartggToken(token, true),
   clearToken: () => clearNativeStartggToken(),
-  copyLocalUrl: async () => {
+  copyLocalUrl: async (kind: LocalHandoffUrl) => {
     const apiBase = await apiBasePromise;
-    await copyActiveOverlayUrl(apiBase);
+    await copyOverlayUrl(apiBase, kind);
   },
   recentTournaments: () =>
     request<{ tournaments: RecentTournament[] }>('/api/startgg/recent-tournaments'),

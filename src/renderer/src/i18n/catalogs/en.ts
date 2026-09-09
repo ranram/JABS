@@ -53,6 +53,7 @@ export const en = {
     playerScore: '{{player}} score {{score}}'
   },
   operator: {
+    mediaControls: { pointer: 'Drag the selected artwork, or use:', move: 'move', moveFarther: 'move farther', resize: 'resize', flip: 'flip' },
     appSubtitle: 'Just Another Bracketing System',
     topbar: {
       onStream: 'On stream',
@@ -78,6 +79,8 @@ export const en = {
       resolvingObs: 'Resolving the local OBS URL…',
       winnerAutomatic: 'The same source automatically chooses Set winner or Champion from the completed set and bracket path.',
       styling: 'Scoreboard Styling',
+      transparentBackground: 'Transparent background',
+      transparentBackgroundHelp: 'Removes the JABS backdrop so OBS can show a custom source underneath.',
       versusScreen: {
         startgg: 'start.gg Head to Head history',
         currentMatchup: 'Current matchup', noSet: 'No set on stream',
@@ -89,6 +92,7 @@ export const en = {
         loadingScreenSettings: 'Loading Versus Screen settings…'
       },
       commentator: {
+        swap: 'Swap commentators',
         loading: 'Loading commentator presentation…', tournament: 'Tournament name', logo: 'Centered tournament logo',
         person: 'Commentator {{count}}', name: 'On-air name', handle: 'Social handle',
         presentTimed: 'Present for 10 seconds', showPersistent: 'Leave on screen', hide: 'Hide overlay',
@@ -184,7 +188,9 @@ export const en = {
       blockedCharacter: 'That custom character name contains blocked text. Choose another character or add the complete name to the moderation allowlist.',
       blockedTournamentName: 'The tournament name contains blocked text.', blockedEventName: 'The event name contains blocked text.',
       blockedPlayerName: 'A player name contains blocked text.', blockedSponsor: 'A sponsor contains blocked text.',
-      preview: 'Top 8 Matchups preview'
+      preview: 'Top 8 Matchups preview',
+      flipPlayerTwo: 'Flip Player 2 portraits',
+      flipPlayerTwoHelp: 'Flip every Player 2 portrait horizontally.'
     },
     topEight: {
       description: 'Build a complete top 8 graphic from one shared player and asset setup.',
@@ -195,7 +201,6 @@ export const en = {
       styles: { mosaic: 'Mosaic', neon: 'Neon' },
       mediaMode: 'Top 8 artwork', mediaModes: { character: 'Character art', photo: 'Player photos' },
       adjustLayer: 'Adjust entrant artwork', resetPlacement: 'Reset position',
-      adjustHint: 'Click and drag an entrant’s visible artwork to move it, or select the entrant here for arrow-key precision. Shift + arrows moves farther; +/− resizes.',
       tournament: 'Tournament name',
       headline: 'Headline',
       tournamentLogo: 'Tournament logo',
@@ -261,8 +266,7 @@ export const en = {
       player: 'Player {{count}}',
       adjustLayer: 'Adjust media asset', adjustCharacter: '{{player}} · Character', adjustPhoto: '{{player}} · Player photo',
       mediaScale: 'Media size', resetPlacement: 'Reset position',
-      showTournamentLogo: 'Show tournament logo', showSponsorLogo: 'Show sponsor logo',
-      adjustHint: 'Click and drag the visible artwork to move it, or select it here for arrow-key precision. Shift + arrows moves farther; +/− resizes.'
+      showTournamentLogo: 'Show tournament logo', showSponsorLogo: 'Show sponsor logo'
     },
     notices: {
       connection: 'Connection',
@@ -273,6 +277,9 @@ export const en = {
       notice: 'Notice'
     },
     startgg: {
+      publicAccess: 'Public browsing',
+      publicHelp: 'Browse public tournaments and control your overlays without a token. Add one to report results to start.gg.',
+      reportToken: 'Add a start.gg token to report results. You can still edit your overlay locally.',
       title: 'Start.gg bracket',
       description: 'Connect, load an event, and choose the next stream set.',
       verified: 'Verified',
@@ -325,8 +332,12 @@ export const en = {
       tooManyEntries: 'The moderation allowlist supports at most 4,096 entries.',
       lineTooLong: 'Moderation allowlist line {{line}} exceeds 256 characters.'
     },
-    utilityGroups: { moderation: 'Moderation', media: 'Media', bracket: 'Bracket' },
+    utilityGroups: { moderation: 'Moderation', media: 'Media', bracket: 'Bracket', obs: 'OBS' },
     browser: {
+      selectEvent: 'Select an event to reload bracket data.',
+      updatedAt: 'Bracket Updated {{time}}',
+      cachedAt: 'Cached data from {{time}}',
+      cached: 'Showing cached bracket data.',
       gameProfile: 'Game profile for set',
       assetSlug: 'Character asset folder:',
       reloadAssets: 'Reload assets',
@@ -350,6 +361,14 @@ export const en = {
       refreshHint: 'Fetch the latest sets for the current filters.'
     },
     selector: {
+      pillFilters: 'Filter By:',
+      pillFiltersHelp: 'Filters apply to loaded sets. Scroll to load more, or search to load every page.',
+      statusFilter: 'Status',
+      stationFilter: 'Station',
+      streamFilter: 'Assigned stream',
+      clearFilters: 'Clear filters',
+      noFilterMatch: 'No loaded sets match these filters.',
+      streamRefreshFailed: 'Stream assignments could not refresh. Previously loaded assignments are still shown.',
       title: 'Select set',
       view: '{{scope}} view',
       total: '{{count}} total',
@@ -374,10 +393,15 @@ export const en = {
       loadingMore: 'Loading more sets',
       scrollMore: 'Scroll to load more',
       allLoaded: 'All sets loaded',
-      streamAssignment: 'Stream · {{name}}'
-      ,scope: { event: 'Event', phase: 'Phase', pool: 'Pool', station: 'Station {{number}}' }
+      streamAssignment: '{{platform}} · {{name}}',
+      streamPlatforms: { youtube: 'YouTube', twitch: 'Twitch', stream: 'Stream' },
+      scope: { event: 'Event', phase: 'Phase', pool: 'Pool', station: 'Station {{number}}' }
     },
     editor: {
+      enableShortcuts: 'Enable keyboard shortcuts',
+      selectMatch: 'Select a start.gg match before reloading it.',
+      waitSave: 'Wait for your changes to save before using these controls.',
+      waitAction: 'Wait for the current action to finish.',
       title: 'Edit stream state',
       description: 'Valid changes are moderated, saved, and sent to OBS automatically.',
       unsaved: 'Unsaved',
@@ -400,7 +424,7 @@ export const en = {
       save: 'Save stream state',
       discard: 'Discard draft',
       reload: 'Refresh current set',
-      reloadHint: 'Refresh this set’s players, scores, bracket details, and head-to-head history.',
+      reloadHint: 'Refresh this set’s players, scores, status, bracket details, and head-to-head history. Use this if an unplayed set still appears complete after a reset on start.gg.',
       playerTag: 'Player tag',
       prefix: 'Prefix',
       character: 'Character',
@@ -422,6 +446,9 @@ export const en = {
       countrySearch: 'Search country, ISO code, or Pride flag'
     },
     broadcast: {
+      sharedLogoHelp: 'Show the Broadcast extras logo, or this overlay’s selected logo if none is set there.',
+      tournamentLogoHelp: 'Show the tournament logo selected in Broadcast extras, or the first available logo.',
+      sponsorLogoHelp: 'Show each player’s team or sponsor logo when available.',
       title: 'Broadcast extras',
       enabled: '{{count}} enabled',
       optional: 'Optional rails and logo',
@@ -451,7 +478,21 @@ export const en = {
       obsHelp: 'Start JABS before OBS loads the source. If OBS opened it while JABS was stopped, use "Refresh cache of current page." in OBS browser source properties',
       resolvingObs: 'Resolving local OBS URL…',
       copied: 'Copied',
-      copyObs: 'Copy OBS URL'
+      copyObs: 'Copy overlay URL',
+      copiedOverlay: 'Copied: {{overlay}}',
+      overlayNames: {
+        score: 'Scoreboard',
+        versus: 'Versus Screen',
+        winner: 'Winner & Champion',
+        champion: 'Champion',
+        'top-eight-matchups': 'Top 8 matchups',
+        commentators: 'Commentators'
+      },
+      shortcuts: 'Shortcuts:',
+      playerOnePoint: 'Add Player 1 point',
+      subtractPlayerOnePoint: 'Subtract Player 1 point',
+      playerTwoPoint: 'Add Player 2 point',
+      subtractPlayerTwoPoint: 'Subtract Player 2 point'
     },
     setActions: {
       closeAria: 'Close set actions',
@@ -544,6 +585,7 @@ export const en = {
       scoreFailed: 'Unable to update score.',
       scoresReset: 'Scores reset.',
       playersSwapped: 'Player sides swapped.',
+      commentatorsSwapped: 'Commentator sides swapped.',
       stateFailed: 'Unable to update stream state.',
       obsCopied: 'Active OBS overlay URL copied to the system clipboard.',
       copyFailed: 'Unable to copy the local URL.',
@@ -564,7 +606,8 @@ export const en = {
     localServiceAfterRetry: "JABS's local service stopped responding at {{url}} after a retry. Restart the desktop app and try again. The content-free jabs-main.log is in the app's data directory.",
     http: 'Request failed with HTTP {{status}}',
     startgg: {
-      tokenMissing: 'Save a start.gg API token before loading bracket data.',
+      publicUnavailable: 'Public start.gg access could not load this data. Try again, or add a token in Connect start.gg. Your local overlay controls still work.',
+      tokenMissing: 'Add a start.gg token to report results. Local overlay controls do not need one.',
       authentication: 'start.gg rejected the token. Check that it is current, then save it again.',
       permission: 'This start.gg token does not have permission for the requested tournament action.',
       rateLimit: 'The start.gg rate limit was reached. Wait about a minute before trying again.',

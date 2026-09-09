@@ -3,21 +3,18 @@ import { normalizeEventSlug, normalizeTournamentSlug } from './startgg';
 
 describe('start.gg input', () => {
   it('normalizes supported tournament inputs and rejects unsafe ones', () => {
-    const valid = [
+    const validEvents = [
       ['genesis-x', 'genesis-x'],
       [' tournament/genesis-x ', 'genesis-x'],
       ['https://start.gg/tournament/genesis-x/events', 'genesis-x'],
       ['https://www.start.gg/tournament/genesis-x/event/melee-singles', 'genesis-x']
     ] as const;
-    for (const [input, expected] of valid) {
+    for (const [input, expected] of validEvents) {
       expect(normalizeTournamentSlug(input), input).toBe(expected);
     }
     for (const input of ['', 'https://example.com/tournament/genesis-x', 'http://start.gg/tournament/genesis-x', 'https://start.gg/tournament/', 'event/melee-singles']) {
       expect(() => normalizeTournamentSlug(input), input).toThrow();
     }
-  });
-
-  it('normalizes supported event inputs and rejects unsafe ones', () => {
     const valid = [
       ['https://start.gg/tournament/genesis-x/event/ultimate-singles', 'tournament/genesis-x/event/ultimate-singles'],
       ['https://www.start.gg/tournament/genesis-x/event/ultimate-singles/standings', 'tournament/genesis-x/event/ultimate-singles'],

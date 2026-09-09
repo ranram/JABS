@@ -14,7 +14,7 @@ pub const STREAM_QUEUE: &str = r#"
 query TournamentStreamQueue($slug: String!) {
   tournament(slug: $slug) {
     streamQueue {
-      stream { streamName }
+      stream { streamSource streamName }
       sets { id }
     }
   }
@@ -265,6 +265,7 @@ const SET_FIELDS: &str = r#"
     }
     state
     station { id number }
+    stream { streamSource streamName }
     slots {
       id
       prereqId

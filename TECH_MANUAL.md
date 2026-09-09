@@ -258,14 +258,26 @@ Numbered filename suffixes group colors or outfits under one character. Supporte
 
 ## Update a character roster
 
-Editable character lists are stored in `character-lists/`. After changing a list, regenerate the application catalogs:
+To edit a built-in roster, open `character-lists/<game-id>.json`. Each entry in `characters` has a display name and a list of alternate names:
+
+```json
+{ "name": "M. Bison", "aliases": ["Bison", "Dictator"] }
+```
+
+In this example, JABS recognizes `Bison` and `Dictator` in artwork filenames and imported character names, but still shows M. Bison in the dropdown. Add alternate spellings to `aliases` rather than changing `name`, since saved selections use that name. Use an empty array (`[]`) when no aliases are needed.
+
+You do not need aliases for differences in punctuation, spacing, capitalization, or accents: `AKI` already matches `A.K.I.`. Each alias belongs to one character within that game's roster. The catalog check catches duplicates and names assigned to more than one character.
+
+Games without a built-in roster take their character names from artwork filenames. They do not need a JSON catalog. See [Game artwork](game-assets/README.md) for filenames and numbered outfits.
+
+After editing a catalog, regenerate the application data:
 
 ```sh
 pnpm run rosters:sync
 pnpm run rosters:check
 ```
 
-Review and commit the source list together with the generated changes.
+Review the edited catalog and generated files together.
 
 Team-size settings are stored in `src/shared/characterTeamPolicies.json`. Character helpers are in `src/shared/characterTeams.ts`.
 
@@ -324,6 +336,7 @@ The Rust application lives in `src-tauri/src/`:
 | Tauri setup and commands | `lib.rs` |
 | Local HTTP service and WebSockets | `local_server.rs` |
 | start.gg client | `startgg.rs` |
+| Public start.gg access | `crates/jabs-startgg-client/src/anonymous.rs` |
 | GraphQL queries | `startgg_queries.rs` |
 | Result reporting routes | `reporting_routes.rs` |
 | Saved stream state | `state.rs` |

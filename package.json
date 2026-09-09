@@ -23,7 +23,7 @@
     "typecheck": "pnpm run rosters:check && pnpm run locations:check && pnpm run moderation:check && pnpm run components:check && tsc --noEmit",
     "components:check": "node scripts/check-component-size.mjs",
     "rosters:sync": "node scripts/sync-character-rosters.mjs",
-    "rosters:check": "node scripts/sync-character-rosters.mjs --check",
+    "rosters:check": "node --test scripts/character-catalog.test.mjs && node scripts/sync-character-rosters.mjs --check",
     "locations:sync": "node scripts/sync-location-catalog.mjs",
     "locations:check": "node scripts/sync-location-catalog.mjs --check",
     "moderation:sync": "node scripts/sync-moderation-terms.mjs",

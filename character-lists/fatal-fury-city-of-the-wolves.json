@@ -1,0 +1,119 @@
+{
+  "characters": [
+    {
+      "name": "Mr. Karate",
+      "aliases": []
+    },
+    {
+      "name": "Wolfgang Krauser",
+      "aliases": ["Krauser"]
+    },
+    {
+      "name": "Nightmare Geese",
+      "aliases": ["Geese"]
+    },
+    {
+      "name": "Mr. Big",
+      "aliases": []
+    },
+    {
+      "name": "Kim Jae Hoon",
+      "aliases": []
+    },
+    {
+      "name": "Kenshiro",
+      "aliases": []
+    },
+    {
+      "name": "Ken Masters",
+      "aliases": ["Ken"]
+    },
+    {
+      "name": "Joe Higashi",
+      "aliases": ["Joe"]
+    },
+    {
+      "name": "Chun-Li",
+      "aliases": []
+    },
+    {
+      "name": "Blue Mary",
+      "aliases": ["Mary"]
+    },
+    {
+      "name": "Andy Bogard",
+      "aliases": ["Andy"]
+    },
+    {
+      "name": "Vox Reaper",
+      "aliases": ["Vox"]
+    },
+    {
+      "name": "Preecha",
+      "aliases": []
+    },
+    {
+      "name": "Salvatore Ganacci",
+      "aliases": ["Salvatore"]
+    },
+    {
+      "name": "Tizoc",
+      "aliases": []
+    },
+    {
+      "name": "Cristiano Ronaldo",
+      "aliases": [
+      	"CR7",
+      	"Ronaldo"
+      ]
+    },
+    {
+      "name": "Kim Dong Hwan",
+      "aliases": ["Kim"]
+    },
+    {
+      "name": "Marco Rodrigues",
+      "aliases": ["Marco"]
+    },
+    {
+      "name": "Kain R. Heinlein",
+      "aliases": ["Kain"]
+    },
+    {
+      "name": "Kevin Rian",
+      "aliases": ["Kevin"]
+    },
+    {
+      "name": "Hokutomaru",
+      "aliases": []
+    },
+    {
+      "name": "Hotaru Futaba",
+      "aliases": ["Hotaru"]
+    },
+    {
+      "name": "Gato",
+      "aliases": []
+    },
+    {
+      "name": "Mai Shiranui",
+      "aliases": ["Mai"]
+    },
+    {
+      "name": "Rock Howard",
+      "aliases": ["Rock"]
+    },
+    {
+      "name": "Billy Kane",
+      "aliases": ["Billy"]
+    },
+    {
+      "name": "Terry Bogard",
+      "aliases": ["Terry"]
+    },
+    {
+      "name": "B. Jenet",
+      "aliases": ["Jenet"]
+    }
+  ]
+}

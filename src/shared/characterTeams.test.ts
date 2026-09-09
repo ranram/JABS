@@ -33,6 +33,30 @@ describe('character teams', () => {
       character: 'Ryu',
       characterAssetId: 'Ryu (2).png'
     }, assets)).toBe('Ryu (2).png');
+    const portraits = [{
+      character: 'Ryu',
+      portraitAssetId: 'Ryu-1.png',
+      variants: [
+        { label: '1', portraitAssetId: 'Ryu-1.png' },
+        { label: '2', portraitAssetId: 'Ryu-2.png' },
+        { label: '3', portraitAssetId: 'Ryu-3.png' }
+      ]
+    }];
+    expect(characterOutfitOptions({ character: 'Ryu' }, portraits, 'portrait'))
+      .toEqual([
+        { value: 'Ryu-1.png', label: '1' },
+        { value: 'Ryu-2.png', label: '2' },
+        { value: 'Ryu-3.png', label: '3' }
+      ]);
+    expect(selectedCharacterAssetId({
+      character: 'Ryu', characterAssetId: 'Ryu-2.png'
+    }, portraits, 'portrait')).toBe('Ryu-2.png');
+    expect(selectedCharacterAssetId({
+      character: 'Ryu', characterAssetId: 'Ryu-full-2.png'
+    }, [{
+      ...portraits[0],
+      variants: [{ label: '2', assetId: 'Ryu-full-2.png', portraitAssetId: 'Ryu-2.png' }]
+    }], 'portrait')).toBe('Ryu-2.png');
     expect(playerPortraitCharacters({ character: 'Ryu', characters: ['Ryu', 'Ken', 'Chun-Li'] })).toEqual(['Ken', 'Chun-Li']);
   });
 });

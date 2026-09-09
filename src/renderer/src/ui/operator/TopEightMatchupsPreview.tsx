@@ -11,5 +11,5 @@ export function TopEightMatchupsPreview({ state }: { state: TopEightMatchupsStat
     const observer = new ResizeObserver(update); observer.observe(shell);
     return () => observer.disconnect();
   }, []);
-  return <div ref={shellRef} className="top8-matchups-preview-shell"><div className="top8-matchups-preview-stage" style={{ transform: `scale(${scale})` }}><TopEightMatchupsPresentation state={state} preview /></div></div>;
+  return <div ref={shellRef} className={`top8-matchups-preview-shell${state.showBackground ? '' : ' is-transparent-preview'}`}><div className="top8-matchups-preview-stage" style={{ transform: `scale(${scale})` }}><TopEightMatchupsPresentation state={state} preview /></div></div>;
 }

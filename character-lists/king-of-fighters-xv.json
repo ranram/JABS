@@ -1,0 +1,320 @@
+{
+  "characters": [
+    {
+      "name": "Shun'Ei",
+      "aliases": []
+    },
+    {
+      "name": "Meitenkun",
+      "aliases": []
+    },
+    {
+      "name": "Benimaru Nikaido",
+      "aliases": [
+      	"Benimaru"
+      ]
+    },
+    {
+      "name": "Isla",
+      "aliases": []
+    },
+    {
+      "name": "Heidern",
+      "aliases": []
+    },
+    {
+      "name": "Dolores",
+      "aliases": []
+    },
+    {
+      "name": "Kyo Kusanagi",
+      "aliases": [
+      	"Kyo"
+      ]
+    },
+    {
+      "name": "Iori Yagami",
+      "aliases": [
+      	"Iori"
+      ]
+    },
+    {
+      "name": "Chizuru Kagura",
+      "aliases": [
+      	"Chizuru"
+      ]
+    },
+    {
+      "name": "Ash Crimson",
+      "aliases": [
+      	"Ash"
+      ]
+    },
+    {
+      "name": "Elisabeth Blanctorche",
+      "aliases": [
+      	"Elisabeth"
+      ]
+    },
+    {
+      "name": "Kukri",
+      "aliases": []
+    },
+    {
+      "name": "Krohnen",
+      "aliases": []
+    },
+    {
+      "name": "Kula Diamond",
+      "aliases": [
+      	"Kula"
+      ]
+    },
+    {
+      "name": "Angel",
+      "aliases": []
+    },
+    {
+      "name": "Yashiro Nanakase",
+      "aliases": [
+      	"Yashiro"
+      ]
+    },
+    {
+      "name": "Shermie",
+      "aliases": []
+    },
+    {
+      "name": "Chris",
+      "aliases": []
+    },
+    {
+      "name": "K'",
+      "aliases": []
+    },
+    {
+      "name": "Maxima",
+      "aliases": []
+    },
+    {
+      "name": "Whip",
+      "aliases": []
+    },
+    {
+      "name": "Antonov",
+      "aliases": []
+    },
+    {
+      "name": "Ramon",
+      "aliases": []
+    },
+    {
+      "name": "King of Dinosaurs",
+      "aliases": [
+      	"Dinosaur"
+      ]
+    },
+    {
+      "name": "Leona Heidern",
+      "aliases": [
+      	"Leona"
+      ]
+    },
+    {
+      "name": "Ralf Jones",
+      "aliases": [
+      	"Ralf"
+      ]
+    },
+    {
+      "name": "Clark Still",
+      "aliases": [
+      	"Clark"
+      ]
+    },
+    {
+      "name": "Terry Bogard",
+      "aliases": [
+      	"Terry"
+      ]
+    },
+    {
+      "name": "Andy Bogard",
+      "aliases": [
+      	"Andy"
+      ]
+    },
+    {
+      "name": "Joe Higashi",
+      "aliases": [
+      	"Joe"
+      ]
+    },
+    {
+      "name": "Ryo Sakazaki",
+      "aliases": [
+      	"Ryo"
+      ]
+    },
+    {
+      "name": "Robert Garcia",
+      "aliases": [
+      	"Robert"
+      ]
+    },
+    {
+      "name": "King",
+      "aliases": []
+    },
+    {
+      "name": "Athena Asamiya",
+      "aliases": [
+      	"Athena"
+      ]
+    },
+    {
+      "name": "Mai Shiranui",
+      "aliases": [
+      	"Mai"
+      ]
+    },
+    {
+      "name": "Yuri Sakazaki",
+      "aliases": [
+      	"Yuri"
+      ]
+    },
+    {
+      "name": "Blue Mary",
+      "aliases": [
+      	"Mary"
+      ]
+    },
+    {
+      "name": "Vanessa",
+      "aliases": []
+    },
+    {
+      "name": "Luong",
+      "aliases": []
+    },
+    {
+      "name": "Rock Howard",
+      "aliases": [
+      	"Rock"
+      ]
+    },
+    {
+      "name": "B Jenet",
+      "aliases": [
+      	"Jenet"
+      ]
+    },
+    {
+      "name": "Gato",
+      "aliases": []
+    },
+    {
+      "name": "Geese Howard",
+      "aliases": [
+      	"Geese"
+      ]
+    },
+    {
+      "name": "Billy Kane",
+      "aliases": [
+      	"Billy"
+      ]
+    },
+    {
+      "name": "Ryuji Yamazaki",
+      "aliases": [
+      	"Ryuji"
+      ]
+    },
+    {
+      "name": "Orochi Yashiro",
+      "aliases": [
+      	"O. Yashiro"
+      ]
+    },
+    {
+      "name": "Orochi Shermie",
+      "aliases": [
+      	"O. Shermie"
+      ]
+    },
+    {
+      "name": "Orochi Chris",
+      "aliases": [
+      	"O. Chris"
+      ]
+    },
+    {
+      "name": "Haohmaru",
+      "aliases": []
+    },
+    {
+      "name": "Nakoruru",
+      "aliases": []
+    },
+    {
+      "name": "Darli Dagger",
+      "aliases": [
+      	"Darli"
+      ]
+    },
+    {
+      "name": "Omega Rugal",
+      "aliases": [
+      	"Rugal"
+      ]
+    },
+    {
+      "name": "Shingo Yabuki",
+      "aliases": [
+      	"Shingo"
+      ]
+    },
+    {
+      "name": "Kim Kaphwan",
+      "aliases": [
+      	"Kim"
+      ]
+    },
+    {
+      "name": "Sylvie Paula Paula",
+      "aliases": [
+      	"Sylvie"
+      ]
+    },
+    {
+      "name": "Goenitz",
+      "aliases": []
+    },
+    {
+      "name": "Najd",
+      "aliases": []
+    },
+    {
+      "name": "Duo Lon",
+      "aliases": [
+      	"Duo"
+      ]
+    },
+    {
+      "name": "Hinako Shijo",
+      "aliases": [
+      	"Hinako"
+      ]
+    },
+    {
+      "name": "Mature",
+      "aliases": []
+    },
+    {
+      "name": "Vice",
+      "aliases": []
+    }
+  ]
+}

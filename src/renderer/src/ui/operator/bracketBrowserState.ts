@@ -1,5 +1,6 @@
 import { useCallback, useReducer, type SetStateAction } from 'react';
 import type { GameId } from '@shared/gameProfiles';
+import type { BracketRefresh } from './BracketRefreshStatus';
 import type {
   RecentTournament,
   SetSummary,
@@ -12,6 +13,7 @@ import type {
 } from '@shared/models';
 
 export type BracketBrowserState = {
+  bracketRefresh?: BracketRefresh;
   tournamentSlug: string;
   recentTournaments: RecentTournament[];
   events: StartggEvent[];

@@ -39,10 +39,12 @@ pub struct MediaTransform {
     pub x: f64,
     pub y: f64,
     pub scale: f64,
+    #[serde(default)]
+    pub flipped: bool,
 }
 
 impl Default for MediaTransform {
-    fn default() -> Self { Self { x: 0.0, y: 0.0, scale: 1.0 } }
+    fn default() -> Self { Self { x: 0.0, y: 0.0, scale: 1.0, flipped: false } }
 }
 
 #[derive(Clone, Default, Deserialize, Serialize)]
@@ -61,6 +63,8 @@ fn default_media_placements() -> [PlayerMediaPlacement; 2] {
 pub struct VersusScreenState {
     #[serde(default = "default_styling_game_id")]
     pub styling_game_id: String,
+    #[serde(default = "default_true")]
+    pub show_background: bool,
     pub show_tournament_logo: bool,
     pub show_sponsor_logos: bool,
     #[serde(default = "default_media_mode")]
@@ -85,6 +89,7 @@ impl VersusScreenStore {
             .filter(validate)
             .unwrap_or(VersusScreenState {
                 styling_game_id: default_styling_game_id(),
+                show_background: true,
                 show_tournament_logo: true,
                 show_sponsor_logos: true,
                 media_mode: default_media_mode(),
@@ -159,3 +164,4 @@ fn validate(state: &VersusScreenState) -> bool {
 
 fn default_styling_game_id() -> String { "street-fighter-6".to_owned() }
 fn default_media_mode() -> String { "character".to_owned() }
+fn default_true() -> bool { true }

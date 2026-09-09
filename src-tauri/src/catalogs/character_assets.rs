@@ -7,6 +7,12 @@ use std::{
 };
 
 const ROSTER_JSON: &str = include_str!("../../resources/character_rosters.json");
+const ALIASES_JSON: &str = include_str!("../../resources/character_aliases.json");
+
+fn aliases() -> &'static HashMap<String, HashMap<String, String>> {
+    static ALIASES: OnceLock<HashMap<String, HashMap<String, String>>> = OnceLock::new();
+    ALIASES.get_or_init(|| serde_json::from_str(ALIASES_JSON).expect("compiled character aliases must be valid"))
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -56,7 +62,8 @@ pub fn canonical_character_for_catalog(
         return characters
             .iter()
             .find(|candidate| normalize_character_label(candidate) == normalized)
-            .cloned();
+            .cloned()
+            .or_else(|| aliases().get(game_id)?.get(&normalized).cloned());
     }
     list_game_character_assets(root_directory, game_id)
         .ok()?
@@ -91,17 +98,17 @@ pub fn list_game_character_assets(
         .map_err(|_| "Unable to prepare the local game portrait catalog.".to_owned())?;
     let mut asset_ids = catalog_asset_ids_result(&directory)?;
     let mut portrait_asset_ids = catalog_asset_ids_result(&portrait_directory)?;
-    asset_ids.sort_by_key(|asset_id| asset_id.to_lowercase());
-    portrait_asset_ids.sort_by_key(|asset_id| asset_id.to_lowercase());
+    asset_ids.sort_by_key(|asset_id| (asset_id.to_lowercase(), asset_id.clone()));
+    portrait_asset_ids.sort_by_key(|asset_id| (asset_id.to_lowercase(), asset_id.clone()));
     let mut assets = if let Some(characters) = rosters().get(game_id) {
         characters
             .iter()
-            .filter_map(|character| character_asset(character, &asset_ids, &portrait_asset_ids))
+            .filter_map(|character| character_asset(character, &asset_ids, &portrait_asset_ids, aliases().get(game_id)))
             .collect::<Vec<_>>()
     } else {
         dynamic_character_labels(&asset_ids, &portrait_asset_ids)
             .into_values()
-            .filter_map(|character| character_asset(&character, &asset_ids, &portrait_asset_ids))
+            .filter_map(|character| character_asset(&character, &asset_ids, &portrait_asset_ids, None))
             .collect::<Vec<_>>()
     };
     assets.sort_by(|left, right| left.character.to_lowercase().cmp(&right.character.to_lowercase()));
@@ -206,22 +213,31 @@ fn character_asset(
     character: &str,
     asset_ids: &[String],
     portrait_asset_ids: &[String],
+    aliases: Option<&HashMap<String, String>>,
 ) -> Option<GameCharacterAsset> {
+    let matches = |name: &str| character_names_match(character, name)
+        || aliases.and_then(|lookup| lookup.get(&normalize_character_label(name)))
+            .is_some_and(|canonical| canonical == character);
+    let canonical_filename = |id: &str| {
+        let stem = asset_stem(id);
+        character_names_match(character, stem)
+            || character_names_match(character, split_variant_suffix(stem).0)
+    };
     let mut variants = BTreeMap::<Option<u32>, (Option<String>, Option<String>)>::new();
     for (asset_id, portrait) in asset_ids.iter().map(|id| (id, false))
         .chain(portrait_asset_ids.iter().map(|id| (id, true)))
     {
         let stem = asset_stem(asset_id);
-        let variant = if character_names_match(character, stem) {
+        let variant = if matches(stem) {
             Some(None)
         } else {
             let (base, variant) = split_variant_suffix(stem);
-            variant.filter(|_| character_names_match(character, base)).map(Some)
+            variant.filter(|_| matches(base)).map(Some)
         };
         let Some(variant) = variant else { continue };
         let entry = variants.entry(variant).or_default();
         let target = if portrait { &mut entry.1 } else { &mut entry.0 };
-        if target.is_none() {
+        if target.as_ref().is_none_or(|current| canonical_filename(asset_id) && !canonical_filename(current)) {
             *target = Some(asset_id.clone());
         }
     }
@@ -259,13 +275,48 @@ mod tests {
     };
 
     #[test]
-    fn imported_names_and_flexible_variant_filenames_use_the_canonical_character() {
-        let root = std::env::temp_dir().join(format!(
+    fn aliases_resolve_in_their_game_and_prefer_canonical_outfit_files() {
+        let root = std::env::temp_dir().join(format!("jabs-aliases-{}", std::process::id()));
+        let game = "street-fighter-6";
+        let directory = root.join(game).join("characters");
+        let portraits = root.join(game).join("portraits");
+        std::fs::create_dir_all(&directory).unwrap();
+        std::fs::create_dir_all(&portraits).unwrap();
+        for file in ["Bison2.png", "M.Bison2.png", "Viper.png", "AKI3.png"] {
+            std::fs::write(directory.join(file), b"art").unwrap();
+        }
+        std::fs::write(portraits.join("Dictator2.png"), b"portrait").unwrap();
+        for (game, entries) in super::aliases() {
+            for (alias, canonical) in entries {
+                assert_eq!(canonical_character_for_catalog(&root, game, alias).as_ref(), Some(canonical));
+            }
+        }
+        assert_eq!(canonical_character_for_catalog(&root, game, "Vega"), None);
+        assert_eq!(canonical_character_for_catalog(&root, game, "Koopa"), None);
+        let assets = list_game_character_assets(&root, game).unwrap();
+        let bison = assets.iter().find(|asset| asset.character == "M. Bison").unwrap();
+        assert_eq!(bison.variants.len(), 1);
+        assert_eq!(bison.variants[0].label, "2");
+        assert_eq!(bison.asset_id.as_deref(), Some("M.Bison2.png"));
+        assert_eq!(bison.portrait_asset_id.as_deref(), Some("Dictator2.png"));
+        assert!(assets.iter().any(|asset| asset.character == "C. Viper"));
+        assert!(assets.iter().any(|asset| asset.character == "A.K.I."));
+        let custom = root.join("custom-game").join("portraits");
+        std::fs::create_dir_all(&custom).unwrap();
+        std::fs::write(custom.join("Bison2.png"), b"portrait").unwrap();
+        assert_eq!(canonical_character_for_catalog(&root, "custom-game", "Bison").as_deref(), Some("Bison"));
+        assert_eq!(canonical_character_for_catalog(&root, "custom-game", "Dictator"), None);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn known_and_filename_derived_catalogs_group_flexible_variants() {
+        let known_root = std::env::temp_dir().join(format!(
             "jabs-character-variants-{}-{}",
             std::process::id(),
             std::thread::current().name().unwrap_or("catalog")
         ));
-        let directory = root.join("super-smash-bros-ultimate").join("characters");
+        let directory = known_root.join("super-smash-bros-ultimate").join("characters");
         std::fs::create_dir_all(&directory).expect("variant catalog directory should be created");
         for asset_id in [
             "Mr Game and Watch 1.png", "mrgameandwatch2.png", "mr-game-and-watch-3.jpg",
@@ -276,10 +327,10 @@ mod tests {
                 .expect("variant catalog fixture should be written");
         }
         assert_eq!(
-            canonical_character_for_catalog(&root, "super-smash-bros-ultimate", "Mr. Game & Watch").as_deref(),
+            canonical_character_for_catalog(&known_root, "super-smash-bros-ultimate", "Mr. Game & Watch").as_deref(),
             Some("Mr Game and Watch")
         );
-        let assets = list_game_character_assets(&root, "super-smash-bros-ultimate")
+        let assets = list_game_character_assets(&known_root, "super-smash-bros-ultimate")
             .expect("known character variants should load");
         let character = assets.iter().find(|asset| asset.character == "Mr Game and Watch")
             .expect("flexible filenames should resolve to the canonical character");
@@ -291,29 +342,60 @@ mod tests {
         let duo = assets.iter().find(|asset| asset.character == "Pyra and Mythra")
             .expect("Pyra and Mythra should share one canonical roster entry");
         assert_eq!(duo.variants.len(), 2);
-        std::fs::remove_dir_all(&root).expect("variant catalog fixture should be removed");
-    }
+        std::fs::remove_dir_all(&known_root).expect("variant catalog fixture should be removed");
 
-    #[test]
-    fn unsupported_games_group_numbered_assets_without_a_built_in_roster() {
-        let root = std::env::temp_dir().join(format!(
+        let dynamic_root = std::env::temp_dir().join(format!(
             "jabs-dynamic-catalog-{}-{}",
             std::process::id(),
             std::thread::current().name().unwrap_or("catalog")
         ));
-        let directory = root.join("samurai-shodown").join("characters");
-        let portrait_directory = root.join("samurai-shodown").join("portraits");
+        let directory = dynamic_root.join("samurai-shodown").join("characters");
+        let portrait_directory = dynamic_root.join("samurai-shodown").join("portraits");
         std::fs::create_dir_all(&directory).expect("dynamic catalog directory should be created");
         std::fs::create_dir_all(&portrait_directory).expect("portrait catalog directory should be created");
         std::fs::write(directory.join("Haohmaru-1.png"), b"catalog test").unwrap();
         std::fs::write(directory.join("haohmaru2.webp"), b"catalog test").unwrap();
         std::fs::write(portrait_directory.join("Haohmaru.webp"), b"portrait test").unwrap();
-        let assets = list_game_character_assets(&root, "samurai-shodown").unwrap();
+        let assets = list_game_character_assets(&dynamic_root, "samurai-shodown").unwrap();
         assert_eq!(assets.len(), 1);
         assert_eq!(assets[0].character, "Haohmaru");
         assert_eq!(assets[0].variants.len(), 3);
-        assert!(has_game_character_asset(&root, "samurai-shodown", "Haohmaru"));
-        assert!(!has_game_character_asset(&root, "samurai-shodown", "Forged fighter"));
-        std::fs::remove_dir_all(&root).expect("dynamic catalog fixture should be removed");
+        assert!(has_game_character_asset(&dynamic_root, "samurai-shodown", "Haohmaru"));
+        assert!(!has_game_character_asset(&dynamic_root, "samurai-shodown", "Forged fighter"));
+        std::fs::remove_dir_all(&dynamic_root).expect("dynamic catalog fixture should be removed");
+    }
+
+    #[test]
+    fn portrait_only_variants_are_kept_beside_default_character_artwork() {
+        let root = std::env::temp_dir().join(format!(
+            "jabs-portrait-variants-{}-{}",
+            std::process::id(),
+            std::thread::current().name().unwrap_or("catalog")
+        ));
+        let character_directory = root.join("street-fighter-6").join("characters");
+        let portrait_directory = root.join("street-fighter-6").join("portraits");
+        std::fs::create_dir_all(&character_directory).unwrap();
+        std::fs::create_dir_all(&portrait_directory).unwrap();
+        std::fs::write(character_directory.join("AKI.png"), b"artwork").unwrap();
+        for name in ["AKI1.png", "AKI2.png", "AKI3.png"] {
+            std::fs::write(portrait_directory.join(name), b"portrait").unwrap();
+        }
+
+        let assets = list_game_character_assets(&root, "street-fighter-6").unwrap();
+        let aki = assets.iter().find(|asset| asset.character == "A.K.I.").unwrap();
+        assert_eq!(
+            aki.variants.iter().map(|variant| (
+                variant.label.as_str(),
+                variant.asset_id.as_deref(),
+                variant.portrait_asset_id.as_deref()
+            )).collect::<Vec<_>>(),
+            vec![
+                ("Default", Some("AKI.png"), None),
+                ("1", None, Some("AKI1.png")),
+                ("2", None, Some("AKI2.png")),
+                ("3", None, Some("AKI3.png"))
+            ]
+        );
+        std::fs::remove_dir_all(&root).unwrap();
     }
 }

@@ -23,7 +23,8 @@ const headToHeadSchema = z.object({
 const mediaTransformSchema = z.object({
   x: z.number().finite().min(-0.85).max(0.85),
   y: z.number().finite().min(-0.85).max(0.85),
-  scale: z.number().finite().min(0.35).max(2.5)
+  scale: z.number().finite().min(0.35).max(2.5),
+  flipped: z.boolean().default(false)
 });
 const playerMediaPlacementSchema = z.object({
   character: mediaTransformSchema,
@@ -38,6 +39,7 @@ export const versusHistorySchema = z.object({
 
 export const versusScreenStateSchema = z.object({
   stylingGameId: stylingGameIdSchema,
+  showBackground: z.boolean().default(true),
   showTournamentLogo: z.boolean(),
   showSponsorLogos: z.boolean(),
   mediaMode: z.enum(['character', 'photo']),

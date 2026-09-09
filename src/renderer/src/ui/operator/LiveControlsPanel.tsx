@@ -1,12 +1,17 @@
-import { Button, Code, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import type { ReactNode } from 'react';
+import { Button, Code, Divider, Group, Kbd, Paper, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { scoreLimitForBestOf } from '@shared/gameProfiles';
 import type { LocalHandoffUrl } from '../../desktopRuntime';
 import type { SelectedSetState } from '@shared/models';
 import type { StartggReportReadiness } from '@shared/startggReporting';
 import { QuickScore } from './ScoreControls';
+import { OverlayUrlMenu } from './OverlayUrlMenu';
+import { ControlWarning } from './ControlWarning';
 
 type LiveControlsPanelProps = {
+  reportingEnabled: boolean;
+  shortcutsEnabled: boolean;
   selectedSet: SelectedSetState;
   reportReadiness: StartggReportReadiness;
   reportReadinessReason: string;
@@ -22,6 +27,8 @@ type LiveControlsPanelProps = {
 };
 
 export function LiveControlsPanel({
+  reportingEnabled,
+  shortcutsEnabled,
   selectedSet,
   reportReadiness,
   reportReadinessReason,
@@ -44,8 +51,22 @@ export function LiveControlsPanel({
       <Stack gap="md">
         <div>
           <Title order={2} size="h4">{t('operator:live.title')}</Title>
-          {draftDirty && <Text size="sm" c="dimmed">{t('operator:live.dirtyWarning')}</Text>}
         </div>
+        {shortcutsEnabled && <Group gap="sm" className="score-shortcuts">
+          <Text size="xs" c="dimmed">{t('operator:live.shortcuts')}</Text>
+          <ShortcutInstruction><Kbd>1</Kbd><Text size="xs" c="dimmed">{t('operator:live.playerOnePoint')}</Text></ShortcutInstruction>
+          <ShortcutInstruction>
+            <Kbd>Shift</Kbd><Text size="xs" c="dimmed">+</Text><Kbd>1</Kbd>
+            <Text size="xs" c="dimmed">{t('operator:live.subtractPlayerOnePoint')}</Text>
+          </ShortcutInstruction>
+          <ShortcutInstruction><Kbd>2</Kbd><Text size="xs" c="dimmed">{t('operator:live.playerTwoPoint')}</Text></ShortcutInstruction>
+          <ShortcutInstruction>
+            <Kbd>Shift</Kbd><Text size="xs" c="dimmed">+</Text><Kbd>2</Kbd>
+            <Text size="xs" c="dimmed">{t('operator:live.subtractPlayerTwoPoint')}</Text>
+          </ShortcutInstruction>
+          <ShortcutInstruction><Kbd>Ctrl+Shift+R</Kbd><Text size="xs" c="dimmed">{t('common:actions.resetScores')}</Text></ShortcutInstruction>
+          <ShortcutInstruction><Kbd>Ctrl+Shift+S</Kbd><Text size="xs" c="dimmed">{t('common:actions.swapPlayers')}</Text></ShortcutInstruction>
+        </Group>}
         <QuickScore
           label={selectedSet.playerOne.name}
           score={selectedSet.playerOne.score}
@@ -69,27 +90,30 @@ export function LiveControlsPanel({
           </Button>
         </Group>
 
+        <ControlWarning message={draftDirty ? t('operator:editor.waitSave') : loading ? t('operator:editor.waitAction') : undefined} />
+
         {selectedSet.matchFormat !== 'first-to' && <Paper withBorder p="sm" className="report-result-card">
-          <Stack gap="xs">
+          <Stack gap="xs" w="100%" miw={0}>
             <Text fw={700}>{t('operator:live.startggResult')}</Text>
-            <Text size="sm" c="dimmed">
-              {reportReadiness.ready
-                ? `${t('operator:live.winner', {
+            {reportReadiness.ready && <Text size="sm" c="dimmed">
+              {`${t('operator:live.winner', {
                     winner: reportReadiness.result.winnerName,
                     winnerScore: reportReadiness.result.winnerScore,
                     loserScore: reportReadiness.result.loserScore
-                  })} ${reportReadiness.result.gameData ? t('operator:live.historyReady') : t('operator:live.winnerOnly')}`
-                : reportReadinessReason}
-            </Text>
+                  })} ${reportReadiness.result.gameData ? t('operator:live.historyReady') : t('operator:live.winnerOnly')}`}
+            </Text>}
             <Button
               data-testid="report-startgg-result"
               variant="light"
-              disabled={loading || draftDirty || !reportReadiness.ready}
+              disabled={!reportingEnabled || loading || draftDirty || !reportReadiness.ready}
               onClick={onReport}
               w="fit-content"
             >
               {t('operator:live.report')}
             </Button>
+            <ControlWarning message={!reportingEnabled ? t('operator:startgg.reportToken')
+              : draftDirty ? t('operator:editor.waitSave') : loading ? t('operator:editor.waitAction')
+              : !reportReadiness.ready ? reportReadinessReason : undefined} />
           </Stack>
         </Paper>}
 
@@ -99,11 +123,10 @@ export function LiveControlsPanel({
         </div>
         <HandoffUrl
           testId="obs-active-url"
-          buttonTestId="copy-obs-url"
           url={overlayUrl}
           resolvingLabel={t('operator:live.resolvingObs')}
-          copyLabel={copiedHandoff === 'overlay' ? t('operator:live.copied') : t('operator:live.copyObs')}
-          onCopy={() => onCopy('overlay')}
+          copied={copiedHandoff}
+          onCopy={onCopy}
         />
         <Group justify="space-between" className="mini-preview" wrap="nowrap">
           <Text>{selectedSet.playerOne.name}</Text>
@@ -120,22 +143,26 @@ export function LiveControlsPanel({
   );
 }
 
+function ShortcutInstruction({ children }: { children: ReactNode }) {
+  return <Group gap={6} wrap="nowrap">
+    <Divider orientation="vertical" h={20} />
+    {children}
+  </Group>;
+}
+
 type HandoffUrlProps = {
   testId: string;
-  buttonTestId: string;
   url?: string;
   resolvingLabel: string;
-  copyLabel: string;
-  onCopy(): void;
+  copied?: LocalHandoffUrl;
+  onCopy(kind: LocalHandoffUrl): void;
 };
 
-function HandoffUrl({ testId, buttonTestId, url, resolvingLabel, copyLabel, onCopy }: HandoffUrlProps) {
+function HandoffUrl({ testId, url, resolvingLabel, copied, onCopy }: HandoffUrlProps) {
   return (
     <Group className="handoff-url" wrap="nowrap">
       <Code data-testid={testId} block>{url ?? resolvingLabel}</Code>
-      <Button data-testid={buttonTestId} variant="default" disabled={!url} onClick={onCopy}>
-        {copyLabel}
-      </Button>
+      <OverlayUrlMenu copied={copied} disabled={!url} onCopy={onCopy} />
     </Group>
   );
 }

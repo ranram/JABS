@@ -130,7 +130,6 @@ function ThumbnailPlayer({
             src={media.characterUrl}
             className="thumbnail-character"
             label={`${player.name} character artwork`}
-            mirrorX={side === 'two'}
             transform={placement.character}
             selected={selectedLayer?.player === playerIndex && selectedLayer.layer === 'character'}
             onSelect={() => onSelectLayer(playerIndex, 'character')}

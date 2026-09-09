@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { resolveGameProfile } from '@shared/gameProfiles';
 import type { PlayerMediaMatch, PlayerState, SelectedSetState } from '@shared/models';
-import type { MediaLayerKind, MediaTransform } from '@shared/mediaPlacement';
+import { mediaMirrorX, type MediaLayerKind, type MediaTransform } from '@shared/mediaPlacement';
 import type { VersusScreenState } from '@shared/versusScreen';
 import { api } from '../api';
 import { useOverlayState } from '../hooks/useOverlayState';
@@ -58,7 +58,7 @@ export function VersusPresentation({
   const playerOneSeriesWins = headToHead.filter((set) => set.playerOneScore > set.playerTwoScore).length;
   const playerTwoSeriesWins = headToHead.filter((set) => set.playerTwoScore > set.playerOneScore).length;
   return (
-    <main className={`overlay versus-overlay ${profile.overlay.themeClass}${preview ? ' versus-preview-canvas' : ''}`}>
+    <main className={`overlay versus-overlay ${profile.overlay.themeClass}${settings.showBackground ? '' : ' is-transparent-background'}${preview ? ' versus-preview-canvas' : ''}`}>
       <div className="versus-atmosphere" />
       <VersusPlayer side="left" playerIndex={0} player={selectedSet.playerOne} media={media[0]} settings={settings} preview={preview} selectedLayer={selectedLayer} onSelectLayer={onSelectLayer} onPlacementChange={onPlacementChange} />
       <VersusPlayer side="right" playerIndex={1} player={selectedSet.playerTwo} media={media[1]} settings={settings} preview={preview} selectedLayer={selectedLayer} onSelectLayer={onSelectLayer} onPlacementChange={onPlacementChange} />
@@ -126,13 +126,12 @@ function VersusPlayer({ side, playerIndex, player, media, settings, preview, sel
             src={src}
             className={className}
             label={`${player.name} ${layer}`}
-            mirrorX={layer === 'character' && side === 'right'}
             transform={transform}
             selected={selectedLayer?.player === playerIndex && selectedLayer.layer === layer}
             onSelect={() => onSelectLayer(playerIndex, layer)}
             onChange={(next) => onPlacementChange(playerIndex, layer, next)}
           />
-        ) : <img className={className} src={src} alt="" style={mediaTransformStyle(transform, layer === 'character' && side === 'right')} />)}
+        ) : <img className={className} src={src} alt="" style={mediaTransformStyle(transform)} />)}
       </div>
       <CharacterPortraitStrip
         portraits={settings.mediaMode === 'character' ? (media.characterPortraits ?? []) : []}
@@ -215,8 +214,9 @@ export function useTournamentLogo(selectedSet: SelectedSetState | undefined, ena
   return url;
 }
 
-function mediaTransformStyle(transform: MediaTransform, mirror: boolean): CSSProperties {
+function mediaTransformStyle(transform: MediaTransform): CSSProperties {
+  const effectiveMirror = mediaMirrorX(false, transform);
   return {
-    transform: `translate3d(${transform.x * 960}px, ${transform.y * 1080}px, 0) scale(${transform.scale})${mirror ? ' scaleX(-1)' : ''}`
+    transform: `translate3d(${transform.x * 960}px, ${transform.y * 1080}px, 0) scale(${transform.scale})${effectiveMirror ? ' scaleX(-1)' : ''}`
   };
 }

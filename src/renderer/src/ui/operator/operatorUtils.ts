@@ -7,6 +7,7 @@ import type {
   StartggSetScope
 } from '@shared/models';
 import { i18n } from '../../i18n';
+import { startggNoticeTone } from '../../i18n/startggErrors';
 
 export function setQuickScoreValue(
   selectedSet: SelectedSetState,
@@ -98,6 +99,8 @@ export function errorMessage(error: unknown, fallback: string): string {
 export type NoticeTone = 'error' | 'warning' | 'success' | 'info';
 
 export function noticeTone(message: string): NoticeTone {
+  const startggTone = startggNoticeTone(message);
+  if (startggTone) return startggTone;
   if (/\b(unable|failed|blocked|invalid|error|stopped|rejected|fall[oó]|inv[aá]lid|rechaz|detuvo)\b|no se pudo/i.test(message)) return 'error';
   if (/\b(warning|cached|session only|enter|select|choose|offline|unavailable|ingresa|selecciona|elige|almacenad)\b|sin conexi[oó]n|no est[aá] disponible/i.test(message)) return 'warning';
   if (/\b(saved|stored|loaded|copied|removed|reset|swapped|verified|preserved|guard|carg|copi|elimin|reinici|intercambi|verific|conserv)\w*/i.test(message)) return 'success';

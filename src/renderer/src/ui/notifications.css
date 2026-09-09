@@ -1,0 +1,14 @@
+.mantine-Notification-root.operator-toast::before {
+  display: none;
+}
+
+.operator-toast .operator-toast-close {
+  position: absolute;
+  top: var(--mantine-spacing-xs);
+  right: var(--mantine-spacing-xs);
+  margin: 0;
+}
+
+.operator-toast:has(.operator-toast-close) .operator-toast-body {
+  padding-right: calc(28px + var(--mantine-spacing-xs));
+}

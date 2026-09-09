@@ -480,10 +480,6 @@ mod tests {
         assert!(contains_blocked_text("iFag"));
         assert!(!contains_blocked_text("iPodTouch"));
         assert_eq!(censor(Some("faggot".to_owned())).as_deref(), Some("[blocked]"));
-    }
-
-    #[test]
-    fn reviewed_character_roster_names_bypass_moderation() {
         assert!(!contains_blocked_text_for_character("Banjo and Kazooie"));
         assert!(!contains_blocked_text_for_character("Banjo & Kazooie"));
         assert_eq!(
@@ -545,10 +541,6 @@ mod tests {
         let error = assert_safe(&[("playerOne.pronouns", Some("tr@nny"))]).unwrap_err();
         assert!(error.contains("playerOne.pronouns"));
         assert!(!error.contains("tr@nny"));
-    }
-
-    #[test]
-    fn runtime_allowlist_uses_exact_normalized_values() {
         let entries = parse_runtime_allowlist(
             "# local tournament decisions\nGUINEOS/Hom\n  Edd  \nTeam   Name\n",
         )

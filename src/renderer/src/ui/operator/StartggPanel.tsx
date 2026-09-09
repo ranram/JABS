@@ -38,8 +38,13 @@ import { useTopEightDraft } from './useTopEightDraft';
 import { generatorGameContext } from './generatorGameContext';
 import { CustomScoreboardPanel } from './CustomScoreboardPanel';
 import { WorkspaceMaintenanceBar } from './WorkspaceMaintenanceBar';
+import type { LocalHandoffUrl } from '../../desktopRuntime';
+import { BracketRefreshStatus, type BracketRefresh } from './BracketRefreshStatus';
 
 type StartggPanelProps = {
+  keyboardShortcuts: { enabled: boolean; setEnabled(value: boolean): void };
+  bracketRefresh?: BracketRefresh;
+  reloadWarning?: string;
   tokenInputRef: RefObject<HTMLInputElement | null>;
   tokenConfigured: boolean;
   tokenStorageAvailable: boolean;
@@ -62,6 +67,7 @@ type StartggPanelProps = {
   stationNumber: string;
   setScope?: StartggSetScope;
   localBaseUrl?: string;
+  copiedHandoff?: LocalHandoffUrl;
   activeSet?: SelectedSetState;
   logos: LogoAsset[];
   loading: boolean;
@@ -92,11 +98,13 @@ type StartggPanelProps = {
   onCustomScoreboard(scoreboardId?: string, revision?: string): void;
   onMessage(message: string): void;
   onModerationApplied(): void;
+  onCopy(kind: LocalHandoffUrl): void;
   setSelector?: ReactNode;
   children?: ReactNode;
 };
 
 export function StartggPanel({
+  keyboardShortcuts, bracketRefresh, reloadWarning,
   tokenInputRef,
   tokenConfigured,
   tokenStorageAvailable,
@@ -119,6 +127,7 @@ export function StartggPanel({
   stationNumber,
   setScope,
   localBaseUrl,
+  copiedHandoff,
   activeSet,
   logos,
   loading,
@@ -149,6 +158,7 @@ export function StartggPanel({
   onMessage,
   moderationRevision,
   onModerationApplied,
+  onCopy,
   setSelector,
   children
 }: StartggPanelProps) {
@@ -187,13 +197,11 @@ export function StartggPanel({
     topEight.setGameContext(gameContext.gameId, gameContext.gameName);
     thumbnail.setGameContext(gameContext.gameId, gameContext.gameName);
   }, [gameContext.gameId, gameContext.gameName]);
-  const statusLabel = tokenVerified
+  const statusLabel = !tokenConfigured ? t('operator:startgg.publicAccess') : tokenVerified
     ? t('operator:startgg.verified')
     : tokenSessionOnly
       ? t('operator:startgg.session')
-      : tokenConfigured
-        ? t('operator:startgg.stored')
-        : t('operator:startgg.offline');
+      : t('operator:startgg.stored');
 
   return (
     <>
@@ -203,16 +211,18 @@ export function StartggPanel({
           <Title order={2} size="h4">{t('operator:startgg.title')}</Title>
           <Text c="dimmed" size="sm">{t('operator:startgg.description')}</Text>
         </div>
-        <Badge color={tokenVerified ? 'green' : tokenSessionOnly ? 'yellow' : tokenConfigured ? 'blue' : 'gray'}>
-          {statusLabel}
-        </Badge>
+        <Group gap="sm" wrap="wrap">
+          <BracketRefreshStatus refresh={bracketRefresh} />
+          <Badge color={!tokenConfigured ? 'gray' : tokenVerified ? 'green' : tokenSessionOnly ? 'yellow' : 'blue'}>
+            {statusLabel}
+          </Badge>
+        </Group>
       </Group>
 
       <SimpleGrid type="container" cols={{ base: 1, '48rem': 2 }} mt="md">
         <Stack gap="sm" className="startgg-entry-block">
           <div>
             <Text fw={700}>{t('operator:startgg.apiAccess')}</Text>
-            <Text size="xs" c="dimmed">{t('operator:startgg.tokenLocal')}</Text>
           </div>
           <PasswordInput
             ref={tokenInputRef}
@@ -224,9 +234,6 @@ export function StartggPanel({
               if (event.key === 'Enter' && tokenInputReady) onSaveToken();
             }}
           />
-          {!tokenStorageAvailable && (
-            <Text size="sm" c="dimmed">{t('operator:startgg.sessionStorage')}</Text>
-          )}
           <Group>
             <Button disabled={loading || !tokenInputReady} onClick={onSaveToken}>
               {tokenStorageAvailable ? t('operator:startgg.saveToken') : t('operator:startgg.useForSession')}
@@ -237,12 +244,18 @@ export function StartggPanel({
               </Button>
             )}
           </Group>
+          <div>
+            <Text size="xs" c="dimmed">{t('operator:startgg.tokenLocal')}</Text>
+            <Text size="xs" c="dimmed">{t('operator:startgg.publicHelp')}</Text>
+            {!tokenStorageAvailable && (
+              <Text size="sm" c="dimmed">{t('operator:startgg.sessionStorage')}</Text>
+            )}
+          </div>
         </Stack>
 
         <Stack gap="sm" className="startgg-entry-block">
           <div>
             <Text fw={700}>{t('operator:startgg.tournament')}</Text>
-            <Text size="xs" c="dimmed">{t('operator:startgg.tournamentHint')}</Text>
           </div>
           <Group align="flex-end" wrap="wrap" className="tournament-lookup-row">
             <TextInput
@@ -256,6 +269,7 @@ export function StartggPanel({
               {t('operator:startgg.loadEvents')}
             </Button>
           </Group>
+          <Text size="xs" c="dimmed">{t('operator:startgg.tournamentHint')}</Text>
           {recentTournaments.length > 0 && (
             <Group gap="xs" aria-label={t('operator:startgg.recentAria')}>
               <Text size="xs" c="dimmed">{t('operator:startgg.recent')}</Text>
@@ -280,18 +294,22 @@ export function StartggPanel({
           <Tabs.Tab value="thumbnail">{t('operator:workspaces.thumbnail')}</Tabs.Tab>
         </Tabs.List>
         <WorkspaceMaintenanceBar
+          keyboardShortcuts={keyboardShortcuts} reloadWarning={reloadWarning}
           loading={loading}
           reloadingAssets={reloadingAssets}
           reloadSelectedSetDisabled={reloadSelectedSetDisabled}
           unloadTournamentDisabled={unloadTournamentDisabled}
           tournamentLoaded={events.length > 0}
           setScope={setScope}
+          localBaseUrl={localBaseUrl}
+          copiedHandoff={copiedHandoff}
           onReloadAssets={onReloadAssets}
           onReloadBracketData={onRefreshScope}
           onReloadSelectedSet={onReloadSelectedSet}
           onUnloadTournament={onUnloadTournament}
           onClearCache={onClearCache}
           onModerationApplied={onModerationApplied}
+          onCopy={onCopy}
         />
       </div>
 
@@ -423,6 +441,7 @@ export function StartggPanel({
 
       <Tabs.Panel value="overlays" pt="md">
         <OtherOverlaysPanel
+          assetCatalogRevision={assetCatalogRevision}
           localBaseUrl={localBaseUrl}
           logos={logos}
           activeSet={activeSet}

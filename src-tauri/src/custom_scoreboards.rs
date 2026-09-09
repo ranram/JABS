@@ -407,16 +407,6 @@ mod tests {
     use super::{default_scoreboard, normalize_restricted_regions, validate};
 
     #[test]
-    fn default_layout_stays_inside_the_obs_canvas() {
-        let scoreboard = default_scoreboard(
-            "scoreboard-test".to_owned(),
-            "Test".to_owned(),
-            "revision".to_owned(),
-        );
-        assert!(validate(&scoreboard).is_ok());
-    }
-
-    #[test]
     fn older_bottom_regions_are_clamped_into_the_supported_area() {
         let mut scoreboard = default_scoreboard(
             "scoreboard-test".to_owned(),

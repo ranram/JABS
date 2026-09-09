@@ -52,6 +52,7 @@ import { useGeneratorWarningToast } from './useGeneratorWarningToast';
 import { exportGraphicAsPng, safeGraphicFilename } from './exportGraphic';
 import { readTopEightBackground } from './topEightBackground';
 import { BufferedTextInput } from './BufferedTextInput';
+import { MediaControlHint } from './MediaControlHint';
 import { TopEightEventDetails } from './TopEightEventDetails';
 import './generatorFonts.css';
 import './adjustableMedia.css';
@@ -446,7 +447,7 @@ export function TopEightGenerator({
                 </Button>
               </Group>
             </SimpleGrid>
-            <Text c="dimmed" size="xs">{t('operator:topEight.adjustHint')}</Text>
+            <MediaControlHint />
           </Stack>
         )}
         <TopEightCanvas

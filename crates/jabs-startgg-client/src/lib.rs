@@ -5,6 +5,7 @@ use std::time::Duration;
 use tokio::{sync::Mutex, time::Instant};
 
 const ENDPOINT: &str = "https://api.start.gg/gql/alpha";
+mod anonymous;
 pub const REFILL_INTERVAL: Duration = Duration::from_millis(800);
 pub const BURST_CAPACITY: f64 = 4.0;
 
@@ -44,6 +45,7 @@ impl Default for StartggClient {
             client: Client::builder()
                 .timeout(Duration::from_secs(15))
                 .no_proxy()
+                .redirect(reqwest::redirect::Policy::none())
                 .build()
                 .expect("static start.gg client configuration must be valid"),
             request_budget: Mutex::new(RequestBudget {
@@ -61,11 +63,23 @@ impl StartggClient {
         query: &str,
         variables: Value,
     ) -> Result<T, ApiError> {
-        self.throttle().await;
-        let response = self.client
+        let request = self.client
             .post(ENDPOINT)
             .bearer_auth(token)
-            .json(&json!({ "query": query, "variables": variables }))
+            .json(&json!({ "query": query, "variables": variables }));
+        self.send(request).await
+    }
+
+    pub async fn request_anonymous<T: DeserializeOwned>(
+        &self, query: &str, variables: Value,
+    ) -> Result<T, ApiError> {
+        let request = anonymous::read_request(&self.client, query, variables)?;
+        self.send(request).await.map_err(anonymous::read_error)
+    }
+
+    async fn send<T: DeserializeOwned>(&self, request: reqwest::RequestBuilder) -> Result<T, ApiError> {
+        self.throttle().await;
+        let response = request
             .send()
             .await
             .map_err(|error| {

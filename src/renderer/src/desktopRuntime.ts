@@ -82,7 +82,22 @@ export function reloadNativeModerationAllowlist(): Promise<ModerationAllowlistSt
   return invoke<ModerationAllowlistStatus>('reload_moderation_allowlist');
 }
 
-export type LocalHandoffUrl = 'overlay';
+export type LocalHandoffUrl =
+  | 'score'
+  | 'versus'
+  | 'winner'
+  | 'champion'
+  | 'top-eight-matchups'
+  | 'commentators';
+
+const overlayPaths: Record<LocalHandoffUrl, string> = {
+  score: '/overlay/active/main',
+  versus: '/overlay/active/versus',
+  winner: '/overlay/active/winner',
+  champion: '/overlay/active/champion',
+  'top-eight-matchups': '/overlay/active/top-eight-matchups',
+  commentators: '/overlay/commentators'
+};
 
 export const rendererDiagnosticEvents = [
   'stream-save:renderer-start',
@@ -98,7 +113,7 @@ export function reportNativeRendererDiagnostic(event: RendererDiagnosticEvent): 
   return invoke<void>('report_renderer_diagnostic', { event });
 }
 
-export async function copyActiveOverlayUrl(apiBase: string): Promise<void> {
+export function localOverlayUrl(apiBase: string, kind: LocalHandoffUrl): string {
   const base = new URL(apiBase);
   const port = Number(base.port);
   if (
@@ -110,7 +125,11 @@ export async function copyActiveOverlayUrl(apiBase: string): Promise<void> {
   ) {
     throw new Error('JABS cannot copy an OBS URL with an invalid local API address.');
   }
-  await copyTextToClipboard(new URL('/overlay/active/main', base).toString());
+  return new URL(overlayPaths[kind], base).toString();
+}
+
+export async function copyOverlayUrl(apiBase: string, kind: LocalHandoffUrl): Promise<void> {
+  await copyTextToClipboard(localOverlayUrl(apiBase, kind));
 }
 
 async function copyTextToClipboard(value: string): Promise<void> {

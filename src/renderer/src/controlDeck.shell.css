@@ -27,18 +27,25 @@
 }
 
 .bracket-overview-grid > .panel {
-  height: 100%;
+  min-height: 0;
 }
 
 .bracket-overview-grid .set-list {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  /* Let the adjacent filters determine the shared row height. */
+  contain: size;
   container-name: set-selector;
   container-type: inline-size;
 }
 
+.bracket-overview-grid .set-list > :not(.set-results-scroll) {
+  flex-shrink: 0;
+}
+
 .bracket-overview-grid .set-results-scroll {
-  flex: 1 1 220px;
+  flex: 1 1 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -182,16 +189,16 @@
 }
 
 .set-results-scroll {
-  contain: layout paint style;
   display: grid !important;
   min-height: 0;
-  max-height: clamp(220px, 30vh, 300px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-content: start;
-  padding: 2px 7px 2px 2px;
+  padding: 4px 8px 12px 4px;
+  scroll-padding-block: 4px 12px;
+  scroll-snap-type: y proximity;
   scrollbar-color: rgba(217, 255, 67, 0.52) rgba(255, 255, 255, 0.035);
   scrollbar-gutter: stable;
   scrollbar-width: thin;
@@ -199,8 +206,9 @@
 
 .set-results-scroll .set-row {
   content-visibility: auto;
-  contain-intrinsic-block-size: 112px;
+  contain-intrinsic-block-size: auto 112px;
   margin-bottom: 0;
+  scroll-snap-align: start;
 }
 
 .set-results-scroll > .mantine-Text-root,
@@ -287,10 +295,12 @@
 
 .set-row-flag-stack {
   display: flex;
-  max-width: min(62%, 240px);
+  max-width: 62%;
   flex: 0 1 auto;
-  align-items: flex-end;
-  flex-direction: column;
+  margin-left: auto;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
@@ -418,23 +428,4 @@
   color: #aaa5b5;
   font-size: 11px;
   font-weight: 700;
-}
-
-@media (max-width: 980px) {
-  .set-row .set-row-topline {
-    flex-direction: column;
-  }
-
-  .set-row-flag-stack {
-    max-width: 100%;
-    align-items: flex-start;
-  }
-
-  .set-row .set-row-assignment-flags {
-    justify-content: flex-start;
-  }
-
-  .set-row .set-flag-status {
-    align-self: flex-start;
-  }
 }

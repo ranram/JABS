@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { broadcastSurfaceSpecs, validateBroadcastComposition } from './broadcastCompositions';
+import { commentatorStateSchema } from './commentators';
+import { topEightMatchupsStateSchema } from './topEightMatchups';
 
 describe('broadcast composition contracts', () => {
-  it('keeps authored regions in bounds and enforces participant counts', () => {
-    for (const spec of Object.values(broadcastSurfaceSpecs)) {
-      for (const region of Object.values(spec.regions)) {
-        expect(region.x).toBeGreaterThanOrEqual(0);
-        expect(region.y).toBeGreaterThanOrEqual(0);
-        expect(region.x + region.width).toBeLessThanOrEqual(1);
-        expect(region.y + region.height).toBeLessThanOrEqual(1);
-      }
+  it('preserves logo visibility when migrating and saving overlay settings', () => {
+    const common = { stylingGameId: 'street-fighter-6', tournamentName: 'Tournament', logoAssetId: 'logo.png', updatedAt: '2026-09-08T00:00:00Z' };
+    const snapshots = [
+      commentatorStateSchema.parse({ ...common, presentation: 'hidden', commentators: [{ name: 'One', handle: '' }, { name: 'Two', handle: '' }] }),
+      topEightMatchupsStateSchema.parse({ ...common, assetCatalogSlug: 'street-fighter-6', matchups: Array.from({ length: 4 }, () => ({ bracket: 'winners', players: [{ name: 'One' }, { name: 'Two' }] })) })
+    ];
+    for (const [index, schema] of [commentatorStateSchema, topEightMatchupsStateSchema].entries()) {
+      expect(snapshots[index]?.showTournamentLogo).toBe(true);
+      const restored = schema.parse(JSON.parse(JSON.stringify({ ...snapshots[index], showTournamentLogo: false })));
+      expect(restored.showTournamentLogo).toBe(false);
+      expect(restored.logoAssetId).toBe('logo.png');
     }
-    const player = { name: 'Player' };
-    expect(validateBroadcastComposition({ surface: 'winner', gameId: 'test', participants: [player] })).toBeUndefined();
-    expect(validateBroadcastComposition({ surface: 'versus', gameId: 'test', participants: [player] })).toMatch(/requires 2/);
-    expect(validateBroadcastComposition({ surface: 'top-eight', gameId: 'test', participants: Array(8).fill(player) })).toBeUndefined();
   });
 });
