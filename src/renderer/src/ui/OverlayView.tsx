@@ -221,6 +221,7 @@ function AnnouncementOverlay({
     selectedSet.broadcast?.logoAssetId,
     settings.showTournamentLogo
   );
+  if (!savedSettings) return <main className="overlay" />;
   const mediaClass = [
     photoUrl && 'has-photo',
     characterUrl && 'has-character',

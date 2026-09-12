@@ -12,7 +12,7 @@ import './topEightMatchupsOverlay.css';
 export function TopEightMatchupsOverlay() {
   const { t } = useTranslation(['overlay', 'common']);
   const { state, error } = useTopEightMatchupsState();
-  if (!state) return <main className="top8-matchups-overlay"><div className="top8-matchups-status">{error ?? t('overlay:topEightMatchups.loading')}</div></main>;
+  if (!state) return <main className="top8-matchups-overlay is-transparent-background"><div className="top8-matchups-status">{error ?? t('overlay:topEightMatchups.loading')}</div></main>;
   return <TopEightMatchupsPresentation state={state} connectionError={Boolean(error)} />;
 }
 

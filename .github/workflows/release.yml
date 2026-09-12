@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Release tag matching the committed application version
         required: true
-        default: v1.1.0
+        default: v1.1.1
   push:
     tags:
       - "v*"

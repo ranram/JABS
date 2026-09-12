@@ -28,7 +28,10 @@ export function VersusOverlay() {
   const selectedSet = overlayState?.selectedSet;
   const media = useVersusMedia(selectedSet);
   const logoUrl = useTournamentLogo(selectedSet, settings?.showTournamentLogo ?? true);
-  if (!selectedSet || !settings) return <main className="overlay versus-overlay" />;
+  if (!settings) return <main className="overlay" />;
+  if (!selectedSet) {
+    return <main className={`overlay versus-overlay${settings.showBackground ? '' : ' is-transparent-background'}`} />;
+  }
   return <VersusPresentation selectedSet={selectedSet} settings={settings} media={media} logoUrl={logoUrl} connectionError={Boolean(overlayError || settingsError)} />;
 }
 

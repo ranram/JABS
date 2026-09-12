@@ -1,6 +1,6 @@
 [package]
 name = "jabs"
-version = "1.1.0"
+version = "1.1.1"
 description = "JABS — Just Another Bracketing System, a local-first fighting game bracket and OBS score manager."
 authors = ["JABS contributors"]
 license = "Apache-2.0"

@@ -4,11 +4,11 @@ import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { sortByLabel } from './operatorUtils';
 import { MediaFolderControls } from './MediaFolderControls';
-import type { CommentatorPresentation, CommentatorState } from '@shared/commentators';
+import { withCommentatorsSwapped, type CommentatorPresentation, type CommentatorState } from '@shared/commentators';
 import type { LogoAsset } from '@shared/models';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
 import { api } from '../../api';
-import { saveSwappedCommentators } from './swapCommentators';
+import { COMMENTATORS_SWAPPED_EVENT, saveSwappedCommentators } from './swapCommentators';
 
 type CommentatorControlsProps = { logos: LogoAsset[]; profiles: GameProfile[] };
 
@@ -30,6 +30,14 @@ export function CommentatorControls({ logos, profiles }: CommentatorControlsProp
       t('workspaces.commentator.failed')
     ));
   }, [t]);
+
+  useEffect(() => {
+    const handleCommentatorsSwapped = () => {
+      setDraft((current) => current ? withCommentatorsSwapped(current) : current);
+    };
+    window.addEventListener(COMMENTATORS_SWAPPED_EVENT, handleCommentatorsSwapped);
+    return () => window.removeEventListener(COMMENTATORS_SWAPPED_EVENT, handleCommentatorsSwapped);
+  }, []);
 
   async function present(presentation: CommentatorPresentation) {
     if (!draft) return;
