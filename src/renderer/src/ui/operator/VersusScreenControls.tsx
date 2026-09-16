@@ -33,6 +33,7 @@ export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: 
   useEffect(() => {
     void api.versusScreenState().then(setState).catch((error) => notify(error));
   }, []);
+  useEffect(() => setSelectedLayer(undefined), [activeSet?.setId]);
 
   async function update(patch: Partial<VersusScreenState>) {
     const current = stateRef.current;

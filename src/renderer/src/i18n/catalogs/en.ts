@@ -201,8 +201,9 @@ export const en = {
       styles: { mosaic: 'Mosaic', neon: 'Neon' },
       mediaMode: 'Top 8 artwork', mediaModes: { character: 'Character art', photo: 'Player photos' },
       adjustLayer: 'Adjust entrant artwork', resetPlacement: 'Reset position',
-      tournament: 'Tournament name',
-      headline: 'Headline',
+      tournament: 'Tournament name (optional)',
+      headline: 'Headline (optional)',
+      headlineColor: 'Headline color',
       tournamentLogo: 'Tournament logo',
       noLogo: 'No tournament logo',
       background: 'Custom background', chooseBackground: 'Choose image', removeBackground: 'Remove background', noBackground: 'No custom background',
@@ -237,7 +238,6 @@ export const en = {
       country: 'Country',
       displayFlag: 'Display flag',
       validation: {
-        textRequired: 'Tournament name and headline are required.',
         entrantCount: 'A Top 8 composition requires exactly eight entrants.',
         placements: 'Placements must use conventional double-elimination order: 1st, 2nd, 3rd, 4th, tied 5th, and tied 7th.',
         playerTag: 'Every Top 8 entrant requires a player tag.'
@@ -488,11 +488,10 @@ export const en = {
         'top-eight-matchups': 'Top 8 matchups',
         commentators: 'Commentators'
       },
-      shortcuts: 'Shortcuts:',
-      playerOnePoint: 'Add Player 1 point',
-      subtractPlayerOnePoint: 'Subtract Player 1 point',
-      playerTwoPoint: 'Add Player 2 point',
-      subtractPlayerTwoPoint: 'Subtract Player 2 point'
+      playerOnePoint: '+1 Player 1',
+      subtractPlayerOnePoint: '−1 Player 1',
+      playerTwoPoint: '+1 Player 2',
+      subtractPlayerTwoPoint: '−1 Player 2'
     },
     setActions: {
       closeAria: 'Close set actions',

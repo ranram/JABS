@@ -28,6 +28,7 @@ export type TopEightDraftController = {
   setMediaMode(mediaMode: TopEightMediaMode): void;
   setTournamentName(value: string): void;
   setHeadline(value: string): void;
+  setHeadlineColor(value: string): void;
   setLogo(assetId: string | undefined): void;
   setBackground(background: TopEightDraft['background']): void;
   setEventUrl(value: string): void;
@@ -64,6 +65,7 @@ export function useTopEightDraft(initialGameId?: GameId): TopEightDraftControlle
     setMediaMode: (mediaMode) => setDraft((current) => ({ ...current, mediaMode })),
     setTournamentName: (tournamentName) => setDraft((current) => ({ ...current, tournamentName })),
     setHeadline: (headline) => setDraft((current) => ({ ...current, headline })),
+    setHeadlineColor: (headlineColor) => setDraft((current) => ({ ...current, headlineColor })),
     setLogo: (logoAssetId) => setDraft((current) => ({ ...current, logoAssetId })),
     setBackground: (background) => setDraft((current) => ({ ...current, background })),
     setEventUrl: (eventUrl) => setDraft((current) => ({ ...current, eventUrl })),

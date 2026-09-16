@@ -775,6 +775,9 @@ async fn select_startgg_set(
             }
         }
     }
+    let previous_set_id = runtime.overlay.selected_set().ok()
+        .and_then(|current| current.set_id);
+    let selected_set_changed = previous_set_id.as_deref() != fresh.set_id.as_deref();
     crate::state::censor_untrusted_selected_set(&mut fresh);
     if let Some(slug) = fresh.tournament_slug.as_deref() {
         if runtime.database.record_recent_tournament(slug).is_err() {
@@ -789,7 +792,12 @@ async fn select_startgg_set(
         &runtime.game_asset_directory,
         fresh,
     ) {
-        Ok(state) => secure_json(Json(serde_json::json!({ "state": state, "source": "live" }))),
+        Ok(state) => {
+            if selected_set_changed {
+                let _ = runtime.versus_screen.reset_media_placements(&runtime.database);
+            }
+            secure_json(Json(serde_json::json!({ "state": state, "source": "live" })))
+        }
         Err(error) => state_result(Err(error)),
     }
 }

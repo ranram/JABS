@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Center,
+  ColorInput,
   FileButton,
   Group,
   Loader,
@@ -333,6 +334,12 @@ export function TopEightGenerator({
             label={t('operator:topEight.headline')}
             value={draft.headline}
             onCommit={controller.setHeadline}
+          />
+          <ColorInput
+            label={t('operator:topEight.headlineColor')}
+            value={draft.headlineColor}
+            onChange={controller.setHeadlineColor}
+            format="hex"
           />
           <Select
             label={t('operator:topEight.tournamentLogo')}

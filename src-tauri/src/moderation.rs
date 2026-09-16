@@ -204,6 +204,33 @@ fn runtime_value_is_allowed(value: &str) -> bool {
             .is_ok_and(|allowlist| allowlist.entries.contains(&normalized))
 }
 
+fn runtime_allowed_word_mask(words: &[&str]) -> Vec<bool> {
+    let Ok(allowlist) = RUNTIME_ALLOWLIST.read() else {
+        return vec![false; words.len()];
+    };
+    allowed_word_mask(words, &allowlist.entries)
+}
+
+fn allowed_word_mask(words: &[&str], entries: &HashSet<String>) -> Vec<bool> {
+    let mut allowed = vec![false; words.len()];
+    for entry in entries {
+        let entry_words = entry
+            .split(|character: char| !character.is_alphanumeric())
+            .filter(|word| !word.is_empty())
+            .collect::<Vec<_>>();
+        if entry_words.is_empty() || entry_words.len() > words.len() {
+            continue;
+        }
+        for start in 0..=words.len() - entry_words.len() {
+            let end = start + entry_words.len();
+            if words[start..end] == entry_words {
+                allowed[start..end].fill(true);
+            }
+        }
+    }
+    allowed
+}
+
 fn clear_result_cache() {
     if let Ok(mut cache) = RESULT_CACHE.write() {
         cache.clear();
@@ -326,18 +353,25 @@ fn candidate_is_blocked(candidate: &str) -> bool {
         .split(|character: char| !character.is_alphanumeric())
         .filter(|word| !word.is_empty())
         .collect::<Vec<_>>();
-    if ALL_TERMS.contains(candidate.trim()) || words.iter().any(|word| ALL_TERMS.contains(word)) {
+    let allowed = runtime_allowed_word_mask(&words);
+    if (ALL_TERMS.contains(candidate.trim()) && !allowed.iter().all(|value| *value))
+        || words.iter().enumerate().any(|(index, word)| !allowed[index] && ALL_TERMS.contains(word))
+    {
         return true;
     }
     for start in 0..words.len() {
         let mut phrase = String::new();
-        for word in words.iter().skip(start).take(8) {
+        for (offset, word) in words.iter().skip(start).take(8).enumerate() {
             if !phrase.is_empty() { phrase.push(' '); }
             phrase.push_str(word);
-            if ALL_TERMS.contains(phrase.as_str()) { return true; }
+            let end = start + offset + 1;
+            if ALL_TERMS.contains(phrase.as_str()) && !allowed[start..end].iter().all(|value| *value) {
+                return true;
+            }
         }
     }
-    words.into_iter().any(joined_token_is_blocked)
+    words.into_iter().enumerate()
+        .any(|(index, word)| !allowed[index] && joined_token_is_blocked(word))
 }
 
 fn joined_token_is_blocked(token: &str) -> bool {
@@ -365,6 +399,7 @@ fn joined_token_is_blocked(token: &str) -> bool {
 }
 
 fn term_or_spelling_variant_is_blocked(token: &str) -> bool {
+    if runtime_value_is_allowed(token) { return false; }
     if ALL_TERMS.contains(token) { return true; }
     let Some((last_index, last_character)) = token.char_indices().last() else {
         return false;
@@ -416,7 +451,7 @@ fn collapse_repeats(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        assert_safe, censor, censor_character, contains_blocked_text,
+        allowed_word_mask, assert_safe, censor, censor_character, contains_blocked_text,
         contains_blocked_text_for_character, parse_runtime_allowlist,
     };
 
@@ -468,6 +503,7 @@ mod tests {
             "UMvC3 Parsec",
             "Parsec #211",
             "TNS UMvC3 Parsec #211",
+            "Funda Series",
         ] {
             assert!(!contains_blocked_text(value), "ordinary tournament text was blocked: {value}");
         }
@@ -542,12 +578,13 @@ mod tests {
         assert!(error.contains("playerOne.pronouns"));
         assert!(!error.contains("tr@nny"));
         let entries = parse_runtime_allowlist(
-            "# local tournament decisions\nGUINEOS/Hom\n  Edd  \nTeam   Name\n",
+            "# local tournament decisions\nGUINEOS/Hom\n  Edd  \nTeam   Name\nFunda\n",
         )
         .unwrap();
         assert!(entries.contains("guineos/hom"));
         assert!(entries.contains("edd"));
         assert!(entries.contains("team name"));
         assert!(!entries.contains("hom"));
+        assert_eq!(allowed_word_mask(&["funda", "series"], &entries), [true, false]);
     }
 }

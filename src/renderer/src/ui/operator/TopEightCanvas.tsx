@@ -56,6 +56,7 @@ type TopEightCanvasProps = {
 type TopEightCanvasStyle = CSSProperties & {
   '--top8-accent': string;
   '--top8-background': string;
+  '--top8-headline-color': string;
   '--adjustable-media-outline': string;
 };
 
@@ -73,6 +74,7 @@ export function TopEightCanvas({
   const style: TopEightCanvasStyle = {
     '--top8-accent': stylingProfile.overlay.accent,
     '--top8-background': stylingProfile.overlay.background,
+    '--top8-headline-color': draft.headlineColor,
     '--adjustable-media-outline': `color-mix(in srgb, ${stylingProfile.overlay.accent} 82%, white)`
   };
   const cards = draft.entrants.map((entrant, index) => (
@@ -96,7 +98,7 @@ export function TopEightCanvas({
       className={`top8-canvas top8-${draft.style}`}
       style={style}
       data-top-eight-style={draft.style}
-      aria-label={`${draft.headline} · ${draft.tournamentName}`}
+      aria-label={[draft.headline, draft.tournamentName, draft.gameName].filter((value) => value.trim()).join(' · ')}
     >
       {draft.background && (
         <LoadedImage
@@ -138,10 +140,12 @@ function CanvasHeader({
 }: { draft: TopEightDraft; logoUrl?: string }) {
   return (
     <header className="top8-canvas-header">
-      <div className="top8-canvas-title">
-        <span data-export-text>{draft.tournamentName}</span>
-        <strong data-export-text>{draft.headline}</strong>
-      </div>
+      {(draft.tournamentName.trim() || draft.headline.trim()) && (
+        <div className="top8-canvas-title">
+          {draft.tournamentName.trim() && <span data-export-text>{draft.tournamentName}</span>}
+          {draft.headline.trim() && <strong data-export-text>{draft.headline}</strong>}
+        </div>
+      )}
       <div className="top8-canvas-brand">
         <small data-export-text>{draft.gameName}</small>
         {logoUrl && <LoadedImage src={logoUrl} className="top8-event-logo" layer="foreground" />}

@@ -53,7 +53,6 @@ export function LiveControlsPanel({
           <Title order={2} size="h4">{t('operator:live.title')}</Title>
         </div>
         {shortcutsEnabled && <Group gap="sm" className="score-shortcuts">
-          <Text size="xs" c="dimmed">{t('operator:live.shortcuts')}</Text>
           <ShortcutInstruction><Kbd>1</Kbd><Text size="xs" c="dimmed">{t('operator:live.playerOnePoint')}</Text></ShortcutInstruction>
           <ShortcutInstruction>
             <Kbd>Shift</Kbd><Text size="xs" c="dimmed">+</Text><Kbd>1</Kbd>

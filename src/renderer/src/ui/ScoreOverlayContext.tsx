@@ -49,12 +49,12 @@ export function BroadcastLayer({
       style={broadcastStyle(profile)}
       aria-label={t('broadcastInformation')}
     >
-      {broadcast?.infoBarEnabled && leftText ? <div className="overlay-info-rail overlay-info-left">{leftText}</div> : null}
+      {broadcast?.infoBarEnabled ? <div className="overlay-info-rail overlay-info-left">{leftText}</div> : null}
       <div className="overlay-logo-slot">
         {broadcast?.logoEnabled && logoUrl ? <BroadcastLogo src={logoUrl} /> : null}
       </div>
       <div className="overlay-info-rail overlay-match-context-rail">{matchDetails}</div>
-      {broadcast?.infoBarEnabled && rightText ? <div className="overlay-info-rail overlay-info-right">{rightText}</div> : null}
+      {broadcast?.infoBarEnabled ? <div className="overlay-info-rail overlay-info-right">{rightText}</div> : null}
     </aside>
   );
 }

@@ -134,6 +134,15 @@ impl VersusScreenStore {
         self.save(database, next)
     }
 
+    pub fn reset_media_placements(&self, database: &Database) -> Result<Value, String> {
+        let mut next = self.state.read()
+            .map_err(|_| "Versus Screen settings are unavailable.".to_owned())?
+            .clone();
+        next.media_placements = default_media_placements();
+        next.updated_at = now_rfc3339()?;
+        self.save(database, next)
+    }
+
     fn save(&self, database: &Database, state: VersusScreenState) -> Result<Value, String> {
         let payload = serde_json::to_string(&state)
             .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())?;

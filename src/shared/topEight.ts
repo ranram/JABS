@@ -36,6 +36,7 @@ export type TopEightDraft = {
   mediaMode: TopEightMediaMode;
   tournamentName: string;
   headline: string;
+  headlineColor: string;
   eventUrl?: string;
   participantCount?: number;
   logoAssetId?: string;
@@ -47,7 +48,6 @@ export type TopEightDraft = {
 };
 
 export type TopEightValidationCode =
-  | 'textRequired'
   | 'entrantCount'
   | 'placements'
   | 'playerTag';
@@ -62,6 +62,7 @@ export function createTopEightDraft(gameId: GameId = 'street-fighter-6'): TopEig
     mediaMode: 'character',
     tournamentName: 'Tournament Finals',
     headline: 'Top 8',
+    headlineColor: '#ffffff',
     entrants: Array.from({ length: 8 }, (_, index) => ({
       placement: conventionalTopEightPlacements[index],
       name: `Player ${index + 1}`
@@ -78,9 +79,6 @@ export function hasConventionalTopEightPlacements(
 }
 
 export function validateTopEightDraft(draft: TopEightDraft): TopEightValidationCode | undefined {
-  if (!draft.tournamentName.trim() || !draft.headline.trim()) {
-    return 'textRequired';
-  }
   if (draft.entrants.length !== 8) {
     return 'entrantCount';
   }

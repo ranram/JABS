@@ -177,17 +177,17 @@
 }
 .versus-player-left .versus-identity {
   left: 0;
+  border-right: 3px solid currentColor;
   color: var(--versus-left);
   text-align: left;
   padding-left: 58px;
-  clip-path: polygon(0 0, 95% 0, 100% 50%, 95% 100%, 0 100%);
 }
 .versus-player-right .versus-identity {
   right: 0;
+  border-left: 3px solid currentColor;
   color: var(--versus-right);
   text-align: right;
   padding-right: 58px;
-  clip-path: polygon(5% 0, 100% 0, 100% 100%, 5% 100%, 0 50%);
 }
 .versus-identity span,
 .versus-identity small {
@@ -293,18 +293,8 @@
       color-mix(in srgb, var(--versus-right) 78%, #111521) calc(100% - 8px)
     ),
     linear-gradient(180deg, #161b29 0%, #0d111c 48%, #151a27 100%);
-  border-block: 3px solid rgb(255 255 255 / 24%);
   box-shadow: 0 34px 84px rgb(0 0 0 / 68%);
-  clip-path: polygon(
-    6% 0,
-    94% 0,
-    100% 4%,
-    100% 96%,
-    94% 100%,
-    6% 100%,
-    0 96%,
-    0 4%
-  );
+  border-radius: 16px;
 }
 .versus-center-card header {
   display: grid;
@@ -365,6 +355,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
+}
+.versus-placements h2 {
+  display: grid;
+  min-height: 2em;
+  place-items: center;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  text-wrap: balance;
+  white-space: normal;
 }
 .versus-placements > div {
   display: grid;

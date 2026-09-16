@@ -70,7 +70,7 @@
 }
 
 .custom-scoreboard-element.is-flag img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.custom-scoreboard-element.is-name { font-size: var(--custom-name-size); font-weight: 800; }
+.custom-scoreboard-element.is-name { font-size: var(--custom-name-size); font-weight: 800; text-transform: uppercase; }
 .custom-scoreboard-element.is-meta { font-size: var(--custom-meta-size); }
 .custom-scoreboard-element.is-score { font-size: var(--custom-score-size); font-weight: 800; }
 .custom-scoreboard-context { font-size: var(--custom-context-size); line-height: 1; }
