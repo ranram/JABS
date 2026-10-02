@@ -1,3 +1,5 @@
+import { useTournamentLogo } from '../hooks/useTournamentLogo';
+import { useCatalogRevision } from '../hooks/useCatalogRevision';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { resolveGameProfile } from '@shared/gameProfiles';
 import type { PlayerMediaMatch, PlayerState, SelectedSetState } from '@shared/models';
@@ -27,7 +29,7 @@ export function VersusOverlay() {
   const { state: settings, error: settingsError } = useVersusScreenState();
   const selectedSet = overlayState?.selectedSet;
   const media = useVersusMedia(selectedSet);
-  const logoUrl = useTournamentLogo(selectedSet, settings?.showTournamentLogo ?? true);
+  const logoUrl = useTournamentLogo(selectedSet?.broadcast?.logoAssetId, settings?.showTournamentLogo ?? true);
   if (!settings) return <main className="overlay" />;
   if (!selectedSet) {
     return <main className={`overlay versus-overlay${settings.showBackground ? '' : ' is-transparent-background'}`} />;
@@ -171,6 +173,7 @@ function PlacementList({ name, placements }: {
 }
 
 export function useVersusMedia(selectedSet: SelectedSetState | undefined): [SubjectMedia, SubjectMedia] {
+  const revision = useCatalogRevision();
   const [media, setMedia] = useState<[SubjectMedia, SubjectMedia]>([{}, {}]);
   useEffect(() => {
     let active = true;
@@ -198,23 +201,8 @@ export function useVersusMedia(selectedSet: SelectedSetState | undefined): [Subj
       if (active) setMedia(next);
     }).catch(() => { if (active) setMedia([{}, {}]); });
     return () => { active = false; };
-  }, [selectedSet]);
+  }, [selectedSet, revision]);
   return media;
-}
-
-export function useTournamentLogo(selectedSet: SelectedSetState | undefined, enabled: boolean) {
-  const [url, setUrl] = useState<string>();
-  useEffect(() => {
-    let active = true;
-    if (!enabled) { setUrl(undefined); return () => { active = false; }; }
-    void api.logos().then(async ({ logos }) => {
-      const logo = logos.find((item) => item.id === selectedSet?.broadcast?.logoAssetId) ?? logos[0];
-      const next = logo ? await api.logoAssetUrl(logo.id) : undefined;
-      if (active) setUrl(next);
-    }).catch(() => { if (active) setUrl(undefined); });
-    return () => { active = false; };
-  }, [enabled, selectedSet?.broadcast?.logoAssetId]);
-  return url;
 }
 
 function mediaTransformStyle(transform: MediaTransform): CSSProperties {

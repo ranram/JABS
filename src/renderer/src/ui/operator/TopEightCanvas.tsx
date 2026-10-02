@@ -209,7 +209,9 @@ function TopEightCard({
         className="top8-character-portraits"
       />
       <div className="top8-card-identity">
-        <div className="top8-card-copy" data-export-shape="top8-identity">
+        <div className={`top8-card-copy${flagUrl ? ' has-flag' : ''}`} data-export-shape="top8-identity">
+          {media?.sponsorLogoUrl && <LoadedImage src={media.sponsorLogoUrl} className="top8-sponsor-logo" layer="foreground" />}
+          {flagUrl && <LoadedImage src={flagUrl} className={`top8-country-flag${prideFlag ? ' is-pride' : ''}`} layer="foreground" />}
           <span className="top8-placement" data-export-text>{placementLabel(entrant.placement)}</span>
           <span
             className={`top8-sponsor-text${entrant.sponsor ? '' : ' is-empty'}`}
@@ -220,7 +222,6 @@ function TopEightCard({
           </span>
           <span className="top8-name-row">
             <strong data-export-text>{entrant.name}</strong>
-            {flagUrl && <LoadedImage src={flagUrl} className={`top8-country-flag${prideFlag ? ' is-pride' : ''}`} layer="foreground" />}
           </span>
           <span
             className={`top8-x-handle${entrant.xHandle ? '' : ' is-empty'}`}
@@ -228,9 +229,6 @@ function TopEightCard({
             aria-hidden={entrant.xHandle ? undefined : true}
           >
             {entrant.xHandle ? `@${entrant.xHandle}` : '\u00a0'}
-          </span>
-          <span className={`top8-card-meta${media?.sponsorLogoUrl ? '' : ' is-empty'}`} aria-hidden={media?.sponsorLogoUrl ? undefined : true}>
-            {media?.sponsorLogoUrl && <LoadedImage src={media.sponsorLogoUrl} className="top8-sponsor-logo" layer="foreground" />}
           </span>
         </div>
       </div>

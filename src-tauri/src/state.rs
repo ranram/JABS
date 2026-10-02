@@ -162,16 +162,15 @@ pub struct ReportableResult {
 
 impl OverlayStore {
     pub fn load(database: &Database) -> Result<Self, String> {
-        let restored = database
-            .load_overlay_state()?
-            .and_then(|payload| serde_json::from_str::<OverlayState>(&payload).ok())
-            .map(|mut state| {
+        let state = crate::persisted_state::restore(
+            database, "stream", database.load_overlay_state()?,
+            || Ok(default_state()),
+            |state: &mut OverlayState| {
                 migrate_match_format(&mut state.selected_set);
                 normalize_character_teams(&mut state.selected_set);
-                state
-            })
-            .filter(|state| validate_state(state).is_ok());
-        let state = restored.unwrap_or_else(default_state);
+                validate_state(state)
+            },
+        )?;
         let payload = serde_json::to_string(&state)
             .map_err(|_| "Unable to serialize local stream state.".to_owned())?;
         database.save_overlay_state(&payload, &state.selected_set.updated_at)?;
@@ -856,7 +855,7 @@ fn recorded_character_selections(selected_set: &SelectedSet) -> Vec<GameCharacte
         .collect()
 }
 
-fn next_timestamp(previous: &str) -> Result<String, String> {
+pub(crate) fn next_timestamp(previous: &str) -> Result<String, String> {
     let previous = OffsetDateTime::parse(previous, &Rfc3339)
         .map_err(|_| "State timestamp must be canonical RFC 3339.".to_owned())?;
     let now = OffsetDateTime::now_utc();

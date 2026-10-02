@@ -1,3 +1,4 @@
+import type { NoticeSink } from './operatorNotice';
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { scoreLimitForBestOf, type GameId } from '@shared/gameProfiles';
@@ -14,7 +15,7 @@ type UseQuickScoreActionsOptions = {
   selectedEventId: string;
   tournamentSlug: string;
   assetCatalogSlug?: string;
-  setMessage: Dispatch<SetStateAction<string | undefined>>;
+  setMessage: NoticeSink;
   setTokenVerified: Dispatch<SetStateAction<boolean>>;
   refreshAfterReport(): Promise<boolean>;
   readinessReason(readiness: StartggReportReadiness): string;
@@ -66,12 +67,12 @@ export function useQuickScoreActions({
 
   async function begin(nextTarget = target, closeOnFailure = false): Promise<void> {
     if (!nextTarget || !setLoadGameId) {
-      setMessage(t('browser.chooseProfile'));
+      setMessage(t('browser.chooseProfile'), 'warning');
       return;
     }
     setLoading(true);
     setReceipt(undefined);
-    setMessage(undefined);
+    setMessage(undefined, 'info');
     try {
       const response = await startgg.inspectStartggSet(nextTarget.id, setLoadGameId, {
         eventId: selectedEventId || undefined,
@@ -83,7 +84,7 @@ export function useQuickScoreActions({
       setBaseline(response.selectedSet);
     } catch (error) {
       setTokenVerified(false);
-      setMessage(errorMessage(error, t('messages.quickLoadFailed')));
+      setMessage(errorMessage(error, t('messages.quickLoadFailed')), 'error');
       if (closeOnFailure) setTarget(undefined);
     } finally {
       setLoading(false);
@@ -148,11 +149,11 @@ export function useQuickScoreActions({
 
   async function report(): Promise<void> {
     if (!scoreState || !baseline) {
-      setMessage(t('messages.quickSetRequired'));
+      setMessage(t('messages.quickSetRequired'), 'warning');
       return;
     }
     if (!readiness.ready) {
-      setMessage(readinessReason(readiness));
+      setMessage(readinessReason(readiness), 'warning');
       return;
     }
     const result = readiness.result;
@@ -166,7 +167,7 @@ export function useQuickScoreActions({
     }))) return;
 
     setLoading(true);
-    setMessage(undefined);
+    setMessage(undefined, 'info');
     try {
       const response = await startgg.quickReportStartggSet({
         setId: result.setId,
@@ -200,10 +201,10 @@ export function useQuickScoreActions({
       setReceipt(nextReceipt);
       setScoreState((current) => current ? { ...current, state: response.reportedSetState } : current);
       const refreshed = await refreshAfterReport();
-      setMessage(refreshed ? nextReceipt : `${nextReceipt} ${t('messages.selectorRefreshFailed')}`);
+      setMessage(refreshed ? nextReceipt : `${nextReceipt} ${t('messages.selectorRefreshFailed')}`, refreshed ? 'success' : 'warning');
     } catch (error) {
       setTokenVerified(false);
-      setMessage(errorMessage(error, t('messages.quickReportFailed')));
+      setMessage(errorMessage(error, t('messages.quickReportFailed')), 'error');
     } finally {
       setLoading(false);
     }

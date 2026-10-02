@@ -21,11 +21,14 @@ export const topEightMatchupsStateSchema = z.object({
   showBackground: z.boolean().default(true),
   showTournamentLogo: z.boolean().default(true),
   flipPlayerTwoPortraits: z.boolean().default(false),
-  assetCatalogSlug: z.string().trim().min(1),
+  assetCatalogSlug: z.string().trim().min(1).max(100),
   tournamentName: z.string().trim().min(1).max(120),
   eventName: z.string().trim().max(120).optional(),
   logoAssetId: z.string().trim().min(1).max(255).optional(),
-  matchups: z.array(matchupSchema).length(4),
+  matchups: z.array(matchupSchema).length(4).refine(
+    (matchups) => matchups.every((matchup, index) => matchup.bracket === (index < 2 ? 'winners' : 'losers')),
+    'Top 8 requires two winners matchups followed by two losers matchups.'
+  ),
   updatedAt: z.string().datetime({ offset: true })
 });
 

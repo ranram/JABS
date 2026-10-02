@@ -1,3 +1,4 @@
+import type { NoticeSink } from './operatorNotice';
 import {
   Badge,
   Button,
@@ -96,7 +97,7 @@ type StartggPanelProps = {
   onRefreshScope(scope: StartggSetScope): void;
   onReloadSelectedSet(): void;
   onCustomScoreboard(scoreboardId?: string, revision?: string): void;
-  onMessage(message: string): void;
+  onMessage: NoticeSink;
   onModerationApplied(): void;
   onCopy(kind: LocalHandoffUrl): void;
   setSelector?: ReactNode;

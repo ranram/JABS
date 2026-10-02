@@ -3,6 +3,7 @@ import {
   Badge,
   Box,
   Button,
+  ColorInput,
   Group,
   MultiSelect,
   Paper,
@@ -44,11 +45,13 @@ import {
 } from './ThumbnailCanvas';
 import type { ThumbnailDraftController } from './useThumbnailDraft';
 import { useGeneratorWarningToast } from './useGeneratorWarningToast';
-import { useGeneratorMedia, useLogoAssetUrl } from './useGeneratorMedia';
+import { useGeneratorMedia } from './useGeneratorMedia';
+import { useLogoAssetUrl } from '../../hooks/useLogoAssetUrl';
 import { BufferedTextInput } from './BufferedTextInput';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
 import { CharacterOutfitSelect } from './CharacterOutfitSelect';
 import { MediaControlHint } from './MediaControlHint';
+import { GraphicBackgroundControls } from './GraphicBackgroundControls';
 import { api } from '../../api';
 import './generatorFonts.css';
 import './adjustableMedia.css';
@@ -214,21 +217,15 @@ export function ThumbnailGenerator({ profiles, activeSet, moderationRevision, lo
               setSelectedLayer(undefined);
             }}
           />
-          <div>
-            <Text fw={700} size="sm" mb={5}>{t('operator:thumbnail.style')}</Text>
-            <SegmentedControl
-              fullWidth
-              value={draft.style}
-              data={thumbnailStyleIds.map((style) => ({
-                value: style,
-                label: t(`operator:thumbnail.styles.${style}`)
-              }))}
-              onChange={(value) => {
-                controller.setStyle(value as ThumbnailStyleId);
-                setSelectedLayer(undefined);
-              }}
-            />
-          </div>
+          <Select
+            label={t('operator:thumbnail.logo')}
+            value={draft.logoAssetId ?? null}
+            placeholder={t('operator:thumbnail.noLogo')}
+            searchable
+            clearable
+            data={sortedLogos.map((logo) => ({ value: logo.id, label: logo.label }))}
+            onChange={(value) => controller.setText({ logoAssetId: value ?? undefined })}
+          />
           <div>
             <Text fw={700} size="sm" mb={5}>{t('operator:thumbnail.mediaMode')}</Text>
             <SegmentedControl
@@ -244,6 +241,23 @@ export function ThumbnailGenerator({ profiles, activeSet, moderationRevision, lo
               }}
             />
           </div>
+          <div>
+            <Text fw={700} size="sm" mb={5}>{t('operator:thumbnail.style')}</Text>
+            <SegmentedControl
+              fullWidth
+              value={draft.style}
+              data={thumbnailStyleIds.map((style) => ({
+                value: style,
+                label: t(`operator:thumbnail.styles.${style}`)
+              }))}
+              onChange={(value) => {
+                controller.setStyle(value as ThumbnailStyleId);
+                setSelectedLayer(undefined);
+              }}
+            />
+          </div>
+        </SimpleGrid>
+        <SimpleGrid type="container" cols={{ base: 1, '36rem': 3 }} mt="md">
           <BufferedTextInput
             label={t('operator:thumbnail.tournament')}
             value={draft.tournamentName}
@@ -254,16 +268,14 @@ export function ThumbnailGenerator({ profiles, activeSet, moderationRevision, lo
             value={draft.headline}
             onCommit={(headline) => controller.setText({ headline })}
           />
-          <Select
-            label={t('operator:thumbnail.logo')}
-            value={draft.logoAssetId ?? null}
-            placeholder={t('operator:thumbnail.noLogo')}
-            searchable
-            clearable
-            data={sortedLogos.map((logo) => ({ value: logo.id, label: logo.label }))}
-            onChange={(value) => controller.setText({ logoAssetId: value ?? undefined })}
+          <ColorInput
+            label={t('operator:thumbnail.headlineColor')}
+            value={draft.headlineColor}
+            onChange={(headlineColor) => controller.setText({ headlineColor })}
+            format="hex"
           />
         </SimpleGrid>
+        <GraphicBackgroundControls value={draft.background} onChange={controller.setBackground} />
         <Box mt="sm">
           <MediaFoldersAccordion gameAssetSubpath={`${resolvedAssetCatalogSlug}/characters`} />
         </Box>

@@ -20,6 +20,7 @@ struct HealthResponse {
     ok: bool,
     port: u16,
     token: TokenStatus,
+    recovery_notices: Vec<String>,
 }
 
 pub fn bind_loopback(requested_port: u16) -> io::Result<(TcpListener, u16)> {
@@ -193,10 +194,7 @@ async fn update_top_eight_matchups_state(
     Json(body): Json<crate::top_eight_matchups::TopEightMatchupsState>,
 ) -> Response {
     if let Some(response) = reject_untrusted_mutation(&headers) { return response; }
-    match runtime.top_eight_matchups.replace(&runtime.database, body) {
-        Ok(state) => secure_json(Json(state)),
-        Err(error) => secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({ "error": error })))),
-    }
+    broadcast_result(runtime.top_eight_matchups.replace(&runtime.database, body))
 }
 
 async fn update_versus_screen_state(
@@ -205,10 +203,7 @@ async fn update_versus_screen_state(
     Json(body): Json<crate::versus_screen::VersusScreenState>,
 ) -> Response {
     if let Some(response) = reject_untrusted_mutation(&headers) { return response; }
-    match runtime.versus_screen.replace(&runtime.database, body) {
-        Ok(state) => secure_json(Json(state)),
-        Err(error) => secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({ "error": error })))),
-    }
+    broadcast_result(runtime.versus_screen.replace(&runtime.database, body))
 }
 
 async fn refresh_versus_history(
@@ -1004,6 +999,16 @@ async fn swap_players(
     state_result(runtime.overlay.swap_players(&runtime.database))
 }
 
+fn broadcast_result(result: Result<serde_json::Value, String>) -> Response {
+    match result {
+        Err(error) if error == crate::persisted_state::STALE_SETTINGS => secure_json((
+            StatusCode::CONFLICT,
+            Json(serde_json::json!({ "error": error, "code": "conflict" })),
+        )),
+        result => state_result(result),
+    }
+}
+
 pub(crate) fn state_result(result: Result<serde_json::Value, String>) -> Response {
     match result {
         Ok(state) => secure_json(Json(state)),
@@ -1156,7 +1161,12 @@ fn overlay_state_message(state: serde_json::Value) -> Result<String, String> {
 }
 
 async fn health(port: u16, runtime: Arc<RuntimeState>) -> impl IntoResponse {
-    secure_json(Json(HealthResponse { ok: true, port, token: secrets::status(&runtime) }))
+    match runtime.database.recovery_notices() {
+        Ok(recovery_notices) => secure_json(Json(HealthResponse {
+            ok: true, port, token: secrets::status(&runtime), recovery_notices,
+        })),
+        Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
+    }
 }
 
 async fn web_or_not_found(

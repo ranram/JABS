@@ -72,7 +72,8 @@ export function useThumbnailDraft(activeSet?: SelectedSetState) {
     setAssetCatalogSlug: (assetCatalogSlug: string) => setDraft((current) => ({ ...current, assetCatalogSlug })),
     setStyle: (style: ThumbnailStyleId) => setDraft((current) => ({ ...current, style })),
     setMediaMode: (mediaMode: ThumbnailMediaMode) => setDraft((current) => ({ ...current, mediaMode })),
-    setText: (patch: Pick<Partial<ThumbnailDraft>, 'tournamentName' | 'headline' | 'logoAssetId'>) =>
+    setBackground: (background: ThumbnailDraft['background']) => setDraft((current) => ({ ...current, background })),
+    setText: (patch: Pick<Partial<ThumbnailDraft>, 'tournamentName' | 'headline' | 'headlineColor' | 'logoAssetId'>) =>
       setDraft((current) => ({ ...current, ...patch })),
     setVisibility: (
       key: 'showTournamentLogo' | 'showSponsorLogo',

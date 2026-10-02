@@ -45,6 +45,7 @@ type ThumbnailCanvasProps = {
 type ThumbnailStyle = CSSProperties & {
   '--thumbnail-accent': string;
   '--thumbnail-background': string;
+  '--thumbnail-headline-color': string;
   '--adjustable-media-outline': string;
 };
 
@@ -62,16 +63,22 @@ export function ThumbnailCanvas({
   const style: ThumbnailStyle = {
     '--thumbnail-accent': stylingProfile.overlay.accent,
     '--thumbnail-background': stylingProfile.overlay.background,
+    '--thumbnail-headline-color': draft.headlineColor,
     '--adjustable-media-outline': `color-mix(in srgb, ${stylingProfile.overlay.accent} 82%, white)`
   };
   return (
-    <section ref={canvasRef} className={`thumbnail-canvas thumbnail-style-${draft.style}`} style={style}>
+    <section ref={canvasRef} className={`thumbnail-canvas thumbnail-style-${draft.style}${draft.background ? ' has-custom-background' : ''}`} style={style}>
+      {draft.background && (
+        <LoadedImage src={draft.background.dataUrl} className="thumbnail-custom-background" layer="background" />
+      )}
       <header className="thumbnail-header">
         {logoUrl && <LoadedImage src={logoUrl} className="thumbnail-event-logo" layer="foreground" />}
-        <div className="thumbnail-heading">
-          <span data-export-text>{draft.tournamentName}</span>
-          <strong data-export-text>{draft.headline}</strong>
-        </div>
+        {(draft.tournamentName.trim() || draft.headline.trim()) && (
+          <div className="thumbnail-heading">
+            {draft.tournamentName.trim() && <span data-export-text>{draft.tournamentName}</span>}
+            {draft.headline.trim() && <strong data-export-text>{draft.headline}</strong>}
+          </div>
+        )}
       </header>
       <div className="thumbnail-matchup">
         <ThumbnailPlayer
@@ -174,7 +181,7 @@ function LoadedImage({
 }: {
   src: string;
   className: string;
-  layer?: 'subject' | 'foreground';
+  layer?: 'background' | 'subject' | 'foreground';
   mirrorX?: boolean;
 }) {
   return (

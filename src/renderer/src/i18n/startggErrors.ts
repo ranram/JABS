@@ -25,9 +25,3 @@ export function localizedStartggError(
   }
   return payload?.error ?? fallback;
 }
-
-export function startggNoticeTone(message: string): 'warning' | 'error' | undefined {
-  if (message === i18n.t('operator:startgg.reportToken')) return 'warning';
-  const code = Object.entries(translationKeys).find(([, key]) => message === i18n.t(key))?.[0];
-  return code ? (code === 'token-missing' ? 'warning' : 'error') : undefined;
-}

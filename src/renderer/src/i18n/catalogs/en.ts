@@ -1,10 +1,13 @@
 export const en = {
+  // Common labels and actions
   common: {
     language: 'Language',
+    // Language choices
     languages: {
       en: 'English',
       es419: 'Español (Latinoamérica)'
     },
+    // Common actions
     actions: {
       close: 'Close',
       cancel: 'Cancel',
@@ -15,6 +18,7 @@ export const en = {
       swapPlayers: 'Swap players',
       select: '---- Select ----'
     },
+    // Status labels
     status: {
       live: 'Live',
       sending: 'Sending',
@@ -26,6 +30,7 @@ export const en = {
       completed: 'Completed',
       onStream: 'On Stream'
     },
+    // Match details
     match: {
       bestOf: 'Best of {{count}}',
       firstTo: 'First to {{count}}',
@@ -35,6 +40,7 @@ export const en = {
       versus: 'vs',
       finalScore: 'Final Score: {{one}} - {{two}}'
     },
+    // Media folders
     mediaFolder: {
       open: 'Open folder',
       openHint: 'Open this media folder in your file manager.',
@@ -42,19 +48,71 @@ export const en = {
     },
     pagination: 'Page {{page}} of {{totalPages}}'
   },
+  // OBS overlays
   overlay: {
     invalidTitle: 'Invalid overlay URL',
-    invalidBody: 'Use /overlay/active/main, /overlay/active/winner, /overlay/active/versus, /overlay/active/top-eight-matchups, /overlay/commentators, or a supported fixed game route.',
+    invalidBody:
+      'Use /overlay/active/main, /overlay/active/winner, /overlay/active/versus, /overlay/active/top-eight-matchups, /overlay/commentators, or a supported fixed game route.',
     waiting: 'Waiting for local match state…',
     broadcastInformation: 'Broadcast information',
     winnerAnnouncement: 'Set winner',
     championAnnouncement: 'Champion',
-    topEightMatchups: { title: 'Top 8 Matchups', winners: 'Winners', losers: 'Losers', loading: 'Loading Top 8 Matchups…' },
+    // Top 8 Matchups
+    topEightMatchups: {
+      title: 'Top 8 Matchups',
+      winners: 'Winners',
+      losers: 'Losers',
+      loading: 'Loading Top 8 Matchups…'
+    },
     playerScore: '{{player}} score {{score}}'
   },
+  // Operator interface
   operator: {
-    mediaControls: { pointer: 'Drag the selected artwork, or use:', move: 'move', moveFarther: 'move farther', resize: 'resize', flip: 'flip' },
+    // App updates
+    updates: {
+      check: 'Check for updates',
+      updateNow: 'Update now',
+      restart: 'Restart now',
+      title: 'Update JABS',
+      current: 'JABS is up to date.',
+      available: 'Version {{version}} is available.',
+      confirm: 'Update JABS from {{current}} to {{next}}?',
+      installRestart: 'Install and restart',
+      restartNotice:
+        'JABS will restart. OBS sources will briefly disconnect. Export any unfinished graphics before updating.',
+      finishEditing: 'Finish editing and wait for saves or reports to complete before updating.',
+      downloading: 'Downloading update…',
+      installing: 'Installing update…',
+      restarting: 'Restarting JABS…',
+      installed: 'The update is installed. Restart JABS to finish.',
+      development: 'Updates are available in installed release builds.',
+      unavailable: 'Updates are not available in this build.',
+      packageManager:
+        'Update this Linux package through your package manager. In-app updates are available with the AppImage.',
+      supportFailed: 'Unable to load update settings. Restart JABS and try again.',
+      checkFailed: 'Unable to check for updates. Check your internet connection and try again.',
+      installFailed: 'The update could not be installed. Try again.',
+      restartFailed: 'The update is installed, but JABS could not restart. Try again or close and reopen JABS.'
+    },
+    // Graphic backgrounds
+    graphicBackground: {
+      title: 'Custom background',
+      choose: 'Choose image',
+      remove: 'Remove background',
+      none: 'No custom background',
+      hint: 'PNG, JPEG, or WebP. Up to 15 MB, 8192×8192, and 40 megapixels.',
+      failed: 'JABS could not use this background image.'
+    },
+    // Artwork positioning
+    mediaControls: {
+      pointer: 'Drag the selected artwork, or use:',
+      move: 'move',
+      moveFarther: 'move farther',
+      resize: 'resize',
+      flip: 'flip'
+    },
     appSubtitle: 'Just Another Bracketing System',
+    // Header and connection status
     topbar: {
       onStream: 'On stream',
       loadingState: 'Loading state…',
@@ -64,6 +122,7 @@ export const en = {
       sessionMode: 'Session mode',
       needsToken: 'Needs token'
     },
+    // Workspace navigation and overlay settings
     workspaces: {
       aria: 'JABS workspaces',
       bracket: 'Bracket Management',
@@ -77,51 +136,100 @@ export const en = {
       available: 'Available',
       obsSource: 'OBS Browser Source',
       resolvingObs: 'Resolving the local OBS URL…',
-      winnerAutomatic: 'The same source automatically chooses Set winner or Champion from the completed set and bracket path.',
+      winnerAutomatic:
+        'The same source automatically chooses Set winner or Champion from the completed set and bracket path.',
       styling: 'Scoreboard Styling',
       transparentBackground: 'Transparent background',
       transparentBackgroundHelp: 'Removes the JABS backdrop so OBS can show a custom source underneath.',
+      // Versus Screen settings
       versusScreen: {
         startgg: 'start.gg Head to Head history',
-        currentMatchup: 'Current matchup', noSet: 'No set on stream',
+        currentMatchup: 'Current matchup',
+        noSet: 'No set on stream',
         livePreview: 'Live preview',
         refreshHistory: 'Refresh start.gg Head-to-Head history with current players',
         historyEntries: 'historical entries loaded',
         startggProfileError: 'Both players need linked start.gg profiles.',
-        obsCurrent: 'OBS is current', obsPending: 'OBS will update in 1 second…',
+        obsCurrent: 'OBS is current',
+        obsPending: 'OBS will update in 1 second…',
         loadingScreenSettings: 'Loading Versus Screen settings…'
       },
+      // Commentator settings
       commentator: {
         swap: 'Swap commentators',
-        loading: 'Loading commentator presentation…', tournament: 'Tournament name', logo: 'Centered tournament logo',
-        person: 'Commentator {{count}}', name: 'On-air name', handle: 'Social handle',
-        presentTimed: 'Present for 10 seconds', showPersistent: 'Leave on screen', hide: 'Hide overlay',
-        timed: 'Commentators will animate in and out over 10 seconds.', persistent: 'Commentators will remain visible.', hidden: 'Commentator presentation hidden.',
-        failedTitle: 'Unable to update commentator overlay', failed: 'The commentator overlay could not be updated.'
+        loading: 'Loading commentator presentation…',
+        tournament: 'Tournament name',
+        logo: 'Centered tournament logo',
+        person: 'Commentator {{count}}',
+        name: 'On-air name',
+        handle: 'Social handle',
+        presentTimed: 'Present for 10 seconds',
+        showPersistent: 'Leave on screen',
+        hide: 'Hide overlay',
+        timed: 'Commentators will animate in and out over 10 seconds.',
+        persistent: 'Commentators will remain visible.',
+        hidden: 'Commentator presentation hidden.',
+        failedTitle: 'Unable to update commentator overlay',
+        failed: 'The commentator overlay could not be updated.'
       },
+      // Winner and Champion settings
       resultScreen: {
         loading: 'Loading Winner/Champion presentation…',
-        currentWinner: 'Current winner', winner: 'Set winner', champion: 'Champion', noWinner: 'Complete the active set to resolve a winner',
-        showTournamentLogo: 'Show tournament logo', showPlayerPhoto: 'Show player photo',
-        showSponsorLogo: 'Show team/sponsor logo', showCharacter: 'Show character',
+        currentWinner: 'Current winner',
+        winner: 'Set winner',
+        champion: 'Champion',
+        noWinner: 'Complete the active set to resolve a winner',
+        showTournamentLogo: 'Show tournament logo',
+        showPlayerPhoto: 'Show player photo',
+        showSponsorLogo: 'Show team/sponsor logo',
+        showCharacter: 'Show character',
         availableForWinner: 'Available for the current winner.',
         unavailableForWinner: 'Not available for the current winner.',
-        failedTitle: 'Unable to update Winner/Champion screen', failed: 'The Winner/Champion presentation could not be updated.'
+        failedTitle: 'Unable to update Winner/Champion screen',
+        failed: 'The Winner/Champion presentation could not be updated.'
       },
+      // Overlay descriptions
       tools: {
-        versus: { title: 'Versus Screen', description: 'Player matchup, recent placements and head-to-head history.', next: 'Load a set to prepare the Versus Screen.' },
-        winner: { title: 'Winner & Champion Screen', description: 'Celebrate a set winner or tournament champion with optional character art, player photo, and sponsor logo.' },
-        commentators: { title: 'Commentator View', description: 'Present two on-air commentators and their social handles.' },
-        topEightMatchups: { title: 'Top 8 Matchups', description: 'Present the two opening Winners matches and two opening Losers matches with one character portrait per player.' }
+        versus: {
+          title: 'Versus Screen',
+          description: 'Player matchup, recent placements and head-to-head history.',
+          next: 'Load a set to prepare the Versus Screen.'
+        },
+        winner: {
+          title: 'Winner & Champion Screen',
+          description:
+            'Celebrate a set winner or tournament champion with optional character art, player photo, and sponsor logo.'
+        },
+        commentators: {
+          title: 'Commentator View',
+          description: 'Present two on-air commentators and their social handles.'
+        },
+        topEightMatchups: {
+          title: 'Top 8 Matchups',
+          description:
+            'Present the two opening Winners matches and two opening Losers matches with one character portrait per player.'
+        }
       },
+      // Graphic generator descriptions
       generators: {
-        topEight: { title: 'Top 8 Generator', description: 'Create a top 8 graphic with character artwork or player photos.', emptyState: 'You can now control the generator and export files.' },
-        thumbnail: { title: 'YouTube Thumbnail Generator', description: 'Create a platform-ready thumbnail for YouTube', emptyState: 'Thumbnail controls, preview, and export will be implemented here without mixing them into OBS overlays.' }
+        topEight: {
+          title: 'Top 8 Generator',
+          description: 'Create a top 8 graphic with character artwork or player photos.',
+          emptyState: 'You can now control the generator and export files.'
+        },
+        thumbnail: {
+          title: 'YouTube Thumbnail Generator',
+          description: 'Create a platform-ready thumbnail for YouTube',
+          emptyState:
+            'Thumbnail controls, preview, and export will be implemented here without mixing them into OBS overlays.'
+        }
       }
     },
+    // Custom scoreboard editor
     customScoreboard: {
       title: 'Custom Scoreboard',
-      description: 'Use your own transparent scoreboard artwork while JABS keeps names, scores, flags, and broadcast details current.',
+      description:
+        'Use your own transparent scoreboard artwork while JABS keeps names, scores, flags, and broadcast details current.',
       name: 'Scoreboard name',
       image: 'Transparent scoreboard PNG',
       imageHelp: 'Exactly 1920×1080, up to 20 MB.',
@@ -151,47 +259,88 @@ export const en = {
       useAutomatic: 'Use automatic styling',
       delete: 'Delete scoreboard',
       regions: {
-        playerOneFlag: 'Player 1 · Flag', playerOneSponsor: 'Player 1 · Sponsor',
+        playerOneFlag: 'Player 1 · Flag',
+        playerOneSponsor: 'Player 1 · Sponsor',
         playerOneXHandle: 'Player 1 · x.com handle',
-        playerOneName: 'Player 1 · Name', playerOnePronouns: 'Player 1 · Pronouns',
-        playerOneSeed: 'Player 1 · Seed', playerOneScore: 'Player 1 · Score',
-        playerTwoFlag: 'Player 2 · Flag', playerTwoSponsor: 'Player 2 · Sponsor',
+        playerOneName: 'Player 1 · Name',
+        playerOnePronouns: 'Player 1 · Pronouns',
+        playerOneSeed: 'Player 1 · Seed',
+        playerOneScore: 'Player 1 · Score',
+        playerTwoFlag: 'Player 2 · Flag',
+        playerTwoSponsor: 'Player 2 · Sponsor',
         playerTwoXHandle: 'Player 2 · x.com handle',
-        playerTwoName: 'Player 2 · Name', playerTwoPronouns: 'Player 2 · Pronouns',
-        playerTwoSeed: 'Player 2 · Seed', playerTwoScore: 'Player 2 · Score', matchLabel: 'Round',
-        logo: 'Tournament logo', infoLeft: 'Lower-left rail',
-        infoCenter: 'Lower-center rail', infoRight: 'Lower-right rail'
+        playerTwoName: 'Player 2 · Name',
+        playerTwoPronouns: 'Player 2 · Pronouns',
+        playerTwoSeed: 'Player 2 · Seed',
+        playerTwoScore: 'Player 2 · Score',
+        matchLabel: 'Round',
+        logo: 'Tournament logo',
+        infoLeft: 'Lower-left rail',
+        infoCenter: 'Lower-center rail',
+        infoRight: 'Lower-right rail'
       },
       align: { left: 'Left', center: 'Center', right: 'Right' },
       visibility: {
-        flags: 'Show flags', sponsors: 'Show sponsors and prefixes', xHandles: 'Show x.com handles',
-        pronouns: 'Show pronouns', seeds: 'Show seeds',
-        round: 'Show round', tournamentLogo: 'Show tournament logo', bottomRails: 'Show lower rail details'
+        flags: 'Show flags',
+        sponsors: 'Show sponsors and prefixes',
+        xHandles: 'Show x.com handles',
+        pronouns: 'Show pronouns',
+        seeds: 'Show seeds',
+        round: 'Show round',
+        tournamentLogo: 'Show tournament logo',
+        bottomRails: 'Show lower rail details'
       },
-      outlineLabel: 'Text outline', outline: { none: 'None', soft: 'Soft', strong: 'Strong' },
+      outlineLabel: 'Text outline',
+      outline: { none: 'None', soft: 'Soft', strong: 'Strong' },
       typography: {
-        nameSize: 'Player name', metaSize: 'Player details', scoreSize: 'Score', contextSize: 'Round and rails'
+        nameSize: 'Player name',
+        metaSize: 'Player details',
+        scoreSize: 'Score',
+        contextSize: 'Round and rails'
       }
     },
+    // Top 8 Matchups
     topEightMatchups: {
-      title: 'Top 8 Matchups', description: 'Present the two opening Winners matches and two opening Losers matches with one character portrait per player.',
-      eventName: 'Event name', detect: 'Find matchups from the loaded event',
-      loading: 'Loading Top 8 Matchups settings…', retry: 'Try again', winners: 'Winners', losers: 'Losers', player: 'Player {{number}}', portrait: 'Character portrait',
-      firstPage: 'Loading the first bracket page…', explicitPhase: 'Loading the “{{phase}}” phase…', topologyFallback: 'No Top 8 phase found. Checking the event bracket instead…',
-      pages: 'Loading bracket pages {{start}}–{{end}} of {{total}}…', analyzePhase: 'Finding the four opening matches in “{{phase}}”…', analyzeEvent: 'Checking {{count}} event sets…',
-      notDetected: 'JABS could not identify a single Top 8 bracket. Check the event structure or enter the players manually.',
-      tooLarge: 'This event is too large to check at once. Select its final phase or pool first.', detected: 'Loaded the four opening Top 8 matches.',
-      unavailable: 'Top 8 Matchups settings are unavailable.', serializeFailed: 'JABS could not prepare the Top 8 Matchups settings.',
-      invalidStyling: 'Choose a supported styling profile.', invalidCatalog: 'Choose a valid character portrait catalog.',
-      invalidTournamentName: 'Enter a tournament name between 1 and 120 characters.', invalidMatchupCount: 'Top 8 Matchups requires exactly four matches.',
-      invalidBracketOrder: 'Top 8 Matchups requires two Winners matches followed by two Losers matches.', invalidPlayerName: 'Enter a name between 1 and 100 characters for every player.',
-      blockedCharacter: 'That custom character name contains blocked text. Choose another character or add the complete name to the moderation allowlist.',
-      blockedTournamentName: 'The tournament name contains blocked text.', blockedEventName: 'The event name contains blocked text.',
-      blockedPlayerName: 'A player name contains blocked text.', blockedSponsor: 'A sponsor contains blocked text.',
+      title: 'Top 8 Matchups',
+      description:
+        'Present the two opening Winners matches and two opening Losers matches with one character portrait per player.',
+      eventName: 'Event name',
+      detect: 'Find matchups from the loaded event',
+      loading: 'Loading Top 8 Matchups settings…',
+      retry: 'Try again',
+      winners: 'Winners',
+      losers: 'Losers',
+      player: 'Player {{number}}',
+      portrait: 'Character portrait',
+      firstPage: 'Loading the first bracket page…',
+      explicitPhase: 'Loading the “{{phase}}” phase…',
+      topologyFallback: 'No Top 8 phase found. Checking the event bracket instead…',
+      pages: 'Loading bracket pages {{start}}–{{end}} of {{total}}…',
+      analyzePhase: 'Finding the four opening matches in “{{phase}}”…',
+      analyzeEvent: 'Checking {{count}} event sets…',
+      notDetected:
+        'JABS could not identify a single Top 8 bracket. Check the event structure or enter the players manually.',
+      tooLarge: 'This event is too large to check at once. Select its final phase or pool first.',
+      detected: 'Loaded the four opening Top 8 matches.',
+      unavailable: 'Top 8 Matchups settings are unavailable.',
+      serializeFailed: 'JABS could not prepare the Top 8 Matchups settings.',
+      invalidStyling: 'Choose a supported styling profile.',
+      invalidCatalog: 'Choose a valid character portrait catalog.',
+      invalidTournamentName: 'Enter a tournament name between 1 and 120 characters.',
+      invalidMatchupCount: 'Top 8 Matchups requires exactly four matches.',
+      invalidBracketOrder: 'Top 8 Matchups requires two Winners matches followed by two Losers matches.',
+      invalidPlayerName: 'Enter a name between 1 and 100 characters for every player.',
+      blockedCharacter:
+        'That custom character name contains blocked text. Choose another character or add the complete name to the moderation allowlist.',
+      blockedTournamentName: 'The tournament name contains blocked text.',
+      blockedEventName: 'The event name contains blocked text.',
+      blockedPlayerName: 'A player name contains blocked text.',
+      blockedSponsor: 'A sponsor contains blocked text.',
       preview: 'Top 8 Matchups preview',
       flipPlayerTwo: 'Flip Player 2 portraits',
       flipPlayerTwoHelp: 'Flip every Player 2 portrait horizontally.'
     },
+    // Top 8 graphic generator
     topEight: {
       description: 'Build a complete top 8 graphic from one shared player and asset setup.',
       ready: 'Preview ready',
@@ -199,16 +348,16 @@ export const en = {
       game: 'Game art catalog',
       style: 'Composition style',
       styles: { mosaic: 'Mosaic', neon: 'Neon' },
-      mediaMode: 'Top 8 artwork', mediaModes: { character: 'Character art', photo: 'Player photos' },
-      adjustLayer: 'Adjust entrant artwork', resetPlacement: 'Reset position',
+      mediaMode: 'Top 8 artwork',
+      mediaModes: { character: 'Character art', photo: 'Player photos' },
+      adjustLayer: 'Adjust entrant artwork',
+      resetPlacement: 'Reset position',
       tournament: 'Tournament name (optional)',
       headline: 'Headline (optional)',
       headlineColor: 'Headline color',
       tournamentLogo: 'Tournament logo',
       noLogo: 'No tournament logo',
-      background: 'Custom background', chooseBackground: 'Choose image', removeBackground: 'Remove background', noBackground: 'No custom background',
-      backgroundHint: 'Optional PNG, JPEG, or WebP. Maximum 15 MB and 40 megapixels.',
-      backgroundFailed: 'JABS could not use this background image.', nowDownloading: 'Now downloading…',
+      nowDownloading: 'Now downloading…',
       eventUrl: 'Completed start.gg event URL',
       loadEventUrl: 'Load event Top 8',
       loadFromStartgg: 'Load from start.gg',
@@ -217,8 +366,10 @@ export const en = {
       manualEventUrlHint: 'Shown at the bottom of the exported PNG when filled.',
       participantCount: 'Number of participants',
       standingsLoaded: 'Loaded the finalized standings for {{event}}. Every imported player remains editable.',
-      standingsNotFinal: 'start.gg does not yet report eight finalized standings for this event. The manual Top 8 remains unchanged.',
-      standingsNotConventional: 'This event does not use the conventional 1st, 2nd, 3rd, 4th, tied 5th, tied 7th order. The manual Top 8 remains unchanged.',
+      standingsNotFinal:
+        'start.gg does not yet report eight finalized standings for this event. The manual Top 8 remains unchanged.',
+      standingsNotConventional:
+        'This event does not use the conventional 1st, 2nd, 3rd, 4th, tied 5th, tied 7th order. The manual Top 8 remains unchanged.',
       standingsFailed: 'JABS could not load this event’s finalized standings.',
       downloadPng: 'Download 1920×1080 PNG',
       downloaded: 'Top 8 PNG generated.',
@@ -227,7 +378,8 @@ export const en = {
       assetFolder: 'User-provided character art:',
       portraitFolder: 'User-provided square character portraits:',
       preview: 'Live preview',
-      previewQuality: 'Preview is scaled to fit this workspace. Export renders at 1920×1080 using the original asset images.',
+      previewQuality:
+        'Preview is scaled to fit this workspace. Export renders at 1920×1080 using the original asset images.',
       placements: 'Top 8 placements',
       placement: 'Placement {{count}}',
       playerTag: 'Player tag',
@@ -239,22 +391,27 @@ export const en = {
       displayFlag: 'Display flag',
       validation: {
         entrantCount: 'A Top 8 composition requires exactly eight entrants.',
-        placements: 'Placements must use conventional double-elimination order: 1st, 2nd, 3rd, 4th, tied 5th, and tied 7th.',
+        placements:
+          'Placements must use conventional double-elimination order: 1st, 2nd, 3rd, 4th, tied 5th, and tied 7th.',
         playerTag: 'Every Top 8 entrant requires a player tag.'
       }
     },
+    // YouTube thumbnail generator
     thumbnail: {
-      description: 'Start from scratch or use the match currently called to stream, then download a Youtube-ready image.',
+      description:
+        'Start from scratch or use the match currently called to stream, then download a Youtube-ready image.',
       ready: 'Ready to export',
       needsDetails: 'Needs details',
       game: 'Game art catalog',
       style: 'Composition style',
       styles: { versus: 'Versus', spotlight: 'Spotlight' },
-      mediaMode: 'Player artwork', mediaModes: { character: 'Character art', photo: 'Player photos' },
+      mediaMode: 'Player artwork',
+      mediaModes: { character: 'Character art', photo: 'Player photos' },
       assetFolder: 'User-provided character art:',
       portraitFolder: 'User-provided square character portraits:',
-      tournament: 'Tournament name',
-      headline: 'Phase · Round',
+      tournament: 'Tournament name (optional)',
+      headline: 'Phase · Round (optional)',
+      headlineColor: 'Phase · Round color',
       logo: 'Tournament logo',
       noLogo: 'No tournament logo',
       useStreamMatch: 'Use match on stream',
@@ -264,10 +421,15 @@ export const en = {
       downloaded: 'YouTube thumbnail PNG generated.',
       downloadFailed: 'JABS could not generate the thumbnail PNG.',
       player: 'Player {{count}}',
-      adjustLayer: 'Adjust media asset', adjustCharacter: '{{player}} · Character', adjustPhoto: '{{player}} · Player photo',
-      mediaScale: 'Media size', resetPlacement: 'Reset position',
-      showTournamentLogo: 'Show tournament logo', showSponsorLogo: 'Show sponsor logo'
+      adjustLayer: 'Adjust media asset',
+      adjustCharacter: '{{player}} · Character',
+      adjustPhoto: '{{player}} · Player photo',
+      mediaScale: 'Media size',
+      resetPlacement: 'Reset position',
+      showTournamentLogo: 'Show tournament logo',
+      showSponsorLogo: 'Show sponsor logo'
     },
+    // Notification labels
     notices: {
       connection: 'Connection',
       dismiss: 'Dismiss notification',
@@ -276,9 +438,11 @@ export const en = {
       done: 'Done',
       notice: 'Notice'
     },
+    // start.gg connection and bracket browser
     startgg: {
       publicAccess: 'Public browsing',
-      publicHelp: 'Browse public tournaments and control your overlays without a token. Add one to report results to start.gg.',
+      publicHelp:
+        'Browse public tournaments and control your overlays without a token. Add one to report results to start.gg.',
       reportToken: 'Add a start.gg token to report results. You can still edit your overlay locally.',
       title: 'Start.gg bracket',
       description: 'Connect, load an event, and choose the next stream set.',
@@ -288,7 +452,8 @@ export const en = {
       offline: 'Offline',
       apiAccess: 'API access',
       tokenLocal: 'Your token stays on your device.',
-      sessionStorage: 'Secure OS credential storage is unavailable. You can keep a token in main-process memory for this session; JABS will not save it, and it will be discarded when the app exits.',
+      sessionStorage:
+        'Secure OS credential storage is unavailable. You can keep a token in main-process memory for this session; JABS will not save it, and it will be discarded when the app exits.',
       tokenPlaceholder: 'Paste start.gg token',
       saveToken: 'Save token',
       useForSession: 'Use for session',
@@ -301,23 +466,26 @@ export const en = {
       unloadTournamentHint: 'Clear the loaded tournament, filters, set selector, and active stream state.',
       recent: 'Recent',
       recentAria: 'Recent tournaments',
-      clearCache: 'Clear bracket cache & history',
-      clearCacheHint: 'Remove cached bracket data and recent tournament history.',
+      clearCache: 'Clear bracket history',
+      clearCacheHint: 'Clear the bracket browser and recent tournament history.',
       activeStateStays: 'Active stream state stays on-air.',
       detectedProfile: 'Detected game profile',
       eventAria: 'Tournament event',
       selectEvent: 'Select event'
     },
+    // Moderation controls
     moderation: {
       title: 'Moderation exceptions',
-      description: 'For a genuine false positive, add the complete field value on its own line and save. Entries match exact values only and do not disable moderation inside other text.',
+      description:
+        'For a genuine false positive, add the complete field value on its own line and save. Entries match exact values only and do not disable moderation inside other text.',
       path: 'File:',
       open: 'Edit allowlist',
       openHint: 'Edit moderation exceptions in JABS.',
       reload: 'Reload allowlist',
       reloadHint: 'Re-read changes made outside JABS.',
       editorTitle: 'Edit moderation allowlist',
-      editorDescription: 'Add one complete player tag, sponsor, pronoun value, or other field value per line. Lines beginning with # are comments.',
+      editorDescription:
+        'Add one complete player tag, sponsor, pronoun value, or other field value per line. Lines beginning with # are comments.',
       editorLabel: 'Moderation allowlist entries',
       cancel: 'Cancel',
       save: 'Save',
@@ -332,17 +500,18 @@ export const en = {
       tooManyEntries: 'The moderation allowlist supports at most 4,096 entries.',
       lineTooLong: 'Moderation allowlist line {{line}} exceeds 256 characters.'
     },
+    // Utility groups
     utilityGroups: { moderation: 'Moderation', media: 'Media', bracket: 'Bracket', obs: 'OBS' },
+    // Bracket browsing
     browser: {
       selectEvent: 'Select an event to reload bracket data.',
       updatedAt: 'Bracket Updated {{time}}',
-      cachedAt: 'Cached data from {{time}}',
-      cached: 'Showing cached bracket data.',
       gameProfile: 'Game profile for set',
       assetSlug: 'Character asset folder:',
       reloadAssets: 'Reload assets',
       reloadAssetsHint: 'Rescan local artwork, photos, and logos.',
-      assetsReloaded: 'Assets reloaded · Character art: {{characterArt}} · Portraits: {{characterPortraits}} · Tournament logos: {{tournamentLogos}} · Sponsor logos: {{sponsorLogos}} · Player photos: {{playerPhotos}}',
+      assetsReloaded:
+        'Assets reloaded · Character art: {{characterArt}} · Portraits: {{characterPortraits}} · Tournament logos: {{tournamentLogos}} · Sponsor logos: {{sponsorLogos}} · Player photos: {{playerPhotos}}',
       logosReloaded: '{{count}} tournament logo(s) found.',
       assetsReloadFailed: 'Unable to reload the local media catalogs.',
       chooseProfile: 'Choose game profile',
@@ -360,6 +529,7 @@ export const en = {
       refresh: 'Refresh set selector',
       refreshHint: 'Fetch the latest sets for the current filters.'
     },
+    // Set selection and filters
     selector: {
       pillFilters: 'Filter By:',
       pillFiltersHelp: 'Filters apply to loaded sets. Scroll to load more, or search to load every page.',
@@ -397,6 +567,7 @@ export const en = {
       streamPlatforms: { youtube: 'YouTube', twitch: 'Twitch', stream: 'Stream' },
       scope: { event: 'Event', phase: 'Phase', pool: 'Pool', station: 'Station {{number}}' }
     },
+    // Stream match editor
     editor: {
       enableShortcuts: 'Enable keyboard shortcuts',
       selectMatch: 'Select a start.gg match before reloading it.',
@@ -424,7 +595,8 @@ export const en = {
       save: 'Save stream state',
       discard: 'Discard draft',
       reload: 'Refresh current set',
-      reloadHint: 'Refresh this set’s players, scores, status, bracket details, and head-to-head history. Use this if an unplayed set still appears complete after a reset on start.gg.',
+      reloadHint:
+        'Refresh this set’s players, scores, status, bracket details, and head-to-head history. Use this if an unplayed set still appears complete after a reset on start.gg.',
       playerTag: 'Player tag',
       prefix: 'Prefix',
       character: 'Character',
@@ -445,6 +617,7 @@ export const en = {
       displayFlag: 'Display flag',
       countrySearch: 'Search country, ISO code, or Pride flag'
     },
+    // Broadcast details
     broadcast: {
       sharedLogoHelp: 'Show the Broadcast extras logo, or this overlay’s selected logo if none is set there.',
       tournamentLogoHelp: 'Show the tournament logo selected in Broadcast extras, or the first available logo.',
@@ -466,6 +639,7 @@ export const en = {
       sponsorLogosFolder: 'User-provided sponsor logos:',
       tournamentLogosFolder: 'User-provided tournament logos:'
     },
+    // Live match controls
     live: {
       title: 'Live Controls',
       dirtyWarning: 'Waiting for stream changes to finish autosaving.',
@@ -475,7 +649,8 @@ export const en = {
       historyReady: 'Score history ready.',
       winnerOnly: 'W/L only; game order is unknown.',
       obsTitle: 'OBS URLs',
-      obsHelp: 'Start JABS before OBS loads the source. If OBS opened it while JABS was stopped, use "Refresh cache of current page." in OBS browser source properties',
+      obsHelp:
+        'Start JABS before OBS loads the source. If OBS opened it while JABS was stopped, use "Refresh cache of current page." in OBS browser source properties',
       resolvingObs: 'Resolving local OBS URL…',
       copied: 'Copied',
       copyObs: 'Copy overlay URL',
@@ -493,6 +668,7 @@ export const en = {
       playerTwoPoint: '+1 Player 2',
       subtractPlayerTwoPoint: '−1 Player 2'
     },
+    // Set actions
     setActions: {
       closeAria: 'Close set actions',
       send: 'Send to Stream',
@@ -504,7 +680,8 @@ export const en = {
       accepted: 'Accepted by start.gg',
       streamUnchanged: 'The active stream match was not changed.',
       bracketSet: 'Bracket set',
-      historyWarning: 'This set already had a score when opened, so its game order is unknown. Reset and re-enter the full result to report an exact score; otherwise only W/L can be sent.',
+      historyWarning:
+        'This set already had a score when opened, so its game order is unknown. Reset and re-enter the full result to report an exact score; otherwise only W/L can be sent.',
       charactersFor: 'Characters · {{player}}',
       characterHelp: 'Choose characters before adding the game win. Clear this field to report no character.',
       mobileCharacterPrompt: 'Optional: Choose a character before adding a game win.',
@@ -512,36 +689,44 @@ export const en = {
       winner: '{{winner}} wins {{winnerScore}}–{{loserScore}}',
       reporting: 'Reporting…',
       confirm: 'Confirm & update bracket',
-      safety: 'JABS checks that start.gg has not changed this set before submitting. This never replaces the match currently shown in OBS.'
+      safety:
+        'JABS checks that start.gg has not changed this set before submitting. This never replaces the match currently shown in OBS.'
     },
+    // Accessibility labels
     aria: {
       decreaseScore: 'Decrease {{player}} score',
       increaseScore: 'Increase {{player}} score'
     },
+    // Setup and connection status
     readiness: {
       alreadyComplete: 'This set is already marked complete on start.gg.',
       setMissing: 'Load a start.gg set before reporting a result.',
       entrantsMissing: 'Both start.gg entrant IDs are required to report a result.',
       scoreIncomplete: 'Complete the local score first. This best-of-{{bestOf}} ends at {{target}} wins.',
-      historyMismatch: 'Recorded game history does not match the live score. Correct or reset the score before reporting.'
+      historyMismatch:
+        'Recorded game history does not match the live score. Correct or reset the score before reporting.'
     },
+    // Action confirmations and results
     messages: {
       loadSearch: 'Unable to load every bracket page for search.',
       enterToken: 'Enter a start.gg token first.',
-      sessionTokenSaved: 'start.gg token is active for this app session only and will be discarded on exit. Load a tournament to verify it.',
+      sessionTokenSaved:
+        'start.gg token is active for this app session only and will be discarded on exit. Load a tournament to verify it.',
       tokenSaved: 'start.gg token stored locally. Load a tournament to verify it with start.gg.',
       saveTokenFailed: 'Unable to save token.',
       tokenRemoved: 'start.gg token removed from this device.',
       removeTokenFailed: 'Unable to remove token.',
       tournamentUnloaded: 'Tournament unloaded and active stream state cleared.',
       tournamentUnloadFailed: 'Unable to unload the tournament and clear the active stream state.',
-      clearCacheConfirm: 'Clear cached start.gg bracket responses and recent tournament history? The active stream state and saved stream overrides will stay unchanged.',
-      cacheCleared: 'Cached bracket responses and recent tournament history cleared. Active stream state and saved overrides were preserved.',
-      clearCacheFailed: 'Unable to clear cached bracket data.',
+      clearCacheConfirm:
+        'Clear recent tournament history and reset the bracket browser? The active stream state and saved stream overrides will stay unchanged.',
+      cacheCleared:
+        'Bracket browser and recent tournament history cleared. Active stream state and saved overrides were preserved.',
+      clearCacheFailed: 'Unable to clear bracket history.',
       tournamentRequired: 'Enter a tournament slug or start.gg URL first.',
       recentHistoryNotSaved: 'The tournament loaded, but JABS could not save it to Recent tournaments.',
-      cachedEvents: 'Loaded {{count}} cached events.',
-      noEvents: 'No events were found. Check the tournament slug or URL and confirm the tournament is visible on start.gg.',
+      noEvents:
+        'No events were found. Check the tournament slug or URL and confirm the tournament is visible on start.gg.',
       loadEventsFailed: 'Unable to load events.',
       loadedPhases: 'Loaded {{count}} phases.',
       phasesFailed: 'Phases: {{message}}',
@@ -559,7 +744,8 @@ export const en = {
       showingScopeSets: 'Showing {{shown}} of {{total}} {{scope}} sets.',
       quickLoadFailed: 'Unable to load this set for quick scoring.',
       quickSetRequired: 'Load a set for quick scoring first.',
-      quickConfirm: 'Quick report {{winner}} as the winner on start.gg?\n\n{{playerOne}} {{scoreOne}}–{{scoreTwo}} {{playerTwo}}\nSet ID: {{setId}}\n\nThis updates the live bracket without changing the on-stream match.',
+      quickConfirm:
+        'Quick report {{winner}} as the winner on start.gg?\n\n{{playerOne}} {{scoreOne}}–{{scoreTwo}} {{playerTwo}}\nSet ID: {{setId}}\n\nThis updates the live bracket without changing the on-stream match.',
       quickReceipt: '{{winner}} won {{winnerScore}}–{{loserScore}}. start.gg accepted set {{setId}}{{completion}}.',
       markedComplete: ' and marked it complete',
       quickReportFailed: 'Unable to quick-report this set to start.gg.',
@@ -567,15 +753,19 @@ export const en = {
       streamSaved: 'Stream state saved locally and pushed to connected overlays.',
       saveStreamFailed: 'Unable to save stream state.',
       reportSetRequired: 'Load a start.gg set before reporting a result.',
-      reportConfirm: 'Report {{winner}} as the winner on start.gg?\n\n{{playerOne}} {{scoreOne}}–{{scoreTwo}} {{playerTwo}}\n{{history}}Set ID: {{setId}}\n\nThis changes the live bracket and may advance entrants.',
+      reportConfirm:
+        'Report {{winner}} as the winner on start.gg?\n\n{{playerOne}} {{scoreOne}}–{{scoreTwo}} {{playerTwo}}\n{{history}}Set ID: {{setId}}\n\nThis changes the live bracket and may advance entrants.',
       reportHistoryExact: 'The recorded {{count}}-game history will also report the set score.\n',
-      reportHistoryWinnerOnly: 'Only W/L can be reported because this set began with scores but no recorded game order.\n',
+      reportHistoryWinnerOnly:
+        'Only W/L can be reported because this set began with scores but no recorded game order.\n',
       reportExactSuccess: '{{winner}} and the {{winnerScore}}–{{loserScore}} score were reported on start.gg.',
       characterSelectionsReported: 'Character selections included: {{count}}.',
-      reportWinnerSuccess: '{{winner}} was reported as the winner on start.gg. The score was not sent because no trustworthy game order was available.',
+      reportWinnerSuccess:
+        '{{winner}} was reported as the winner on start.gg. The score was not sent because no trustworthy game order was available.',
       selectorRefreshFailed: 'The set selector could not refresh; use Refresh current view.',
       reportFailed: 'Unable to report the set to start.gg.',
-      reloadConfirm: 'Refresh this set’s players, scores, round, station, and Versus history from start.gg? The current game profile, styling, and broadcast extras stay selected.',
+      reloadConfirm:
+        'Refresh this set’s players, scores, round, station, and Versus history from start.gg? The current game profile, styling, and broadcast extras stay selected.',
       reloadSuccess: 'Current set and Versus history refreshed from start.gg.',
       reloadSetSuccess: 'Current set refreshed.',
       reloadSetOnly: 'Current set refreshed. Head-to-head history requires linked start.gg player profiles.',
@@ -587,12 +777,10 @@ export const en = {
       commentatorsSwapped: 'Commentator sides swapped.',
       stateFailed: 'Unable to update stream state.',
       obsCopied: 'Active OBS overlay URL copied to the system clipboard.',
-      copyFailed: 'Unable to copy the local URL.',
-      cachedResult: '{{message}} Showing cached data from {{cachedAt}}{{reason}}',
-      cachedBecause: ' because {{warning}}',
-      earlierSession: 'an earlier session'
+      copyFailed: 'Unable to copy the local URL.'
     }
   },
+  // Application and start.gg errors
   errors: {
     generic: 'Something went wrong.',
     localSettings: 'Unable to load local app settings.',
@@ -601,11 +789,15 @@ export const en = {
     copyUrl: 'Unable to copy the local URL.',
     invalidPort: 'JABS received an invalid local API port.',
     desktopTokenOnly: 'Token management is available only inside the JABS desktop app.',
-    localService: "JABS's local service stopped responding at {{url}}. Restart the desktop app and try again. The content-free jabs-main.log is in the app's data directory.",
-    localServiceAfterRetry: "JABS's local service stopped responding at {{url}} after a retry. Restart the desktop app and try again. The content-free jabs-main.log is in the app's data directory.",
+    localService:
+      "JABS's local service stopped responding at {{url}}. Restart the desktop app and try again. The content-free jabs-main.log is in the app's data directory.",
+    localServiceAfterRetry:
+      "JABS's local service stopped responding at {{url}} after a retry. Restart the desktop app and try again. The content-free jabs-main.log is in the app's data directory.",
     http: 'Request failed with HTTP {{status}}',
+    // start.gg error messages
     startgg: {
-      publicUnavailable: 'Public start.gg access could not load this data. Try again, or add a token in Connect start.gg. Your local overlay controls still work.',
+      publicUnavailable:
+        'Public start.gg access could not load this data. Try again, or add a token in Connect start.gg. Your local overlay controls still work.',
       tokenMissing: 'Add a start.gg token to report results. Local overlay controls do not need one.',
       authentication: 'start.gg rejected the token. Check that it is current, then save it again.',
       permission: 'This start.gg token does not have permission for the requested tournament action.',
@@ -613,7 +805,8 @@ export const en = {
       queryComplexity: 'start.gg rejected this request as too complex. Narrow the bracket view and try again.',
       timeout: 'start.gg took too long to respond. Try again.',
       network: 'JABS could not reach start.gg. Check the internet connection and try again.',
-      upstream: 'The start.gg API returned a temporary server error. The website may still be online; try loading again shortly.',
+      upstream:
+        'The start.gg API returned a temporary server error. The website may still be online; try loading again shortly.',
       invalidResponse: 'start.gg returned data JABS could not safely understand.',
       graphql: 'start.gg rejected the bracket request. Check the selected tournament data and permissions.',
       conflict: 'This set changed after you opened it. Reopen it and review the latest result.'

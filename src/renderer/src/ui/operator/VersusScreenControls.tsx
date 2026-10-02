@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge, Button, Group, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
 import type { SelectedSetState } from '@shared/models';
 import { clampMediaTransform, defaultMediaTransform, type MediaLayerKind, type MediaTransform } from '@shared/mediaPlacement';
-import type { VersusScreenState } from '@shared/versusScreen';
 import { api } from '../../api';
+import { useSettingsDraft } from '../../hooks/useSettingsDraft';
 import { VersusPreview } from './VersusPreview';
 import { useTranslation } from 'react-i18next';
 import { sortByLabel } from './operatorUtils';
@@ -20,52 +20,24 @@ type VersusScreenControlsProps = {
 
 export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: VersusScreenControlsProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
-  const [state, setState] = useState<VersusScreenState>();
-  const [saving, setSaving] = useState(false);
+  const { state, saving, update, reload } = useSettingsDraft({
+    load: api.versusScreenState, save: api.updateVersusScreenState, onError: notify
+  });
   const [refreshing, setRefreshing] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState<{ player: 0 | 1; layer: MediaLayerKind }>();
-  const [placementPending, setPlacementPending] = useState(false);
-  const stateRef = useRef<VersusScreenState | undefined>(undefined);
-  const placementTimerRef = useRef<number | undefined>(undefined);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const sortedProfiles = useMemo(() => sortByLabel(profiles, (profile) => profile.styleName, locale), [profiles, locale]);
-  stateRef.current = state;
-  useEffect(() => {
-    void api.versusScreenState().then(setState).catch((error) => notify(error));
-  }, []);
   useEffect(() => setSelectedLayer(undefined), [activeSet?.setId]);
 
-  async function update(patch: Partial<VersusScreenState>) {
-    const current = stateRef.current;
-    if (!current) return;
-    if (placementTimerRef.current) window.clearTimeout(placementTimerRef.current);
-    setPlacementPending(false);
-    const next = { ...current, ...patch };
-    setState(next);
-    stateRef.current = next;
-    setSaving(true);
-    try {
-      const saved = await api.updateVersusScreenState(next);
-      setState(saved);
-      stateRef.current = saved;
-    } catch (error) {
-      notify(error);
-    } finally {
-      setSaving(false);
-    }
-  }
-
   function updatePlacement(player: 0 | 1, layer: MediaLayerKind, transform: MediaTransform) {
-    const current = stateRef.current;
-    if (!current) return;
-    const placements = [...current.mediaPlacements] as VersusScreenState['mediaPlacements'];
-    placements[player] = { ...placements[player], [layer]: clampMediaTransform(transform) };
-    const next = { ...current, mediaPlacements: placements };
-    stateRef.current = next;
-    setState(next);
-    setPlacementPending(true);
-    if (placementTimerRef.current) window.clearTimeout(placementTimerRef.current);
-    placementTimerRef.current = window.setTimeout(() => void update({ mediaPlacements: next.mediaPlacements }), 1_000);
+    if (refreshing) return;
+    void update((current) => ({
+      ...current,
+      mediaPlacements: [
+        player === 0 ? { ...current.mediaPlacements[0], [layer]: clampMediaTransform(transform) } : current.mediaPlacements[0],
+        player === 1 ? { ...current.mediaPlacements[1], [layer]: clampMediaTransform(transform) } : current.mediaPlacements[1]
+      ]
+    }), 1_000);
   }
 
   const placementOptions = useMemo(() => {
@@ -80,8 +52,8 @@ export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: 
   async function refreshHistory() {
     setRefreshing(true);
     try {
-      const next = await api.refreshVersusHistory();
-      setState(next);
+      await api.refreshVersusHistory();
+      await reload();
       notifications.show({ color: 'green', title: 'Versus history updated', message: 'Latest placements and head-to-head sets were loaded from start.gg.' });
     } catch (error) {
       notify(error);
@@ -109,7 +81,7 @@ export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: 
           <Text c="dimmed" size="sm">
             {canLoadHistory ? `${historyCount} ${t('workspaces.versusScreen.historyEntries')}` : t('workspaces.versusScreen.startggProfileError')}
           </Text>
-        <Button loading={refreshing} disabled={!canLoadHistory} onClick={() => void refreshHistory()}>
+        <Button loading={refreshing} disabled={!canLoadHistory || saving} onClick={() => void refreshHistory()}>
           {t('workspaces.versusScreen.refreshHistory')}
         </Button>
         </div>
@@ -118,8 +90,8 @@ export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: 
         <Stack gap="xs">
           <Group justify="space-between">
             <Text fw={800}>{t('workspaces.versusScreen.livePreview')}</Text>
-            <Badge color={placementPending ? 'yellow' : 'green'} variant="light">
-              {placementPending ? t('workspaces.versusScreen.obsPending') : t('workspaces.versusScreen.obsCurrent')}
+            <Badge color={saving ? 'yellow' : 'green'} variant="light">
+              {saving ? t('workspaces.versusScreen.obsPending') : t('workspaces.versusScreen.obsCurrent')}
             </Badge>
           </Group>
           <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
@@ -162,7 +134,7 @@ export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: 
         value={state.stylingGameId}
         searchable
         allowDeselect={false}
-        disabled={saving}
+        disabled={saving || refreshing}
         onChange={(value) => value && void update({ stylingGameId: value as GameId })}
       />
       <div>
@@ -171,14 +143,14 @@ export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: 
           fullWidth
           value={state.mediaMode}
           data={[{ value: 'character', label: t('thumbnail.mediaModes.character') }, { value: 'photo', label: t('thumbnail.mediaModes.photo') }]}
-          disabled={saving}
+          disabled={saving || refreshing}
           onChange={(mediaMode) => void update({ mediaMode: mediaMode as 'character' | 'photo' })}
         />
       </div>
       <Group grow align="center">
-        <Switch label={t('workspaces.transparentBackground')} description={t('workspaces.transparentBackgroundHelp')} checked={!state.showBackground} disabled={saving} onChange={(event) => void update({ showBackground: !event.currentTarget.checked })} />
-        <Switch label={t('thumbnail.showTournamentLogo')} description={t('broadcast.tournamentLogoHelp')} checked={state.showTournamentLogo} disabled={saving} onChange={(event) => void update({ showTournamentLogo: event.currentTarget.checked })} />
-        <Switch label={t('thumbnail.showSponsorLogo')} description={t('broadcast.sponsorLogoHelp')} checked={state.showSponsorLogos} disabled={saving} onChange={(event) => void update({ showSponsorLogos: event.currentTarget.checked })} />
+        <Switch label={t('workspaces.transparentBackground')} description={t('workspaces.transparentBackgroundHelp')} checked={!state.showBackground} disabled={saving || refreshing} onChange={(event) => void update({ showBackground: !event.currentTarget.checked })} />
+        <Switch label={t('thumbnail.showTournamentLogo')} description={t('broadcast.tournamentLogoHelp')} checked={state.showTournamentLogo} disabled={saving || refreshing} onChange={(event) => void update({ showTournamentLogo: event.currentTarget.checked })} />
+        <Switch label={t('thumbnail.showSponsorLogo')} description={t('broadcast.sponsorLogoHelp')} checked={state.showSponsorLogos} disabled={saving || refreshing} onChange={(event) => void update({ showSponsorLogos: event.currentTarget.checked })} />
       </Group>
       <MediaFoldersAccordion gameAssetSubpath={assetCatalogSlug ? `${assetCatalogSlug}/characters` : undefined} />
     </Stack>

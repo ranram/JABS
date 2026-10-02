@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
-import { noticeLabelKey, noticeTone } from './operatorUtils';
+import { noticeLabels, type NoticeSink, type OperatorNotice } from './operatorNotice';
 
 const toneColors = {
   error: 'red',
@@ -10,8 +10,12 @@ const toneColors = {
   info: 'blue'
 } as const;
 
-export function useOperatorNotifications(message?: string, stateError?: string): void {
+export function useOperatorNotifications(stateError?: string): NoticeSink {
   const { t } = useTranslation('operator');
+  const [notice, setNotice] = useState<OperatorNotice>();
+  const setMessage = useCallback<NoticeSink>((message, tone) => {
+    setNotice(message === undefined ? undefined : { message, tone });
+  }, []);
 
   useEffect(() => {
     if (!stateError) return;
@@ -26,14 +30,15 @@ export function useOperatorNotifications(message?: string, stateError?: string):
   }, [stateError, t]);
 
   useEffect(() => {
-    if (!message) return;
-    const tone = noticeTone(message);
+    if (!notice) return;
+    const { message, tone } = notice;
     notifications.show({
-      title: t(`notices.${noticeLabelKey(message)}`),
+      title: t(`notices.${noticeLabels[tone]}`),
       message,
       color: toneColors[tone],
       autoClose: tone === 'error' ? false : 6_000,
       withCloseButton: true
     });
-  }, [message, t]);
+  }, [notice, t]);
+  return setMessage;
 }

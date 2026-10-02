@@ -1,10 +1,12 @@
 mod local_server;
+mod app_updates;
 mod catalogs;
 mod commentators;
 mod custom_scoreboards;
 mod result_screen;
 mod versus_screen;
 mod database;
+mod persisted_state;
 mod generated_moderation_terms;
 mod match_formats;
 mod moderation;
@@ -197,6 +199,7 @@ fn report_renderer_diagnostic(event: String, app: tauri::AppHandle) -> Result<()
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            app_updates::register(app)?;
             let app_data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&app_data_dir)?;
             let database_path = migrated_database_path(&app_data_dir)?;
@@ -272,6 +275,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            app_updates::get_update_support,
+            app_updates::restart_app,
             get_api_port,
             get_token_status,
             set_startgg_token,

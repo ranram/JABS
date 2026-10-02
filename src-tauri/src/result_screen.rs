@@ -27,11 +27,9 @@ pub struct ResultScreenStore {
 
 impl ResultScreenStore {
     pub fn load(database: &Database) -> Result<Self, String> {
-        let state = database
-            .load_broadcast_surface(SURFACE_ID)?
-            .and_then(|payload| serde_json::from_str::<ResultScreenState>(&payload).ok())
-            .filter(|state| crate::state::is_supported_game_id(&state.styling_game_id))
-            .unwrap_or(ResultScreenState {
+        let state = crate::persisted_state::restore(
+            database, "Winner/Champion", database.load_broadcast_surface(SURFACE_ID)?,
+            || Ok(ResultScreenState {
                 styling_game_id: default_styling_game_id(),
                 show_background: true,
                 show_tournament_logo: true,
@@ -39,7 +37,12 @@ impl ResultScreenStore {
                 show_sponsor_logo: true,
                 show_character: true,
                 updated_at: now_rfc3339()?,
-            });
+            }),
+            |state: &mut ResultScreenState| {
+                if crate::state::is_supported_game_id(&state.styling_game_id) { Ok(()) }
+                else { Err("Unknown styling profile.".to_owned()) }
+            },
+        )?;
         let payload = serde_json::to_string(&state)
             .map_err(|_| "Unable to serialize Winner/Champion settings.".to_owned())?;
         database.save_broadcast_surface(SURFACE_ID, &payload, &state.updated_at)?;

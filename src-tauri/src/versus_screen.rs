@@ -83,11 +83,9 @@ pub struct VersusScreenStore {
 
 impl VersusScreenStore {
     pub fn load(database: &Database) -> Result<Self, String> {
-        let state = database
-            .load_broadcast_surface(SURFACE_ID)?
-            .and_then(|payload| serde_json::from_str::<VersusScreenState>(&payload).ok())
-            .filter(validate)
-            .unwrap_or(VersusScreenState {
+        let state = crate::persisted_state::restore(
+            database, "Versus Screen", database.load_broadcast_surface(SURFACE_ID)?,
+            || Ok(VersusScreenState {
                 styling_game_id: default_styling_game_id(),
                 show_background: true,
                 show_tournament_logo: true,
@@ -96,7 +94,11 @@ impl VersusScreenStore {
                 media_placements: default_media_placements(),
                 history: None,
                 updated_at: now_rfc3339()?,
-            });
+            }),
+            |state: &mut VersusScreenState| {
+                if validate(state) { Ok(()) } else { Err("Invalid Versus settings.".to_owned()) }
+            },
+        )?;
         let payload = serde_json::to_string(&state)
             .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())?;
         database.save_broadcast_surface(SURFACE_ID, &payload, &state.updated_at)?;
@@ -114,44 +116,43 @@ impl VersusScreenStore {
     pub fn subscribe(&self) -> broadcast::Receiver<String> { self.updates.subscribe() }
 
     pub fn replace(&self, database: &Database, mut submitted: VersusScreenState) -> Result<Value, String> {
-        submitted.history = self.state.read()
-            .map_err(|_| "Versus Screen settings are unavailable.".to_owned())?
-            .history
-            .clone();
-        if !validate(&submitted) {
-            return Err("Choose valid Versus Screen settings.".to_owned());
-        }
-        submitted.updated_at = now_rfc3339()?;
-        self.save(database, submitted)
+        let mut current = self.state.write()
+            .map_err(|_| "Versus Screen settings are unavailable.".to_owned())?;
+        crate::persisted_state::check_revision(&submitted.updated_at, &current.updated_at)?;
+        submitted.history = current.history.clone();
+        self.save(database, &mut current, submitted)
     }
 
     pub fn replace_history(&self, database: &Database, history: VersusHistory) -> Result<Value, String> {
-        let mut next = self.state.read()
-            .map_err(|_| "Versus Screen settings are unavailable.".to_owned())?
-            .clone();
+        let mut current = self.state.write()
+            .map_err(|_| "Versus Screen settings are unavailable.".to_owned())?;
+        let mut next = current.clone();
         next.history = Some(history);
-        next.updated_at = now_rfc3339()?;
-        self.save(database, next)
+        self.save(database, &mut current, next)
     }
 
     pub fn reset_media_placements(&self, database: &Database) -> Result<Value, String> {
-        let mut next = self.state.read()
-            .map_err(|_| "Versus Screen settings are unavailable.".to_owned())?
-            .clone();
+        let mut current = self.state.write()
+            .map_err(|_| "Versus Screen settings are unavailable.".to_owned())?;
+        let mut next = current.clone();
         next.media_placements = default_media_placements();
-        next.updated_at = now_rfc3339()?;
-        self.save(database, next)
+        self.save(database, &mut current, next)
     }
 
-    fn save(&self, database: &Database, state: VersusScreenState) -> Result<Value, String> {
-        let payload = serde_json::to_string(&state)
+    fn save(&self, database: &Database, current: &mut VersusScreenState, mut next: VersusScreenState) -> Result<Value, String> {
+        if !validate(&next) {
+            return Err("Choose valid Versus Screen settings.".to_owned());
+        }
+        next.updated_at = crate::state::next_timestamp(&current.updated_at)?;
+        let payload = serde_json::to_string(&next)
             .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())?;
-        database.save_broadcast_surface(SURFACE_ID, &payload, &state.updated_at)?;
-        *self.state.write().map_err(|_| "Versus Screen settings are unavailable.".to_owned())? = state;
+        database.save_broadcast_surface(SURFACE_ID, &payload, &next.updated_at)?;
+        *current = next;
         let _ = self.updates.send(payload.clone());
         serde_json::from_str(&payload)
             .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())
     }
+
 }
 
 fn validate(state: &VersusScreenState) -> bool {
@@ -172,5 +173,40 @@ fn validate(state: &VersusScreenState) -> bool {
 }
 
 fn default_styling_game_id() -> String { "street-fighter-6".to_owned() }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn history_and_settings_writes_preserve_each_other_and_reject_stale_revisions() {
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let store = VersusScreenStore::load(&database).unwrap();
+        let stale = store.current().unwrap();
+        let mut updates = store.subscribe();
+        let history = VersusHistory {
+            player_one_placements: vec![Placement { placement: 1, tournament_name: "Finals".into(), event_name: "Singles".into() }],
+            player_two_placements: vec![], head_to_head: vec![],
+        };
+        let with_history = store.replace_history(&database, history).unwrap();
+        assert_ne!(stale["updatedAt"], with_history["updatedAt"]);
+        let mut submitted: VersusScreenState = serde_json::from_value(with_history.clone()).unwrap();
+        submitted.show_background = false;
+        submitted.history = None;
+        let saved = store.replace(&database, submitted).unwrap();
+        assert_eq!(saved["history"], with_history["history"]);
+        assert_eq!(store.replace(&database, serde_json::from_value(stale).unwrap()).unwrap_err(), crate::persisted_state::STALE_SETTINGS);
+        let reset = store.reset_media_placements(&database).unwrap();
+        assert_eq!(reset["showBackground"], false);
+        assert_eq!(reset["history"], saved["history"]);
+        assert_ne!(reset["updatedAt"], saved["updatedAt"]);
+        let persisted: Value = serde_json::from_str(&database.load_broadcast_surface(SURFACE_ID).unwrap().unwrap()).unwrap();
+        assert_eq!(persisted, reset);
+        for expected in [&with_history, &saved, &reset] {
+            assert_eq!(&serde_json::from_str::<Value>(&updates.try_recv().unwrap()).unwrap(), expected);
+        }
+        assert!(updates.try_recv().is_err());
+    }
+}
 fn default_media_mode() -> String { "character".to_owned() }
 fn default_true() -> bool { true }

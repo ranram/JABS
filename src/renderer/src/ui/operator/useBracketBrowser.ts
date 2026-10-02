@@ -1,3 +1,4 @@
+import type { NoticeSink } from './operatorNotice';
 import { useRef, type Dispatch, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { gameIdForStartggVideogame, type GameId } from '@shared/gameProfiles';
@@ -15,13 +16,13 @@ import type {
 } from '@shared/models';
 import { normalizeTournamentSlug } from '@shared/startgg';
 import type { StartggGateway } from '@shared/startggGateway';
-import { errorMessage, localizedScopeLabel, resultMessage, setScopeKey } from './operatorUtils';
+import { errorMessage, localizedScopeLabel, setScopeKey } from './operatorUtils';
 import { useBracketBrowserState } from './bracketBrowserState';
 
 type UseBracketBrowserOptions = {
   onContextChange?(): Promise<void>;
   startgg: StartggGateway;
-  setMessage: Dispatch<SetStateAction<string | undefined>>;
+  setMessage: NoticeSink;
   setLoading: Dispatch<SetStateAction<boolean>>;
   setTokenVerified: Dispatch<SetStateAction<boolean>>;
 };
@@ -36,10 +37,17 @@ export function useBracketBrowser({
   const { t } = useTranslation('operator');
   const { state, setField, patch, reset } = useBracketBrowserState();
   const {
-    tournamentSlug, recentTournaments, events, selectedEventId, selectionGameId,
-    phases, selectedPhaseId, phaseGroups, selectedPhaseGroupId, phaseGroupPageInfo,
-    stationNumber, setScope, sets, streamAssignments, setSearch, setSearchCatalog,
-    setSearchCatalogKey, setSearchLoading, setSearchProgress, setPageInfo, setPageLoading
+    tournamentSlug,
+    events,
+    selectedEventId,
+    selectedPhaseId,
+    stationNumber,
+    setScope,
+    sets,
+    setSearch,
+    setSearchCatalog,
+    setSearchCatalogKey,
+    setPageInfo
   } = state;
   const setTournamentSlug = (value: SetStateAction<string>) => setField('tournamentSlug', value);
   const setRecentTournaments = (value: SetStateAction<RecentTournament[]>) => setField('recentTournaments', value);
@@ -50,16 +58,19 @@ export function useBracketBrowser({
   const setSelectedPhaseId = (value: SetStateAction<string>) => setField('selectedPhaseId', value);
   const setPhaseGroups = (value: SetStateAction<StartggPhaseGroup[]>) => setField('phaseGroups', value);
   const setSelectedPhaseGroupId = (value: SetStateAction<string>) => setField('selectedPhaseGroupId', value);
-  const setPhaseGroupPageInfo = (value: SetStateAction<StartggPageInfo | undefined>) => setField('phaseGroupPageInfo', value);
+  const setPhaseGroupPageInfo = (value: SetStateAction<StartggPageInfo | undefined>) =>
+    setField('phaseGroupPageInfo', value);
   const setStationNumber = (value: SetStateAction<string>) => setField('stationNumber', value);
   const setSetScope = (value: SetStateAction<StartggSetScope | undefined>) => setField('setScope', value);
   const setSets = (value: SetStateAction<SetSummary[]>) => setField('sets', value);
-  const setStreamAssignments = (value: SetStateAction<StartggStreamAssignment[]>) => setField('streamAssignments', value);
+  const setStreamAssignments = (value: SetStateAction<StartggStreamAssignment[]>) =>
+    setField('streamAssignments', value);
   const setSetSearch = (value: SetStateAction<string>) => setField('setSearch', value);
   const setSetSearchCatalog = (value: SetStateAction<SetSummary[] | undefined>) => setField('setSearchCatalog', value);
   const setSetSearchCatalogKey = (value: SetStateAction<string | undefined>) => setField('setSearchCatalogKey', value);
   const setSetSearchLoading = (value: SetStateAction<boolean>) => setField('setSearchLoading', value);
-  const setSetSearchProgress = (value: SetStateAction<{ loaded: number; total: number } | undefined>) => setField('setSearchProgress', value);
+  const setSetSearchProgress = (value: SetStateAction<{ loaded: number; total: number } | undefined>) =>
+    setField('setSearchProgress', value);
   const setSetPageInfo = (value: SetStateAction<StartggPageInfo | undefined>) => setField('setPageInfo', value);
   const setSetPageLoading = (value: SetStateAction<boolean>) => setField('setPageLoading', value);
   const setSearchRequestRef = useRef(0);
@@ -69,8 +80,7 @@ export function useBracketBrowser({
   const setScopeRef = useRef<StartggSetScope | undefined>(undefined);
   const setSearchLoadingKeyRef = useRef<string | undefined>(undefined);
   const currentSetScopeKey = setScopeKey(setScope);
-  const searchCatalogIsCurrent = setSearchCatalog !== undefined
-    && setSearchCatalogKey === currentSetScopeKey;
+  const searchCatalogIsCurrent = setSearchCatalog !== undefined && setSearchCatalogKey === currentSetScopeKey;
 
   async function loadAllPhaseGroups(phaseId: string): Promise<StartggPhaseGroupsResult> {
     const pageSize = 100;
@@ -106,7 +116,7 @@ export function useBracketBrowser({
   function recordSetRefresh(result: StartggResultMeta): void {
     setField('bracketRefresh', {
       source: result.source,
-      at: result.source === 'live' ? new Date().toISOString() : result.cachedAt
+      at: new Date().toISOString()
     });
   }
 
@@ -144,10 +154,7 @@ export function useBracketBrowser({
     });
   }
 
-  async function ensureCompleteSetSearchCatalog(
-    scope = setScope,
-    forceRefresh = false
-  ): Promise<void> {
+  async function ensureCompleteSetSearchCatalog(scope = setScope, forceRefresh = false): Promise<void> {
     if (!scope) return;
     const scopeKey = setScopeKey(scope)!;
     if (!forceRefresh && setSearchCatalogKey === scopeKey && setSearchCatalog !== undefined) return;
@@ -192,7 +199,7 @@ export function useBracketBrowser({
     } catch (error) {
       if (setSearchRequestRef.current !== requestId) return;
       recordFailure();
-      setMessage(errorMessage(error, t('messages.loadSearch')));
+      setMessage(errorMessage(error, t('messages.loadSearch')), 'error');
     } finally {
       if (setSearchRequestRef.current === requestId) {
         setSearchLoadingKeyRef.current = undefined;
@@ -206,7 +213,7 @@ export function useBracketBrowser({
     if (!window.confirm(t('messages.clearCacheConfirm'))) return;
 
     setLoading(true);
-    setMessage(undefined);
+    setMessage(undefined, 'info');
     try {
       await startgg.clearStartggCache();
       setSearchRequestRef.current += 1;
@@ -217,9 +224,9 @@ export function useBracketBrowser({
       reset();
       loadedContextRef.current = { slug: '', eventId: '' };
       recordFailure();
-      setMessage(t('messages.cacheCleared'));
+      setMessage(t('messages.cacheCleared'), 'success');
     } catch (error) {
-      setMessage(errorMessage(error, t('messages.clearCacheFailed')));
+      setMessage(errorMessage(error, t('messages.clearCacheFailed')), 'error');
     } finally {
       setLoading(false);
     }
@@ -255,7 +262,7 @@ export function useBracketBrowser({
       setPageInfo: undefined,
       setPageLoading: false
     });
-    setMessage(t('messages.tournamentUnloaded'));
+    setMessage(t('messages.tournamentUnloaded'), 'success');
   }
 
   async function loadEvents(slug = tournamentSlug): Promise<void> {
@@ -263,18 +270,20 @@ export function useBracketBrowser({
     try {
       normalizedSlug = normalizeTournamentSlug(slug);
     } catch (error) {
-      setMessage(errorMessage(error, t('messages.tournamentRequired')));
+      setMessage(errorMessage(error, t('messages.tournamentRequired')), 'error');
       return;
     }
 
     setLoading(true);
-    setMessage(undefined);
+    setMessage(undefined, 'info');
     try {
       const response = await startgg.events(normalizedSlug);
       recordResult(response);
       const previous = loadedContextRef.current;
-      const retainedEvent = previous.slug === normalizedSlug
-        ? response.events.find((event) => String(event.id) === previous.eventId) : undefined;
+      const retainedEvent =
+        previous.slug === normalizedSlug
+          ? response.events.find((event) => String(event.id) === previous.eventId)
+          : undefined;
       const nextEvent = retainedEvent ?? response.events[0];
       const firstEventId = nextEvent ? String(nextEvent.id) : '';
       if (previous.slug !== normalizedSlug || previous.eventId !== firstEventId) await onContextChange?.();
@@ -293,66 +302,56 @@ export function useBracketBrowser({
       setSets([]);
       setStreamAssignments([]);
       setSetPageInfo(undefined);
-      setRecentTournaments((current) => [
-        { slug: normalizedSlug, openedAt: new Date().toISOString() },
-        ...current.filter((tournament) => tournament.slug !== normalizedSlug)
-      ].slice(0, 8));
-      const streamQueueRequest = startgg.streamQueue(normalizedSlug)
+      setRecentTournaments((current) =>
+        [
+          { slug: normalizedSlug, openedAt: new Date().toISOString() },
+          ...current.filter((tournament) => tournament.slug !== normalizedSlug)
+        ].slice(0, 8)
+      );
+      const streamQueueRequest = startgg
+        .streamQueue(normalizedSlug)
         .then((streamQueue) => {
           recordResult(streamQueue);
           setStreamAssignments(streamQueue.assignments);
         })
         .catch(() => setStreamAssignments([]));
       if (firstEventId) {
-        const eventNotice = response.source === 'cache'
-          ? resultMessage(t('messages.cachedEvents', { count: response.events.length }), response)
-          : response.warning === 'recent-history-not-saved'
-            ? t('messages.recentHistoryNotSaved')
-            : undefined;
-        await Promise.all([
-          streamQueueRequest,
-          selectEvent(
-            firstEventId,
-            eventNotice,
-            response.events
-          )
-        ]);
+        const eventNotice =
+          response.warning === 'recent-history-not-saved' ? t('messages.recentHistoryNotSaved') : undefined;
+        await Promise.all([streamQueueRequest, selectEvent(firstEventId, eventNotice, response.events)]);
       } else {
         await streamQueueRequest;
-        const noEventsNotice = resultMessage(t('messages.noEvents'), response);
-        setMessage(response.warning === 'recent-history-not-saved'
-          ? `${noEventsNotice} ${t('messages.recentHistoryNotSaved')}`
-          : noEventsNotice);
+        const noEventsNotice = t('messages.noEvents');
+        setMessage(
+          response.warning === 'recent-history-not-saved'
+            ? `${noEventsNotice} ${t('messages.recentHistoryNotSaved')}`
+            : noEventsNotice,
+          'warning'
+        );
       }
     } catch (error) {
       recordFailure();
-      setMessage(errorMessage(error, t('messages.loadEventsFailed')));
+      setMessage(errorMessage(error, t('messages.loadEventsFailed')), 'error');
     } finally {
       setLoading(false);
     }
   }
 
-  async function selectEvent(
-    eventId: string,
-    leadingNotice?: string,
-    availableEvents = events
-  ): Promise<void> {
+  async function selectEvent(eventId: string, leadingNotice?: string, availableEvents = events): Promise<void> {
     if (loadedContextRef.current.eventId !== eventId) {
       setLoading(true);
       try {
         await onContextChange?.();
         loadedContextRef.current = { ...loadedContextRef.current, eventId };
       } catch (error) {
-        setMessage(errorMessage(error, t('messages.tournamentUnloadFailed')));
+        setMessage(errorMessage(error, t('messages.tournamentUnloadFailed')), 'error');
         setLoading(false);
         return;
       }
     }
     setSelectedEventId(eventId);
     setSelectionGameId(
-      gameIdForStartggVideogame(
-        availableEvents.find((event) => String(event.id) === eventId)?.videogame
-      ) ?? ''
+      gameIdForStartggVideogame(availableEvents.find((event) => String(event.id) === eventId)?.videogame) ?? ''
     );
     setSelectedPhaseId('');
     setSelectedPhaseGroupId('');
@@ -373,36 +372,43 @@ export function useBracketBrowser({
     const scope: StartggSetScope = { type: 'event', eventId };
     replaceSetScope(scope);
     setLoading(true);
-    setMessage(undefined);
+    setMessage(undefined, 'info');
     try {
-      const [phaseResult, setResult] = await Promise.allSettled([
-        startgg.phases(eventId),
-        startgg.sets(scope)
-      ]);
+      const [phaseResult, setResult] = await Promise.allSettled([startgg.phases(eventId), startgg.sets(scope)]);
       if (setScopeKey(setScopeRef.current) !== setScopeKey(scope)) return;
       const notices: string[] = leadingNotice ? [leadingNotice] : [];
       if (phaseResult.status === 'fulfilled') {
         recordResult(phaseResult.value);
         setPhases(phaseResult.value.phases);
-        notices.push(resultMessage(t('messages.loadedPhases', { count: phaseResult.value.phases.length }), phaseResult.value));
+        notices.push(t('messages.loadedPhases', { count: phaseResult.value.phases.length }));
       } else {
         recordFailure();
-        notices.push(t('messages.phasesFailed', { message: errorMessage(phaseResult.reason, t('messages.loadPhasesFailed')) }));
+        notices.push(
+          t('messages.phasesFailed', { message: errorMessage(phaseResult.reason, t('messages.loadPhasesFailed')) })
+        );
       }
       if (setResult.status === 'fulfilled') {
         recordResult(setResult.value);
         recordSetRefresh(setResult.value);
         setSets(setResult.value.sets);
         setSetPageInfo(setResult.value.pageInfo);
-        notices.push(resultMessage(
-          t('messages.showingEventSets', { shown: setResult.value.sets.length, total: setResult.value.pageInfo.total }),
-          setResult.value
-        ));
+        notices.push(
+          t('messages.showingEventSets', { shown: setResult.value.sets.length, total: setResult.value.pageInfo.total })
+        );
       } else {
         recordFailure();
-        notices.push(t('messages.setsFailed', { message: errorMessage(setResult.reason, t('messages.loadSetsFailed')) }));
+        notices.push(
+          t('messages.setsFailed', { message: errorMessage(setResult.reason, t('messages.loadSetsFailed')) })
+        );
       }
-      setMessage(notices.join(' '));
+      setMessage(
+        notices.join(' '),
+        phaseResult.status === 'rejected' || setResult.status === 'rejected'
+          ? 'error'
+          : leadingNotice
+            ? 'warning'
+            : 'success'
+      );
     } finally {
       setLoading(false);
     }
@@ -415,7 +421,7 @@ export function useBracketBrowser({
     setPhaseGroupPageInfo(undefined);
     setStationNumber('');
     if (!selectedEventId) {
-      setMessage(t('messages.selectEvent'));
+      setMessage(t('messages.selectEvent'), 'warning');
       return;
     }
     if (!phaseId) {
@@ -426,40 +432,45 @@ export function useBracketBrowser({
     const scope: StartggSetScope = { type: 'phase', eventId: selectedEventId, phaseId };
     replaceSetScope(scope);
     setLoading(true);
-    setMessage(undefined);
+    setMessage(undefined, 'info');
     try {
-      const [groupResult, setResult] = await Promise.allSettled([
-        loadAllPhaseGroups(phaseId),
-        startgg.sets(scope)
-      ]);
+      const [groupResult, setResult] = await Promise.allSettled([loadAllPhaseGroups(phaseId), startgg.sets(scope)]);
       if (setScopeKey(setScopeRef.current) !== setScopeKey(scope)) return;
       const notices: string[] = [];
       if (groupResult.status === 'fulfilled') {
         recordResult(groupResult.value);
         setPhaseGroups(groupResult.value.phaseGroups);
         setPhaseGroupPageInfo(groupResult.value.pageInfo);
-        notices.push(resultMessage(
-          t('messages.loadedPools', { shown: groupResult.value.phaseGroups.length, total: groupResult.value.pageInfo.total }),
-          groupResult.value
-        ));
+        notices.push(
+          t('messages.loadedPools', {
+            shown: groupResult.value.phaseGroups.length,
+            total: groupResult.value.pageInfo.total
+          })
+        );
       } else {
         recordFailure();
-        notices.push(t('messages.poolsFailed', { message: errorMessage(groupResult.reason, t('messages.loadPoolsFailed')) }));
+        notices.push(
+          t('messages.poolsFailed', { message: errorMessage(groupResult.reason, t('messages.loadPoolsFailed')) })
+        );
       }
       if (setResult.status === 'fulfilled') {
         recordResult(setResult.value);
         recordSetRefresh(setResult.value);
         setSets(setResult.value.sets);
         setSetPageInfo(setResult.value.pageInfo);
-        notices.push(resultMessage(
-          t('messages.showingPhaseSets', { shown: setResult.value.sets.length, total: setResult.value.pageInfo.total }),
-          setResult.value
-        ));
+        notices.push(
+          t('messages.showingPhaseSets', { shown: setResult.value.sets.length, total: setResult.value.pageInfo.total })
+        );
       } else {
         recordFailure();
-        notices.push(t('messages.setsFailed', { message: errorMessage(setResult.reason, t('messages.loadSetsFailed')) }));
+        notices.push(
+          t('messages.setsFailed', { message: errorMessage(setResult.reason, t('messages.loadSetsFailed')) })
+        );
       }
-      setMessage(notices.join(' '));
+      setMessage(
+        notices.join(' '),
+        groupResult.status === 'rejected' || setResult.status === 'rejected' ? 'error' : 'success'
+      );
     } finally {
       setLoading(false);
     }
@@ -468,18 +479,18 @@ export function useBracketBrowser({
   async function loadPhaseGroups(_page: number): Promise<void> {
     if (!selectedPhaseId) return;
     setLoading(true);
-    setMessage(undefined);
+    setMessage(undefined, 'info');
     try {
       const response = await loadAllPhaseGroups(selectedPhaseId);
       setPhaseGroups(response.phaseGroups);
       setPhaseGroupPageInfo(response.pageInfo);
-      setMessage(resultMessage(
+      setMessage(
         t('messages.loadedPools', { shown: response.phaseGroups.length, total: response.pageInfo.total }),
-        response
-      ));
+        'success'
+      );
     } catch (error) {
       recordFailure();
-      setMessage(errorMessage(error, t('messages.loadPoolsFailed')));
+      setMessage(errorMessage(error, t('messages.loadPoolsFailed')), 'error');
     } finally {
       setLoading(false);
     }
@@ -489,7 +500,7 @@ export function useBracketBrowser({
     setSelectedPhaseGroupId(phaseGroupId);
     setStationNumber('');
     if (!selectedEventId || !selectedPhaseId) {
-      setMessage(t('messages.selectPhase'));
+      setMessage(t('messages.selectPhase'), 'warning');
       return;
     }
     const scope: StartggSetScope = phaseGroupId
@@ -501,11 +512,11 @@ export function useBracketBrowser({
   async function browseStation(): Promise<void> {
     const parsedStationNumber = Number(stationNumber);
     if (!selectedEventId) {
-      setMessage(t('messages.selectEvent'));
+      setMessage(t('messages.selectEvent'), 'warning');
       return;
     }
     if (!Number.isSafeInteger(parsedStationNumber) || parsedStationNumber < 1) {
-      setMessage(t('messages.positiveStation'));
+      setMessage(t('messages.positiveStation'), 'warning');
       return;
     }
     setSelectedPhaseId('');
@@ -517,7 +528,7 @@ export function useBracketBrowser({
 
   async function browseAllEventSets(): Promise<void> {
     if (!selectedEventId) {
-      setMessage(t('messages.selectEvent'));
+      setMessage(t('messages.selectEvent'), 'warning');
       return;
     }
     setSelectedPhaseId('');
@@ -530,7 +541,7 @@ export function useBracketBrowser({
 
   async function loadSets(scope = setScope, page = 1): Promise<void> {
     if (!scope) {
-      setMessage(t('messages.selectEvent'));
+      setMessage(t('messages.selectEvent'), 'warning');
       return;
     }
     const refreshActiveSearch = Boolean(setSearch.trim() && searchCatalogIsCurrent);
@@ -539,7 +550,7 @@ export function useBracketBrowser({
     setPageLoadingRef.current = false;
     setSetPageLoading(false);
     setLoading(true);
-    setMessage(undefined);
+    setMessage(undefined, 'info');
     try {
       const [setsResult, queueResult] = await Promise.allSettled([
         startgg.sets(scope, page),
@@ -559,17 +570,17 @@ export function useBracketBrowser({
       if (refreshActiveSearch) {
         await ensureCompleteSetSearchCatalog(scope, true);
       }
-      setMessage(resultMessage(
+      setMessage(
         t('messages.showingScopeSets', {
           shown: response.sets.length,
           total: response.pageInfo.total,
           scope: localizedScopeLabel(scope)
-        }),
-        response
-      ) + (queueResult.status === 'rejected' ? ` ${t('selector.streamRefreshFailed')}` : ''));
+        }) + (queueResult.status === 'rejected' ? ` ${t('selector.streamRefreshFailed')}` : ''),
+        queueResult.status === 'rejected' ? 'warning' : 'success'
+      );
     } catch (error) {
       recordFailure();
-      setMessage(errorMessage(error, t('messages.loadSetsFailed')));
+      setMessage(errorMessage(error, t('messages.loadSetsFailed')), 'error');
     } finally {
       setLoading(false);
     }
@@ -597,7 +608,7 @@ export function useBracketBrowser({
     } catch (error) {
       if (setPageRequestRef.current !== requestId) return;
       recordFailure();
-      setMessage(errorMessage(error, t('messages.loadSetsFailed')));
+      setMessage(errorMessage(error, t('messages.loadSetsFailed')), 'error');
     } finally {
       if (setPageRequestRef.current === requestId) {
         setPageLoadingRef.current = false;
@@ -634,32 +645,12 @@ export function useBracketBrowser({
   }
 
   return {
-    bracketRefresh: state.bracketRefresh,
-    tournamentSlug,
+    ...state,
     setTournamentSlug,
-    recentTournaments,
     setRecentTournaments,
-    events,
-    selectedEventId,
-    selectionGameId,
     setSelectionGameId,
-    phases,
-    selectedPhaseId,
-    phaseGroups,
-    selectedPhaseGroupId,
-    phaseGroupPageInfo,
-    stationNumber,
     setStationNumber,
-    setScope,
-    sets,
-    streamAssignments,
-    setSearch,
     setSetSearch,
-    setSearchCatalog,
-    setSearchLoading,
-    setSearchProgress,
-    setPageLoading,
-    setPageInfo,
     searchCatalogIsCurrent,
     ensureCompleteSetSearchCatalog,
     cancelSetSearch,

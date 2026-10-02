@@ -1,3 +1,4 @@
+import { useTournamentLogo } from '../hooks/useTournamentLogo';
 import { useEffect, useState, type ComponentType, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -17,6 +18,8 @@ import { TopEightMatchupsOverlay } from './TopEightMatchupsOverlay';
 import { announcementPresentation } from './announcementPresentation';
 import { displayFlagLabel, displayFlagUrl } from './overlayPlayerPresentation';
 import { api } from '../api';
+import { useLogoAssetUrl } from '../hooks/useLogoAssetUrl';
+import { useCatalogRevision } from '../hooks/useCatalogRevision';
 import { playerCharacters, playerPortraitCharacters } from '@shared/characterTeams';
 import { selectedCharacterAssetId } from '@shared/characterAssets';
 import { loadCharacterPortraits, type CharacterPortrait } from '../characterPortraits';
@@ -43,11 +46,11 @@ type OverlayMediaUrls = {
 };
 
 const overlayTemplates: Record<OverlayTemplateId, ComponentType<OverlayTemplateProps>> = {
-  'sf6-drive': StreetFighterOverlay,
-  'tekken-engager': TekkenOverlay,
-  'avatar-bending': AvatarLegendsOverlay,
-  'tokon-assemble': TokonOverlay,
-  'strive-daredevil': GuiltyGearStriveOverlay,
+  'sf6-drive': TopHudOverlay,
+  'tekken-engager': TopHudOverlay,
+  'avatar-bending': TopHudOverlay,
+  'tokon-assemble': TopHudOverlay,
+  'strive-daredevil': TopHudOverlay,
   '2xko-duo': TournamentRibbonOverlay,
   'blazblue-astral': TournamentRibbonOverlay,
   'cotw-rev': TournamentRibbonOverlay,
@@ -217,7 +220,7 @@ function AnnouncementOverlay({
   const { characterUrl, characterPortraits } = characterMedia;
   const photoUrl = settings.showPlayerPhoto ? winnerMedia.playerPhotoUrl : undefined;
   const sponsorLogoUrl = settings.showSponsorLogo ? winnerMedia.sponsorLogoUrl : undefined;
-  const resultLogoUrl = useResultLogoAssetUrl(
+  const resultLogoUrl = useTournamentLogo(
     selectedSet.broadcast?.logoAssetId,
     settings.showTournamentLogo
   );
@@ -305,6 +308,7 @@ function useAnnouncementCharacterMedia(
     characterPortraits: CharacterPortrait[];
     hasCatalogMedia: boolean;
   }>({ characterPortraits: [], hasCatalogMedia: false });
+  const revision = useCatalogRevision();
   const portraitKey = portraitCharacters.join('\u0000');
   useEffect(() => {
     let active = true;
@@ -330,34 +334,15 @@ function useAnnouncementCharacterMedia(
         if (active) setMedia({ characterPortraits: [], hasCatalogMedia: false });
       });
     return () => { active = false; };
-  }, [characterAssetId, gameId, leadCharacter, portraitKey]);
+  }, [characterAssetId, gameId, leadCharacter, portraitKey, revision]);
   return media;
-}
-
-function useResultLogoAssetUrl(preferredAssetId: string | undefined, enabled: boolean): string | undefined {
-  const [url, setUrl] = useState<string>();
-  useEffect(() => {
-    let active = true;
-    if (!enabled) {
-      setUrl(undefined);
-      return () => { active = false; };
-    }
-    void api.logos()
-      .then(async ({ logos }) => {
-        const asset = logos.find((candidate) => candidate.id === preferredAssetId) ?? logos[0];
-        const nextUrl = asset ? await api.logoAssetUrl(asset.id) : undefined;
-        if (active) setUrl(nextUrl);
-      })
-      .catch(() => { if (active) setUrl(undefined); });
-    return () => { active = false; };
-  }, [enabled, preferredAssetId]);
-  return url;
 }
 
 function usePlayerMediaUrls(
   selectedSet: SelectedSetState | undefined,
   enabled: boolean
 ): OverlayMediaUrls {
+  const revision = useCatalogRevision();
   const [media, setMedia] = useState<OverlayMediaUrls>({ playerOne: {}, playerTwo: {} });
   useEffect(() => {
     let active = true;
@@ -391,6 +376,7 @@ function usePlayerMediaUrls(
     };
   }, [
     enabled,
+    revision,
     selectedSet?.playerOne.name,
     selectedSet?.playerOne.prefix,
     selectedSet?.playerOne.sponsor,
@@ -399,30 +385,6 @@ function usePlayerMediaUrls(
     selectedSet?.playerTwo.sponsor
   ]);
   return media;
-}
-
-function useLogoAssetUrl(assetId: string | undefined): string | undefined {
-  const [url, setUrl] = useState<string>();
-  useEffect(() => {
-    let active = true;
-    if (!assetId) {
-      setUrl(undefined);
-      return () => {
-        active = false;
-      };
-    }
-    void api.logoAssetUrl(assetId)
-      .then((nextUrl) => {
-        if (active) setUrl(nextUrl);
-      })
-      .catch(() => {
-        if (active) setUrl(undefined);
-      });
-    return () => {
-      active = false;
-    };
-  }, [assetId]);
-  return url;
 }
 
 function CatalogImage({ src, className }: { src: string; className?: string }) {
@@ -438,64 +400,17 @@ function CatalogImage({ src, className }: { src: string; className?: string }) {
   );
 }
 
-function StreetFighterOverlay({ profile, selectedSet }: OverlayTemplateProps) {
-  return (
-    <section
-      className="overlay-frame top-hud-frame sf6-frame"
-      style={topHudStyle(profile)}
-    >
-      <PlayerPlate player={selectedSet.playerOne} side="left" />
-      <MatchChip profile={profile} selectedSet={selectedSet} />
-      <PlayerPlate player={selectedSet.playerTwo} side="right" />
-    </section>
-  );
-}
+const frameClasses: Partial<Record<OverlayTemplateId, string>> = {
+  'sf6-drive': 'sf6-frame',
+  'tekken-engager': 'tekken-frame',
+  'avatar-bending': 'avatar-legends-frame',
+  'strive-daredevil': 'strive-frame',
+  'tokon-assemble': 'tokon-frame'
+};
 
-function TekkenOverlay({ profile, selectedSet }: OverlayTemplateProps) {
+function TopHudOverlay({ profile, selectedSet }: OverlayTemplateProps) {
   return (
-    <section
-      className="overlay-frame top-hud-frame tekken-frame"
-      style={topHudStyle(profile)}
-    >
-      <PlayerPlate player={selectedSet.playerOne} side="left" />
-      <MatchChip profile={profile} selectedSet={selectedSet} />
-      <PlayerPlate player={selectedSet.playerTwo} side="right" />
-    </section>
-  );
-}
-
-function AvatarLegendsOverlay({ profile, selectedSet }: OverlayTemplateProps) {
-  return (
-    <section
-      className="overlay-frame top-hud-frame avatar-legends-frame"
-      style={topHudStyle(profile)}
-    >
-      <PlayerPlate player={selectedSet.playerOne} side="left" />
-      <MatchChip profile={profile} selectedSet={selectedSet} />
-      <PlayerPlate player={selectedSet.playerTwo} side="right" />
-    </section>
-  );
-}
-
-function GuiltyGearStriveOverlay({ profile, selectedSet }: OverlayTemplateProps) {
-  return (
-    <section
-      className="overlay-frame top-hud-frame strive-frame"
-      style={topHudStyle(profile)}
-    >
-      <PlayerPlate player={selectedSet.playerOne} side="left" />
-      <MatchChip profile={profile} selectedSet={selectedSet} />
-      <PlayerPlate player={selectedSet.playerTwo} side="right" />
-    </section>
-  );
-}
-
-function TokonOverlay({ profile, selectedSet }: OverlayTemplateProps) {
-  return (
-    <section
-      className="overlay-frame top-hud-frame tokon-frame"
-      style={topHudStyle(profile)}
-    >
+    <section className={`overlay-frame top-hud-frame ${frameClasses[profile.overlay.template]}`} style={topHudStyle(profile)}>
       <PlayerPlate player={selectedSet.playerOne} side="left" />
       <MatchChip profile={profile} selectedSet={selectedSet} />
       <PlayerPlate player={selectedSet.playerTwo} side="right" />

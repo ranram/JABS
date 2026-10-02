@@ -5,7 +5,6 @@ import {
   Button,
   Center,
   ColorInput,
-  FileButton,
   Group,
   Loader,
   MultiSelect,
@@ -47,11 +46,11 @@ import {
   topEightTrustedText
 } from './TopEightCanvas';
 import { useTopEightMedia } from './useTopEightMedia';
-import { useLogoAssetUrl } from './useGeneratorMedia';
+import { useLogoAssetUrl } from '../../hooks/useLogoAssetUrl';
 import type { TopEightDraftController } from './useTopEightDraft';
 import { useGeneratorWarningToast } from './useGeneratorWarningToast';
 import { exportGraphicAsPng, safeGraphicFilename } from './exportGraphic';
-import { readTopEightBackground } from './topEightBackground';
+import { GraphicBackgroundControls } from './GraphicBackgroundControls';
 import { BufferedTextInput } from './BufferedTextInput';
 import { MediaControlHint } from './MediaControlHint';
 import { TopEightEventDetails } from './TopEightEventDetails';
@@ -133,7 +132,6 @@ export function TopEightGenerator({
   const [loadUrl, setLoadUrl] = useState('');
   const [exporting, setExporting] = useState(false);
   const [selectedEntrant, setSelectedEntrant] = useState<number>();
-  const backgroundResetRef = useRef<() => void>(null);
   const canvasRef = useRef<HTMLElement>(null);
   const automaticStandingsRequest = useRef<{
     eventId: string;
@@ -248,27 +246,6 @@ export function TopEightGenerator({
     }
   }
 
-  async function chooseBackground(file: File | null) {
-    if (!file) return;
-    try {
-      const dataUrl = await readTopEightBackground(file);
-      controller.setBackground({
-        dataUrl,
-        name: file.name
-      });
-      backgroundResetRef.current?.();
-    } catch {
-      backgroundResetRef.current?.();
-      notifications.show({
-        title: t('operator:notices.actionFailed'),
-        message: t('operator:topEight.backgroundFailed'),
-        color: 'red',
-        autoClose: false,
-        withCloseButton: true
-      });
-    }
-  }
-
   if (!profile) return null;
   return (
     <Stack gap="md">
@@ -294,6 +271,30 @@ export function TopEightGenerator({
               setSelectedEntrant(undefined);
             }}
           />
+          <Select
+            label={t('operator:topEight.tournamentLogo')}
+            value={draft.logoAssetId ?? null}
+            placeholder={t('operator:topEight.noLogo')}
+            searchable
+            clearable
+            data={sortedLogos.map((logo) => ({ value: logo.id, label: logo.label }))}
+            onChange={(value) => controller.setLogo(value ?? undefined)}
+          />
+          <div>
+            <Text fw={700} size="sm" mb={5}>{t('operator:topEight.mediaMode')}</Text>
+            <SegmentedControl
+              fullWidth
+              value={draft.mediaMode}
+              data={topEightMediaModeIds.map((mode) => ({
+                value: mode,
+                label: t(`operator:topEight.mediaModes.${mode}`)
+              }))}
+              onChange={(value) => {
+                controller.setMediaMode(value as TopEightMediaMode);
+                setSelectedEntrant(undefined);
+              }}
+            />
+          </div>
           <div>
             <Text fw={700} size="sm" mb={5}>{t('operator:topEight.style')}</Text>
             <SegmentedControl
@@ -310,21 +311,8 @@ export function TopEightGenerator({
               }}
             />
           </div>
-          <div>
-            <Text fw={700} size="sm" mb={5}>{t('operator:topEight.mediaMode')}</Text>
-            <SegmentedControl
-              fullWidth
-              value={draft.mediaMode}
-              data={topEightMediaModeIds.map((mode) => ({
-                value: mode,
-                label: t(`operator:topEight.mediaModes.${mode}`)
-              }))}
-              onChange={(value) => {
-                controller.setMediaMode(value as TopEightMediaMode);
-                setSelectedEntrant(undefined);
-              }}
-            />
-          </div>
+        </SimpleGrid>
+        <SimpleGrid type="container" cols={{ base: 1, '36rem': 3 }} mt="md">
           <BufferedTextInput
             label={t('operator:topEight.tournament')}
             value={draft.tournamentName}
@@ -341,45 +329,9 @@ export function TopEightGenerator({
             onChange={controller.setHeadlineColor}
             format="hex"
           />
-          <Select
-            label={t('operator:topEight.tournamentLogo')}
-            value={draft.logoAssetId ?? null}
-            placeholder={t('operator:topEight.noLogo')}
-            searchable
-            clearable
-            data={sortedLogos.map((logo) => ({ value: logo.id, label: logo.label }))}
-            onChange={(value) => controller.setLogo(value ?? undefined)}
-          />
         </SimpleGrid>
 
-        <Paper mt="md" p="sm" radius="md" withBorder>
-          <Text fw={700} size="sm">{t('operator:topEight.background')}</Text>
-          <Text c="dimmed" size="xs" mb="sm">{t('operator:topEight.backgroundHint')}</Text>
-          <SimpleGrid type="container" cols={{ base: 1, '38rem': 2 }}>
-            <Group align="flex-end">
-              <FileButton
-                resetRef={backgroundResetRef}
-                onChange={(file) => void chooseBackground(file)}
-                accept="image/png,image/jpeg,image/webp"
-              >
-                {(props) => <Button {...props} variant="default">{t('operator:topEight.chooseBackground')}</Button>}
-              </FileButton>
-              <Button
-                variant="subtle"
-                disabled={!draft.background}
-                onClick={() => {
-                  controller.setBackground(undefined);
-                  backgroundResetRef.current?.();
-                }}
-              >
-                {t('operator:topEight.removeBackground')}
-              </Button>
-            </Group>
-            <Text size="sm" c={draft.background ? undefined : 'dimmed'}>
-              {draft.background?.name ?? t('operator:topEight.noBackground')}
-            </Text>
-          </SimpleGrid>
-        </Paper>
+        <GraphicBackgroundControls value={draft.background} onChange={controller.setBackground} />
 
         <Box mt="md">
           <TopEightEventDetails

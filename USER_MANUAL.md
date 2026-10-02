@@ -19,6 +19,8 @@ Before your first tournament:
 
 Keep JABS open while OBS uses a JABS source.
 
+To update an installed release, use **Check for updates** in the header, then **Update now** when a newer version is available. Finish pending saves and export any unfinished graphics first. Installation restarts JABS, so OBS sources briefly disconnect. Linux distribution packages use their package manager; the AppImage supports in-app updates.
+
 ## 1. Connect to start.gg
 
 You can browse public tournaments, load sets, and control OBS without a token. Add one when you need to report results to start.gg or use authenticated browsing.
@@ -53,7 +55,7 @@ The actions bar stays below the main tabs while you scroll:
 - **Reload assets** rescans artwork, photos, and logos.
 - **Refresh set selector** fetches the latest sets for the current filters.
 - **Refresh current set** updates the on-stream set and its Versus history while keeping its styling and broadcast extras.
-- **Clear bracket cache & history** is a recovery action for stale bracket data.
+- **Clear bracket history** resets the bracket browser and removes recent tournament history.
 
 Hover over any of these buttons for a short description.
 
@@ -345,7 +347,7 @@ A newly streamed set fills the thumbnail automatically. Choose **Use stream matc
 2. Choose Versus or Spotlight.
 3. Choose Character Art or Player Photos.
 4. Enter the tournament and headline.
-5. Choose logo options.
+5. Choose logo options and, if wanted, a custom background image.
 6. Check both players and their characters.
 7. Select an image to move, resize, or flip it with `F`.
 8. Download the PNG.
@@ -386,7 +388,7 @@ Correct the named field and leave it again. Blocked text was not sent to OBS.
 
 ### Bracket data looks stale
 
-Choose **Refresh set selector**. Use **Clear bracket cache & history** only as a recovery action. It keeps the active stream state and saved set edits.
+Choose **Refresh set selector**. Use **Clear bracket history** to reset the browser and remove recent tournament history. It keeps the active stream state and saved set edits.
 
 ## 14. End of the event
 

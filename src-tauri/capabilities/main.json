@@ -3,5 +3,5 @@
   "identifier": "main-window",
   "description": "Narrow capabilities for JABS's trusted operator window.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "updater:allow-check", "updater:allow-download-and-install"]
 }

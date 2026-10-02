@@ -1,3 +1,4 @@
+import type { NoticeSink } from './operatorNotice';
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { OverlayState, SelectedSetState } from '@shared/models';
 import { api } from '../../api';
@@ -16,7 +17,7 @@ type StreamDraftAutosaveOptions = {
   assetCatalogSlug?: string;
   setOverlayState: Dispatch<SetStateAction<OverlayState | undefined>>;
   setDraftState: Dispatch<SetStateAction<OperatorDraftState | undefined>>;
-  setMessage: Dispatch<SetStateAction<string | undefined>>;
+  setMessage: NoticeSink;
   failureMessage: string;
 };
 
@@ -60,7 +61,7 @@ export function useStreamDraftAutosave({
     async function save() {
       setSaving(true);
       // Re-arm identical moderation errors so each rejected edit produces a fresh toast.
-      setMessage(undefined);
+      setMessage(undefined, 'info');
       api.reportRendererDiagnostic('stream-save:renderer-start');
       try {
         const response = await api.updateSelectedSet(submitted);
@@ -86,7 +87,7 @@ export function useStreamDraftAutosave({
         failedKeyRef.current = submittedKey;
         setBlocked(true);
         api.reportRendererDiagnostic('stream-save:renderer-failed');
-        setMessage(error instanceof Error ? error.message : failureMessage);
+        setMessage(error instanceof Error ? error.message : failureMessage, 'error');
       } finally {
         setSaving(false);
       }

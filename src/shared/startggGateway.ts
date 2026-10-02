@@ -36,9 +36,8 @@ export type StartggQuickReportInput = {
 };
 
 /**
- * The platform-neutral start.gg operations used by bracket browsing and Quick
- * Score. Desktop implements this interface through its loopback service;
- * mobile implements it with narrow native Tauri commands.
+ * The start.gg operations used by bracket browsing and Quick Score,
+ * implemented through the desktop loopback service.
  */
 export interface StartggGateway {
   clearStartggCache(): Promise<{ cleared: true }>;

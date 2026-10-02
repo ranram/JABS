@@ -2,7 +2,6 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { i18n, normalizeLocale } from './index';
 import { localizedStartggError } from './startggErrors';
 import { resources } from './resources';
-import { noticeTone } from '../ui/operator/operatorUtils';
 
 describe('renderer localization catalogs', () => {
   beforeAll(async () => {
@@ -18,27 +17,13 @@ describe('renderer localization catalogs', () => {
       .toBe(i18n.t('errors:startgg.publicUnavailable'));
   });
 
-  it('keeps catalog interpolation and notification behavior in parity', async () => {
+  it('keeps translation keys and interpolation parameters in parity', async () => {
     const english = flatten(resources.en);
     const spanish = flatten(resources['es-419']);
 
     expect([...spanish.keys()].sort()).toEqual([...english.keys()].sort());
     for (const [key, englishValue] of english) {
       expect(interpolations(spanish.get(key) ?? ''), key).toEqual(interpolations(englishValue));
-    }
-    const previous = i18n.language;
-    try {
-      for (const locale of ['en', 'es-419']) {
-        await i18n.changeLanguage(locale);
-        expect(noticeTone(localizedStartggError({ code: 'token-missing' }, 'Failed'))).toBe('warning');
-        expect(noticeTone(i18n.t('operator:startgg.reportToken'))).toBe('warning');
-        for (const code of ['anonymous-unavailable', 'authentication', 'permission', 'rate-limit',
-          'query-complexity', 'timeout', 'network', 'upstream', 'invalid-response', 'graphql', 'conflict']) {
-          expect(noticeTone(localizedStartggError({ code }, 'Failed')), `${locale}: ${code}`).toBe('error');
-        }
-      }
-    } finally {
-      await i18n.changeLanguage(previous);
     }
   });
 });

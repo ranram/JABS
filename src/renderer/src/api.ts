@@ -1,3 +1,5 @@
+import { invalidateCatalogConsumers } from './hooks/useCatalogRevision';
+import { beginPendingWrite } from './pendingWrites';
 import type {
   AppHealth,
   AssetCatalogSummary,
@@ -86,6 +88,7 @@ const customScoreboardFrameUrls = new BoundedPromiseCache<string>(4);
 export function invalidateCatalogRasterCache(): void {
   catalogRasterUrls.clear();
   customScoreboardFrameUrls.clear();
+  invalidateCatalogConsumers();
 }
 
 async function cachedRasterUrl(cache: BoundedPromiseCache<string>, path: string): Promise<string> {
@@ -141,6 +144,15 @@ function reportRendererDiagnostic(event: RendererDiagnosticEvent): void {
 }
 
 async function request<T>(path: string, init?: RequestInit, options: RequestOptions<T> = {}): Promise<T> {
+  const finish = init?.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) ? beginPendingWrite() : undefined;
+  try {
+    return await performRequest(path, init, options);
+  } finally {
+    finish?.();
+  }
+}
+
+async function performRequest<T>(path: string, init?: RequestInit, options: RequestOptions<T> = {}): Promise<T> {
   const apiBase = await apiBasePromise;
   let response: Response;
   try {

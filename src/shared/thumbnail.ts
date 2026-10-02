@@ -1,4 +1,5 @@
 import { gameProfiles, type GameId } from './gameProfiles';
+import type { GraphicBackground } from './models';
 
 export const thumbnailStyleIds = ['versus', 'spotlight'] as const;
 export type ThumbnailStyleId = (typeof thumbnailStyleIds)[number];
@@ -23,7 +24,9 @@ export type ThumbnailDraft = {
   style: ThumbnailStyleId;
   tournamentName: string;
   headline: string;
+  headlineColor: string;
   logoAssetId?: string;
+  background?: GraphicBackground;
   mediaMode: ThumbnailMediaMode;
   showTournamentLogo: boolean;
   showSponsorLogo: boolean;
@@ -39,6 +42,7 @@ export function createThumbnailDraft(gameId: GameId = 'street-fighter-6'): Thumb
     style: 'versus',
     tournamentName: 'Tournament Match',
     headline: 'Featured Set',
+    headlineColor: '#ffffff',
     mediaMode: 'character',
     showTournamentLogo: true,
     showSponsorLogo: true,
@@ -47,11 +51,7 @@ export function createThumbnailDraft(gameId: GameId = 'street-fighter-6'): Thumb
 }
 
 export function validateThumbnailDraft(draft: ThumbnailDraft): boolean {
-  return Boolean(
-    draft.tournamentName.trim()
-    && draft.headline.trim()
-    && draft.players.every((player) => player.name.trim())
-  );
+  return draft.players.every((player) => player.name.trim());
 }
 
 export function thumbnailMatchHeadline(

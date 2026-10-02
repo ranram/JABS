@@ -55,6 +55,8 @@ chmod +x JABS*.AppImage
 
 Unsigned builds may trigger an operating-system warning. Review the release source and checksums before allowing an unsigned application to run.
 
+Updater-enabled releases have **Check for updates** in the header. When a newer release is available, choose **Update now** to install it and restart JABS. Linux in-app updates use the AppImage.
+
 ## Supported games
 
 JABS includes score-overlay styles and rules for:

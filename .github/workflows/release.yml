@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Release tag matching the committed application version
         required: true
-        default: v1.1.1
+        default: v1.2.0
   push:
     tags:
       - "v*"
@@ -61,6 +61,13 @@ jobs:
 
       - name: Install dependencies from the lockfile
         run: pnpm install --frozen-lockfile
+
+      - name: Validate release version and updater signing setup
+        env:
+          JABS_RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          JABS_UPDATER_PUBLIC_KEY: ${{ vars.JABS_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: node scripts/check-release-config.mjs --signed
 
       - name: Validate the Rust lockfile before Cargo can execute build scripts
         run: pnpm run rust-lock:check
@@ -152,17 +159,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: ${{ startsWith(matrix.platform, 'macos') && '-' || '' }}
+          JABS_UPDATER_PUBLIC_KEY: ${{ vars.JABS_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tauriScript: pnpm tauri
           tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
           releaseName: JABS ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
           releaseBody: |
-            Unsigned JABS packages built from ${{ github.sha }}.
+            JABS packages with signed updater artifacts, built from ${{ github.sha }}.
+
+            Updater signatures verify downloads; these packages do not have platform code-signing certificates.
 
             Review and test every native package before publishing this draft.
           releaseDraft: true
           prerelease: false
           generateReleaseNotes: true
-          uploadUpdaterJson: false
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true
           # Everything after `--` is forwarded by the Tauri CLI to Cargo.
           args: ${{ matrix.args }} -- --locked

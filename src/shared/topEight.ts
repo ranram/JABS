@@ -1,4 +1,5 @@
 import { gameProfiles, type GameId } from './gameProfiles';
+import type { GraphicBackground } from './models';
 
 export const topEightStyleIds = ['mosaic', 'neon'] as const;
 export type TopEightStyleId = (typeof topEightStyleIds)[number];
@@ -40,10 +41,7 @@ export type TopEightDraft = {
   eventUrl?: string;
   participantCount?: number;
   logoAssetId?: string;
-  background?: {
-    dataUrl: string;
-    name: string;
-  };
+  background?: GraphicBackground;
   entrants: TopEightEntrant[];
 };
 

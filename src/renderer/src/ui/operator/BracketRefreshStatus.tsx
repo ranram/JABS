@@ -11,7 +11,7 @@ export function BracketRefreshStatus({ refresh }: { refresh?: BracketRefresh }) 
   const time = date && Number.isFinite(date.getTime())
     ? date.toLocaleString(i18n.resolvedLanguage ?? i18n.language, { dateStyle: 'short', timeStyle: 'short' })
     : undefined;
-  return <Text size="xs" c={refresh.source === 'cache' ? 'yellow' : 'dimmed'} role="status">
-    {t(refresh.source === 'cache' ? (time ? 'browser.cachedAt' : 'browser.cached') : 'browser.updatedAt', { time: time ?? '' })}
+  return <Text size="xs" c="dimmed" role="status">
+    {t('browser.updatedAt', { time: time ?? '' })}
   </Text>;
 }

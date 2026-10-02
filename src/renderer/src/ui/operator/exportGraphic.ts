@@ -25,8 +25,8 @@ type ShapeLayer = {
   kind: 'top8-identity' | 'thumbnail-identity';
   rect: DOMRect;
   background: string;
-  accent: string;
-  align: 'left' | 'right';
+  borderColor: string;
+  borderWidth: number;
 };
 
 type TextLayer = {
@@ -78,15 +78,15 @@ export async function exportGraphicAsPng(
     if (hasBackground) {
       directChildren.forEach((element) => { element.style.visibility = 'hidden'; });
       source.setAttribute('data-export-hide-pseudo', 'true');
-      base = await captureSource(source);
+      base = await captureSource(source, sourceRect);
       directChildren.forEach((element, index) => { element.style.visibility = originalChildVisibility[index]; });
       layers.forEach(({ image }) => { image.style.visibility = 'hidden'; });
       source.removeAttribute('data-export-hide-pseudo');
       source.style.setProperty('background', 'transparent', 'important');
-      contentOverlay = await captureSource(source);
+      contentOverlay = await captureSource(source, sourceRect);
       if (!contentOverlay) throw new Error('JABS could not encode the PNG content layer.');
     } else {
-      base = await captureSource(source);
+      base = await captureSource(source, sourceRect);
     }
     if (!base) throw new Error('JABS could not encode the PNG composition.');
   } finally {
@@ -167,10 +167,10 @@ async function visibleImageLayers(source: HTMLElement): Promise<ImageLayer[]> {
   });
 }
 
-function captureSource(source: HTMLElement): Promise<Blob | null> {
+function captureSource(source: HTMLElement, rect: DOMRect): Promise<Blob | null> {
   return toBlob(source, {
-    width: source.clientWidth,
-    height: source.clientHeight,
+    width: rect.width,
+    height: rect.height,
     pixelRatio: 1
   });
 }
@@ -185,16 +185,16 @@ function visibleShapeElements(source: HTMLElement): HTMLElement[] {
 function shapeLayer(element: HTMLElement): ShapeLayer {
   const canvas = element.closest<HTMLElement>('.top8-canvas, .thumbnail-canvas');
   const style = getComputedStyle(canvas ?? element);
+  const shapeStyle = getComputedStyle(element);
   return {
     kind: element.dataset.exportShape as ShapeLayer['kind'],
     rect: element.getBoundingClientRect(),
-    background: style.getPropertyValue('--top8-background').trim()
+    background: element.dataset.exportShape === 'thumbnail-identity' ? shapeStyle.backgroundColor
+      : style.getPropertyValue('--top8-background').trim()
       || style.getPropertyValue('--thumbnail-background').trim()
       || '#19110c',
-    accent: style.getPropertyValue('--top8-accent').trim()
-      || style.getPropertyValue('--thumbnail-accent').trim()
-      || '#f7b733',
-    align: element.closest('.thumbnail-player-one') ? 'left' : 'right'
+    borderColor: shapeStyle.borderTopColor,
+    borderWidth: Number.parseFloat(shapeStyle.borderTopWidth) || 0
   };
 }
 
@@ -242,6 +242,8 @@ async function composeRasterLayers(
   canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('PNG export is unavailable in this webview.');
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
   const baseImage = await blobImage(base);
   context.drawImage(baseImage, 0, 0, width, height);
   const scaleX = width / Math.max(1, sourceRect.width);
@@ -384,7 +386,10 @@ function drawImageLayer(
     context.translate(destination.x * 2 + destination.width, 0);
     context.scale(-1, 1);
   }
-  context.drawImage(image, destination.x, destination.y, destination.width, destination.height);
+  const raster = layer.kind === 'foreground'
+    ? downsampleImage(image, destination.width, destination.height)
+    : image;
+  context.drawImage(raster, destination.x, destination.y, destination.width, destination.height);
   const borderWidth = number(style.borderTopWidth) * Math.min(scaleX, scaleY);
   if (borderWidth > 0 && style.borderTopStyle !== 'none') {
     context.filter = 'none';
@@ -393,6 +398,31 @@ function drawImageLayer(
     context.stroke();
   }
   context.restore();
+}
+
+function downsampleImage(
+  image: HTMLImageElement,
+  width: number,
+  height: number
+): HTMLImageElement | HTMLCanvasElement {
+  let raster: HTMLImageElement | HTMLCanvasElement = image;
+  let sampleWidth = image.naturalWidth;
+  let sampleHeight = image.naturalHeight;
+  // Halving large logos before the final draw preserves fine edges at small output sizes.
+  while (sampleWidth > width * 2 && sampleHeight > height * 2) {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.floor(sampleWidth / 2));
+    canvas.height = Math.max(1, Math.floor(sampleHeight / 2));
+    const context = canvas.getContext('2d');
+    if (!context) break;
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(raster, 0, 0, canvas.width, canvas.height);
+    raster = canvas;
+    sampleWidth = canvas.width;
+    sampleHeight = canvas.height;
+  }
+  return raster;
 }
 
 function finiteOpacity(value: string): number {
@@ -435,30 +465,23 @@ function drawShapeLayer(
   context.save();
   if (layer.kind === 'top8-identity') {
     context.fillStyle = layer.background;
-    context.fillRect(box.x, box.y, box.width, box.height);
+    const left = Math.floor(box.x);
+    const top = Math.floor(box.y);
+    context.fillRect(left, top, Math.ceil(box.x + box.width) - left, Math.ceil(box.y + box.height) - top);
   } else {
     context.shadowColor = 'rgba(0,0,0,.34)';
     context.shadowOffsetX = 5 * scaleX;
     context.shadowOffsetY = 7 * scaleY;
     context.fillStyle = layer.background;
-    context.beginPath();
-    if (layer.align === 'left') {
-      context.moveTo(box.x, box.y);
-      context.lineTo(box.x + box.width * 0.92, box.y);
-      context.lineTo(box.x + box.width, box.y + box.height);
-      context.lineTo(box.x, box.y + box.height);
-    } else {
-      context.moveTo(box.x + box.width * 0.08, box.y);
-      context.lineTo(box.x + box.width, box.y);
-      context.lineTo(box.x + box.width, box.y + box.height);
-      context.lineTo(box.x, box.y + box.height);
-    }
-    context.closePath();
-    context.fill();
+    context.fillRect(box.x, box.y, box.width, box.height);
     context.shadowColor = 'transparent';
-    context.fillStyle = layer.accent;
-    const lineX = layer.align === 'left' ? box.x : box.x + box.width * 0.12;
-    context.fillRect(lineX, box.y, box.width * 0.88, Math.max(2, 3.2 * scaleY));
+    const borderX = layer.borderWidth * scaleX;
+    const borderY = layer.borderWidth * scaleY;
+    context.fillStyle = layer.borderColor;
+    context.fillRect(box.x, box.y, box.width, borderY);
+    context.fillRect(box.x, box.y + box.height - borderY, box.width, borderY);
+    context.fillRect(box.x, box.y, borderX, box.height);
+    context.fillRect(box.x + box.width - borderX, box.y, borderX, box.height);
   }
   context.restore();
 }

@@ -124,7 +124,7 @@ export function useGeneratorMedia<TDraft>({
         });
     }, 250);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [identityKey]);
+  }, [assetCatalogRevision, identityKey]);
 
   useEffect(() => {
     if (resolvedIdentityKey === identityKey) setPreviewDraft(draft);
@@ -143,20 +143,4 @@ export function useGeneratorMedia<TDraft>({
     availableCharacterNames: characterAssets.map((asset) => asset.character),
     warning
   };
-}
-
-export function useLogoAssetUrl(assetId: string | undefined): string | undefined {
-  const [url, setUrl] = useState<string>();
-  useEffect(() => {
-    let active = true;
-    if (!assetId) {
-      setUrl(undefined);
-      return () => { active = false; };
-    }
-    void api.logoAssetUrl(assetId)
-      .then((resolved) => { if (active) setUrl(resolved); })
-      .catch(() => { if (active) setUrl(undefined); });
-    return () => { active = false; };
-  }, [assetId]);
-  return url;
 }

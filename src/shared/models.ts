@@ -39,6 +39,11 @@ export type LogoAsset = {
   label: string;
 };
 
+export type GraphicBackground = {
+  dataUrl: string;
+  name: string;
+};
+
 export type AssetCatalogCounts = {
   characterArt: number;
   characterPortraits: number;
@@ -219,6 +224,7 @@ export type TokenStatus = {
 };
 
 export type AppHealth = {
+  recoveryNotices: string[];
   ok: boolean;
   port: number;
   token: TokenStatus;
@@ -245,8 +251,6 @@ export type StartggStreamAssignment = {
   queuePosition: number;
 };
 
-export type StartggSource = 'live' | 'cache';
-
 export type StartggErrorCode =
   | 'anonymous-unavailable'
   | 'token-missing'
@@ -262,8 +266,7 @@ export type StartggErrorCode =
   | 'conflict';
 
 export type StartggResultMeta = {
-  source: StartggSource;
-  cachedAt?: string;
+  source: 'live';
   warning?: string;
 };
 

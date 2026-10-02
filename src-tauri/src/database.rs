@@ -5,6 +5,7 @@ use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 pub struct Database {
     connection: Mutex<Connection>,
+    recovery_notices: Mutex<Vec<String>>,
 }
 
 #[derive(Serialize)]
@@ -44,9 +45,37 @@ impl Database {
                surface_id TEXT PRIMARY KEY NOT NULL,
                payload TEXT NOT NULL,
                updated_at TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS state_recovery (
+               surface_id TEXT NOT NULL,
+               payload TEXT NOT NULL,
+               recovered_at TEXT NOT NULL,
+               UNIQUE(surface_id, payload)
              );"
         ).map_err(|_| "Unable to initialize JABS's local database.".to_owned())?;
-        Ok(Self { connection: Mutex::new(connection) })
+        Ok(Self { connection: Mutex::new(connection), recovery_notices: Mutex::new(Vec::new()) })
+    }
+
+    pub fn recovery_notices(&self) -> Result<Vec<String>, String> {
+        self.recovery_notices.lock().map(|notices| notices.clone())
+            .map_err(|_| "Recovery notices are unavailable.".to_owned())
+    }
+
+    pub fn record_recovery_notice(&self, message: String) -> Result<(), String> {
+        self.recovery_notices.lock()
+            .map_err(|_| "Recovery notices are unavailable.".to_owned())?.push(message);
+        Ok(())
+    }
+
+    pub fn preserve_rejected_state(&self, surface: &str, payload: &str) -> Result<(), String> {
+        self.connection.lock().map_err(|_| "Local database is unavailable.".to_owned())?
+            .execute(
+                "INSERT OR IGNORE INTO state_recovery (surface_id, payload, recovered_at) VALUES (?1, ?2, ?3)",
+                params![surface, payload, now_rfc3339()?],
+            ).map_err(|_| "Unable to preserve saved settings for recovery. No settings were replaced.".to_owned())?;
+        self.record_recovery_notice(format!(
+            "Saved {surface} settings could not be loaded. Defaults are in use; the original record is preserved in the local database for recovery."
+        ))
     }
 
     pub fn record_recent_tournament(&self, slug: &str) -> Result<(), String> {
@@ -223,6 +252,59 @@ pub fn now_rfc3339() -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::Database;
+
+    #[test]
+    fn recovery_preserves_rejected_payloads_and_keeps_settings_when_a_logo_is_missing() {
+        use crate::{commentators::CommentatorStore, result_screen::ResultScreenStore,
+            state::OverlayStore, top_eight_matchups::TopEightMatchupsStore, versus_screen::VersusScreenStore};
+        use std::path::Path;
+        let database = Database::open(Path::new(":memory:")).unwrap();
+        let logos = Path::new("/jabs-test-no-such-logo-directory");
+        assert!(database.recovery_notices().unwrap().is_empty());
+        let initial = CommentatorStore::load(&database, logos).unwrap().current().unwrap();
+        assert!(database.recovery_notices().unwrap().is_empty());
+        let mut saved = initial.clone();
+        saved["commentators"][0]["name"] = serde_json::json!("Saved commentator");
+        saved["tournamentName"] = serde_json::json!("Saved tournament");
+        saved["logoAssetId"] = serde_json::json!("removed.png");
+        database.save_broadcast_surface("commentators", &saved.to_string(), "fixture").unwrap();
+        let restored = CommentatorStore::load(&database, logos).unwrap().current().unwrap();
+        saved.as_object_mut().unwrap().remove("logoAssetId");
+        assert_eq!(restored, saved);
+        assert_eq!(database.recovery_notices().unwrap().len(), 1);
+        assert_eq!(serde_json::from_str::<serde_json::Value>(&database.load_broadcast_surface("commentators").unwrap().unwrap()).unwrap(), saved);
+
+        let corrupt = "{broken saved data";
+        database.save_overlay_state(corrupt, "fixture").unwrap();
+        for surface in ["commentators", "result-screen", "versus-screen", "top-eight-matchups"] {
+            database.save_broadcast_surface(surface, corrupt, "fixture").unwrap();
+        }
+        OverlayStore::load(&database).unwrap();
+        CommentatorStore::load(&database, logos).unwrap();
+        ResultScreenStore::load(&database).unwrap();
+        VersusScreenStore::load(&database).unwrap();
+        let top_eight = TopEightMatchupsStore::load(&database).unwrap();
+        let connection = database.connection.lock().unwrap();
+        let backups: i64 = connection.query_row("SELECT count(*) FROM state_recovery WHERE payload = ?1", [corrupt], |row| row.get(0)).unwrap();
+        assert_eq!(backups, 5);
+        drop(connection);
+        assert_ne!(database.load_overlay_state().unwrap().unwrap(), corrupt);
+        assert_eq!(database.recovery_notices().unwrap().len(), 6);
+
+        // Deserializable but invalid settings must also be preserved.
+        let mut invalid = top_eight.current().unwrap();
+        invalid["tournamentName"] = serde_json::json!("");
+        database.save_broadcast_surface("top-eight-matchups", &invalid.to_string(), "fixture").unwrap();
+        TopEightMatchupsStore::load(&database).unwrap();
+        let connection = database.connection.lock().unwrap();
+        let original: String = connection.query_row("SELECT payload FROM state_recovery WHERE payload = ?1", [invalid.to_string()], |row| row.get(0)).unwrap();
+        assert_eq!(original, invalid.to_string());
+        connection.execute_batch("CREATE TRIGGER reject_backup BEFORE INSERT ON state_recovery BEGIN SELECT RAISE(ABORT, 'test disk failure'); END;").unwrap();
+        drop(connection);
+        database.save_overlay_state(corrupt, "fixture").unwrap();
+        assert!(OverlayStore::load(&database).is_err());
+        assert_eq!(database.load_overlay_state().unwrap().unwrap(), corrupt);
+    }
 
     #[test]
     fn recent_history_is_bounded_and_clear_preserves_other_tables() {

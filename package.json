@@ -1,6 +1,6 @@
 {
   "name": "jabs",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "JABS: Just Another Bracketing System, a local-first fighting game bracket and OBS score manager.",
   "license": "Apache-2.0",
   "type": "module",
@@ -22,6 +22,7 @@
     "clean:native": "cargo clean --manifest-path src-tauri/Cargo.toml",
     "typecheck": "pnpm run rosters:check && pnpm run locations:check && pnpm run moderation:check && pnpm run components:check && tsc --noEmit",
     "components:check": "node scripts/check-component-size.mjs",
+    "version:check": "node scripts/check-release-config.mjs",
     "rosters:sync": "node scripts/sync-character-rosters.mjs",
     "rosters:check": "node --test scripts/character-catalog.test.mjs && node scripts/sync-character-rosters.mjs --check",
     "locations:sync": "node scripts/sync-location-catalog.mjs",
@@ -30,13 +31,14 @@
     "moderation:check": "node scripts/sync-moderation-terms.mjs --check",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "pnpm typecheck && pnpm test && pnpm check:rust"
+    "check": "pnpm version:check && pnpm typecheck && pnpm test && pnpm check:rust"
   },
   "dependencies": {
     "@mantine/core": "9.5.1",
     "@mantine/hooks": "9.5.1",
     "@mantine/notifications": "9.5.1",
     "@tauri-apps/api": "2.11.1",
+    "@tauri-apps/plugin-updater": "2.12.0",
     "flag-icons": "7.3.0",
     "html-to-image": "1.11.13",
     "i18next": "26.3.6",
@@ -53,6 +55,8 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "4.7.0",
+    "happy-dom": "20.14.5",
+    "prettier": "3.9.9",
     "typescript": "5.9.3",
     "vite": "6.4.3",
     "vitest": "3.2.7"

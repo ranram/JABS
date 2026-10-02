@@ -24,16 +24,22 @@ export function useRealtimeState<T>({
     let socket: WebSocket | undefined;
     let reconnectTimer: number | undefined;
     let reconnectAttempt = 0;
+    let snapshotVersion = 0;
+    let loadId = 0;
 
     async function refresh(): Promise<void> {
+      const version = snapshotVersion;
+      const requestId = ++loadId;
       try {
         const next = await load();
-        if (!disposed) {
+        if (!disposed && version === snapshotVersion && requestId === loadId) {
           setState(next);
           setError(undefined);
         }
       } catch (requestError) {
-        if (!disposed) setError(requestError instanceof Error ? requestError.message : loadError);
+        if (!disposed && version === snapshotVersion && requestId === loadId) {
+          setError(requestError instanceof Error ? requestError.message : loadError);
+        }
       }
     }
 
@@ -63,6 +69,7 @@ export function useRealtimeState<T>({
           if (disposed || socket !== nextSocket) return;
           const next = parseMessage(event.data);
           if (next !== undefined) {
+            snapshotVersion += 1;
             setState(next);
             setError(undefined);
           }
@@ -70,6 +77,7 @@ export function useRealtimeState<T>({
         nextSocket.addEventListener('close', () => {
           if (disposed || socket !== nextSocket) return;
           socket = undefined;
+          loadId += 1;
           setError(reconnectingError);
           scheduleReconnect();
         });

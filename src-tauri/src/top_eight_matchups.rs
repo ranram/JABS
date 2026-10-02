@@ -56,10 +56,10 @@ pub struct TopEightMatchupsStore {
 
 impl TopEightMatchupsStore {
     pub fn load(database: &Database) -> Result<Self, String> {
-        let state = database.load_broadcast_surface(SURFACE_ID)?
-            .and_then(|payload| serde_json::from_str::<TopEightMatchupsState>(&payload).ok())
-            .filter(|state| validate(state).is_ok())
-            .unwrap_or_else(default_state);
+        let state = crate::persisted_state::restore(
+            database, "Top 8 Matchups", database.load_broadcast_surface(SURFACE_ID)?,
+            || Ok(default_state()), |state| { normalize(state); validate(state) },
+        )?;
         let payload = serde_json::to_string(&state)
             .map_err(|_| "topEightMatchups.serializeFailed".to_owned())?;
         database.save_broadcast_surface(SURFACE_ID, &payload, &state.updated_at)?;
@@ -77,26 +77,66 @@ impl TopEightMatchupsStore {
     pub fn subscribe(&self) -> broadcast::Receiver<String> { self.updates.subscribe() }
 
     pub fn replace(&self, database: &Database, mut submitted: TopEightMatchupsState) -> Result<Value, String> {
+        normalize(&mut submitted);
         validate(&submitted)?;
-        submitted.updated_at = now_rfc3339()?;
+        let mut current = self.state.write().map_err(|_| "topEightMatchups.unavailable".to_owned())?;
+        crate::persisted_state::check_revision(&submitted.updated_at, &current.updated_at)?;
+        submitted.updated_at = crate::state::next_timestamp(&current.updated_at)?;
         let payload = serde_json::to_string(&submitted)
             .map_err(|_| "topEightMatchups.serializeFailed".to_owned())?;
         database.save_broadcast_surface(SURFACE_ID, &payload, &submitted.updated_at)?;
-        *self.state.write().map_err(|_| "topEightMatchups.unavailable".to_owned())? = submitted;
+        *current = submitted;
         let _ = self.updates.send(payload.clone());
         serde_json::from_str(&payload).map_err(|_| "topEightMatchups.serializeFailed".to_owned())
     }
+}
+
+fn normalize(state: &mut TopEightMatchupsState) {
+    // Match String.trim() in the renderer, including BOM but excluding NEL.
+    fn trim_text(value: &str) -> String {
+        value.trim_matches(|ch| matches!(ch,
+            '\u{0009}'..='\u{000d}' | '\u{0020}' | '\u{00a0}' | '\u{1680}'
+            | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}'
+            | '\u{205f}' | '\u{3000}' | '\u{feff}'
+        )).to_owned()
+    }
+    fn trim(value: &mut Option<String>) {
+        if let Some(value) = value { *value = trim_text(value); }
+    }
+    state.asset_catalog_slug = trim_text(&state.asset_catalog_slug);
+    state.tournament_name = trim_text(&state.tournament_name);
+    trim(&mut state.event_name);
+    trim(&mut state.logo_asset_id);
+    for matchup in &mut state.matchups {
+        for player in &mut matchup.players {
+            player.name = trim_text(&player.name);
+            trim(&mut player.sponsor);
+            trim(&mut player.character);
+            trim(&mut player.character_asset_id);
+        }
+    }
+}
+
+fn text_length(value: &str, min: usize, max: usize) -> bool {
+    // Zod string bounds count UTF-16 code units, including surrogate pairs.
+    (min..=max).contains(&value.encode_utf16().count())
 }
 
 fn validate(state: &TopEightMatchupsState) -> Result<(), String> {
     if !crate::state::is_supported_game_id(&state.styling_game_id) {
         return Err("topEightMatchups.invalidStyling".to_owned());
     }
-    if state.asset_catalog_slug.trim().is_empty() || state.asset_catalog_slug.chars().count() > 100 {
+    if !text_length(&state.asset_catalog_slug, 1, 100) {
         return Err("topEightMatchups.invalidCatalog".to_owned());
     }
-    if state.tournament_name.trim().is_empty() || state.tournament_name.chars().count() > 120 {
+    if !text_length(&state.tournament_name, 1, 120) {
         return Err("topEightMatchups.invalidTournamentName".to_owned());
+    }
+    if state.event_name.as_deref().is_some_and(|value| !text_length(value, 0, 120))
+        || state.logo_asset_id.as_deref().is_some_and(|value| !text_length(value, 1, 255))
+        || time::OffsetDateTime::parse(&state.updated_at, &time::format_description::well_known::Rfc3339).is_err()
+    {
+        return Err("Choose valid Top 8 text fields and timestamp.".to_owned());
     }
     if state.matchups.len() != 4 {
         return Err("topEightMatchups.invalidMatchupCount".to_owned());
@@ -107,8 +147,14 @@ fn validate(state: &TopEightMatchupsState) -> Result<(), String> {
             return Err("topEightMatchups.invalidBracketOrder".to_owned());
         }
         for player in &matchup.players {
-            if player.name.trim().is_empty() || player.name.chars().count() > 100 {
+            if !text_length(&player.name, 1, 100) {
                 return Err("topEightMatchups.invalidPlayerName".to_owned());
+            }
+            if player.sponsor.as_deref().is_some_and(|value| !text_length(value, 0, 100))
+                || player.character.as_deref().is_some_and(|value| !text_length(value, 1, 100))
+                || player.character_asset_id.as_deref().is_some_and(|value| !text_length(value, 1, 255))
+            {
+                return Err("Choose valid Top 8 player text fields.".to_owned());
             }
             if player.character.as_deref().is_some_and(moderation::contains_blocked_text_for_character) {
                 return Err("topEightMatchups.blockedCharacter".to_owned());
@@ -166,6 +212,61 @@ fn default_true() -> bool { true }
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn validates_and_persists_settings_without_accepting_stale_writes() {
+        // Exercise the renderer's text bounds through real saves, including failed writes.
+        let cases: &[(&str, bool, fn(&mut TopEightMatchupsState))] = &[
+            ("legacy defaults", true, |_| {}),
+            ("trimmed names", true, |state| state.matchups[0].players[0].name = "  Player One  ".to_owned()),
+            ("trimmed tournament", true, |state| state.tournament_name = "  Finals  ".to_owned()),
+            ("UTF-16 limit", true, |state| state.matchups[0].players[0].name = "😀".repeat(50)),
+            ("UTF-16 overflow", false, |state| state.matchups[0].players[0].name = "😀".repeat(51)),
+            ("empty name", false, |state| state.matchups[0].players[0].name = "  ".to_owned()),
+            ("sponsor limit", true, |state| state.matchups[0].players[0].sponsor = Some("S".repeat(100))),
+            ("sponsor overflow", false, |state| state.matchups[0].players[0].sponsor = Some("S".repeat(101))),
+            ("event limit", true, |state| state.event_name = Some("E".repeat(120))),
+            ("event overflow", false, |state| state.event_name = Some("E".repeat(121))),
+            ("catalog overflow", false, |state| state.asset_catalog_slug = "a".repeat(101)),
+            ("empty optional character", false, |state| state.matchups[0].players[0].character = Some(" ".to_owned())),
+            ("asset overflow", false, |state| state.matchups[0].players[0].character_asset_id = Some("a".repeat(256))),
+            ("wrong bracket order", false, |state| state.matchups[2].bracket = "winners".to_owned()),
+            ("invalid timestamp", false, |state| state.updated_at = "yesterday".to_owned()),
+            ("unknown game", false, |state| state.styling_game_id = "unknown-game".to_owned()),
+            ("JavaScript whitespace trimming", true, |state| state.matchups[0].players[0].name = "\u{feff} Player One \u{feff}".to_owned()),
+            ("non-trimmed Unicode character", true, |state| state.matchups[0].players[0].name = "\u{0085}Player One\u{0085}".to_owned()),
+        ];
+        for &(name, valid, edit) in cases {
+            let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+            let store = TopEightMatchupsStore::load(&database).unwrap();
+            let before = store.current().unwrap();
+            let mut updates = store.subscribe();
+            let mut submitted = serde_json::from_value(before.clone()).unwrap();
+            edit(&mut submitted);
+            let saved = store.replace(&database, submitted);
+            assert_eq!(saved.is_ok(), valid, "{name}");
+            if let Ok(saved) = saved {
+                assert_ne!(saved["updatedAt"], before["updatedAt"]);
+                let persisted: Value = serde_json::from_str(&database.load_broadcast_surface(SURFACE_ID).unwrap().unwrap()).unwrap();
+                assert_eq!(saved, persisted);
+                assert_eq!(saved, serde_json::from_str::<Value>(&updates.try_recv().unwrap()).unwrap());
+                match name {
+                    "trimmed names" | "JavaScript whitespace trimming" => assert_eq!(saved["matchups"][0]["players"][0]["name"], "Player One"),
+                    "trimmed tournament" => assert_eq!(saved["tournamentName"], "Finals"),
+                    "non-trimmed Unicode character" => assert_eq!(saved["matchups"][0]["players"][0]["name"], "\u{0085}Player One\u{0085}"),
+                    _ => {}
+                }
+                assert_eq!(store.replace(&database, serde_json::from_value(before).unwrap()).unwrap_err(), crate::persisted_state::STALE_SETTINGS);
+                assert_eq!(store.current().unwrap(), saved);
+                assert!(updates.try_recv().is_err());
+            } else {
+                assert_eq!(store.current().unwrap(), before);
+                assert!(updates.try_recv().is_err());
+                let persisted: Value = serde_json::from_str(&database.load_broadcast_surface(SURFACE_ID).unwrap().unwrap()).unwrap();
+                assert_eq!(persisted, before);
+            }
+        }
+    }
 
     #[test]
     fn logo_visibility_migrates_and_round_trips_for_both_overlays() {

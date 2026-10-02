@@ -1,6 +1,6 @@
 [package]
 name = "jabs"
-version = "1.1.1"
+version = "1.2.0"
 description = "JABS — Just Another Bracketing System, a local-first fighting game bracket and OBS score manager."
 authors = ["JABS contributors"]
 license = "Apache-2.0"
@@ -23,6 +23,7 @@ rusqlite = { version = "=0.40.2", default-features = false, features = ["bundled
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
 tauri = { version = "=2.11.4", features = [] }
+tauri-plugin-updater = { version = "=2.12.0", default-features = false, features = ["rustls-tls"] }
 time = { version = "=0.3.51", default-features = false, features = ["formatting", "parsing", "std"] }
 tokio = { version = "=1.53.1", features = ["net", "rt-multi-thread", "sync", "time"] }
 tower-http = { version = "=0.6.11", default-features = false, features = ["cors"] }

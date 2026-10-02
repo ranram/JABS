@@ -251,8 +251,13 @@
   background: var(--top8-background);
 }
 
+.top8-card:is(.placement-2, .placement-3) .top8-card-copy {
+  min-height: 6cqw;
+}
+
 .top8-placement {
   position: absolute;
+  z-index: 1;
   bottom: calc(100% + 0.25cqw);
   left: 1.2cqw;
   color: var(--top8-accent);
@@ -270,17 +275,13 @@
 }
 
 .top8-name-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.6cqw;
+  display: block;
   width: 100%;
   min-width: 0;
 }
 
 .top8-name-row > strong {
   display: block;
-  flex: 1 1 0%;
   min-width: 0;
   padding-block: 0.08em 0.12em;
   font-family: "JABS Anton", Impact, sans-serif;
@@ -294,28 +295,17 @@
   white-space: normal;
 }
 
-.top8-name-row > .top8-country-flag {
-  flex: 0 0 auto;
+.top8-card-copy.has-flag .top8-name-row,
+.top8-card-copy.has-flag .top8-sponsor-text,
+.top8-card-copy.has-flag .top8-x-handle {
+  max-width: calc(100% - 2.2cqw);
 }
 
-.top8-card-meta {
-  display: flex;
-  min-height: 1.2cqw;
-  min-width: 0;
-  align-items: center;
-  gap: 0.45cqw;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1cqw;
-  font-family: "JABS Bebas Neue", sans-serif;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.top8-card-meta > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.top8-name-row,
+.top8-sponsor-text,
+.top8-x-handle {
+  position: relative;
+  z-index: 1;
 }
 
 .top8-sponsor-text {
@@ -345,18 +335,22 @@
 }
 
 .top8-sponsor-text.is-empty,
-.top8-x-handle.is-empty,
-.top8-card-meta.is-empty {
+.top8-x-handle.is-empty {
   visibility: hidden;
 }
 
 .top8-country-flag {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: 0.6cqw;
   display: none;
-  width: auto;
+  width: 1.6cqw;
   height: 1.2cqw;
   aspect-ratio: 4 / 3;
   object-fit: cover;
   border-radius: 0.12cqw;
+  transform: translateY(-50%);
 }
 
 .top8-country-flag.is-loaded {
@@ -368,11 +362,17 @@
 }
 
 .top8-sponsor-logo {
+  position: absolute;
+  z-index: 0;
+  top: 0.3cqw;
+  left: 0;
   display: none;
-  width: auto;
-  max-width: 4cqw;
-  height: 1.2cqw;
+  width: 50%;
+  height: calc(100% - 0.6cqw);
   object-fit: contain;
+  object-position: left center;
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 .top8-sponsor-logo.is-loaded {
@@ -398,8 +398,8 @@
   bottom: 4%;
   left: 3%;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 0.9fr)) repeat(3, minmax(0, 1.1fr));
+  grid-template-rows: repeat(2, minmax(0, 0.9fr)) repeat(2, minmax(0, 1.1fr));
   grid-template-areas:
     "one one one two two three"
     "one one one two two three"
@@ -418,16 +418,24 @@
 .top8-mosaic-position.position-7 { grid-area: seven; }
 .top8-mosaic-position.position-8 { grid-area: eight; }
 .top8-mosaic .top8-card { border-radius: 0.25cqw; }
+.top8-mosaic .top8-card:is(.placement-2, .placement-3) .top8-card-copy { min-height: 4.2cqw; }
 .top8-mosaic .placement-1 { border-width: 0.28cqw; }
-.top8-mosaic .placement-1 .top8-name-row > strong { font-size: 3.1cqw; }
-.top8-mosaic-position:not(.position-1) .top8-card-copy { padding: 0.55cqw 0.7cqw; }
-.top8-mosaic-position:not(.position-1) .top8-placement { left: 0.7cqw; }
+.top8-mosaic .placement-1 .top8-card-copy { padding: 0.65cqw 1cqw; }
+.top8-mosaic .placement-1 .top8-name-row > strong { font-size: 2.9cqw; }
+.top8-mosaic-position:not(.position-1) .top8-card-copy { gap: 0.15cqw; padding: 0.4cqw 0.6cqw; }
+.top8-mosaic-position:not(.position-1) .top8-placement { left: 0.6cqw; }
 .top8-mosaic-position:not(.position-1) .top8-name-row > strong { font-size: 1.45cqw; }
 .top8-mosaic-position:not(.position-1) .top8-placement { font-size: 3.3cqw; }
-.top8-mosaic-position:not(.position-1) .top8-card-meta { display: none; }
 .top8-mosaic-position.position-2 .top8-name-row > strong { font-size: 1.85cqw; }
 .top8-mosaic-position.position-3 .top8-name-row > strong { font-size: 1.6cqw; }
 .top8-mosaic-position.position-4 .top8-name-row > strong { font-size: 1.55cqw; }
+.top8-mosaic .top8-card:is(.placement-5, .placement-7) .top8-placement {
+  font-size: 2cqw;
+}
+.top8-mosaic .top8-card:is(.placement-2, .placement-3, .placement-5, .placement-7) .top8-sponsor-text.is-empty,
+.top8-mosaic .top8-card:is(.placement-2, .placement-3, .placement-5, .placement-7) .top8-x-handle.is-empty {
+  display: none;
+}
 .top8-mosaic .top8-card:is(.placement-5, .placement-7) .top8-character-portraits {
   right: 0.75cqw;
   left: auto;
@@ -484,7 +492,6 @@
 .top8-neon-finalists .top8-card-copy { padding: 0.55cqw 0.7cqw; }
 .top8-neon-finalists .top8-placement { left: 0.7cqw; }
 .top8-neon-finalists .top8-name-row > strong { font-size: 1.4cqw; }
-.top8-neon-finalists .top8-card-meta { display: none; }
 .top8-neon-finalists .top8-placement { font-size: 3.3cqw; }
 .top8-neon-finalists > .top8-card:nth-child(1) .top8-name-row > strong { font-size: 2cqw; }
 .top8-neon-finalists > .top8-card:nth-child(2) .top8-name-row > strong { font-size: 1.7cqw; }

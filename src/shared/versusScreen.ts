@@ -34,7 +34,7 @@ const playerMediaPlacementSchema = z.object({
 export const versusHistorySchema = z.object({
   playerOnePlacements: z.array(placementSchema).max(3),
   playerTwoPlacements: z.array(placementSchema).max(3),
-  headToHead: z.array(headToHeadSchema).max(6)
+  headToHead: z.array(headToHeadSchema).max(3)
 });
 
 export const versusScreenStateSchema = z.object({

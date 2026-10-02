@@ -1,3 +1,4 @@
+import type { NoticeSink } from './operatorNotice';
 import {
   Button, ColorInput, FileInput, Group, NumberInput, Paper,
   Select, SimpleGrid, Stack, Switch, Text, TextInput, Title
@@ -14,6 +15,7 @@ import {
 } from '@shared/customScoreboards';
 import type { SelectedSetState } from '@shared/models';
 import { api } from '../../api';
+import { useLogoAssetUrl } from '../../hooks/useLogoAssetUrl';
 import { CustomScoreboardCanvas } from '../CustomScoreboardCanvas';
 import './customScoreboardPanel.css';
 
@@ -21,7 +23,7 @@ type CustomScoreboardPanelProps = {
   activeSet?: SelectedSetState;
   activeScoreboardId?: string;
   onSelect(scoreboardId?: string, revision?: string): void;
-  onMessage(message: string): void;
+  onMessage: NoticeSink;
 };
 
 export function CustomScoreboardPanel({
@@ -31,7 +33,7 @@ export function CustomScoreboardPanel({
   const [scoreboards, setScoreboards] = useState<CustomScoreboard[]>([]);
   const [draft, setDraft] = useState<CustomScoreboard>();
   const [frameUrl, setFrameUrl] = useState<string>();
-  const [logoUrl, setLogoUrl] = useState<string>();
+  const logoUrl = useLogoAssetUrl(activeSet?.broadcast?.logoAssetId);
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState('');
   const [regionId, setRegionId] = useState<CustomScoreboardRegionId>('playerOneName');
@@ -46,7 +48,7 @@ export function CustomScoreboardPanel({
   }
 
   useEffect(() => {
-    void reload().catch(() => onMessage(t('customScoreboard.loadFailed')));
+    void reload().catch(() => onMessage(t('customScoreboard.loadFailed'), 'error'));
   }, []);
 
   useEffect(() => {
@@ -60,25 +62,11 @@ export function CustomScoreboardPanel({
       () => {
         if (!active) return;
         setFrameUrl(undefined);
-        onMessage(t('customScoreboard.imageLoadFailed'));
+        onMessage(t('customScoreboard.imageLoadFailed'), 'error');
       }
     );
     return () => { active = false; };
   }, [draft?.frameRevision, draft?.id]);
-
-  useEffect(() => {
-    let active = true;
-    const logoId = activeSet?.broadcast?.logoAssetId;
-    if (!logoId) {
-      setLogoUrl(undefined);
-      return () => { active = false; };
-    }
-    void api.logoAssetUrl(logoId).then(
-      (url) => { if (active) setLogoUrl(url); },
-      () => { if (active) setLogoUrl(undefined); }
-    );
-    return () => { active = false; };
-  }, [activeSet?.broadcast?.logoAssetId]);
 
   const selectedRegion = draft ? customScoreboardRegion(draft, regionId) : undefined;
   const selectedBounds = customScoreboardRegionBounds(regionId);
@@ -89,7 +77,7 @@ export function CustomScoreboardPanel({
 
   async function importScoreboard() {
     if (!file || !name.trim()) {
-      onMessage(t('customScoreboard.chooseFileAndName'));
+      onMessage(t('customScoreboard.chooseFileAndName'), 'warning');
       return;
     }
     setWorking(true);
@@ -99,9 +87,9 @@ export function CustomScoreboardPanel({
       onSelect(imported.id, imported.frameRevision);
       setFile(null);
       setName('');
-      onMessage(t('customScoreboard.imported'));
+      onMessage(t('customScoreboard.imported'), 'success');
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : t('customScoreboard.importFailed'));
+      onMessage(error instanceof Error ? error.message : t('customScoreboard.importFailed'), 'error');
     } finally {
       setWorking(false);
     }
@@ -118,9 +106,9 @@ export function CustomScoreboardPanel({
       setScoreboards((current) => current.map((item) => item.id === saved.id ? saved : item));
       setDraft(saved);
       if (activeScoreboardId === saved.id) onSelect(saved.id, saved.frameRevision);
-      onMessage(t('customScoreboard.saved'));
+      onMessage(t('customScoreboard.saved'), 'success');
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : t('customScoreboard.saveFailed'));
+      onMessage(error instanceof Error ? error.message : t('customScoreboard.saveFailed'), 'error');
     } finally {
       setWorking(false);
     }
@@ -133,9 +121,9 @@ export function CustomScoreboardPanel({
       await api.deleteCustomScoreboard(draft.id);
       if (activeScoreboardId === draft.id) onSelect(undefined);
       await reload();
-      onMessage(t('customScoreboard.deleted'));
+      onMessage(t('customScoreboard.deleted'), 'success');
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : t('customScoreboard.deleteFailed'));
+      onMessage(error instanceof Error ? error.message : t('customScoreboard.deleteFailed'), 'error');
     } finally {
       setWorking(false);
     }

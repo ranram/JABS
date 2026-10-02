@@ -37,10 +37,9 @@ pub struct CommentatorStore {
 
 impl CommentatorStore {
     pub fn load(database: &Database, logo_directory: &Path) -> Result<Self, String> {
-        let restored = database.load_broadcast_surface(SURFACE_ID)?
-            .and_then(|payload| serde_json::from_str::<CommentatorState>(&payload).ok())
-            .filter(|state| validate(state, logo_directory).is_ok());
-        let state = restored.unwrap_or(CommentatorState {
+        let state = crate::persisted_state::restore(
+            database, "commentators", database.load_broadcast_surface(SURFACE_ID)?,
+            || Ok(CommentatorState {
             styling_game_id: default_styling_game_id(),
             tournament_name: "Tournament Broadcast".to_owned(),
             logo_asset_id: None,
@@ -51,7 +50,17 @@ impl CommentatorStore {
             ],
             presentation: "hidden".to_owned(),
             updated_at: now_rfc3339()?,
-        });
+        }),
+            |state: &mut CommentatorState| {
+                if state.logo_asset_id.as_deref().is_some_and(|id| !catalogs::has_logo(logo_directory, id)) {
+                    state.logo_asset_id = None;
+                    database.record_recovery_notice(
+                        "The commentator logo is missing. The logo was cleared; commentator names and settings were kept.".to_owned()
+                    )?;
+                }
+                validate(state, logo_directory)
+            },
+        )?;
         let payload = serde_json::to_string(&state)
             .map_err(|_| "Unable to serialize commentator state.".to_owned())?;
         database.save_broadcast_surface(SURFACE_ID, &payload, &state.updated_at)?;

@@ -1,6 +1,7 @@
 use std::{fs, path::{Path, PathBuf}};
 
 fn main() {
+    println!("cargo:rerun-if-env-changed=JABS_UPDATER_PUBLIC_KEY");
     generate_web_assets();
     tauri_build::build()
 }
