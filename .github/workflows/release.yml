@@ -154,6 +154,13 @@ jobs:
       - name: Validate the Rust lockfile before Cargo can execute build scripts
         run: pnpm run rust-lock:check
 
+      - name: Configure the updater public key for packaging
+        env:
+          JABS_RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          JABS_UPDATER_PUBLIC_KEY: ${{ vars.JABS_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: node scripts/check-release-config.mjs --prepare-updater
+
       - name: Build packages and create a draft release
         uses: tauri-apps/tauri-action@v1
         env:
