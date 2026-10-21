@@ -50,7 +50,7 @@ query EventStandings($eventId: ID!) {
             gamerTag
             prefix
             connectedAccounts
-            user { location { country } authorizations(types: [TWITTER]) { externalUsername } }
+            user { slug genderPronoun location { country state } authorizations(types: [TWITTER]) { externalUsername } }
             player { id }
           }
         }
@@ -81,7 +81,7 @@ query EventStandingsBySlug($eventSlug: String!) {
             gamerTag
             prefix
             connectedAccounts
-            user { location { country } authorizations(types: [TWITTER]) { externalUsername } }
+            user { slug genderPronoun location { country state } authorizations(types: [TWITTER]) { externalUsername } }
             player { id }
           }
         }
@@ -108,7 +108,7 @@ query SetById($setId: ID!) {
     id
     displayScore
     fullRoundText
-    event { videogame { id name } }
+    event { videogame { id name } tournament { name } }
     phaseGroup {
       id
       displayIdentifier
@@ -133,6 +133,7 @@ query SetById($setId: ID!) {
           connectedAccounts
           player { id }
           user {
+            slug
             genderPronoun
             location { country state }
             authorizations(types: [TWITTER]) { externalUsername }
@@ -154,20 +155,8 @@ query SetById($setId: ID!) {
 "#;
 
 pub const VERSUS_HISTORY: &str = r#"
-query VersusHistory($eventId: ID!, $playerOneId: ID!, $playerTwoId: ID!) {
-  currentEvent: event(id: $eventId) { videogame { id } }
-  playerOne: player(id: $playerOneId) {
-    recentStandings {
-      placement
-      entrant { event { id name videogame { id } tournament { name startAt } } }
-    }
-  }
-  playerTwo: player(id: $playerTwoId) {
-    recentStandings {
-      placement
-      entrant { event { id name videogame { id } tournament { name startAt } } }
-    }
-  }
+query VersusHistory($eventId: ID!) {
+  currentEvent: event(id: $eventId) { videogame { id } tournament { name } }
 }
 "#;
 
@@ -185,6 +174,8 @@ query EventHeadToHead($eventId: ID!, $entrantIds: [ID]!, $page: Int!, $perPage: 
         id
         state
         completedAt
+        fullRoundText
+        phaseGroup { phase { name } }
         event { id name videogame { id } tournament { name } }
         slots {
           entrant { participants { player { id } } }
@@ -205,6 +196,8 @@ query PlayerSetHistory($playerId: ID!, $page: Int!, $perPage: Int!) {
         id
         state
         completedAt
+        fullRoundText
+        phaseGroup { phase { name } }
         event { id name videogame { id } tournament { name } }
         slots {
           entrant { participants { player { id } } }
@@ -274,7 +267,7 @@ const SET_FIELDS: &str = r#"
       entrant {
         id
         name
-        participants { id gamerTag prefix }
+        participants { id gamerTag prefix player { id } }
       }
       standing { stats { score { value } } }
     }

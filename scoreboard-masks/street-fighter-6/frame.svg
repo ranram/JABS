@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <title>Street Fighter 6 — opaque portrait frame (left and right)</title>
+  <desc>Opaque photo backing on a transparent 1920×1080 canvas.</desc>
+  <defs><mask id="coverage-left" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 0 0 L 202 0 L 202 62 L 167 62 L 193 99 L 0 99 Z" fill="white"/><rect x="203" y="64" width="660" height="34" fill="black"/><rect x="1057" y="64" width="660" height="34" fill="black"/><rect x="895" y="44" width="130" height="90" fill="black"/></mask><mask id="coverage-right" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 0 0 L 202 0 L 202 61 L 173 61 L 193 101 L 0 101 Z" transform="translate(1920 0) scale(-1 1)" fill="white"/><rect x="203" y="64" width="660" height="34" fill="black"/><rect x="1057" y="64" width="660" height="34" fill="black"/><rect x="895" y="44" width="130" height="90" fill="black"/></mask></defs>
+  <g mask="url(#coverage-left)"><path d="M 0 0 L 202 0 L 202 62 L 167 62 L 193 99 L 0 99 Z" fill="#11151c"/></g>
+  <g mask="url(#coverage-right)"><path d="M 0 0 L 202 0 L 202 61 L 173 61 L 193 101 L 0 101 Z" transform="translate(1920 0) scale(-1 1)" fill="#11151c"/></g>
+</svg>

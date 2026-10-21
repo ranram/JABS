@@ -1,0 +1,20 @@
+.bracket-preview-shell {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  width: min(100%, 1180px);
+  margin-inline: auto;
+  background: #090b12;
+  border: 1px solid #383e50;
+}
+.bracket-preview-shell.is-transparent-preview {
+  background: repeating-conic-gradient(#161a25 0 25%, #222736 0 50%) 0 / 20px 20px;
+}
+.bracket-preview-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+}

@@ -93,7 +93,7 @@
   max-width: 100%;
   overflow: hidden;
   font-family: "JABS Anton", Impact, sans-serif;
-  font-size: 34px;
+  font-size: calc(34px * var(--appearance-text-scale, 1));
   font-weight: 400;
   line-height: 1.05;
   text-overflow: ellipsis;
@@ -101,12 +101,12 @@
   white-space: nowrap;
 }
 
-.commentator-identity span {
+.commentator-identity > span {
   display: block;
   max-width: 100%;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.68);
-  font-size: 21px;
+  font-size: calc(21px * var(--appearance-text-scale, 1));
   letter-spacing: 0.055em;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -133,7 +133,7 @@
   transform: translate(-50%, -50%);
 }
 
-.commentator-event-mark span {
+.commentator-event-mark > span {
   position: absolute;
   top: calc(50% + 96px);
   left: 50%;
@@ -141,7 +141,7 @@
   width: 270px;
   overflow: hidden;
   color: var(--game-accent);
-  font-size: 15px;
+  font-size: calc(15px * var(--appearance-text-scale, 1));
   letter-spacing: 0.09em;
   line-height: 1;
   text-align: center;

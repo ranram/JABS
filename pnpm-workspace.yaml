@@ -3,9 +3,6 @@ packages:
 
 # Supply-chain policy applies to the public desktop project.
 minimumReleaseAge: 10080
-minimumReleaseAgeExclude:
-  # Exact, reviewed fix for GHSA-2v37-7h3g-55p8; published just under seven days before migration.
-  - nanoid@3.3.17
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade
@@ -15,7 +12,8 @@ blockExoticSubdeps: true
 
 # Narrow security backport for an advisory in the active dependency graph.
 overrides:
-  "nanoid@^3": "3.3.17"
+  "nanoid@^3": "3.3.19"
+  "source-map-js@^1": "1.2.2"
 
 # Fail instead of silently installing or running with an unexpected dependency tree.
 engineStrict: true

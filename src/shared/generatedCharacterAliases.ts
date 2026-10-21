@@ -6,7 +6,8 @@ export const generatedCharacterAliases: Readonly<Record<string, Readonly<Record<
     "dictator": "M. Bison",
     "honda": "E. Honda",
     "viper": "C. Viper",
-    "crimsonviper": "C. Viper"
+    "crimsonviper": "C. Viper",
+    "tifalockhart": "Tifa"
   },
   "tekken-8": {
     "miary": "Miary Zo",
@@ -15,13 +16,20 @@ export const generatedCharacterAliases: Readonly<Record<string, Readonly<Record<
     "paul": "Paul Phoenix",
     "bryan": "Bryan Fury",
     "kazuya": "Kazuya Mishima",
-    "jin": "Jin Kazama"
+    "jin": "Jin Kazama",
+    "yujiro": "Yujiro Hanma"
   },
-  "avatar-legends": {},
+  "avatar-legends": {
+    "lin": "Lin Beifong",
+    "iroh": "Uncle Iroh"
+  },
   "marvel-tokon": {
     "peni": "Peni Parker",
     "doom": "Doctor Doom",
-    "goblin": "Green Goblin"
+    "goblin": "Green Goblin",
+    "thor": "Thor (Jane Foster)",
+    "janefoster": "Thor (Jane Foster)",
+    "mightythor": "Thor (Jane Foster)"
   },
   "guilty-gear-strive": {
     "jam": "Jam Kuradoberi",
@@ -62,7 +70,9 @@ export const generatedCharacterAliases: Readonly<Record<string, Readonly<Record<
     "rock": "Rock Howard",
     "billy": "Billy Kane",
     "terry": "Terry Bogard",
-    "jenet": "B. Jenet"
+    "jenet": "B. Jenet",
+    "mikey": "Manjiro Sano",
+    "draken": "Ken Ryuguji"
   },
   "granblue-fantasy-versus-rising": {
     "abel": "Avatar Belial"
@@ -124,6 +134,7 @@ export const generatedCharacterAliases: Readonly<Record<string, Readonly<Record<
     "hiryu": "Strider Hiryu",
     "nemesis": "Nemesis T-Type"
   },
+  "super-smash-bros-melee": {},
   "super-smash-bros-ultimate": {
     "purin": "Jigglypuff",
     "koopa": "Bowser",
@@ -137,5 +148,8 @@ export const generatedCharacterAliases: Readonly<Record<string, Readonly<Record<
     "yusha": "Hero",
     "pythra": "Pyra and Mythra"
   },
-  "under-night-in-birth-ii-sys-celes": {}
+  "under-night-in-birth-ii-sys-celes": {},
+  "rivals-of-aether-ii": {
+    "minathehollower": "Mina"
+  }
 };

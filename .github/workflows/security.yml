@@ -1,0 +1,39 @@
+name: Dependency security
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  schedule:
+    - cron: "23 8 * * 1"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+      - name: Audit JavaScript lockfile, including development dependencies
+        run: pnpm audit
+      - name: Validate Rust dependency sources and checksums
+        run: node scripts/check-rust-lock.mjs
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.1
+      - name: Install the Rust advisory scanner
+        run: cargo install cargo-audit --version 0.22.2 --locked
+      - name: Audit Rust lockfile
+        run: cargo audit --file src-tauri/Cargo.lock

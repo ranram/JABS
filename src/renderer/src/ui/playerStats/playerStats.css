@@ -1,0 +1,392 @@
+.player-stats {
+  --stats-column-left: 880px;
+  --stats-column-right: 74px;
+  color: #fff;
+  font-family: 'JABS Bebas Neue', Impact, sans-serif;
+}
+
+.player-stats .victory-logo {
+  left: calc((var(--stats-column-left) + 100% - var(--stats-column-right)) / 2);
+}
+
+.player-stats .victory-hero {
+  inset: 140px 56% 160px -30px;
+}
+
+.player-stats .victory-logo.is-placeholder,
+.stats-placement-logo.is-placeholder {
+  filter: brightness(0) invert(0.65);
+}
+
+.stats-identity {
+  position: absolute;
+  z-index: 5;
+  left: 60px;
+  bottom: 38px;
+  width: 740px;
+  text-shadow: 0 4px 18px #000;
+}
+
+.stats-identity .victory-name {
+  font-size: calc(100px * var(--appearance-text-scale, 1));
+  margin-top: 8px;
+  padding-right: 18px;
+}
+
+.stats-player-flag {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: center;
+  width: 112px;
+  height: 84px;
+  object-fit: contain;
+}
+
+.stats-identity.has-flag {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  column-gap: 24px;
+  align-items: center;
+}
+
+.stats-identity.has-flag .stats-eyebrow {
+  grid-column: 1 / -1;
+}
+
+.stats-identity.has-flag .victory-name {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.stats-identity.has-flag .stats-player-context {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+}
+
+.stats-identity.has-flag .stats-sponsor-logo {
+  grid-column: 1;
+}
+
+.stats-identity.has-flag .stats-player-context > span {
+  grid-column: 2;
+}
+
+.stats-type-led .stats-identity {
+  top: 390px;
+  bottom: auto;
+}
+
+.stats-type-led .victory-name {
+  font-size: calc(150px * var(--appearance-text-scale, 1));
+}
+
+.stats-eyebrow,
+.stats-results h2 {
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.05em;
+}
+
+.stats-eyebrow {
+  color: #a9adb4;
+  font-size: 28px;
+}
+
+.stats-player-context {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 90px;
+  font-size: 28px;
+  color: #c3c7ce;
+}
+
+.stats-sponsor-logo {
+  width: 140px;
+  height: 74px;
+  object-fit: contain;
+}
+
+.stats-results {
+  position: absolute;
+  z-index: 5;
+  left: var(--stats-column-left);
+  right: var(--stats-column-right);
+  top: 225px;
+  bottom: 55px;
+  display: grid;
+  grid-template-rows: 360px minmax(0, 1fr);
+  gap: 34px;
+}
+
+.stats-results h2,
+.stats-results p {
+  margin: 0;
+}
+
+.stats-results h2 {
+  text-align: center;
+}
+
+.stats-placement-list,
+.stats-run-list {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0;
+}
+
+.stats-placement-list li {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  height: 58px;
+  border-bottom: 1px solid #ffffff18;
+}
+
+.stats-place {
+  display: flex;
+  justify-self: end;
+  gap: 0;
+  align-items: baseline;
+  white-space: nowrap;
+  font-size: 46px;
+  line-height: 1;
+  font-weight: 400;
+}
+
+.stats-place-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-place sup {
+  align-self: start;
+  margin-top: 4px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.stats-place[data-placement-tier='gold'] {
+  color: #f0c66c;
+}
+.stats-place[data-placement-tier='silver'] {
+  color: #d9e2ed;
+}
+.stats-place[data-placement-tier='bronze'] {
+  color: #d6a07c;
+}
+.stats-place[data-placement-tier='platinum'] {
+  color: #b5c5c7;
+}
+
+.stats-place-separator,
+.stats-place-total {
+  color: #a9adb4;
+  font-size: 28px;
+  white-space: nowrap;
+}
+
+.stats-place-total {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-event-copy {
+  min-width: 0;
+}
+
+.stats-event-copy,
+.stats-opponent strong {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.05;
+}
+
+.stats-opponent > span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #a9adb4;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.stats-placement-logo {
+  width: 100px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.stats-placement-mark {
+  display: grid;
+  place-items: center;
+  width: 100px;
+  height: 48px;
+}
+
+.stats-run {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.stats-run > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.stats-run > header > div {
+  grid-area: 1 / 1;
+  min-width: 0;
+  padding-inline: 180px;
+  text-align: center;
+}
+
+.stats-tournament-name {
+  display: block;
+  max-width: 680px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #a9adb4;
+  font-size: 22px;
+}
+
+.stats-record {
+  grid-area: 1 / 1;
+  justify-self: end;
+  align-self: start;
+  flex-shrink: 0;
+  font-size: 42px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.stats-record small {
+  margin-left: 4px;
+  font-size: 20px;
+  color: #a9adb4;
+}
+
+.stats-record > span {
+  margin: 0 12px;
+  color: #666;
+}
+
+.stats-run-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 28px;
+  flex: 1;
+  min-height: 0;
+}
+
+.stats-run-list.has-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stats-run-list li {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  min-height: 0;
+  border-bottom: 1px solid #ffffff18;
+  container-type: size;
+}
+
+.stats-opponent {
+  min-width: 0;
+  flex: 1;
+}
+
+.stats-opponent strong {
+  font-size: clamp(14px, 60cqh, 29px);
+}
+
+.stats-opponent > span {
+  font-size: clamp(10px, 32cqh, 18px);
+}
+
+.stats-outcome,
+.stats-set-score {
+  font-size: clamp(14px, 64cqh, 30px);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.stats-outcome {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  height: min(32px, 82cqh);
+  line-height: 1;
+  color: #a9adb4;
+}
+
+.is-win .stats-outcome {
+  background: var(--appearance-primary, var(--game-accent, #ffd238));
+  color: var(--appearance-on-accent, #111);
+}
+
+.is-loss .stats-outcome {
+  background: var(--appearance-secondary, var(--broadcast-right, #ff554d));
+  color: var(--appearance-on-secondary, #111);
+}
+
+.stats-set-score > span {
+  color: #777;
+  padding: 0 6px;
+}
+
+.stats-results .stats-empty {
+  margin-top: 26px;
+  font-size: 26px;
+  color: #a9adb4;
+}
+
+.stats-results .stats-notice {
+  margin-top: 8px;
+  font-size: 18px;
+  color: #b9bdc4;
+}
+
+.stats-waiting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 42px;
+}
+
+/* Transparency removes the stage only; these local backings preserve contrast in OBS. */
+.player-stats.is-transparent-background .stats-identity,
+.player-stats.is-transparent-background .stats-placements,
+.player-stats.is-transparent-background .stats-run {
+  isolation: isolate;
+}
+
+.player-stats.is-transparent-background .stats-placements,
+.player-stats.is-transparent-background .stats-run {
+  position: relative;
+}
+
+.player-stats.is-transparent-background .stats-identity::before,
+.player-stats.is-transparent-background .stats-placements::before,
+.player-stats.is-transparent-background .stats-run::before {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  z-index: -1;
+  background: rgba(17, 17, 17, 0.92);
+  pointer-events: none;
+}

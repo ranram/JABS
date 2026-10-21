@@ -89,6 +89,22 @@
     {
       "name": "Phoenix Cyclops",
       "aliases": []
+    },
+    {
+      "name": "Thor (Jane Foster)",
+      "aliases": [
+        "Thor",
+        "Jane Foster",
+        "Mighty Thor"
+      ]
+    },
+    {
+      "name": "Venom",
+      "aliases": []
+    },
+    {
+      "name": "Jubilee",
+      "aliases": []
     }
   ]
 }

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <title>Ultimate Marvel vs. Capcom 3 — beside team portraits — opaque portrait frame (left)</title>
+  <desc>Opaque photo backing on a transparent 1920×1080 canvas.</desc>
+  <defs><mask id="coverage-left" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 16 32 H 136 V 208 H 16 Z" fill="white"/><rect x="409" y="96" width="423" height="49" fill="black"/><rect x="1088" y="96" width="423" height="49" fill="black"/><rect x="184" y="90" width="65" height="28" fill="black"/><rect x="1671" y="90" width="65" height="28" fill="black"/><rect x="243" y="180" width="59" height="30" fill="black"/><rect x="1618" y="180" width="59" height="30" fill="black"/><rect x="144" y="24" width="266" height="190" fill="black"/><rect x="1510" y="24" width="266" height="190" fill="black"/></mask></defs>
+  <g mask="url(#coverage-left)"><path d="M 16 32 H 136 V 208 H 16 Z" fill="#11151c"/></g>
+</svg>

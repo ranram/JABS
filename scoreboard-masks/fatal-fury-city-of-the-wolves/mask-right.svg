@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <title>Fatal Fury: City of the Wolves — photo aperture (right)</title>
+  <desc>White photo aperture on a transparent 1920×1080 canvas.</desc>
+  <defs><mask id="coverage-right" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 0 0 L 188 0 L 186 103 L 160 132 L 40 132 L 0 180 Z" transform="translate(1920 0) scale(-1 1)" fill="white"/><rect x="193" y="64" width="677" height="35" fill="black"/><rect x="1050" y="64" width="677" height="35" fill="black"/><rect x="653" y="113" width="217" height="17" fill="black"/><rect x="1050" y="113" width="217" height="17" fill="black"/></mask></defs>
+  <g mask="url(#coverage-right)"><path d="M 0 0 L 188 0 L 186 103 L 160 132 L 40 132 L 0 180 Z" transform="translate(1920 0) scale(-1 1)" fill="white"/></g>
+</svg>

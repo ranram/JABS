@@ -1,9 +1,10 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { gameIdForStartggVideogame, type GameProfile } from '@shared/gameProfiles';
+import { gameIdForStartggVideogame, resolveStartggGameProfileId, type GameProfile } from '@shared/gameProfiles';
 import { gameAssetCatalogSlug } from '@shared/gameAssetCatalog';
 import type { CountryOption, LogoAsset, SelectedSetState, StartggResultMeta } from '@shared/models';
 import { startggReportReadiness } from '@shared/startggReporting';
+import { versusHistoryMatch } from '@shared/versusScreen';
 import { api } from '../api';
 import { useOverlayState } from '../hooks/useOverlayState';
 import { useOperatorDraft } from './operator/useOperatorDraft';
@@ -17,17 +18,22 @@ import { LiveControlsPanel } from './operator/LiveControlsPanel';
 import { StartggPanel } from './operator/StartggPanel';
 import { automaticScoreboardSelection, customScoreboardSelection } from '../customScoreboardSelection';
 import { useBracketBrowser } from './operator/useBracketBrowser';
+import type { BracketController } from './operator/bracketController';
 import { useQuickScoreActions } from './operator/useQuickScoreActions';
 import { OperatorTopbar } from './operator/OperatorTopbar';
 import { useOperatorNotifications } from './operator/useOperatorNotifications';
 import { errorMessage, localizedReadinessReason } from './operator/operatorUtils';
 import { useStreamDraftAutosave } from './operator/useStreamDraftAutosave';
 import { useAssetCatalogReload } from './operator/useAssetCatalogReload';
+import { GameSelect } from './operator/GameSelect';
+import { useExhibitionGameSelection } from './operator/useExhibitionGameSelection';
+import { useGameAssetPreparation } from './operator/useGameAssetPreparation';
 import { useCharacterCatalogOptions } from './operator/useCharacterCatalogOptions';
 import type { LocalHandoffUrl } from '../desktopRuntime';
 import { useModerationRefresh } from './operator/useModerationRefresh';
 import { useScoreShortcuts } from './operator/useScoreShortcuts';
 import { swapSavedCommentators } from './operator/swapCommentators';
+import { usePlayerDefaultsAutosave } from './operator/usePlayerDefaultsAutosave';
 export function OperatorDashboard() {
   const { t } = useTranslation(['operator', 'common', 'errors']);
   const { state, setState, error: stateError } = useOverlayState();
@@ -56,46 +62,30 @@ export function OperatorDashboard() {
   });
   const {
     tournamentSlug,
-    setTournamentSlug,
-    recentTournaments,
-    setRecentTournaments,
     events,
     selectedEventId,
     selectionGameId,
-    setSelectionGameId,
-    phases,
-    selectedPhaseId,
-    phaseGroups,
-    selectedPhaseGroupId,
-    phaseGroupPageInfo,
-    stationNumber,
-    setStationNumber,
     setScope,
     sets,
     streamAssignments,
     setSearch,
-    setSetSearch,
     setSearchCatalog,
     setSearchLoading,
     setSearchProgress,
     setPageLoading,
     setPageInfo,
-    searchCatalogIsCurrent,
+    searchCatalogIsCurrent
+  } = browser.state;
+  const {
+    setRecentTournaments,
+    setSetSearch,
     ensureCompleteSetSearchCatalog,
     cancelSetSearch,
     unloadTournament: unloadBracketTournament,
-    clearCachedBracketData,
-    loadEvents,
-    selectEvent,
-    selectPhase,
-    loadPhaseGroups,
-    selectPhaseGroup,
-    browseStation,
-    browseAllEventSets,
     loadSets,
     loadMoreSets,
     refreshAfterReport: refreshSetSelectorAfterReport
-  } = browser;
+  } = browser.actions;
   useEffect(() => {
     void api
       .logos()
@@ -118,12 +108,13 @@ export function OperatorDashboard() {
   }, []);
   const selectedSet = state?.selectedSet;
   const draft = draftState?.value;
+  const { patch: patchStream, flush: flushPlayerDefaults } = usePlayerDefaultsAutosave(draft, patchDraft, setMessage);
   const draftDirty = draftState?.dirty ?? false;
   const selectedProfile = profiles.find((profile) => profile.id === draft?.gameId);
   const selectedEvent = events.find((event) => String(event.id) === selectedEventId);
   const detectedGameId = gameIdForStartggVideogame(selectedEvent?.videogame);
   const detectedProfile = profiles.find((profile) => profile.id === detectedGameId);
-  const setLoadGameId = (detectedGameId ?? selectionGameId) || undefined;
+  const setLoadGameId = resolveStartggGameProfileId(selectedEvent?.videogame, selectionGameId);
   const assetCatalogSlug = detectedGameId ?? gameAssetCatalogSlug(selectedEvent?.videogame) ?? draft?.assetCatalogSlug;
   const { reloadAssets, reloadingAssets } = useAssetCatalogReload({
     assetCatalogSlug,
@@ -131,7 +122,10 @@ export function OperatorDashboard() {
     setAssetCatalogRevision
   });
   const characterCatalog = useCharacterCatalogOptions(assetCatalogSlug, assetCatalogRevision);
-  const characterOptions = characterCatalog.characters;
+  const streamGamePreparation = useGameAssetPreparation(assetCatalogSlug, {
+    assetCatalogSlug,
+    videogameId: selectedEvent?.videogame?.id ?? draft?.videogameId
+  });
   const localBaseUrl = apiPort === undefined ? undefined : `http://127.0.0.1:${apiPort}`;
   const {
     saving: draftSaving,
@@ -245,11 +239,6 @@ export function OperatorDashboard() {
     if (!selectedSet) {
       return;
     }
-    if (!setLoadGameId) {
-      setMessage('Choose a game profile before loading a set from this unrecognized event.', 'warning');
-      return;
-    }
-
     setLoading(true);
     setMessage(undefined, 'info');
     try {
@@ -259,7 +248,8 @@ export function OperatorDashboard() {
         assetCatalogSlug,
         preserveBroadcast: true,
         preserveStation: persistentSetOverrides.current.station,
-        preserveMatchLength: persistentSetOverrides.current.matchLength && selectedSet.matchFormat !== 'first-to'
+        preserveMatchLength:
+          persistentSetOverrides.current.matchLength && (selectedSet.matchFormat ?? 'best-of') === 'best-of'
       });
       recordStartggResult(response);
       setState(response.state);
@@ -313,6 +303,19 @@ export function OperatorDashboard() {
     });
   }
 
+  const selectExhibitionGame = useExhibitionGameSelection({
+    disabled: Boolean(selectedEvent?.videogame) || loading || draftDirty || draftSaving,
+    withAutosavePaused,
+    flushPlayerDefaults,
+    onState: (response) => {
+      setState(response);
+      setDraftState({ value: response.selectedSet, baseline: response.selectedSet, dirty: false });
+    },
+    setLoading,
+    onError: (message) => setMessage(message, 'error'),
+    failureMessage: t('operator:messages.exhibitionGameFailed')
+  });
+
   async function clearStreamState() {
     await withAutosavePaused(async () => {
       const response = await api.clearSelectedSet();
@@ -326,7 +329,7 @@ export function OperatorDashboard() {
     setMessage(undefined, 'info');
     try {
       await clearStreamState();
-      unloadBracketTournament();
+      await unloadBracketTournament();
     } catch (error) {
       setMessage(errorMessage(error, t('operator:messages.tournamentUnloadFailed')), 'error');
     } finally {
@@ -424,7 +427,8 @@ export function OperatorDashboard() {
         restoreOverrides: false,
         preserveBroadcast: true,
         preserveStation: persistentSetOverrides.current.station,
-        preserveMatchLength: persistentSetOverrides.current.matchLength && selectedSet.matchFormat !== 'first-to'
+        preserveMatchLength:
+          persistentSetOverrides.current.matchLength && (selectedSet.matchFormat ?? 'best-of') === 'best-of'
       });
       recordStartggResult(response);
       setState(response.state);
@@ -434,22 +438,15 @@ export function OperatorDashboard() {
         dirty: false
       });
       const refreshedSet = response.state.selectedSet;
-      const canRefreshHistory = Boolean(
-        refreshedSet?.eventId && refreshedSet.playerOne.playerId && refreshedSet.playerTwo.playerId
-      );
+      const canRefreshHistory = Boolean(versusHistoryMatch(refreshedSet));
       if (!canRefreshHistory) {
         setMessage(t('operator:messages.reloadSetOnly'), 'success');
         return;
       }
-      try {
-        await api.refreshVersusHistory();
-        setMessage(t('operator:messages.reloadSuccess'), 'success');
-      } catch (error) {
-        setMessage(
-          `${t('operator:messages.reloadSetSuccess')} ${errorMessage(error, t('operator:messages.reloadHistoryFailed'))}`,
-          'warning'
-        );
-      }
+      // History has its own loading/error state in the Versus controls. Keep
+      // scoring available while the forced background refresh finishes.
+      void api.refreshVersusHistory().catch(() => undefined);
+      setMessage(t('operator:messages.reloadSetSuccess'), 'success');
     } catch (error) {
       recordStartggFailure();
       setMessage(errorMessage(error, t('operator:messages.reloadFailed')), 'error');
@@ -514,6 +511,12 @@ export function OperatorDashboard() {
         .catch((error) => setMessage(errorMessage(error, t('operator:messages.stateFailed')), 'error'))
   });
 
+  // Unloading also clears the stream through the dashboard's autosave guard.
+  const bracketController: BracketController = {
+    state: browser.state,
+    actions: { ...browser.actions, unloadTournament }
+  };
+
   const localizedScope = setScope
     ? setScope.type === 'event'
       ? t('operator:selector.scope.event')
@@ -536,29 +539,17 @@ export function OperatorDashboard() {
         selectedSet={selectedSet}
       />
       <StartggPanel
+        bracket={bracketController}
         tokenInputRef={tokenInputRef}
         tokenConfigured={tokenConfigured}
         tokenStorageAvailable={tokenStorageAvailable}
         tokenSessionOnly={tokenSessionOnly}
         tokenVerified={tokenVerified}
         tokenInputReady={tokenInputReady}
-        tournamentSlug={tournamentSlug}
-        recentTournaments={recentTournaments}
-        events={events}
-        selectedEventId={selectedEventId}
         detectedGameId={detectedGameId}
         detectedProfile={detectedProfile}
         profiles={profiles}
-        selectionGameId={selectionGameId}
-        phases={phases}
-        selectedPhaseId={selectedPhaseId}
-        phaseGroups={phaseGroups}
-        selectedPhaseGroupId={selectedPhaseGroupId}
-        phaseGroupPageInfo={phaseGroupPageInfo}
-        stationNumber={stationNumber}
-        setScope={setScope}
         keyboardShortcuts={keyboardShortcuts}
-        bracketRefresh={browser.bracketRefresh}
         reloadWarning={
           !selectedSet?.setId
             ? t('operator:editor.selectMatch')
@@ -569,6 +560,10 @@ export function OperatorDashboard() {
         localBaseUrl={localBaseUrl}
         copiedHandoff={copiedHandoff}
         activeSet={selectedSet}
+        streamDraft={draft}
+        streamCharacterCatalog={characterCatalog}
+        streamPending={draftDirty || draftSaving}
+        onPatchStream={patchStream}
         logos={logos}
         loading={loading}
         reloadingAssets={reloadingAssets}
@@ -581,20 +576,8 @@ export function OperatorDashboard() {
         onTokenInputReady={setTokenInputReady}
         onSaveToken={() => void saveToken()}
         onRemoveToken={() => void removeToken()}
-        onTournamentSlug={setTournamentSlug}
-        onLoadEvents={(slug) => void loadEvents(slug)}
-        onUnloadTournament={() => void unloadTournament()}
-        onClearCache={() => void clearCachedBracketData()}
-        onSelectEvent={(eventId) => void selectEvent(eventId)}
-        onSelectionGame={setSelectionGameId}
-        onSelectPhase={(phaseId) => void selectPhase(phaseId)}
-        onSelectPhaseGroup={(groupId) => void selectPhaseGroup(groupId)}
-        onStationNumber={setStationNumber}
-        onBrowseStation={() => void browseStation()}
-        onLoadPhaseGroups={(page) => void loadPhaseGroups(page)}
-        onBrowseAllSets={() => void browseAllEventSets()}
-        onRefreshScope={(scope) => void loadSets(scope, 1)}
         onReloadSelectedSet={() => void reloadSelectedSetFromStartgg()}
+        onPatchBroadcast={patchBroadcast}
         onCustomScoreboard={(id, revision) =>
           draft
             ? patchDraft(customScoreboardSelection(id, revision))
@@ -622,7 +605,6 @@ export function OperatorDashboard() {
             modalOpen={Boolean(quickScore.target)}
             loading={loading}
             loadingMore={setPageLoading}
-            gameProfileAvailable={Boolean(setLoadGameId)}
             onSearchFocus={focusSetSearch}
             onSearchChange={changeSetSearch}
             onCancelSearch={cancelSetSearch}
@@ -635,17 +617,28 @@ export function OperatorDashboard() {
           <section className="grid-layout wide">
             <StreamEditorPanel
               draft={draft}
+              gameSelector={
+                <GameSelect
+                  tournamentLoaded={Boolean(selectedEvent?.videogame)}
+                  eventGameName={selectedEvent?.videogame?.name}
+                  gameName={draft.gameName ?? ''}
+                  label={selectedEvent?.videogame ? t('operator:editor.detectedGame') : t('operator:generators.game')}
+                  preparation={streamGamePreparation}
+                  disabled={loading || draftDirty || draftSaving || Boolean(quickScore.target)}
+                  onChange={(game) => void selectExhibitionGame(game)}
+                />
+              }
               profiles={profiles}
               countries={countries}
               logos={logos}
               selectedProfile={selectedProfile}
-              characters={characterOptions}
+              characters={characterCatalog.characters}
               characterAssets={characterCatalog.assets}
-              allowExhibitionFormats={!selectedEventId && events.length === 0}
+              allowExhibitionFormats={!browser.state.tournamentLoaded}
               dirty={draftDirty}
               saving={draftSaving}
               blocked={draftBlocked}
-              onPatch={patchDraft}
+              onPatch={patchStream}
               onChangeStyling={(gameId) => patchDraft(automaticScoreboardSelection(gameId))}
               onPatchBroadcast={patchBroadcast}
             />
@@ -679,8 +672,7 @@ export function OperatorDashboard() {
         quickReadinessReason={localizedReadinessReason(quickScore.readiness)}
         loading={loading}
         quickScoreLoading={quickScore.loading}
-        gameProfileAvailable={Boolean(setLoadGameId)}
-        characterOptions={characterOptions}
+        characterOptions={characterCatalog.characters}
         onClose={quickScore.close}
         onSendToStream={(setId) => {
           quickScore.close();

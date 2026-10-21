@@ -1,7 +1,7 @@
 use super::{catalog_asset_ids_result, normalize_label, resolve_media_path};
 use serde::Serialize;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     path::{Path, PathBuf},
     sync::OnceLock,
 };
@@ -9,7 +9,7 @@ use std::{
 const ROSTER_JSON: &str = include_str!("../../resources/character_rosters.json");
 const ALIASES_JSON: &str = include_str!("../../resources/character_aliases.json");
 
-fn aliases() -> &'static HashMap<String, HashMap<String, String>> {
+pub(super) fn aliases() -> &'static HashMap<String, HashMap<String, String>> {
     static ALIASES: OnceLock<HashMap<String, HashMap<String, String>>> = OnceLock::new();
     ALIASES.get_or_init(|| serde_json::from_str(ALIASES_JSON).expect("compiled character aliases must be valid"))
 }
@@ -35,7 +35,7 @@ pub struct GameCharacterAssetVariant {
     portrait_asset_id: Option<String>,
 }
 
-fn rosters() -> &'static HashMap<String, Vec<String>> {
+pub(super) fn rosters() -> &'static HashMap<String, Vec<String>> {
     static ROSTERS: OnceLock<HashMap<String, Vec<String>>> = OnceLock::new();
     ROSTERS.get_or_init(|| {
         serde_json::from_str(ROSTER_JSON).expect("compiled character catalog must be valid")
@@ -100,17 +100,61 @@ pub fn list_game_character_assets(
     let mut portrait_asset_ids = catalog_asset_ids_result(&portrait_directory)?;
     asset_ids.sort_by_key(|asset_id| (asset_id.to_lowercase(), asset_id.clone()));
     portrait_asset_ids.sort_by_key(|asset_id| (asset_id.to_lowercase(), asset_id.clone()));
-    let mut assets = if let Some(characters) = rosters().get(game_id) {
+    let prepared_roster = super::character_setup::saved_roster(root_directory, game_id);
+    let built_in_characters = rosters().get(game_id);
+    let mut assets = if let Some(characters) = built_in_characters {
         characters
             .iter()
             .filter_map(|character| character_asset(character, &asset_ids, &portrait_asset_ids, aliases().get(game_id)))
             .collect::<Vec<_>>()
+    } else if let Some(characters) = &prepared_roster {
+        characters
+            .iter()
+            .map(|character| {
+                character_asset(character, &asset_ids, &portrait_asset_ids, None)
+                    .unwrap_or_else(|| GameCharacterAsset {
+                        character: character.clone(),
+                        asset_id: None,
+                        portrait_asset_id: None,
+                        variants: Vec::new(),
+                    })
+            })
+            .collect()
     } else {
         dynamic_character_labels(&asset_ids, &portrait_asset_ids)
             .into_values()
             .filter_map(|character| character_asset(&character, &asset_ids, &portrait_asset_ids, None))
             .collect::<Vec<_>>()
     };
+    if built_in_characters.is_none() && prepared_roster.is_some() {
+        // Artwork added by the user can introduce characters outside the fetched roster.
+        let mut claimed_ids = HashSet::new();
+        for asset in &assets {
+            for variant in &asset.variants {
+                if let Some(id) = &variant.asset_id {
+                    claimed_ids.insert(id);
+                }
+                if let Some(id) = &variant.portrait_asset_id {
+                    claimed_ids.insert(id);
+                }
+            }
+        }
+        let unclaimed = |ids: &[String]| {
+            ids.iter()
+                .filter(|id| !claimed_ids.contains(id))
+                .cloned()
+                .collect::<Vec<_>>()
+        };
+        let extra_art = unclaimed(&asset_ids);
+        let extra_portraits = unclaimed(&portrait_asset_ids);
+        assets.extend(
+            dynamic_character_labels(&extra_art, &extra_portraits)
+                .into_values()
+                .filter_map(|character| {
+                    character_asset(&character, &extra_art, &extra_portraits, None)
+                }),
+        );
+    }
     assets.sort_by(|left, right| left.character.to_lowercase().cmp(&right.character.to_lowercase()));
     assets.dedup_by(|left, right| normalize_label(&left.character) == normalize_label(&right.character));
     Ok(assets)
@@ -209,7 +253,7 @@ fn split_variant_suffix(stem: &str) -> (&str, Option<u32>) {
     if base.is_empty() || number.is_none() { (stem, None) } else { (base, number) }
 }
 
-fn character_asset(
+pub(super) fn character_asset(
     character: &str,
     asset_ids: &[String],
     portrait_asset_ids: &[String],

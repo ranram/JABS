@@ -1,0 +1,249 @@
+.victory {
+  --victory-primary: var(--appearance-primary, var(--game-accent, #f7b733));
+  --victory-secondary: var(--appearance-secondary, var(--broadcast-right, #ff554d));
+  background: var(--game-bg, #101419);
+}
+
+.victory-composition {
+  --victory-copy-right: 60px;
+  --victory-copy-width: 980px;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.victory-ground,
+.victory-band {
+  position: absolute;
+  pointer-events: none;
+}
+
+.victory-ground {
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 28% 38%,
+    color-mix(in srgb, var(--victory-secondary) 32%, var(--game-bg, #18212b)),
+    var(--game-bg, #101419) 72%
+  );
+}
+
+.victory-band {
+  left: -160px;
+  top: 230px;
+  width: 2240px;
+  height: 620px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--victory-secondary) 80%, #080d17),
+    color-mix(in srgb, var(--victory-secondary) 32%, #080d17)
+  );
+  border-top: 16px solid var(--victory-primary);
+  border-bottom: 6px solid var(--victory-secondary);
+  box-shadow:
+    0 -22px 0 #080d17,
+    0 -28px 0 var(--victory-primary);
+}
+
+.victory-impact {
+  position: absolute;
+  z-index: 1;
+  left: -160px;
+  top: 230px;
+  width: 2240px;
+  height: 18px;
+  background: var(--victory-primary);
+  box-shadow: 0 28px 0 var(--victory-secondary);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.victory-logo {
+  position: absolute;
+  z-index: 7;
+  top: 32px;
+  left: calc(100% - var(--victory-copy-right) - var(--victory-copy-width) / 2);
+  width: 320px;
+  height: 160px;
+  transform: translateX(-50%);
+  object-fit: contain;
+  object-position: center;
+}
+
+.victory-copy {
+  position: absolute;
+  z-index: 5;
+  top: 270px;
+  right: var(--victory-copy-right);
+  width: var(--victory-copy-width);
+  box-sizing: border-box;
+  padding: 42px 48px 48px;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+}
+
+.victory-title {
+  color: var(--victory-primary);
+  font-family: 'JABS Anton', Impact, sans-serif;
+  font-size: calc(136px * var(--appearance-text-scale, 1));
+  font-weight: 400;
+  font-style: italic;
+  text-transform: uppercase;
+  line-height: 1;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.7);
+}
+
+.victory-name {
+  display: block;
+  margin-top: 16px;
+  color: white;
+  font-family: 'JABS Anton', Impact, sans-serif;
+  font-size: calc(184px * var(--appearance-text-scale, 1));
+  padding-right: 24px;
+  box-sizing: border-box;
+  font-weight: 400;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 1.02;
+  white-space: nowrap;
+  text-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.65),
+    0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.victory-opening {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 100px;
+  color: white;
+  font-family: 'JABS Anton', Impact, sans-serif;
+  font-size: 330px;
+  font-style: italic;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  text-shadow:
+    10px 14px 0 #080d17,
+    20px 25px 0 var(--victory-primary);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.victory-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  margin-top: 16px;
+  color: #d5dde5;
+  font-family: 'JABS Bebas Neue', Impact, sans-serif;
+  font-size: calc(38px * var(--appearance-text-scale, 1));
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.victory-sponsor {
+  color: var(--victory-primary);
+}
+
+.victory-sponsor-logo {
+  display: block;
+  width: 240px;
+  height: 110px;
+  margin-top: 24px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.victory-hero {
+  position: absolute;
+  z-index: 3;
+  inset: -20px 48% 0 -30px;
+}
+
+.victory-character-art,
+.victory-player-photo {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.24));
+}
+
+.victory-player-photo {
+  left: 8%;
+  width: 84%;
+  height: 90%;
+}
+
+.victory-hero.has-both .victory-character-art {
+  left: -10%;
+  width: 96%;
+}
+
+.victory-hero.has-both .victory-player-photo {
+  z-index: 2;
+  left: 48%;
+  width: 48%;
+  height: 62%;
+}
+
+.victory-hero .victory-shadow {
+  filter: brightness(0);
+  opacity: 0.24;
+  transform: translate(-32px, 12px);
+}
+
+.victory-composition.is-type-led {
+  --victory-copy-right: 180px;
+  --victory-copy-width: 1560px;
+}
+
+.victory-composition.is-type-led .victory-copy {
+  top: 240px;
+  padding: 48px 64px 56px;
+}
+
+.victory-composition.is-type-led .victory-name {
+  font-size: calc(240px * var(--appearance-text-scale, 1));
+}
+
+.victory-composition.is-type-led .victory-details {
+  font-size: calc(42px * var(--appearance-text-scale, 1));
+}
+
+.victory-portraits {
+  position: absolute;
+  z-index: 4;
+  left: 60px;
+  bottom: 44px;
+  display: flex;
+  gap: 12px;
+}
+
+.victory-portraits img {
+  width: 110px;
+  height: 110px;
+  border: 3px solid var(--victory-primary);
+  object-fit: cover;
+}
+
+.victory.is-transparent-background {
+  background: transparent;
+}
+
+.victory.is-transparent-background .victory-ground,
+.victory.is-transparent-background .victory-band {
+  display: none;
+}
+
+.victory.has-text-backdrop .victory-copy {
+  background: rgba(16, 20, 25, 0.92);
+}

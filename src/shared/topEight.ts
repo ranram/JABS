@@ -1,9 +1,10 @@
 import { gameProfiles, type GameId } from './gameProfiles';
 import type { GraphicBackground } from './models';
+import { playerMediaModeIds } from './mediaPlacement';
 
 export const topEightStyleIds = ['mosaic', 'neon'] as const;
 export type TopEightStyleId = (typeof topEightStyleIds)[number];
-export const topEightMediaModeIds = ['character', 'photo'] as const;
+export const topEightMediaModeIds = playerMediaModeIds;
 export type TopEightMediaMode = (typeof topEightMediaModeIds)[number];
 export const conventionalTopEightPlacements = [1, 2, 3, 4, 5, 5, 7, 7] as const;
 
@@ -11,12 +12,18 @@ export function topEightMediaBaseScale(style: TopEightStyleId, placement: number
   if (placement === 1) return 1;
   if (placement <= 3) return style === 'mosaic' ? 1.08 : 1.05;
   switch (style) {
-    case 'neon': return 1.42;
-    case 'mosaic': return 1.12;
+    case 'neon':
+      return 1.42;
+    case 'mosaic':
+      return 1.12;
   }
 }
 
 export type TopEightEntrant = {
+  localPlayerId?: string;
+  playerPhotoAssetId?: string;
+  portraitAssetId?: string;
+  playerId?: string;
   placement: number;
   name: string;
   character?: string;
@@ -45,10 +52,7 @@ export type TopEightDraft = {
   entrants: TopEightEntrant[];
 };
 
-export type TopEightValidationCode =
-  | 'entrantCount'
-  | 'placements'
-  | 'playerTag';
+export type TopEightValidationCode = 'entrantCount' | 'placements' | 'playerTag';
 
 export function createTopEightDraft(gameId: GameId = 'street-fighter-6'): TopEightDraft {
   return {
@@ -71,8 +75,9 @@ export function createTopEightDraft(gameId: GameId = 'street-fighter-6'): TopEig
 export function hasConventionalTopEightPlacements(
   entrants: ReadonlyArray<Pick<TopEightEntrant, 'placement'>>
 ): boolean {
-  return entrants.length === conventionalTopEightPlacements.length && entrants.every(
-    (entrant, index) => entrant.placement === conventionalTopEightPlacements[index]
+  return (
+    entrants.length === conventionalTopEightPlacements.length &&
+    entrants.every((entrant, index) => entrant.placement === conventionalTopEightPlacements[index])
   );
 }
 

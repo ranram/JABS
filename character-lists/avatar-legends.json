@@ -47,6 +47,30 @@
     {
       "name": "Ozai",
       "aliases": []
+    },
+    {
+      "name": "Bolin",
+      "aliases": []
+    },
+    {
+      "name": "Ty Lee",
+      "aliases": []
+    },
+    {
+      "name": "Lin Beifong",
+      "aliases": [
+        "Lin"
+      ]
+    },
+    {
+      "name": "Uncle Iroh",
+      "aliases": [
+        "Iroh"
+      ]
+    },
+    {
+      "name": "Tagah",
+      "aliases": []
     }
   ]
 }

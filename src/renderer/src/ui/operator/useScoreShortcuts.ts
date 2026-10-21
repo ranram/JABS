@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { scoreLimitForBestOf } from '@shared/gameProfiles';
+import { scoreLimitForPlayer } from '@shared/gameProfiles';
 import type { SelectedSetState } from '@shared/models';
+import { isTutorialActive } from '../tutorials/tutorialActivity';
 
 type ScoreShortcutsOptions = {
   selectedSet?: SelectedSetState;
@@ -14,8 +15,11 @@ type ScoreShortcutsOptions = {
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
-  return target.isContentEditable || target.matches(
-    'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]), textarea, select, [role="textbox"]'
+  return (
+    target.isContentEditable ||
+    target.matches(
+      'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]), textarea, select, [role="textbox"]'
+    )
   );
 }
 
@@ -23,17 +27,39 @@ function hasVisiblePopup(): boolean {
   const popups = document.querySelectorAll<HTMLElement>(
     '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]'
   );
-  return Array.from(popups).some((popup) => popup.getClientRects().length > 0
-    && getComputedStyle(popup).visibility === 'visible'
-    && !popup.closest('[hidden], [aria-hidden="true"], [inert]'));
+  return Array.from(popups).some(
+    (popup) =>
+      popup.getClientRects().length > 0 &&
+      getComputedStyle(popup).visibility === 'visible' &&
+      !popup.closest('[hidden], [aria-hidden="true"], [inert]')
+  );
 }
 
-export function useScoreShortcuts({ selectedSet, disabled, modalOpen, onScore, onReset, onSwap, onSwapCommentators }: ScoreShortcutsOptions) {
+export function useScoreShortcuts({
+  selectedSet,
+  disabled,
+  modalOpen,
+  onScore,
+  onReset,
+  onSwap,
+  onSwapCommentators
+}: ScoreShortcutsOptions) {
   const [enabled, setEnabled] = useState(true);
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent): void {
-      if (event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.metaKey
-        || !enabled || isTypingTarget(event.target) || modalOpen || disabled) return;
+      if (
+        event.defaultPrevented ||
+        event.repeat ||
+        event.isComposing ||
+        event.altKey ||
+        event.metaKey ||
+        !enabled ||
+        isTutorialActive() ||
+        isTypingTarget(event.target) ||
+        modalOpen ||
+        disabled
+      )
+        return;
       if (hasVisiblePopup()) return;
 
       if (event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
@@ -58,9 +84,9 @@ export function useScoreShortcuts({ selectedSet, disabled, modalOpen, onScore, o
       const side = event.code === 'Digit1' ? 'one' : event.code === 'Digit2' ? 'two' : undefined;
       if (!side) return;
       const current = side === 'one' ? selectedSet.playerOne.score : selectedSet.playerTwo.score;
-      const limit = scoreLimitForBestOf(selectedSet.gameId, selectedSet.bestOf);
+      const limit = scoreLimitForPlayer(selectedSet, side);
       const next = current + (event.shiftKey ? -1 : 1);
-      if (next < 0 || next > limit) return;
+      if (next < 0 || (next > current && next > limit)) return;
 
       event.preventDefault();
       onScore(side, next);

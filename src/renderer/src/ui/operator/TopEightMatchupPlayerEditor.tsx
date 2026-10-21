@@ -27,11 +27,11 @@ export function TopEightMatchupPlayerEditor({
 }) {
   const { t } = useTranslation('operator');
   return (
-    <Paper p="sm" withBorder>
-      <Text fw={800} mb="xs">
+    <Paper className="operator-inset" p="md" radius="md" miw={0} withBorder>
+      <Text fw={800} mb="sm">
         {t(`topEightMatchups.${bracket}`)} {matchNumber} · {t('topEightMatchups.player', { number: playerNumber })}
       </Text>
-      <Stack gap="xs">
+      <Stack gap="sm">
         <BufferedTextInput
           label={t('topEight.playerTag')}
           value={player.name}
@@ -48,13 +48,13 @@ export function TopEightMatchupPlayerEditor({
           label={t('topEightMatchups.portrait')}
           value={player.character ?? null}
           data={characters}
-          onChange={(character) => onChange({ character: character || undefined, characterAssetId: undefined })}
+          onChange={(character) => onChange({ character: character || undefined, characterAssetId: undefined, portraitAssetId: undefined })}
         />
         <CharacterOutfitSelect
           subject={player}
           assets={assets}
           mediaKind="portrait"
-          onChange={(characterAssetId) => onChange({ characterAssetId })}
+          onChange={(characterAssetId) => onChange({ characterAssetId, portraitAssetId: undefined })}
         />
       </Stack>
     </Paper>

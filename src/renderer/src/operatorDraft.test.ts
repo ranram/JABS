@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { SelectedSetState } from '@shared/models';
-import { operatorDraftContentKey, reconcileDirtyDraft } from './operatorDraft';
+import { reconcileDirtyDraft } from './operatorDraft';
 
 describe('operator draft reconciliation', () => {
   it('preserves metadata edits while adopting newer live scores', () => {
     const baseline = selectedSet();
+    baseline.playerOne.portraitAssetId = 'old-portrait.png';
     const draft = {
       ...baseline,
       round: 'Grand Final',
-      playerOne: { ...baseline.playerOne, character: 'Jin' }
+      playerOne: { ...baseline.playerOne, localPlayerId: '1'.repeat(32), playerId: '366108', playerPhotoAssetId: 'alpha.png', character: 'Jin', portraitAssetId: undefined, xHandle: 'alpha', displayFlag: 'JP' }
     };
     const live = {
       ...baseline,
@@ -24,11 +25,17 @@ describe('operator draft reconciliation', () => {
 
     expect(reconcileDirtyDraft(draft, baseline, live)).toMatchObject({
       round: 'Grand Final',
-      playerOne: { entrantId: 'alpha', character: 'Jin', score: 2 },
+      playerOne: { entrantId: 'alpha', localPlayerId: '1'.repeat(32), playerId: '366108', playerPhotoAssetId: 'alpha.png', character: 'Jin', portraitAssetId: undefined, xHandle: 'alpha', displayFlag: 'JP', score: 2 },
       playerTwo: { entrantId: 'bravo', score: 1 },
       gameHistory: live.gameHistory,
       updatedAt: 'live-score-time'
     });
+    const unlinked = {
+      ...draft,
+      playerOne: { ...draft.playerOne, localPlayerId: undefined, playerId: undefined }
+    };
+    expect(reconcileDirtyDraft(unlinked, draft, { ...live, playerOne: draft.playerOne }).playerOne)
+      .toMatchObject({ localPlayerId: undefined, playerId: undefined });
   });
 
   it('follows entrant identity across a live player swap without undoing it', () => {
@@ -51,31 +58,6 @@ describe('operator draft reconciliation', () => {
       playerTwo: { entrantId: 'alpha', name: 'Edited Alpha', character: 'Jin', score: 1 },
       updatedAt: 'live-swap-time'
     });
-  });
-
-  it('distinguishes the realtime save echo from a genuine mid-save edit', () => {
-    // Regression: the native core broadcasts every accepted save before the
-    // HTTP response resolves. When the WebSocket echo wins the race, the
-    // dashboard reconciles the dirty draft against that live state, which
-    // always carries a freshly bumped updatedAt version. The autosave must
-    // still recognize it as the draft it just submitted; otherwise the draft
-    // stays dirty forever and the save badge toggles endlessly.
-    const baseline = selectedSet();
-    const draft = { ...baseline, round: 'Grand Final' };
-    const submittedKey = operatorDraftContentKey(draft);
-    const acceptedLive = {
-      ...baseline,
-      round: 'Grand Final',
-      displayName: baseline.displayName.trim(),
-      updatedAt: 'backend-bumped-version'
-    };
-
-    const echoedDraft = reconcileDirtyDraft(draft, baseline, acceptedLive);
-    expect(echoedDraft.updatedAt).toBe('backend-bumped-version');
-    expect(operatorDraftContentKey(echoedDraft)).toBe(submittedKey);
-    const editedDuringSave = { ...draft, station: 'Stream B' };
-
-    expect(operatorDraftContentKey(reconcileDirtyDraft(editedDuringSave, baseline, acceptedLive))).not.toBe(submittedKey);
   });
 
   it('keeps edited styling without replacing authoritative live game detection', () => {

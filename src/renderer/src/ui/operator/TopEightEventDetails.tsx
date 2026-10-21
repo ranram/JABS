@@ -1,4 +1,4 @@
-import { Accordion, Button, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
+import { Accordion, Button, NumberInput, Stack, Text, TextInput } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { TopEightDraftController } from './useTopEightDraft';
 
@@ -22,33 +22,32 @@ export function TopEightEventDetails({
 
   return (
     <Accordion variant="separated" radius="md" defaultValue="startgg">
-      <Accordion.Item value="startgg">
+      <Accordion.Item className="operator-inset" value="startgg">
         <Accordion.Control>
-          <Text fw={700} size="sm">{t('operator:topEight.loadFromStartgg')}</Text>
+          <Text fw={700} size="sm">
+            {t('operator:topEight.loadFromStartgg')}
+          </Text>
         </Accordion.Control>
         <Accordion.Panel>
-          <Group align="flex-end" grow>
+          <div className="generator-event-load-row">
             <TextInput
               label={t('operator:topEight.eventUrl')}
               placeholder="https://start.gg/tournament/.../event/..."
               value={loadUrl}
               onChange={(event) => onLoadUrlChange(event.currentTarget.value)}
             />
-            <Button
-              variant="default"
-              disabled={!loadUrl.trim() || loading}
-              loading={loading}
-              onClick={onLoad}
-            >
+            <Button variant="default" disabled={!loadUrl.trim() || loading} loading={loading} onClick={onLoad}>
               {t('operator:topEight.loadEventUrl')}
             </Button>
-          </Group>
+          </div>
         </Accordion.Panel>
       </Accordion.Item>
 
-      <Accordion.Item value="manual">
+      <Accordion.Item className="operator-inset" value="manual">
         <Accordion.Control>
-          <Text fw={700} size="sm">{t('operator:topEight.manualEventDetails')}</Text>
+          <Text fw={700} size="sm">
+            {t('operator:topEight.manualEventDetails')}
+          </Text>
         </Accordion.Control>
         <Accordion.Panel>
           <Stack gap="sm">
@@ -63,9 +62,9 @@ export function TopEightEventDetails({
             <NumberInput
               label={t('operator:topEight.participantCount')}
               value={draft.participantCount ?? ''}
-              onChange={(value) => controller.setParticipantCount(
-                typeof value === 'number' && value > 0 ? value : undefined
-              )}
+              onChange={(value) =>
+                controller.setParticipantCount(typeof value === 'number' && value > 0 ? value : undefined)
+              }
               min={1}
               allowDecimal={false}
               allowNegative={false}

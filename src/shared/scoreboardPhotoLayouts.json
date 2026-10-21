@@ -1,0 +1,1051 @@
+{
+  "street-fighter-6": {
+    "sides": {
+      "left": {
+        "path": "M 0 0 L 202 0 L 202 62 L 167 62 L 193 99 L 0 99 Z",
+        "bounds": [
+          0,
+          0,
+          202,
+          99
+        ]
+      },
+      "right": {
+        "path": "M 0 0 L 202 0 L 202 61 L 173 61 L 193 101 L 0 101 Z",
+        "bounds": [
+          1718,
+          0,
+          202,
+          101
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left life bar",
+        "bounds": [
+          203,
+          64,
+          660,
+          34
+        ]
+      },
+      {
+        "label": "right life bar",
+        "bounds": [
+          1057,
+          64,
+          660,
+          34
+        ]
+      },
+      {
+        "label": "timer",
+        "bounds": [
+          895,
+          44,
+          130,
+          90
+        ]
+      }
+    ],
+    "maskId": "street-fighter-6"
+  },
+  "tekken-8": {
+    "sides": {
+      "left": {
+        "path": "M 0 0 L 179 0 L 179 69 L 209 110 L 0 110 Z",
+        "bounds": [
+          0,
+          0,
+          209,
+          110
+        ]
+      },
+      "right": {
+        "path": "M 0 0 L 179 0 L 179 69 L 209 110 L 0 110 Z",
+        "bounds": [
+          1711,
+          0,
+          209,
+          110
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left life bar",
+        "bounds": [
+          215,
+          76,
+          635,
+          32
+        ]
+      },
+      {
+        "label": "right life bar",
+        "bounds": [
+          1070,
+          76,
+          635,
+          32
+        ]
+      },
+      {
+        "label": "left round pips",
+        "bounds": [
+          720,
+          33,
+          111,
+          38
+        ]
+      },
+      {
+        "label": "right round pips",
+        "bounds": [
+          1089,
+          33,
+          111,
+          38
+        ]
+      }
+    ],
+    "maskId": "tekken-8"
+  },
+  "avatar-legends": {
+    "sides": {
+      "left": {
+        "path": "M 0 19 H 200 L 231 102 H 0 Z",
+        "bounds": [
+          0,
+          19,
+          231,
+          83
+        ]
+      },
+      "right": {
+        "path": "M 1716 19 H 1920 V 102 H 1685 Z",
+        "bounds": [
+          1685,
+          19,
+          235,
+          83
+        ]
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left life bar",
+        "bounds": [
+          236,
+          68,
+          620,
+          27
+        ]
+      },
+      {
+        "label": "right life bar",
+        "bounds": [
+          1064,
+          68,
+          620,
+          27
+        ]
+      },
+      {
+        "label": "left support indicators",
+        "bounds": [
+          632,
+          132,
+          250,
+          32
+        ]
+      },
+      {
+        "label": "right support indicators",
+        "bounds": [
+          1038,
+          132,
+          250,
+          32
+        ]
+      },
+      {
+        "label": "right character label",
+        "bounds": [
+          1803,
+          104,
+          72,
+          14
+        ]
+      },
+      {
+        "label": "right player label",
+        "bounds": [
+          1822,
+          119,
+          58,
+          21
+        ]
+      },
+      {
+        "label": "left character label",
+        "bounds": [
+          44,
+          104,
+          48,
+          14
+        ]
+      },
+      {
+        "label": "left player label",
+        "bounds": [
+          42,
+          119,
+          94,
+          21
+        ]
+      }
+    ],
+    "maskId": "avatar-legends"
+  },
+  "marvel-tokon": {
+    "sides": {
+      "left": {
+        "path": "M 0 0 L 245 0 L 116 114 Z",
+        "bounds": [
+          0,
+          0,
+          245,
+          114
+        ]
+      },
+      "right": {
+        "path": "M 0 0 L 245 0 L 116 114 Z",
+        "bounds": [
+          1675,
+          0,
+          245,
+          114
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left team state meters",
+        "bounds": [
+          230,
+          115,
+          678,
+          32
+        ]
+      },
+      {
+        "label": "right team state meters",
+        "bounds": [
+          1012,
+          115,
+          678,
+          32
+        ]
+      },
+      {
+        "label": "timer",
+        "bounds": [
+          900,
+          42,
+          122,
+          80
+        ]
+      }
+    ],
+    "maskId": "marvel-tokon"
+  },
+  "guilty-gear-strive": {
+    "sides": {
+      "left": {
+        "path": "M 156 123 A 72 72 0 1 1 12 123 A 72 72 0 1 1 156 123 Z",
+        "bounds": [
+          12,
+          51,
+          144,
+          144
+        ]
+      },
+      "right": {
+        "path": "M 156 123 A 72 72 0 1 1 12 123 A 72 72 0 1 1 156 123 Z",
+        "bounds": [
+          1764,
+          51,
+          144,
+          144
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left life bar",
+        "bounds": [
+          153,
+          113,
+          717,
+          31
+        ]
+      },
+      {
+        "label": "right life bar",
+        "bounds": [
+          1050,
+          113,
+          717,
+          31
+        ]
+      },
+      {
+        "label": "left Burst bar",
+        "bounds": [
+          644,
+          149,
+          227,
+          29
+        ]
+      },
+      {
+        "label": "right Burst bar",
+        "bounds": [
+          1049,
+          149,
+          227,
+          29
+        ]
+      }
+    ],
+    "maskId": "guilty-gear-strive"
+  },
+  "2xko": {
+    "sides": {
+      "left": {
+        "path": "M 38 14 H 205 L 234 140 H 38 Z",
+        "bounds": [
+          38,
+          14,
+          196,
+          126
+        ]
+      },
+      "right": {
+        "path": "M 38 14 H 205 L 234 140 H 38 Z",
+        "bounds": [
+          1686,
+          14,
+          196,
+          126
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left health bars",
+        "bounds": [
+          237,
+          77,
+          620,
+          62
+        ]
+      },
+      {
+        "label": "right health bars",
+        "bounds": [
+          1063,
+          77,
+          620,
+          62
+        ]
+      },
+      {
+        "label": "left Fury bar",
+        "bounds": [
+          578,
+          148,
+          276,
+          29
+        ]
+      },
+      {
+        "label": "right Fury bar",
+        "bounds": [
+          1066,
+          148,
+          276,
+          29
+        ]
+      },
+      {
+        "label": "left fuse text",
+        "bounds": [
+          237,
+          42,
+          215,
+          28
+        ]
+      },
+      {
+        "label": "right fuse text",
+        "bounds": [
+          1468,
+          42,
+          215,
+          28
+        ]
+      },
+      {
+        "label": "left character-name text",
+        "bounds": [
+          232,
+          77,
+          305,
+          62
+        ]
+      },
+      {
+        "label": "right character-name text",
+        "bounds": [
+          1383,
+          77,
+          305,
+          62
+        ]
+      },
+      {
+        "label": "left angled health-bar beginning",
+        "bounds": [
+          222,
+          77,
+          15,
+          10
+        ]
+      },
+      {
+        "label": "right angled health-bar beginning",
+        "bounds": [
+          1683,
+          77,
+          15,
+          10
+        ]
+      }
+    ],
+    "maskId": "2xko-player-photo"
+  },
+  "blazblue-centralfiction": {
+    "sides": {
+      "left": {
+        "path": "M 0 0 L 199 0 L 199 86 L 181 111 L 155 128 L 130 143 L 94 147 L 68 179 L 0 179 Z",
+        "bounds": [
+          0,
+          0,
+          199,
+          179
+        ]
+      },
+      "right": {
+        "path": "M 0 0 L 199 0 L 199 86 L 181 111 L 155 128 L 130 143 L 94 147 L 68 179 L 0 179 Z",
+        "bounds": [
+          1721,
+          0,
+          199,
+          179
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left life bar",
+        "bounds": [
+          211,
+          60,
+          609,
+          34
+        ]
+      },
+      {
+        "label": "right life bar",
+        "bounds": [
+          1100,
+          60,
+          609,
+          34
+        ]
+      },
+      {
+        "label": "left Barrier bar",
+        "bounds": [
+          428,
+          111,
+          204,
+          21
+        ]
+      },
+      {
+        "label": "right Barrier bar",
+        "bounds": [
+          1288,
+          111,
+          204,
+          21
+        ]
+      },
+      {
+        "label": "left Burst indicator",
+        "bounds": [
+          83,
+          158,
+          70,
+          69
+        ]
+      },
+      {
+        "label": "right Burst indicator",
+        "bounds": [
+          1767,
+          158,
+          70,
+          69
+        ]
+      }
+    ],
+    "maskId": "blazblue-centralfiction"
+  },
+  "fatal-fury-city-of-the-wolves": {
+    "sides": {
+      "left": {
+        "path": "M 0 0 L 188 0 L 186 103 L 160 132 L 40 132 L 0 180 Z",
+        "bounds": [
+          0,
+          0,
+          188,
+          180
+        ]
+      },
+      "right": {
+        "path": "M 0 0 L 188 0 L 186 103 L 160 132 L 40 132 L 0 180 Z",
+        "transform": "translate(1920 0) scale(-1 1)",
+        "bounds": [
+          1732,
+          0,
+          188,
+          180
+        ]
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left life/SPG bar",
+        "bounds": [
+          193,
+          64,
+          677,
+          35
+        ]
+      },
+      {
+        "label": "right life/SPG bar",
+        "bounds": [
+          1050,
+          64,
+          677,
+          35
+        ]
+      },
+      {
+        "label": "left secondary bar",
+        "bounds": [
+          653,
+          113,
+          217,
+          17
+        ]
+      },
+      {
+        "label": "right secondary bar",
+        "bounds": [
+          1050,
+          113,
+          217,
+          17
+        ]
+      }
+    ],
+    "maskId": "fatal-fury-city-of-the-wolves"
+  },
+  "granblue-fantasy-versus-rising": {
+    "sides": {
+      "left": {
+        "path": "M 0 0 L 145 0 L 187 99 L 101 199 L 0 107 Z",
+        "bounds": [
+          0,
+          0,
+          187,
+          199
+        ]
+      },
+      "right": {
+        "path": "M 0 0 L 145 0 L 187 99 L 101 199 L 0 107 Z",
+        "bounds": [
+          1733,
+          0,
+          187,
+          199
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left health",
+        "bounds": [
+          208,
+          73,
+          647,
+          20
+        ]
+      },
+      {
+        "label": "right health",
+        "bounds": [
+          1065,
+          73,
+          647,
+          20
+        ]
+      },
+      {
+        "label": "left skill icons",
+        "bounds": [
+          224,
+          108,
+          253,
+          55
+        ]
+      },
+      {
+        "label": "right skill icons",
+        "bounds": [
+          1443,
+          108,
+          253,
+          55
+        ]
+      }
+    ],
+    "maskId": "granblue-fantasy-versus-rising"
+  },
+  "king-of-fighters-xv": {
+    "sides": {
+      "left": {
+        "path": "M 0 0 L 154 0 L 162 94 L 0 94 Z",
+        "bounds": [
+          0,
+          0,
+          162,
+          94
+        ]
+      },
+      "right": {
+        "path": "M 0 0 L 154 0 L 162 94 L 0 94 Z",
+        "bounds": [
+          1758,
+          0,
+          162,
+          94
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left health",
+        "bounds": [
+          170,
+          61,
+          710,
+          30
+        ]
+      },
+      {
+        "label": "right health",
+        "bounds": [
+          1040,
+          61,
+          710,
+          30
+        ]
+      },
+      {
+        "label": "left team names",
+        "bounds": [
+          0,
+          97,
+          164,
+          100
+        ]
+      },
+      {
+        "label": "right team names",
+        "bounds": [
+          1756,
+          97,
+          164,
+          100
+        ]
+      }
+    ],
+    "maskId": "king-of-fighters-xv"
+  },
+  "melty-blood-type-lumina": {
+    "sides": {
+      "left": {
+        "path": "M 0 0 L 177 0 L 226 49 L 226 117 L 196 161 L 0 213 Z",
+        "bounds": [
+          0,
+          0,
+          226,
+          213
+        ]
+      },
+      "right": {
+        "path": "M 0 0 L 177 0 L 226 49 L 226 117 L 196 161 L 0 213 Z",
+        "transform": "translate(1920 0) scale(-1 1)",
+        "bounds": [
+          1694,
+          0,
+          226,
+          213
+        ]
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left Moon gauge",
+        "shape": "ellipse",
+        "bounds": [
+          124,
+          125,
+          102,
+          102
+        ]
+      },
+      {
+        "label": "right Moon gauge",
+        "shape": "ellipse",
+        "bounds": [
+          1694,
+          125,
+          102,
+          102
+        ]
+      },
+      {
+        "label": "left life bar",
+        "bounds": [
+          226,
+          86,
+          600,
+          32
+        ]
+      },
+      {
+        "label": "right life bar",
+        "bounds": [
+          1094,
+          86,
+          600,
+          32
+        ]
+      },
+      {
+        "label": "left character name",
+        "bounds": [
+          227,
+          125,
+          224,
+          34
+        ]
+      },
+      {
+        "label": "right character name",
+        "bounds": [
+          1469,
+          125,
+          224,
+          34
+        ]
+      }
+    ],
+    "maskId": "melty-blood-type-lumina"
+  },
+  "mortal-kombat-1": {
+    "sides": {
+      "left": {
+        "path": "M 24 75 L 99 75 L 119 94 L 118 146 L 132 172 L 127 193 L 25 193 Z",
+        "bounds": [
+          24,
+          75,
+          108,
+          118
+        ]
+      },
+      "right": {
+        "path": "M 24 75 L 99 75 L 119 94 L 118 146 L 132 172 L 127 193 L 25 193 Z",
+        "bounds": [
+          1788,
+          75,
+          108,
+          118
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left Kameo portrait",
+        "bounds": [
+          119,
+          92,
+          68,
+          62
+        ]
+      },
+      {
+        "label": "right Kameo portrait",
+        "bounds": [
+          1733,
+          92,
+          68,
+          62
+        ]
+      },
+      {
+        "label": "left Kameo input",
+        "bounds": [
+          135,
+          155,
+          40,
+          22
+        ]
+      },
+      {
+        "label": "right Kameo input",
+        "bounds": [
+          1745,
+          155,
+          40,
+          22
+        ]
+      },
+      {
+        "label": "left life bar",
+        "bounds": [
+          45,
+          49,
+          842,
+          17
+        ]
+      },
+      {
+        "label": "right life bar",
+        "bounds": [
+          1033,
+          49,
+          842,
+          17
+        ]
+      }
+    ],
+    "maskId": "mortal-kombat-1"
+  },
+  "ultimate-marvel-vs-capcom-3": {
+    "sides": {
+      "left": {
+        "path": "M 16 32 H 136 V 208 H 16 Z",
+        "bounds": [
+          16,
+          32,
+          120,
+          176
+        ]
+      },
+      "right": {
+        "path": "M 16 32 H 136 V 208 H 16 Z",
+        "bounds": [
+          1784,
+          32,
+          120,
+          176
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left main life bar",
+        "bounds": [
+          409,
+          96,
+          423,
+          49
+        ]
+      },
+      {
+        "label": "right main life bar",
+        "bounds": [
+          1088,
+          96,
+          423,
+          49
+        ]
+      },
+      {
+        "label": "left Pt.2 label",
+        "bounds": [
+          184,
+          90,
+          65,
+          28
+        ]
+      },
+      {
+        "label": "right Pt.2 label",
+        "bounds": [
+          1671,
+          90,
+          65,
+          28
+        ]
+      },
+      {
+        "label": "left Pt.1 label",
+        "bounds": [
+          243,
+          180,
+          59,
+          30
+        ]
+      },
+      {
+        "label": "right Pt.1 label",
+        "bounds": [
+          1618,
+          180,
+          59,
+          30
+        ]
+      },
+      {
+        "label": "left complete team portraits",
+        "bounds": [
+          144,
+          24,
+          266,
+          190
+        ]
+      },
+      {
+        "label": "right complete team portraits",
+        "bounds": [
+          1510,
+          24,
+          266,
+          190
+        ]
+      }
+    ],
+    "maskId": "ultimate-marvel-vs-capcom-3-side-photo"
+  },
+  "under-night-in-birth-ii-sys-celes": {
+    "sides": {
+      "left": {
+        "path": "M 0 0 L 237 0 L 218 85 L 207 128 L 168 128 L 121 154 L 0 100 Z",
+        "bounds": [
+          0,
+          0,
+          237,
+          154
+        ]
+      },
+      "right": {
+        "path": "M 0 0 L 237 0 L 218 85 L 207 128 L 168 128 L 121 154 L 0 100 Z",
+        "bounds": [
+          1683,
+          0,
+          237,
+          154
+        ],
+        "transform": "translate(1920 0) scale(-1 1)"
+      }
+    },
+    "protectedAreas": [
+      {
+        "label": "left character name",
+        "bounds": [
+          218,
+          55,
+          660,
+          29
+        ]
+      },
+      {
+        "label": "right character name",
+        "bounds": [
+          1042,
+          55,
+          660,
+          29
+        ]
+      },
+      {
+        "label": "left life bar",
+        "bounds": [
+          218,
+          90,
+          658,
+          25
+        ]
+      },
+      {
+        "label": "right life bar",
+        "bounds": [
+          1044,
+          90,
+          658,
+          25
+        ]
+      },
+      {
+        "label": "left Point indicators",
+        "bounds": [
+          687,
+          121,
+          111,
+          23
+        ]
+      },
+      {
+        "label": "right Point indicators",
+        "bounds": [
+          1122,
+          121,
+          111,
+          23
+        ]
+      }
+    ],
+    "maskId": "under-night-in-birth-ii-sys-celes"
+  }
+}

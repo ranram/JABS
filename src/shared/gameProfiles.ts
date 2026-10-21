@@ -1,3 +1,4 @@
+import type { SelectedSetState } from './models';
 import matchFormatPoliciesJson from './matchFormatPolicies.json';
 
 export type GameId =
@@ -105,7 +106,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
         centerWidth: 310,
         gap: 60
       },
-      broadcastSafeZone: { bottom: 5, height: 22, railWidth: 500, centerWidth: 180, logoHeight: 64 }
+      broadcastSafeZone: { bottom: 5, height: 28, railWidth: 500, centerWidth: 180, logoHeight: 64 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -134,7 +135,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
         centerWidth: 400,
         gap: 70
       },
-      broadcastSafeZone: { bottom: 5, height: 22, railWidth: 520, centerWidth: 180, logoHeight: 62 }
+      broadcastSafeZone: { bottom: 5, height: 28, railWidth: 520, centerWidth: 180, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -163,7 +164,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
         centerWidth: 320,
         gap: 40
       },
-      broadcastSafeZone: { bottom: 5, height: 22, railWidth: 510, centerWidth: 170, logoHeight: 62 }
+      broadcastSafeZone: { bottom: 5, height: 28, railWidth: 510, centerWidth: 170, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -192,7 +193,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
         centerWidth: 300,
         gap: 30
       },
-      broadcastSafeZone: { bottom: 4, height: 22, railWidth: 500, centerWidth: 170, logoHeight: 64 }
+      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 500, centerWidth: 170, logoHeight: 64 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -221,7 +222,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
         centerWidth: 400,
         gap: 70
       },
-      broadcastSafeZone: { bottom: 4, height: 22, railWidth: 500, centerWidth: 180, logoHeight: 64 }
+      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 500, centerWidth: 180, logoHeight: 64 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -239,7 +240,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       accent: '#21e6b2',
       background: '#17101f',
       hudSafeZone: { top: 2, bottom: 38, sidePadding: 430, centerWidth: 360, gap: 20 },
-      broadcastSafeZone: { bottom: 4, height: 22, railWidth: 460, centerWidth: 180, logoHeight: 64 }
+      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 460, centerWidth: 180, logoHeight: 64 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -257,7 +258,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       accent: '#69dff5',
       background: '#101727',
       hudSafeZone: { top: 3, bottom: 43, sidePadding: 470, centerWidth: 360, gap: 10 },
-      broadcastSafeZone: { bottom: 4, height: 22, railWidth: 490, centerWidth: 170, logoHeight: 62 }
+      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 490, centerWidth: 170, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -275,7 +276,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       accent: '#ffe02e',
       background: '#151118',
       hudSafeZone: { top: 3, bottom: 39, sidePadding: 300, centerWidth: 360, gap: 50 },
-      broadcastSafeZone: { bottom: 4, height: 22, railWidth: 480, centerWidth: 170, logoHeight: 62 }
+      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 480, centerWidth: 170, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -293,7 +294,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       accent: '#71d9ff',
       background: '#101b29',
       hudSafeZone: { top: 2, bottom: 36, sidePadding: 360, centerWidth: 400, gap: 30 },
-      broadcastSafeZone: { bottom: 4, height: 22, railWidth: 470, centerWidth: 180, logoHeight: 62 }
+      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 470, centerWidth: 180, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -311,7 +312,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       accent: '#23cce5',
       background: '#101419',
       hudSafeZone: { top: 3, bottom: 39, sidePadding: 260, centerWidth: 520, gap: 80 },
-      broadcastSafeZone: { bottom: 4, height: 22, railWidth: 460, centerWidth: 180, logoHeight: 62 }
+      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 460, centerWidth: 180, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -329,7 +330,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       accent: '#d9c2ff',
       background: '#17111d',
       hudSafeZone: { top: 38, bottom: 72, sidePadding: 320, centerWidth: 380, gap: 80 },
-      broadcastSafeZone: { bottom: 4, height: 22, railWidth: 460, centerWidth: 170, logoHeight: 60 }
+      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 460, centerWidth: 170, logoHeight: 60 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -347,7 +348,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       accent: '#d8ad62',
       background: '#17120d',
       hudSafeZone: { top: 3, bottom: 36, sidePadding: 350, centerWidth: 340, gap: 60 },
-      broadcastSafeZone: { bottom: 4, height: 22, railWidth: 450, centerWidth: 170, logoHeight: 60 },
+      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 450, centerWidth: 170, logoHeight: 60 },
       showMatchChip: false
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
@@ -366,7 +367,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       accent: '#ffcf3d',
       background: '#101629',
       hudSafeZone: { top: 2, bottom: 36, sidePadding: 400, centerWidth: 340, gap: 30 },
-      broadcastSafeZone: { bottom: 4, height: 22, railWidth: 460, centerWidth: 170, logoHeight: 60 }
+      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 460, centerWidth: 170, logoHeight: 60 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -386,7 +387,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: { top: 4, bottom: 52, sidePadding: 310, centerWidth: 300, gap: 30 },
       broadcastSafeZone: {
         bottom: 0,
-        height: 22,
+        height: 28,
         railWidth: 520,
         centerWidth: 240,
         logoHeight: 96,
@@ -412,7 +413,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: { top: 3, bottom: 43, sidePadding: 300, centerWidth: 400, gap: 50 },
       broadcastSafeZone: {
         bottom: 4,
-        height: 22,
+        height: 28,
         railWidth: 500,
         centerWidth: 180,
         logoHeight: 64,
@@ -497,6 +498,14 @@ export function resolveGameProfile(gameId: string | undefined): GameProfile {
   return gameProfiles[defaultGameId];
 }
 
+/** Other games keep their own name and assets while using an existing overlay profile. */
+export function resolveStartggGameProfileId(
+  videogame: { id: string; name: string } | undefined,
+  selectedProfileId: GameId | '' = ''
+): GameId {
+  return gameIdForStartggVideogame(videogame) ?? (selectedProfileId || defaultGameId);
+}
+
 type MatchFormatContext = {
   phase?: string;
   phaseGroup?: string;
@@ -571,4 +580,34 @@ export function defaultBestOfForGame(
 export function scoreLimitForBestOf(gameId: string | undefined, bestOf: number): number {
   const profile = resolveGameProfile(gameId);
   return Math.min(profile.maxScore, Math.max(1, Math.ceil(bestOf / 2)));
+}
+
+export function scoreLimitForMatch({
+  gameId,
+  bestOf,
+  matchFormat
+}: Pick<SelectedSetState, 'gameId' | 'bestOf' | 'matchFormat'>): number {
+  // Exhibition targets can exceed the profile's tournament score limit.
+  if (matchFormat === 'topanga') return 10;
+  if (matchFormat === 'first-to') return Math.max(1, Math.ceil(bestOf / 2));
+  return scoreLimitForBestOf(gameId, bestOf);
+}
+
+export function scoreLimitForPlayer(selectedSet: SelectedSetState, side: 'one' | 'two'): number {
+  if (selectedSet.matchFormat !== 'topanga') return scoreLimitForMatch(selectedSet);
+  const otherScore = side === 'one' ? selectedSet.playerTwo.score : selectedSet.playerOne.score;
+  // Deuce raises the seven-win target, but the next win at 9–9 ends the match.
+  return Math.min(10, Math.max(7, otherScore + 2));
+}
+
+export function winnerSideForMatch(selectedSet: SelectedSetState): 'one' | 'two' | undefined {
+  const one = selectedSet.playerOne.score;
+  const two = selectedSet.playerTwo.score;
+  if (one === two) return undefined;
+  const winnerScore = Math.max(one, two);
+  const loserScore = Math.min(one, two);
+  const complete = selectedSet.matchFormat === 'topanga'
+    ? winnerScore >= 7 && (winnerScore - loserScore >= 2 || winnerScore === 10)
+    : winnerScore >= Math.floor(selectedSet.bestOf / 2) + 1;
+  return complete ? (one > two ? 'one' : 'two') : undefined;
 }

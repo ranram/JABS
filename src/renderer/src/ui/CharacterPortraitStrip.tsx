@@ -3,15 +3,17 @@ import type { CharacterPortrait } from '../characterPortraits';
 export function CharacterPortraitStrip({
   portraits,
   className,
-  side
+  side,
+  entrance
 }: {
   portraits: readonly CharacterPortrait[];
   className: string;
   side?: 'left' | 'right';
+  entrance?: string;
 }) {
   if (portraits.length === 0) return null;
   return (
-    <div className={`${className}${side ? ` is-${side}` : ''}`} aria-label="Selected character portraits">
+    <div className={`${className}${side ? ` is-${side}` : ''}`} aria-label="Selected character portraits" data-entrance={entrance}>
       {portraits.map(({ character, url }) => (
         <img
           key={character}

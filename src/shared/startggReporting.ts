@@ -21,7 +21,7 @@ export type StartggReportReadiness =
   | {
       ready: false;
       reason: string;
-      reasonCode: 'already-complete' | 'set-missing' | 'entrants-missing' | 'score-incomplete' | 'history-mismatch';
+      reasonCode: 'already-complete' | 'set-missing' | 'exhibition-local-only' | 'entrants-missing' | 'score-incomplete' | 'history-mismatch';
       bestOf?: number;
       target?: number;
     };
@@ -32,6 +32,13 @@ export function startggReportReadiness(selectedSet: SelectedSetState): StartggRe
   }
   if (!selectedSet.setId) {
     return { ready: false, reason: 'Load a start.gg set before reporting a result.', reasonCode: 'set-missing' };
+  }
+  if (selectedSet.matchFormat === 'first-to' || selectedSet.matchFormat === 'topanga') {
+    return {
+      ready: false,
+      reason: 'Exhibition scores stay in JABS and cannot be reported to start.gg.',
+      reasonCode: 'exhibition-local-only'
+    };
   }
   if (!selectedSet.playerOne.entrantId || !selectedSet.playerTwo.entrantId) {
     return { ready: false, reason: 'Both start.gg entrant IDs are required to report a result.', reasonCode: 'entrants-missing' };

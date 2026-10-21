@@ -1,60 +1,120 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, Button, Group, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
-import type { SelectedSetState } from '@shared/models';
-import { clampMediaTransform, defaultMediaTransform, type MediaLayerKind, type MediaTransform } from '@shared/mediaPlacement';
+import type { LogoAsset, SelectedSetState } from '@shared/models';
+import {
+  clampMediaTransform,
+  defaultMediaTransform,
+  playerMediaModeIds,
+  type PlayerMediaMode,
+  type MediaLayerKind,
+  type MediaTransform
+} from '@shared/mediaPlacement';
 import { api } from '../../api';
+import { historyForMatch, versusHistoryMatch, versusPresentationMode } from '@shared/versusScreen';
+import { useVersusScreenState } from '../../hooks/useVersusScreenState';
 import { useSettingsDraft } from '../../hooks/useSettingsDraft';
 import { VersusPreview } from './VersusPreview';
 import { useTranslation } from 'react-i18next';
 import { sortByLabel } from './operatorUtils';
-import { MediaFoldersAccordion } from './MediaFoldersAccordion';
 import { MediaControlHint } from './MediaControlHint';
+import { OverlayLogoSelect } from './OverlayLogoSelect';
+import { VersusStatControls } from './VersusStatControls';
+import { VersusCharacterControls } from './VersusCharacterControls';
+import type { CharacterCatalogOptions } from './useCharacterCatalogOptions';
 
 type VersusScreenControlsProps = {
   activeSet?: SelectedSetState;
   profiles: GameProfile[];
-  assetCatalogSlug?: string;
+  logos: LogoAsset[];
+  characterCatalog?: CharacterCatalogOptions;
+  pendingChanges?: boolean;
+  onPatch?(patch: Partial<SelectedSetState>): void;
 };
 
-export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: VersusScreenControlsProps) {
+export function VersusScreenControls({
+  activeSet,
+  profiles,
+  logos,
+  characterCatalog,
+  pendingChanges,
+  onPatch
+}: VersusScreenControlsProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
   const { state, saving, update, reload } = useSettingsDraft({
-    load: api.versusScreenState, save: api.updateVersusScreenState, onError: notify
+    load: api.versusScreenState,
+    save: api.updateVersusScreenState,
+    onError: notify
   });
+  const { state: liveSettings } = useVersusScreenState();
+  useEffect(() => {
+    if (!saving) void reload();
+  }, [liveSettings, saving, reload]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState<{ player: 0 | 1; layer: MediaLayerKind }>();
   const locale = i18n.resolvedLanguage ?? i18n.language;
-  const sortedProfiles = useMemo(() => sortByLabel(profiles, (profile) => profile.styleName, locale), [profiles, locale]);
-  useEffect(() => setSelectedLayer(undefined), [activeSet?.setId]);
+  const sortedProfiles = useMemo(
+    () => sortByLabel(profiles, (profile) => profile.styleName, locale),
+    [profiles, locale]
+  );
+  const placementContext = JSON.stringify([
+    activeSet?.setId,
+    activeSet?.eventId,
+    activeSet?.assetCatalogSlug ?? activeSet?.gameId,
+    activeSet?.videogameId
+  ]);
+  const latestPlacementContext = useRef(placementContext);
+  latestPlacementContext.current = placementContext;
+  useEffect(() => setSelectedLayer(undefined), [placementContext, state?.mediaMode]);
 
   function updatePlacement(player: 0 | 1, layer: MediaLayerKind, transform: MediaTransform) {
-    if (refreshing) return;
-    void update((current) => ({
-      ...current,
-      mediaPlacements: [
-        player === 0 ? { ...current.mediaPlacements[0], [layer]: clampMediaTransform(transform) } : current.mediaPlacements[0],
-        player === 1 ? { ...current.mediaPlacements[1], [layer]: clampMediaTransform(transform) } : current.mediaPlacements[1]
-      ]
-    }), 1_000);
+    if (
+      refreshing ||
+      (state?.mediaMode !== 'combined' && layer !== (state?.mediaMode === 'photo' ? 'photo' : 'character'))
+    )
+      return;
+    void update(
+      (current) =>
+        latestPlacementContext.current !== placementContext
+          ? current
+          : {
+              ...current,
+              mediaPlacements: [
+                player === 0
+                  ? { ...current.mediaPlacements[0], [layer]: clampMediaTransform(transform) }
+                  : current.mediaPlacements[0],
+                player === 1
+                  ? { ...current.mediaPlacements[1], [layer]: clampMediaTransform(transform) }
+                  : current.mediaPlacements[1]
+              ]
+            },
+      1_000
+    );
   }
 
   const placementOptions = useMemo(() => {
     if (!activeSet || !state) return [];
-    const layer = state.mediaMode;
-    return [activeSet.playerOne.name, activeSet.playerTwo.name].map((name, player) => ({
-      value: `${player}:${layer}`,
-      label: `${name} · ${layer === 'character' ? 'Character art' : 'Player photo'}`
-    }));
-  }, [activeSet, state?.mediaMode]);
+    const layers: MediaLayerKind[] =
+      state.mediaMode === 'combined' ? ['character', 'photo'] : [state.mediaMode === 'photo' ? 'photo' : 'character'];
+    return [activeSet.playerOne.name, activeSet.playerTwo.name].flatMap((name, player) =>
+      layers.map((layer) => ({
+        value: `${player}:${layer}`,
+        label: t(layer === 'photo' ? 'thumbnail.adjustPhoto' : 'thumbnail.adjustCharacter', { player: name })
+      }))
+    );
+  }, [activeSet, state?.mediaMode, t]);
 
   async function refreshHistory() {
     setRefreshing(true);
     try {
       await api.refreshVersusHistory();
       await reload();
-      notifications.show({ color: 'green', title: 'Versus history updated', message: 'Latest placements and head-to-head sets were loaded from start.gg.' });
+      notifications.show({
+        color: 'green',
+        title: t('workspaces.versusScreen.historyUpdated'),
+        message: t('workspaces.versusScreen.historyUpdatedHelp')
+      });
     } catch (error) {
       notify(error);
     } finally {
@@ -62,63 +122,147 @@ export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: 
     }
   }
 
-  if (!state) return <Text c="dimmed" size="sm">Loading Versus Screen settings…</Text>;
-  const historyCount = (state.history?.playerOnePlacements.length ?? 0)
-    + (state.history?.playerTwoPlacements.length ?? 0)
-    + (state.history?.headToHead.length ?? 0);
-  const canLoadHistory = Boolean(activeSet?.eventId && activeSet.playerOne.playerId && activeSet.playerTwo.playerId);
+  if (!state)
+    return (
+      <Text c="dimmed" size="sm">
+        {t('workspaces.versusScreen.loadingScreenSettings')}
+      </Text>
+    );
+  const historyState = liveSettings ?? state;
+  const history = historyForMatch(historyState, activeSet);
+  const historyCount = history?.headToHead.length ?? 0;
+  const canLoadHistory = Boolean(versusHistoryMatch(activeSet));
+  const mode = versusPresentationMode(activeSet);
   return (
     <Stack gap="md">
       <Group justify="space-between" align="center" wrap="wrap">
-        <Text fw={800}>{t('workspaces.versusScreen.currentMatchup')}</Text>
-        {activeSet ? (
-          <Text fw={900}>{activeSet.playerOne.name} <Text component="span" c="dimmed">vs</Text> {activeSet.playerTwo.name}</Text>
-        ) : <Badge color="gray">No set on stream</Badge>}
-      </Group>
-      <Group justify="space-between" align="center" wrap="wrap">
-        <div>
-          <Text fw={800}>{t('workspaces.versusScreen.startgg')}</Text>
-          <Text c="dimmed" size="sm">
-            {canLoadHistory ? `${historyCount} ${t('workspaces.versusScreen.historyEntries')}` : t('workspaces.versusScreen.startggProfileError')}
+        {activeSet && mode !== 'waiting' ? (
+          <Text fw={900}>
+            {activeSet.playerOne.name}
+            <Text component="span" c="dimmed">
+              vs
+            </Text>
+            {activeSet.playerTwo.name}
           </Text>
-        <Button loading={refreshing} disabled={!canLoadHistory || saving} onClick={() => void refreshHistory()}>
-          {t('workspaces.versusScreen.refreshHistory')}
-        </Button>
-        </div>
+        ) : (
+          <Badge color="gray">{t('workspaces.versusScreen.noSet')}</Badge>
+        )}
       </Group>
-      {activeSet && (
+      <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
+        <Select
+          label={t('workspaces.styling')}
+          data={sortedProfiles.map((profile) => ({ value: profile.id, label: profile.styleName }))}
+          value={state.stylingGameId}
+          searchable
+          allowDeselect={false}
+          disabled={saving || refreshing}
+          onChange={(value) => value && void update({ stylingGameId: value as GameId })}
+        />
+        <OverlayLogoSelect
+          logos={logos}
+          assetId={state.logoAssetId}
+          disabled={saving || refreshing}
+          onChange={(logoAssetId) => void update({ logoAssetId })}
+        />
+      </SimpleGrid>
+      {mode === 'waiting' && (
+        <Text c="dimmed" size="sm">
+          {t('workspaces.tools.versus.next')}
+        </Text>
+      )}
+      {activeSet && mode !== 'waiting' && characterCatalog && onPatch && (
+        <VersusCharacterControls activeSet={activeSet} catalog={characterCatalog} onPatch={onPatch} />
+      )}
+      <div>
+        <Text fw={700} size="sm" mb={6}>
+          {t('thumbnail.mediaMode')}
+        </Text>
+        <SegmentedControl
+          fullWidth
+          value={state.mediaMode}
+          data={playerMediaModeIds.map((value) => ({ value, label: t(`thumbnail.mediaModes.${value}`) }))}
+          disabled={saving || refreshing}
+          onChange={(mediaMode) => void update({ mediaMode: mediaMode as PlayerMediaMode })}
+        />
+        {state.mediaMode === 'combined' && (
+          <Text c="dimmed" size="sm" mt="xs">
+            {t('mediaControls.combinedEditingHelp')}
+          </Text>
+        )}
+      </div>
+      <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
+        <Switch
+          label={t('workspaces.transparentBackground')}
+          checked={!state.showBackground}
+          disabled={saving || refreshing}
+          onChange={(event) => void update({ showBackground: !event.currentTarget.checked })}
+        />
+        <Switch
+          label={t('workspaces.versusScreen.showMatchBackdrop')}
+          description={t('workspaces.versusScreen.matchBackdropHelp')}
+          checked={state.showMatchBackdrop}
+          disabled={saving || refreshing}
+          onChange={(event) => void update({ showMatchBackdrop: event.currentTarget.checked })}
+        />
+        <Switch
+          label={t('thumbnail.showTournamentLogo')}
+          description={t('broadcast.sharedLogoHelp')}
+          checked={state.showTournamentLogo}
+          disabled={saving || refreshing}
+          onChange={(event) => void update({ showTournamentLogo: event.currentTarget.checked })}
+        />
+        <Switch
+          label={t('thumbnail.showSponsorLogo')}
+          description={t('broadcast.sponsorLogoHelp')}
+          checked={state.showSponsorLogos}
+          disabled={saving || refreshing}
+          onChange={(event) => void update({ showSponsorLogos: event.currentTarget.checked })}
+        />
+      </SimpleGrid>
+      {activeSet && mode !== 'waiting' && (
         <Stack gap="xs">
-          <Group justify="space-between">
-            <Text fw={800}>{t('workspaces.versusScreen.livePreview')}</Text>
-            <Badge color={saving ? 'yellow' : 'green'} variant="light">
-              {saving ? t('workspaces.versusScreen.obsPending') : t('workspaces.versusScreen.obsCurrent')}
+          <Group justify="space-between" align="flex-start" wrap="nowrap">
+            <Text fw={800} flex={1} miw={0}>
+              {t('workspaces.versusScreen.livePreview')}
+            </Text>
+            <Badge color={saving || pendingChanges ? 'yellow' : 'green'} variant="light" style={{ flexShrink: 0 }}>
+              {saving || pendingChanges
+                ? t('workspaces.versusScreen.obsPending')
+                : t('workspaces.versusScreen.obsCurrent')}
             </Badge>
           </Group>
-          <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
-            <Select
-              label={t('thumbnail.adjustLayer')}
-              value={selectedLayer ? `${selectedLayer.player}:${selectedLayer.layer}` : null}
-              placeholder={t('actions.select')}
-              clearable
-              data={placementOptions}
-              onChange={(value) => {
-                if (!value) return setSelectedLayer(undefined);
-                const [player, layer] = value.split(':');
-                setSelectedLayer({ player: Number(player) as 0 | 1, layer: layer as MediaLayerKind });
-              }}
-            />
-            <Group align="flex-end">
-              <Button
-                fullWidth
-                variant="default"
-                disabled={!selectedLayer}
-                onClick={() => selectedLayer && updatePlacement(selectedLayer.player, selectedLayer.layer, defaultMediaTransform())}
-              >
-                {t('topEight.resetPlacement')}
-              </Button>
-            </Group>
-          </SimpleGrid>
-          <MediaControlHint />
+          {placementOptions.length > 0 && (
+            <>
+              <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
+                <Select
+                  label={t('thumbnail.adjustLayer')}
+                  value={selectedLayer ? `${selectedLayer.player}:${selectedLayer.layer}` : null}
+                  placeholder={t('actions.select')}
+                  clearable
+                  data={placementOptions}
+                  onChange={(value) => {
+                    if (!value) return setSelectedLayer(undefined);
+                    const [player, layer] = value.split(':');
+                    setSelectedLayer({ player: Number(player) as 0 | 1, layer: layer as MediaLayerKind });
+                  }}
+                />
+                <Group align="flex-end">
+                  <Button
+                    fullWidth
+                    variant="default"
+                    disabled={!selectedLayer}
+                    onClick={() =>
+                      selectedLayer &&
+                      updatePlacement(selectedLayer.player, selectedLayer.layer, defaultMediaTransform())
+                    }
+                  >
+                    {t('topEight.resetPlacement')}
+                  </Button>
+                </Group>
+              </SimpleGrid>
+              <MediaControlHint />
+            </>
+          )}
           <VersusPreview
             activeSet={activeSet}
             settings={state}
@@ -128,31 +272,31 @@ export function VersusScreenControls({ activeSet, profiles, assetCatalogSlug }: 
           />
         </Stack>
       )}
-      <Select
-        label="Styling"
-        data={sortedProfiles.map((profile) => ({ value: profile.id, label: profile.styleName }))}
-        value={state.stylingGameId}
-        searchable
-        allowDeselect={false}
+      <VersusStatControls
+        settings={state}
+        showSeed={mode === 'tournament'}
         disabled={saving || refreshing}
-        onChange={(value) => value && void update({ stylingGameId: value as GameId })}
+        onChange={(patch) => void update(patch)}
       />
-      <div>
-        <Text fw={700} size="sm" mb={6}>{t('thumbnail.mediaMode')}</Text>
-        <SegmentedControl
-          fullWidth
-          value={state.mediaMode}
-          data={[{ value: 'character', label: t('thumbnail.mediaModes.character') }, { value: 'photo', label: t('thumbnail.mediaModes.photo') }]}
-          disabled={saving || refreshing}
-          onChange={(mediaMode) => void update({ mediaMode: mediaMode as 'character' | 'photo' })}
-        />
-      </div>
-      <Group grow align="center">
-        <Switch label={t('workspaces.transparentBackground')} description={t('workspaces.transparentBackgroundHelp')} checked={!state.showBackground} disabled={saving || refreshing} onChange={(event) => void update({ showBackground: !event.currentTarget.checked })} />
-        <Switch label={t('thumbnail.showTournamentLogo')} description={t('broadcast.tournamentLogoHelp')} checked={state.showTournamentLogo} disabled={saving || refreshing} onChange={(event) => void update({ showTournamentLogo: event.currentTarget.checked })} />
-        <Switch label={t('thumbnail.showSponsorLogo')} description={t('broadcast.sponsorLogoHelp')} checked={state.showSponsorLogos} disabled={saving || refreshing} onChange={(event) => void update({ showSponsorLogos: event.currentTarget.checked })} />
-      </Group>
-      <MediaFoldersAccordion gameAssetSubpath={assetCatalogSlug ? `${assetCatalogSlug}/characters` : undefined} />
+      {mode !== 'waiting' && (
+        <Group justify="space-between" align="center" wrap="wrap">
+          <div>
+            <Text fw={800}>{t('workspaces.versusScreen.startgg')}</Text>
+            <Button loading={refreshing} disabled={!canLoadHistory || saving} onClick={() => void refreshHistory()}>
+              {t('workspaces.versusScreen.refreshHistory')}
+            </Button>
+            <Text c="dimmed" size="sm" mt="xs">
+              {!canLoadHistory
+                ? t('workspaces.versusScreen.startggProfileError')
+                : historyState.historyLoading
+                  ? t('workspaces.versusScreen.historyLoading')
+                  : historyState.historyError
+                    ? t('workspaces.versusScreen.historyFailed')
+                    : `${historyCount} ${t('workspaces.versusScreen.historyEntries')}`}
+            </Text>
+          </div>
+        </Group>
+      )}
     </Stack>
   );
 }

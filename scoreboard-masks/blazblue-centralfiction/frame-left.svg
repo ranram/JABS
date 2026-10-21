@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <title>BlazBlue Centralfiction — opaque portrait frame (left)</title>
+  <desc>Opaque photo backing on a transparent 1920×1080 canvas.</desc>
+  <defs><mask id="coverage-left" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 0 0 L 199 0 L 199 86 L 181 111 L 155 128 L 130 143 L 94 147 L 68 179 L 0 179 Z" fill="white"/><rect x="211" y="60" width="609" height="34" fill="black"/><rect x="1100" y="60" width="609" height="34" fill="black"/><rect x="428" y="111" width="204" height="21" fill="black"/><rect x="1288" y="111" width="204" height="21" fill="black"/><rect x="83" y="158" width="70" height="69" fill="black"/><rect x="1767" y="158" width="70" height="69" fill="black"/></mask></defs>
+  <g mask="url(#coverage-left)"><path d="M 0 0 L 199 0 L 199 86 L 181 111 L 155 128 L 130 143 L 94 147 L 68 179 L 0 179 Z" fill="#11151c"/></g>
+</svg>

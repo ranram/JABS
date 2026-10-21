@@ -1,0 +1,109 @@
+.generator-page {
+  --generator-section-padding: var(--mantine-spacing-lg);
+  --generator-scroll-offset: calc(var(--workspace-header-height, 100px) + 72px);
+  container: generator / inline-size;
+  min-width: 0;
+}
+
+.generator-settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--mantine-spacing-md);
+}
+
+.generator-settings-row > .generator-section {
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  margin: 0;
+}
+
+.operator-shell .panel.generator-section {
+  min-width: 0;
+  padding: var(--generator-section-padding);
+}
+
+.operator-shell .panel.generator-player-panel {
+  padding: var(--mantine-spacing-md);
+}
+
+.generator-page .player-field-row {
+  gap: var(--mantine-spacing-sm);
+}
+
+.generator-page .top8-entrant-editor {
+  gap: var(--mantine-spacing-sm);
+  padding: var(--mantine-spacing-md);
+}
+
+.generator-workspace {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mantine-spacing-md);
+}
+
+.generator-editor-column,
+.generator-preview-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--mantine-spacing-md);
+}
+
+.generator-preview-column {
+  align-self: start;
+}
+
+.generator-page .generator-navigation {
+  position: sticky;
+  top: var(--workspace-header-height, 100px);
+  z-index: 5;
+  gap: var(--mantine-spacing-md);
+  margin-bottom: var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-sm) var(--generator-section-padding);
+  background: var(--mantine-color-body);
+}
+
+.generator-page .generator-section-target {
+  scroll-margin-top: var(--generator-scroll-offset);
+}
+
+.generator-event-load-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--mantine-spacing-sm);
+}
+
+@container generator (min-width: 64rem) {
+  .generator-settings-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container generator (max-width: 48rem) {
+  .generator-page .generator-section,
+  .generator-navigation {
+    --generator-section-padding: var(--mantine-spacing-md);
+  }
+}
+
+@container generator (max-width: 40rem) {
+  .generator-event-load-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1500px) {
+  .generator-workspace {
+    grid-template-columns: minmax(360px, 0.85fr) minmax(620px, 1.4fr);
+    align-items: start;
+  }
+
+  .generator-preview-column {
+    position: sticky;
+    top: var(--generator-scroll-offset);
+  }
+}

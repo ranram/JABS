@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { SelectedSetState } from '@shared/models';
-import { reconcileDirtyDraft, type OperatorDraftState } from '../../operatorDraft';
+import { reconcileDirtyDraft, sameDraftMatch, type OperatorDraftState } from '../../operatorDraft';
 
 export function useOperatorDraft(selectedSet?: SelectedSetState) {
   const [draftState, setDraftState] = useState<OperatorDraftState>();
   useEffect(() => {
     if (!selectedSet) return;
     setDraftState((current) => {
-      if (current?.dirty && current.value.setId === selectedSet.setId) {
+      if (current?.dirty && sameDraftMatch(current.baseline, selectedSet)) {
         return {
           value: reconcileDirtyDraft(current.value, current.baseline, selectedSet),
           baseline: selectedSet,

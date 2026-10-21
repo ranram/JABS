@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <title>Melty Blood: Twi-Lumina — opaque portrait frame (left and right)</title>
+  <desc>Opaque photo backing on a transparent 1920×1080 canvas.</desc>
+  <defs><mask id="coverage-left" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 0 0 L 210 0 L 210 79 L 191 79 L 201 115 L 0 211 Z" fill="white"/><rect x="202" y="81" width="640" height="33" fill="black"/><rect x="1078" y="81" width="640" height="33" fill="black"/><rect x="214" y="119" width="281" height="24" fill="black"/><rect x="1425" y="119" width="281" height="24" fill="black"/></mask><mask id="coverage-right" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 0 0 L 210 0 L 210 79 L 191 79 L 201 115 L 0 211 Z" transform="translate(1920 0) scale(-1 1)" fill="white"/><rect x="202" y="81" width="640" height="33" fill="black"/><rect x="1078" y="81" width="640" height="33" fill="black"/><rect x="214" y="119" width="281" height="24" fill="black"/><rect x="1425" y="119" width="281" height="24" fill="black"/></mask></defs>
+  <g mask="url(#coverage-left)"><path d="M 0 0 L 210 0 L 210 79 L 191 79 L 201 115 L 0 211 Z" fill="#11151c"/></g>
+  <g mask="url(#coverage-right)"><path d="M 0 0 L 210 0 L 210 79 L 191 79 L 201 115 L 0 211 Z" transform="translate(1920 0) scale(-1 1)" fill="#11151c"/></g>
+</svg>

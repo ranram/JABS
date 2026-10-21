@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invokeNative } from './nativeCommand';
 import type { TokenStatus } from '@shared/models';
 
 type TauriWindow = Window & {
@@ -11,32 +11,39 @@ export function isTauriRuntime(): boolean {
 
 export async function getDesktopApiPort(): Promise<number | undefined> {
   if (isTauriRuntime()) {
-    return invoke<number>('get_api_port');
+    return invokeNative<number>('get_api_port');
   }
   return undefined;
 }
 
+export function openNativeExternalUrl(url: string): Promise<void> {
+  return invokeNative<void>('open_external_url', { url });
+}
+
 export function getNativeTokenStatus(): Promise<TokenStatus> {
-  return invoke<TokenStatus>('get_token_status');
+  return invokeNative<TokenStatus>('get_token_status');
 }
 
 export function setNativeStartggToken(token: string, sessionOnly: boolean): Promise<TokenStatus> {
-  return invoke<TokenStatus>(sessionOnly ? 'set_session_startgg_token' : 'set_startgg_token', { token });
+  return invokeNative<TokenStatus>(sessionOnly ? 'set_session_startgg_token' : 'set_startgg_token', { token });
 }
 
 export function clearNativeStartggToken(): Promise<TokenStatus> {
-  return invoke<TokenStatus>('clear_startgg_token');
+  return invokeNative<TokenStatus>('clear_startgg_token');
 }
 
 export type MediaDirectories = {
+  assetsRoot?: string;
   gameAssets: string;
   players: string;
+  playerHeadshots?: string;
   sponsors: string;
   tourneyLogos: string;
   moderationAllowlist: string;
 };
 
-export type MediaDirectoryKind = 'game-assets' | 'players' | 'sponsors' | 'tourney-logos';
+export type MediaDirectoryKind =
+  'assets' | 'game-assets' | 'players' | 'player_headshots' | 'sponsors' | 'tourney-logos';
 
 export function nativeMediaDirectory(
   directories: MediaDirectories | undefined,
@@ -44,10 +51,18 @@ export function nativeMediaDirectory(
 ): string | undefined {
   if (!directories) return undefined;
   switch (kind) {
-    case 'game-assets': return directories.gameAssets;
-    case 'players': return directories.players;
-    case 'sponsors': return directories.sponsors;
-    case 'tourney-logos': return directories.tourneyLogos;
+    case 'assets':
+      return directories.assetsRoot;
+    case 'game-assets':
+      return directories.gameAssets;
+    case 'players':
+      return directories.players;
+    case 'player_headshots':
+      return directories.playerHeadshots;
+    case 'sponsors':
+      return directories.sponsors;
+    case 'tourney-logos':
+      return directories.tourneyLogos;
   }
 }
 
@@ -58,12 +73,12 @@ export function nativeMediaDirectory(
  */
 export async function getNativeMediaDirectories(): Promise<MediaDirectories | undefined> {
   if (!isTauriRuntime()) return undefined;
-  return invoke<MediaDirectories>('get_media_directories');
+  return invokeNative<MediaDirectories>('get_media_directories');
 }
 
-export async function openNativeMediaDirectory(kind: MediaDirectoryKind): Promise<void> {
+export async function openNativeMediaDirectory(kind: MediaDirectoryKind, subpath?: string): Promise<void> {
   if (!isTauriRuntime()) return;
-  await invoke<void>('open_media_directory', { kind });
+  await invokeNative<void>('open_media_directory', { kind, subpath });
 }
 
 export type ModerationAllowlistStatus = {
@@ -71,57 +86,51 @@ export type ModerationAllowlistStatus = {
 };
 
 export function getNativeModerationAllowlist(): Promise<string> {
-  return invoke<string>('get_moderation_allowlist');
+  return invokeNative<string>('get_moderation_allowlist');
 }
 
 export function saveNativeModerationAllowlist(contents: string): Promise<ModerationAllowlistStatus> {
-  return invoke<ModerationAllowlistStatus>('save_moderation_allowlist', { contents });
+  return invokeNative<ModerationAllowlistStatus>('save_moderation_allowlist', { contents });
 }
 
 export function reloadNativeModerationAllowlist(): Promise<ModerationAllowlistStatus> {
-  return invoke<ModerationAllowlistStatus>('reload_moderation_allowlist');
+  return invokeNative<ModerationAllowlistStatus>('reload_moderation_allowlist');
 }
 
 export type LocalHandoffUrl =
   | 'score'
   | 'versus'
+  | 'stats-player-1'
+  | 'stats-player-2'
   | 'winner'
   | 'champion'
   | 'top-eight-matchups'
-  | 'commentators';
+  | 'commentators'
+  | 'bracket'
+  | 'stingers';
 
 const overlayPaths: Record<LocalHandoffUrl, string> = {
   score: '/overlay/active/main',
   versus: '/overlay/active/versus',
+  'stats-player-1': '/overlay/active/stats?player=1',
+  'stats-player-2': '/overlay/active/stats?player=2',
   winner: '/overlay/active/winner',
   champion: '/overlay/active/champion',
   'top-eight-matchups': '/overlay/active/top-eight-matchups',
-  commentators: '/overlay/commentators'
+  commentators: '/overlay/commentators',
+  bracket: '/overlay/active/bracket',
+  stingers: '/overlay/stingers'
 };
-
-export const rendererDiagnosticEvents = [
-  'stream-save:renderer-start',
-  'stream-save:renderer-complete',
-  'stream-save:renderer-failed',
-  'local-request:retry',
-  'local-request:failed'
-] as const;
-
-export type RendererDiagnosticEvent = (typeof rendererDiagnosticEvents)[number];
-
-export function reportNativeRendererDiagnostic(event: RendererDiagnosticEvent): Promise<void> {
-  return invoke<void>('report_renderer_diagnostic', { event });
-}
 
 export function localOverlayUrl(apiBase: string, kind: LocalHandoffUrl): string {
   const base = new URL(apiBase);
   const port = Number(base.port);
   if (
-    base.protocol !== 'http:'
-    || base.hostname !== '127.0.0.1'
-    || !Number.isSafeInteger(port)
-    || port < 1
-    || port > 65_535
+    base.protocol !== 'http:' ||
+    base.hostname !== '127.0.0.1' ||
+    !Number.isSafeInteger(port) ||
+    port < 1 ||
+    port > 65_535
   ) {
     throw new Error('JABS cannot copy an OBS URL with an invalid local API address.');
   }

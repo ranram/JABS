@@ -1,4 +1,5 @@
 import type { PlayerState, SelectedSetState } from '@shared/models';
+import { winnerSideForMatch } from '@shared/gameProfiles';
 
 export type AnnouncementPresentation = {
   kind: 'winner' | 'champion';
@@ -8,16 +9,14 @@ export type AnnouncementPresentation = {
 export function announcementPresentation(
   selectedSet: SelectedSetState
 ): AnnouncementPresentation | undefined {
-  const target = Math.floor(selectedSet.bestOf / 2) + 1;
-  const winner = selectedSet.playerOne.score >= target && selectedSet.playerOne.score > selectedSet.playerTwo.score
-    ? selectedSet.playerOne
-    : selectedSet.playerTwo.score >= target && selectedSet.playerTwo.score > selectedSet.playerOne.score
-      ? selectedSet.playerTwo
-      : selectedSet.state === '3' && selectedSet.playerOne.score !== selectedSet.playerTwo.score
-        ? selectedSet.playerOne.score > selectedSet.playerTwo.score
-          ? selectedSet.playerOne
-          : selectedSet.playerTwo
-        : undefined;
+  const winnerSide = winnerSideForMatch(selectedSet);
+  let winner = winnerSide === 'one' ? selectedSet.playerOne
+    : winnerSide === 'two' ? selectedSet.playerTwo : undefined;
+  if (!winner && selectedSet.matchFormat !== 'topanga' && selectedSet.state === '3'
+    && selectedSet.playerOne.score !== selectedSet.playerTwo.score) {
+    winner = selectedSet.playerOne.score > selectedSet.playerTwo.score
+      ? selectedSet.playerOne : selectedSet.playerTwo;
+  }
   if (!winner) return undefined;
 
   const round = normalizeRound(selectedSet.round);

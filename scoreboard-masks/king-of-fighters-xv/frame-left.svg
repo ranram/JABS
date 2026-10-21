@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <title>The King of Fighters XV — opaque portrait frame (left)</title>
+  <desc>Opaque photo backing on a transparent 1920×1080 canvas.</desc>
+  <defs><mask id="coverage-left" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 0 0 L 154 0 L 162 94 L 0 94 Z" fill="white"/><rect x="170" y="61" width="710" height="30" fill="black"/><rect x="1040" y="61" width="710" height="30" fill="black"/><rect x="0" y="97" width="164" height="100" fill="black"/><rect x="1756" y="97" width="164" height="100" fill="black"/></mask></defs>
+  <g mask="url(#coverage-left)"><path d="M 0 0 L 154 0 L 162 94 L 0 94 Z" fill="#11151c"/></g>
+</svg>

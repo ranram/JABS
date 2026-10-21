@@ -1,0 +1,8 @@
+/* Shared form spacing also applies to operator dialogs rendered through portals. */
+:where(.operator-shell, .player-library-modal, .set-action-dialog) {
+  --operator-input-label-offset: calc(var(--mantine-font-size-sm) * var(--mantine-line-height) + 0.25rem);
+}
+
+:where(.operator-shell, .player-library-modal, .set-action-dialog) .mantine-InputWrapper-label {
+  margin-bottom: 0.25rem;
+}

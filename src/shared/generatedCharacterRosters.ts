@@ -33,7 +33,9 @@ export const generatedCharacterRosters = {
     "Cammy",
     "Luke",
     "Ken",
-    "Ryu"
+    "Ryu",
+    "Tifa",
+    "Bosch"
   ],
   "tekken-8": [
     "Bob",
@@ -77,7 +79,9 @@ export const generatedCharacterRosters = {
     "Bryan Fury",
     "King",
     "Kazuya Mishima",
-    "Jin Kazama"
+    "Jin Kazama",
+    "Roger Jr.",
+    "Yujiro Hanma"
   ],
   "avatar-legends": [
     "Aang",
@@ -91,7 +95,12 @@ export const generatedCharacterRosters = {
     "Azula",
     "Kyoshi",
     "Zaheer",
-    "Ozai"
+    "Ozai",
+    "Bolin",
+    "Ty Lee",
+    "Lin Beifong",
+    "Uncle Iroh",
+    "Tagah"
   ],
   "marvel-tokon": [
     "Storm",
@@ -114,7 +123,10 @@ export const generatedCharacterRosters = {
     "Blade",
     "Deadpool",
     "Loki",
-    "Phoenix Cyclops"
+    "Phoenix Cyclops",
+    "Thor (Jane Foster)",
+    "Venom",
+    "Jubilee"
   ],
   "guilty-gear-strive": [
     "Lucy",
@@ -168,7 +180,9 @@ export const generatedCharacterRosters = {
     "Ahri",
     "Thresh",
     "Senna",
-    "Lux"
+    "Lux",
+    "Samira",
+    "Sett"
   ],
   "blazblue-centralfiction": [
     "Amane",
@@ -237,7 +251,14 @@ export const generatedCharacterRosters = {
     "Rock Howard",
     "Billy Kane",
     "Terry Bogard",
-    "B. Jenet"
+    "B. Jenet",
+    "Rick Strowd",
+    "Duck King",
+    "Kim Kaphwan",
+    "Manjiro Sano",
+    "Ken Ryuguji",
+    "Laocorn",
+    "Reina"
   ],
   "granblue-fantasy-versus-rising": [
     "Id",
@@ -455,6 +476,34 @@ export const generatedCharacterRosters = {
     "Phoenix Wright",
     "Frank West"
   ],
+  "super-smash-bros-melee": [
+    "Mr. Game & Watch",
+    "Roy",
+    "Ice Climbers",
+    "Ganondorf",
+    "Young Link",
+    "Pichu",
+    "Zelda",
+    "Mewtwo",
+    "Dr. Mario",
+    "Bowser",
+    "Ness",
+    "Pikachu",
+    "Kirby",
+    "Samus",
+    "Link",
+    "Donkey Kong",
+    "Yoshi",
+    "Jigglypuff",
+    "Captain Falcon",
+    "Peach",
+    "Sheik",
+    "Marth",
+    "Falco",
+    "Fox",
+    "Luigi",
+    "Mario"
+  ],
   "super-smash-bros-ultimate": [
     "Mario",
     "Donkey Kong",
@@ -570,5 +619,25 @@ export const generatedCharacterRosters = {
     "Ogre",
     "Izumi",
     "Zohar"
+  ],
+  "rivals-of-aether-ii": [
+    "Zetterburn",
+    "Orcane",
+    "Wrastor",
+    "Kragg",
+    "Forsburn",
+    "Maypul",
+    "Clairen",
+    "Ranno",
+    "Fleet",
+    "Loxodont",
+    "Etalus",
+    "Absa",
+    "La Reina",
+    "Olympia",
+    "Slade",
+    "Galvan",
+    "Gouie",
+    "Mina"
   ]
 } as const;

@@ -15,16 +15,13 @@ import { joinMediaDisplayPath, relativeMediaHint } from '../../mediaFolders';
 type MediaFolderControlsProps = {
   kind: MediaDirectoryKind;
   label: string;
-  /** Repository-relative subpath shown inside the catalog, such as `street-fighter-6/characters`. */
+  /** Path within the media folder, such as `street-fighter-6/characters`. */
   subpath?: string;
 };
 
 /**
- * Shows where JABS actually reads a user-media catalog and offers to open it
- * in the platform file manager. Packaged builds keep these catalogs inside
- * JABS's application-data directory, which users otherwise cannot find; the
- * resolved path is display-only and every catalog read still goes through the
- * native validated routes.
+ * Show this installation's media folder. The native command checks which
+ * folder to open; the displayed path is not used as a command argument.
  */
 export function MediaFolderControls({ kind, label, subpath }: MediaFolderControlsProps) {
   const { t } = useTranslation('common');
@@ -32,10 +29,14 @@ export function MediaFolderControls({ kind, label, subpath }: MediaFolderControl
 
   useEffect(() => {
     let active = true;
-    void getNativeMediaDirectories().then((resolved) => {
-      if (active) setDirectories(resolved);
-    }).catch(() => undefined);
-    return () => { active = false; };
+    void getNativeMediaDirectories()
+      .then((resolved) => {
+        if (active) setDirectories(resolved);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
   }, []);
 
   const nativeRoot = nativeMediaDirectory(directories, kind);
@@ -53,7 +54,7 @@ export function MediaFolderControls({ kind, label, subpath }: MediaFolderControl
             variant="light"
             color="violet"
             onClick={() => {
-              void openNativeMediaDirectory(kind).catch(() => {
+              void openNativeMediaDirectory(kind, subpath).catch(() => {
                 notifications.show({
                   message: t('mediaFolder.openFailed'),
                   color: 'red',

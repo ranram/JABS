@@ -18,6 +18,7 @@ import { normalizeTournamentSlug } from '@shared/startgg';
 import type { StartggGateway } from '@shared/startggGateway';
 import { errorMessage, localizedScopeLabel, setScopeKey } from './operatorUtils';
 import { useBracketBrowserState } from './bracketBrowserState';
+import type { BracketController } from './bracketController';
 
 type UseBracketBrowserOptions = {
   onContextChange?(): Promise<void>;
@@ -33,7 +34,7 @@ export function useBracketBrowser({
   setMessage,
   setLoading,
   setTokenVerified
-}: UseBracketBrowserOptions) {
+}: UseBracketBrowserOptions): BracketController {
   const { t } = useTranslation('operator');
   const { state, setField, patch, reset } = useBracketBrowserState();
   const {
@@ -241,6 +242,7 @@ export function useBracketBrowser({
     setScopeRef.current = undefined;
     patch({
       tournamentSlug: '',
+      loadedTournamentSlug: '',
       bracketRefresh: undefined,
       events: [],
       selectedEventId: '',
@@ -288,7 +290,7 @@ export function useBracketBrowser({
       const firstEventId = nextEvent ? String(nextEvent.id) : '';
       if (previous.slug !== normalizedSlug || previous.eventId !== firstEventId) await onContextChange?.();
       loadedContextRef.current = { slug: normalizedSlug, eventId: firstEventId };
-      setTournamentSlug(normalizedSlug);
+      patch({ tournamentSlug: normalizedSlug, loadedTournamentSlug: normalizedSlug });
       setEvents(response.events);
       setSelectedEventId(firstEventId);
       setSelectionGameId(gameIdForStartggVideogame(nextEvent?.videogame) ?? '');
@@ -645,26 +647,31 @@ export function useBracketBrowser({
   }
 
   return {
-    ...state,
-    setTournamentSlug,
-    setRecentTournaments,
-    setSelectionGameId,
-    setStationNumber,
-    setSetSearch,
-    searchCatalogIsCurrent,
-    ensureCompleteSetSearchCatalog,
-    cancelSetSearch,
-    unloadTournament,
-    clearCachedBracketData,
-    loadEvents,
-    selectEvent,
-    selectPhase,
-    loadPhaseGroups,
-    selectPhaseGroup,
-    browseStation,
-    browseAllEventSets,
-    loadSets,
-    loadMoreSets,
-    refreshAfterReport
+    state: {
+      ...state,
+      tournamentLoaded: Boolean(state.loadedTournamentSlug),
+      searchCatalogIsCurrent
+    },
+    actions: {
+      setTournamentSlug,
+      setRecentTournaments,
+      setSelectionGameId,
+      setStationNumber,
+      setSetSearch,
+      ensureCompleteSetSearchCatalog,
+      cancelSetSearch,
+      unloadTournament,
+      clearCachedBracketData,
+      loadEvents,
+      selectEvent,
+      selectPhase,
+      loadPhaseGroups,
+      selectPhaseGroup,
+      browseStation,
+      browseAllEventSets,
+      loadSets,
+      loadMoreSets,
+      refreshAfterReport
+    }
   };
 }

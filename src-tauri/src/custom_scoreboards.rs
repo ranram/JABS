@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 const CANVAS_WIDTH: u32 = 1920;
 const CANVAS_HEIGHT: u32 = 1080;
+const FRAME_SIZE_TOLERANCE: u32 = 16;
 pub const MAX_FRAME_BYTES: usize = 20 * 1024 * 1024;
 
 #[derive(Clone, Deserialize, PartialEq, Eq, Serialize)]
@@ -104,6 +105,12 @@ pub struct ScoreboardVisibility {
     pub round: bool,
     pub tournament_logo: bool,
     pub bottom_rails: bool,
+    #[serde(default = "default_true")]
+    pub info_left: bool,
+    #[serde(default = "default_true")]
+    pub info_center: bool,
+    #[serde(default = "default_true")]
+    pub info_right: bool,
 }
 
 fn default_true() -> bool {
@@ -113,7 +120,11 @@ fn default_true() -> bool {
 #[derive(Clone, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScoreboardTypography {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font: Option<String>,
     pub text_color: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sponsor_color: Option<String>,
     pub outline: String,
     pub name_size: u32,
     pub meta_size: u32,
@@ -246,7 +257,15 @@ fn validate(scoreboard: &CustomScoreboard) -> Result<(), String> {
         validate_region_in_bounds(region, 0, 780, 1920, 300)?;
     }
     let type_settings = &scoreboard.typography;
-    if !valid_color(&type_settings.text_color)
+    if type_settings
+        .font
+        .as_deref()
+        .is_some_and(|font| !crate::fonts::IDS.contains(&font))
+        || !valid_color(&type_settings.text_color)
+        || type_settings
+            .sponsor_color
+            .as_deref()
+            .is_some_and(|color| !valid_color(color))
         || !matches!(type_settings.outline.as_str(), "none" | "soft" | "strong")
         || !(12..=96).contains(&type_settings.name_size)
         || !(10..=64).contains(&type_settings.meta_size)
@@ -346,8 +365,11 @@ fn validate_png(bytes: &[u8]) -> Result<(), String> {
     let height = u32::from_be_bytes(bytes[20..24].try_into().unwrap_or_default());
     let color_type = bytes[25];
     let palette_transparency = bytes.windows(4).any(|window| window == b"tRNS");
-    if width != CANVAS_WIDTH || height != CANVAS_HEIGHT {
-        return Err("Custom scoreboards must be exactly 1920×1080.".to_owned());
+    // The renderer fits the original PNG to the canvas, including small export-size errors.
+    if width.abs_diff(CANVAS_WIDTH) > FRAME_SIZE_TOLERANCE
+        || height.abs_diff(CANVAS_HEIGHT) > FRAME_SIZE_TOLERANCE
+    {
+        return Err("Use a PNG within 16 pixels of 1920×1080 in each dimension.".to_owned());
     }
     if !matches!(color_type, 4 | 6) && !(color_type == 3 && palette_transparency) {
         return Err("Choose a PNG with transparency.".to_owned());
@@ -380,9 +402,14 @@ fn default_scoreboard(id: String, name: String, frame_revision: String) -> Custo
             round: true,
             tournament_logo: true,
             bottom_rails: true,
+            info_left: true,
+            info_center: true,
+            info_right: true,
         },
         typography: ScoreboardTypography {
+            font: None,
             text_color: "#ffffff".to_owned(),
+            sponsor_color: None,
             outline: "strong".to_owned(),
             name_size: 30,
             meta_size: 17,
@@ -404,10 +431,10 @@ fn region(x: u32, y: u32, width: u32, height: u32, align: &str) -> ScoreboardReg
 
 #[cfg(test)]
 mod tests {
-    use super::{default_scoreboard, normalize_restricted_regions, validate};
+    use super::{default_scoreboard, normalize_restricted_regions, validate, validate_png};
 
     #[test]
-    fn older_bottom_regions_are_clamped_into_the_supported_area() {
+    fn accepts_small_frame_size_errors_and_keeps_regions_inside_canvas() {
         let mut scoreboard = default_scoreboard(
             "scoreboard-test".to_owned(),
             "Test".to_owned(),
@@ -421,5 +448,86 @@ mod tests {
         assert_eq!(scoreboard.regions.logo.y, 780);
         assert_eq!(scoreboard.regions.info_left.height, 300);
         assert!(validate(&scoreboard).is_ok());
+
+        // Check PNG header dimensions; the original pixels are preserved during import.
+        let mut header = [0_u8; 33];
+        header[..8].copy_from_slice(b"\x89PNG\r\n\x1a\n");
+        header[12..16].copy_from_slice(b"IHDR");
+        header[24] = 8;
+        header[25] = 6;
+        for (width, height, accepted) in [
+            (1920_u32, 1080_u32, true),
+            (1920, 1081, true),
+            (1919, 1079, true),
+            (1904, 1064, true),
+            (1936, 1096, true),
+            (1903, 1080, false),
+            (1920, 1097, false),
+            (1280, 720, false),
+        ] {
+            header[16..20].copy_from_slice(&width.to_be_bytes());
+            header[20..24].copy_from_slice(&height.to_be_bytes());
+            assert_eq!(validate_png(&header).is_ok(), accepted, "{width}×{height}");
+        }
+    }
+
+    #[test]
+    fn global_colors_and_flag_sizes_persist_and_ignore_obsolete_field_overrides() {
+        let mut scoreboard = default_scoreboard(
+            "scoreboard-test".to_owned(),
+            "Test".to_owned(),
+            "revision".to_owned(),
+        );
+        let mut legacy = serde_json::to_value(&scoreboard).unwrap();
+        for rail in ["infoLeft", "infoCenter", "infoRight"] {
+            legacy["visibility"].as_object_mut().unwrap().remove(rail);
+        }
+        assert!(legacy["typography"].get("sponsorColor").is_none());
+        assert!(legacy["typography"].get("font").is_none());
+        assert!(legacy["playerElements"]["playerOne"]["name"]
+            .get("color")
+            .is_none());
+        legacy["playerElements"]["playerOne"]["name"]["color"] = "#ffcc66".into();
+        legacy["playerElements"]["playerTwo"]["name"]["sponsorColor"] = "#ee4488".into();
+        let legacy: super::CustomScoreboard = serde_json::from_value(legacy).unwrap();
+        assert!(legacy == scoreboard);
+
+        scoreboard.visibility.info_left = false;
+        scoreboard.visibility.info_right = false;
+        scoreboard.typography.sponsor_color = Some("#66ccff".into());
+        scoreboard.typography.text_color = "#ffcc66".into();
+        scoreboard.player_elements.player_one.flag.width = 120;
+        scoreboard.player_elements.player_one.flag.height = 90;
+        let root = std::env::temp_dir().join(format!(
+            "jabs-custom-colors-{}-{}",
+            std::process::id(),
+            time::OffsetDateTime::now_utc().unix_timestamp_nanos()
+        ));
+        std::fs::create_dir_all(root.join(&scoreboard.id)).unwrap();
+        std::fs::write(
+            root.join(&scoreboard.id).join("frame.png"),
+            b"frame-fixture",
+        )
+        .unwrap();
+        for &font in crate::fonts::IDS {
+            scoreboard.typography.font = Some(font.into());
+            super::save(&root, scoreboard.clone()).unwrap();
+            assert!(super::load(&root, &scoreboard.id).unwrap() == scoreboard);
+        }
+        for invalid in ["system-ui", "JABS Anton", "url(file:///bad)", ""] {
+            let mut rejected = scoreboard.clone();
+            rejected.typography.font = Some(invalid.into());
+            assert!(super::save(&root, rejected).is_err());
+        }
+        for invalid in ["#123", "red", "url(file:///bad)", "#zzzzzz"] {
+            let mut rejected = scoreboard.clone();
+            rejected.typography.text_color = invalid.into();
+            assert!(super::save(&root, rejected).is_err());
+            let mut rejected = scoreboard.clone();
+            rejected.typography.sponsor_color = Some(invalid.into());
+            assert!(super::save(&root, rejected).is_err());
+        }
+        assert!(super::load(&root, &scoreboard.id).unwrap() == scoreboard);
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

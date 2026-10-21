@@ -1,0 +1,16 @@
+.bracket-lane.is-losers {
+  --bracket-accent: var(--appearance-secondary, var(--game-accent));
+}
+.bracket-player.is-winner .bracket-score {
+  color: var(--appearance-on-accent, #090b12);
+}
+.bracket-lane.is-losers .bracket-player.is-winner .bracket-score {
+  color: var(--appearance-on-secondary, #090b12);
+}
+.thumbnail-canvas {
+  --thumbnail-base-accent: var(--thumbnail-accent);
+}
+.thumbnail-player-two {
+  --thumbnail-accent: var(--appearance-secondary, var(--thumbnail-base-accent));
+  --adjustable-media-outline: color-mix(in srgb, var(--thumbnail-accent) 82%, white);
+}

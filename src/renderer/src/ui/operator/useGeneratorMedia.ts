@@ -1,19 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { playerCharacters, playerPortraitCharacters } from '@shared/characterTeams';
 import { selectedCharacterAssetId } from '@shared/characterAssets';
 import type { GameCharacterAsset } from '@shared/models';
+import { useCatalogRevision } from '../../hooks/useCatalogRevision';
 import { api } from '../../api';
 import { loadCharacterPortraits, type CharacterPortrait } from '../../characterPortraits';
 import { nextGeneratorWarning, type GeneratorWarning } from './useGeneratorWarningToast';
-import { generatorCharacterKey, generatorIdentityKey } from './generatorMediaKeys';
+import { generatorCharacterKey, generatorIdentityKey, type GeneratorSubject } from './generatorMediaKeys';
 
-type GeneratorSubject = {
-  name: string;
-  sponsor?: string;
-  character?: string;
-  characters?: string[];
-  characterAssetId?: string;
-};
+const identityLookupDelayMs = 250;
+const emptyCharacterAssets: GameCharacterAsset[] = [];
 
 export type GeneratorSubjectMedia = {
   characterUrl?: string;
@@ -43,104 +39,151 @@ export function useGeneratorMedia<TDraft>({
   characterAssets: GameCharacterAsset[];
   availableCharacterNames: string[];
   warning?: GeneratorWarning;
+  ready: boolean;
 } {
-  const [previewDraft, setPreviewDraft] = useState(draft);
+  const catalogRevision = useCatalogRevision();
+  const [preview, setPreview] = useState<{ draft: TDraft; media: GeneratorSubjectMedia[] }>(() => ({
+    draft,
+    media: subjects.map(() => ({ characterPortraits: [] }))
+  }));
   const [resolvedIdentityKey, setResolvedIdentityKey] = useState<string>();
-  const [identityMedia, setIdentityMedia] = useState<Array<Pick<GeneratorSubjectMedia, 'playerPhotoUrl' | 'sponsorLogoUrl'>>>([]);
-  const [characterAssets, setCharacterAssets] = useState<GameCharacterAsset[]>([]);
-  const [characterUrls, setCharacterUrls] = useState<Array<string | undefined>>([]);
-  const [portraitUrls, setPortraitUrls] = useState<Record<string, CharacterPortrait>>({});
+  const [identityMedia, setIdentityMedia] = useState<
+    Array<Pick<GeneratorSubjectMedia, 'playerPhotoUrl' | 'sponsorLogoUrl'>>
+  >([]);
+  const [characterCatalog, setCharacterCatalog] = useState<{
+    key: string;
+    slug: string;
+    assets: GameCharacterAsset[];
+  }>();
+  const [characterMedia, setCharacterMedia] = useState<{
+    key: string;
+    urls: Array<string | undefined>;
+    portraits: Record<string, CharacterPortrait>;
+  }>();
   const [warning, setWarning] = useState<GeneratorWarning>();
-  const latestDraft = useRef(draft);
-  latestDraft.current = draft;
+  const [identityWarning, setIdentityWarning] = useState<GeneratorWarning>();
 
   const identityInputs = subjects.map(({ name, sponsor }) => ({ name, sponsor }));
   const identityKey = generatorIdentityKey(subjects, context);
+  const revisionKey = JSON.stringify([assetCatalogRevision, catalogRevision]);
+  const identityMediaKey = JSON.stringify([identityKey, revisionKey]);
+  const catalogKey = JSON.stringify([assetCatalogSlug, revisionKey]);
   const characterKey = generatorCharacterKey(subjects);
+  const characterMediaKey = JSON.stringify([catalogKey, characterKey]);
+  const characterAssets = characterCatalog?.slug === assetCatalogSlug ? characterCatalog.assets : emptyCharacterAssets;
+  const currentCharacterMedia = characterMedia?.key === characterMediaKey ? characterMedia : undefined;
 
   useEffect(() => {
     let active = true;
-    setCharacterAssets([]);
-    setCharacterUrls([]);
-    setPortraitUrls({});
-    void api.gameCharacterAssets(assetCatalogSlug).then(({ assets }) => {
-      if (!active) return;
-      setCharacterAssets(assets);
-    }).catch((error) => {
-      if (!active) return;
-      setWarning((current) => nextGeneratorWarning(error, current));
-    });
-    return () => { active = false; };
-  }, [assetCatalogRevision, assetCatalogSlug]);
+    // Keep the current artwork visible until its replacement is ready.
+    void api
+      .gameCharacterAssets(assetCatalogSlug)
+      .then(({ assets }) => {
+        if (!active) return;
+        setCharacterCatalog({ key: catalogKey, slug: assetCatalogSlug, assets });
+      })
+      .catch((error) => {
+        if (!active) return;
+        setWarning((current) => nextGeneratorWarning(error, current));
+      });
+    return () => {
+      active = false;
+    };
+  }, [catalogKey]);
 
   useEffect(() => {
     let active = true;
-    setCharacterUrls([]);
+    if (characterCatalog?.key !== catalogKey) return;
     const teams = subjects.map((subject) => playerCharacters(subject));
     const portraits = [...new Set(teams.flatMap((team) => team.slice(1)))];
     const leadAssetIds = subjects.map((subject) => selectedCharacterAssetId(subject, characterAssets));
     void Promise.all([
       loadCharacterPortraits(assetCatalogSlug, portraits, characterAssets),
-      Promise.all(leadAssetIds.map((assetId) => assetId
-        ? api.gameCharacterAssetUrl(assetCatalogSlug, assetId)
-        : undefined))
-    ]).then(([resolvedPortraits, resolvedCharacters]) => {
-      if (!active) return;
-      setPortraitUrls(Object.fromEntries(resolvedPortraits.map((portrait) => [portrait.character, portrait])));
-      setCharacterUrls(resolvedCharacters);
-    }).catch((error) => {
-      if (active) setWarning((current) => nextGeneratorWarning(error, current));
-    });
-    return () => { active = false; };
-  }, [assetCatalogSlug, characterAssets, characterKey]);
+      Promise.all(
+        leadAssetIds.map((assetId) => (assetId ? api.gameCharacterAssetUrl(assetCatalogSlug, assetId) : undefined))
+      )
+    ])
+      .then(([resolvedPortraits, resolvedCharacters]) => {
+        if (!active) return;
+        setCharacterMedia({
+          key: characterMediaKey,
+          urls: resolvedCharacters,
+          portraits: Object.fromEntries(resolvedPortraits.map((portrait) => [portrait.character, portrait]))
+        });
+        setWarning(undefined);
+      })
+      .catch((error) => {
+        if (active) setWarning((current) => nextGeneratorWarning(error, current));
+      });
+    return () => {
+      active = false;
+    };
+  }, [catalogKey, characterCatalog, characterMediaKey]);
 
   useEffect(() => {
     let active = true;
     const timer = window.setTimeout(() => {
       if (identityInputs.some(({ name }) => !name.trim())) {
         setIdentityMedia([]);
-        setResolvedIdentityKey(identityKey);
-        setPreviewDraft(latestDraft.current);
+        setResolvedIdentityKey(identityMediaKey);
+        setIdentityWarning(undefined);
         return;
       }
-      void api.identityMedia(identityInputs, context)
-        .then(async ({ matches }) => Promise.all(matches.map(async (match) => ({
-          playerPhotoUrl: match.playerPhotoAssetId
-            ? await api.playerPhotoAssetUrl(match.playerPhotoAssetId) : undefined,
-          sponsorLogoUrl: match.sponsorLogoAssetId
-            ? await api.sponsorLogoAssetUrl(match.sponsorLogoAssetId) : undefined
-        }))))
+      void api
+        .identityMedia(identityInputs, context)
+        .then(async ({ matches }) =>
+          Promise.all(
+            matches.map(async (match, index) => {
+              const playerPhotoAssetId = subjects[index]?.playerPhotoAssetId ?? match.playerPhotoAssetId;
+              return {
+                playerPhotoUrl: playerPhotoAssetId
+                  ? await api.playerPhotoAssetUrl(playerPhotoAssetId).catch(() => undefined)
+                  : undefined,
+                sponsorLogoUrl: match.sponsorLogoAssetId
+                  ? await api.sponsorLogoAssetUrl(match.sponsorLogoAssetId)
+                  : undefined
+              };
+            })
+          )
+        )
         .then((resolved) => {
           if (!active) return;
           setIdentityMedia(resolved);
-          setResolvedIdentityKey(identityKey);
-          setPreviewDraft(latestDraft.current);
-          setWarning(undefined);
+          setResolvedIdentityKey(identityMediaKey);
+          setIdentityWarning(undefined);
         })
         .catch((error) => {
           if (!active) return;
-          setIdentityMedia([]);
-          setWarning((current) => nextGeneratorWarning(error, current));
+          setIdentityWarning((current) => nextGeneratorWarning(error, current));
         });
-    }, 250);
-    return () => { active = false; window.clearTimeout(timer); };
-  }, [assetCatalogRevision, identityKey]);
+    }, identityLookupDelayMs);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [identityMediaKey]);
 
   useEffect(() => {
-    if (resolvedIdentityKey === identityKey) setPreviewDraft(draft);
-  }, [draft, identityKey, resolvedIdentityKey]);
+    if (resolvedIdentityKey !== identityMediaKey || !currentCharacterMedia) return;
+    // Show the new names and images together once both requests have finished.
+    setPreview({
+      draft,
+      media: subjects.map((subject, index) => ({
+        ...identityMedia[index],
+        characterUrl: currentCharacterMedia.urls[index],
+        characterPortraits: playerPortraitCharacters(subject).flatMap((character) =>
+          currentCharacterMedia.portraits[character] ? [currentCharacterMedia.portraits[character]] : []
+        )
+      }))
+    });
+  }, [draft, identityMediaKey, resolvedIdentityKey, currentCharacterMedia, identityMedia]);
 
   return {
-    previewDraft,
-    media: subjects.map((subject, index) => ({
-      ...identityMedia[index],
-      characterUrl: characterUrls[index],
-      characterPortraits: playerPortraitCharacters(subject).flatMap((character) =>
-        portraitUrls[character] ? [portraitUrls[character]] : []
-      )
-    })),
+    previewDraft: preview.draft,
+    media: preview.media,
+    ready: preview.draft === draft && resolvedIdentityKey === identityMediaKey && Boolean(currentCharacterMedia),
     characterAssets,
     availableCharacterNames: characterAssets.map((asset) => asset.character),
-    warning
+    warning: warning ?? identityWarning
   };
 }

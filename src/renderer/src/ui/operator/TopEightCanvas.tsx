@@ -1,9 +1,12 @@
+import { useAppearanceStyle } from '../appearance/AppearanceProvider';
+import { TopEightName } from './TopEightName';
 import { type CSSProperties, type ReactNode, type Ref } from 'react';
 import type { GameProfile } from '@shared/gameProfiles';
 import { topEightMediaBaseScale, type TopEightDraft, type TopEightEntrant } from '@shared/topEight';
 import type { MediaLayerKind, MediaTransform, PlayerMediaPlacement } from '@shared/mediaPlacement';
 import { defaultPlayerMediaPlacement } from '@shared/mediaPlacement';
-import { AdjustableMediaImage } from './AdjustableMediaImage';
+import { PlayerMediaLayers } from '../PlayerMediaLayers';
+import { mediaInteractionKey } from '../mediaIdentity';
 import { displayFlagUrl, isPrideDisplayFlag } from '../overlayPlayerPresentation';
 import type { CharacterPortrait } from '../../characterPortraits';
 import { CharacterPortraitStrip } from '../CharacterPortraitStrip';
@@ -42,14 +45,15 @@ export function topEightTrustedText(draft: TopEightDraft): string[] {
 }
 
 type TopEightCanvasProps = {
+  editable?: boolean;
   draft: TopEightDraft;
   stylingProfile: GameProfile;
   media: TopEightEntrantMedia[];
   logoUrl?: string;
   canvasRef?: Ref<HTMLElement>;
   placements: PlayerMediaPlacement[];
-  selectedEntrant?: number;
-  onSelectEntrant(index: number): void;
+  selectedLayer?: { entrant: number; layer: MediaLayerKind };
+  onSelectLayer(index: number, layer: MediaLayerKind): void;
   onPlacementChange(index: number, layer: MediaLayerKind, transform: MediaTransform): void;
 };
 
@@ -61,34 +65,38 @@ type TopEightCanvasStyle = CSSProperties & {
 };
 
 export function TopEightCanvas({
+  editable = true,
   draft,
   stylingProfile,
   media,
   logoUrl,
   canvasRef,
   placements,
-  selectedEntrant,
-  onSelectEntrant,
+  selectedLayer,
+  onSelectLayer,
   onPlacementChange
 }: TopEightCanvasProps) {
+  const appearanceStyle = useAppearanceStyle();
   const style: TopEightCanvasStyle = {
     '--top8-accent': stylingProfile.overlay.accent,
     '--top8-background': stylingProfile.overlay.background,
     '--top8-headline-color': draft.headlineColor,
-    '--adjustable-media-outline': `color-mix(in srgb, ${stylingProfile.overlay.accent} 82%, white)`
+    '--adjustable-media-outline': `color-mix(in srgb, ${stylingProfile.overlay.accent} 82%, white)`,
+    ...appearanceStyle
   };
   const cards = draft.entrants.map((entrant, index) => (
     <TopEightCard
-      key={index}
+      key={mediaInteractionKey(entrant, [index, draft.assetCatalogSlug, draft.eventUrl])}
+      editable={editable}
       index={index}
       entrant={entrant}
       media={media[index]}
       mediaMode={draft.mediaMode}
       style={draft.style}
       placement={placements[index] ?? defaultPlayerMediaPlacement()}
-      selected={selectedEntrant === index}
-      onSelect={() => onSelectEntrant(index)}
-      onPlacementChange={(transform) => onPlacementChange(index, draft.mediaMode, transform)}
+      selected={selectedLayer?.entrant === index ? selectedLayer.layer : undefined}
+      onSelect={(layer) => onSelectLayer(index, layer)}
+      onPlacementChange={(layer, transform) => onPlacementChange(index, layer, transform)}
     />
   ));
 
@@ -101,16 +109,16 @@ export function TopEightCanvas({
       aria-label={[draft.headline, draft.tournamentName, draft.gameName].filter((value) => value.trim()).join(' · ')}
     >
       {draft.background && (
-        <LoadedImage
-          src={draft.background.dataUrl}
-          className="top8-custom-background"
-          layer="background"
-        />
+        <LoadedImage src={draft.background.dataUrl} className="top8-custom-background" layer="background" />
       )}
       <CanvasHeader draft={draft} logoUrl={logoUrl} />
       {draft.style === 'mosaic' && (
         <div className="top8-mosaic-grid">
-          {cards.map((card, index) => <div key={index} className={`top8-mosaic-position position-${index + 1}`}>{card}</div>)}
+          {cards.map((card, index) => (
+            <div key={index} className={`top8-mosaic-position position-${index + 1}`}>
+              {card}
+            </div>
+          ))}
         </div>
       )}
       {draft.style === 'neon' && (
@@ -134,10 +142,7 @@ function CanvasFooter({ draft }: { draft: TopEightDraft }) {
   );
 }
 
-function CanvasHeader({
-  draft,
-  logoUrl
-}: { draft: TopEightDraft; logoUrl?: string }) {
+function CanvasHeader({ draft, logoUrl }: { draft: TopEightDraft; logoUrl?: string }) {
   return (
     <header className="top8-canvas-header">
       {(draft.tournamentName.trim() || draft.headline.trim()) && (
@@ -155,6 +160,7 @@ function CanvasHeader({
 }
 
 function TopEightCard({
+  editable,
   entrant,
   media,
   mediaMode,
@@ -164,55 +170,54 @@ function TopEightCard({
   onSelect,
   onPlacementChange
 }: {
+  editable: boolean;
   index: number;
   entrant: TopEightEntrant;
   media?: TopEightEntrantMedia;
-  mediaMode: MediaLayerKind;
+  mediaMode: TopEightDraft['mediaMode'];
   style: TopEightDraft['style'];
   placement: PlayerMediaPlacement;
-  selected: boolean;
-  onSelect(): void;
-  onPlacementChange(transform: MediaTransform): void;
+  selected?: MediaLayerKind;
+  onSelect(layer: MediaLayerKind): void;
+  onPlacementChange(layer: MediaLayerKind, transform: MediaTransform): void;
 }) {
   const flagUrl = displayFlagUrl(entrant.country, entrant.displayFlag);
   const prideFlag = isPrideDisplayFlag(entrant.displayFlag);
   return (
     <article className={`top8-card placement-${entrant.placement}`} data-export-clip>
       <div className="top8-card-art">
-        {media?.characterUrl && (
-          <AdjustableMediaImage
-            src={media.characterUrl}
-            className="top8-character-art"
-            label={`${entrant.name} character artwork`}
-            transform={placement.character}
-            baseScale={topEightMediaBaseScale(style, entrant.placement)}
-            selected={selected && mediaMode === 'character'}
-            onSelect={onSelect}
-            onChange={onPlacementChange}
-          />
+        {/* Subject images also draw in DOM order during PNG export. */}
+        {media?.sponsorLogoUrl && (
+          <LoadedImage src={media.sponsorLogoUrl} className="top8-sponsor-logo" layer="subject" />
         )}
-        {media?.playerPhotoUrl && (
-          <AdjustableMediaImage
-            src={media.playerPhotoUrl}
-            className="top8-player-photo"
-            label={`${entrant.name} player photo`}
-            transform={placement.photo}
-            baseScale={topEightMediaBaseScale(style, entrant.placement)}
-            selected={selected && mediaMode === 'photo'}
-            onSelect={onSelect}
-            onChange={onPlacementChange}
-          />
-        )}
+        <PlayerMediaLayers
+          mode={mediaMode}
+          name={entrant.name}
+          characterUrl={media?.characterUrl}
+          photoUrl={media?.playerPhotoUrl}
+          showPhotoPlaceholder={mediaMode !== 'combined'}
+          characterClass="top8-character-art"
+          photoClass="top8-player-photo"
+          placement={placement}
+          baseScale={mediaMode === 'character' ? topEightMediaBaseScale(style, entrant.placement) : 1}
+          selectedLayer={selected}
+          onSelect={editable ? onSelect : undefined}
+          onChange={editable ? onPlacementChange : undefined}
+        />
       </div>
-      <CharacterPortraitStrip
-        portraits={media?.characterPortraits ?? []}
-        className="top8-character-portraits"
-      />
+      <CharacterPortraitStrip portraits={media?.characterPortraits ?? []} className="top8-character-portraits" />
       <div className="top8-card-identity">
         <div className={`top8-card-copy${flagUrl ? ' has-flag' : ''}`} data-export-shape="top8-identity">
-          {media?.sponsorLogoUrl && <LoadedImage src={media.sponsorLogoUrl} className="top8-sponsor-logo" layer="foreground" />}
-          {flagUrl && <LoadedImage src={flagUrl} className={`top8-country-flag${prideFlag ? ' is-pride' : ''}`} layer="foreground" />}
-          <span className="top8-placement" data-export-text>{placementLabel(entrant.placement)}</span>
+          {flagUrl && (
+            <LoadedImage
+              src={flagUrl}
+              className={`top8-country-flag${prideFlag ? ' is-pride' : ''}`}
+              layer="foreground"
+            />
+          )}
+          <span className="top8-placement" data-export-text>
+            {placementLabel(entrant.placement)}
+          </span>
           <span
             className={`top8-sponsor-text${entrant.sponsor ? '' : ' is-empty'}`}
             data-export-text={entrant.sponsor ? true : undefined}
@@ -221,7 +226,7 @@ function TopEightCard({
             {entrant.sponsor || '\u00a0'}
           </span>
           <span className="top8-name-row">
-            <strong data-export-text>{entrant.name}</strong>
+            <TopEightName name={entrant.name} singleLine={style === 'neon'} />
           </span>
           <span
             className={`top8-x-handle${entrant.xHandle ? '' : ' is-empty'}`}
@@ -252,15 +257,24 @@ function LoadedImage({
       alt=""
       aria-hidden="true"
       data-export-image-layer={layer}
-      onLoad={(event) => { event.currentTarget.style.removeProperty('display'); }}
-      onError={(event) => { event.currentTarget.style.display = 'none'; }}
+      onLoad={(event) => {
+        event.currentTarget.style.removeProperty('display');
+      }}
+      onError={(event) => {
+        event.currentTarget.style.display = 'none';
+      }}
     />
   );
 }
 
 function placementLabel(placement: number): ReactNode {
   const suffix = placementSuffix(placement);
-  return <>{placement}<sup>{suffix}</sup></>;
+  return (
+    <>
+      {placement}
+      <sup>{suffix}</sup>
+    </>
+  );
 }
 
 function placementText(placement: number): string {

@@ -6,6 +6,8 @@ use tokio::{sync::Mutex, time::Instant};
 
 const ENDPOINT: &str = "https://api.start.gg/gql/alpha";
 mod anonymous;
+mod images;
+pub use images::is_tournament_image_url;
 pub const REFILL_INTERVAL: Duration = Duration::from_millis(800);
 pub const BURST_CAPACITY: f64 = 4.0;
 
@@ -19,7 +21,7 @@ pub struct StartggClient {
     request_budget: Mutex<RequestBudget>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiError {
     pub error: String,
@@ -77,7 +79,13 @@ impl StartggClient {
         self.send(request).await.map_err(anonymous::read_error)
     }
 
-    async fn send<T: DeserializeOwned>(&self, request: reqwest::RequestBuilder) -> Result<T, ApiError> {
+    pub async fn videogame_registry<T: DeserializeOwned>(&self) -> Result<T, ApiError> {
+        let response = self.send_response(anonymous::registry_request(&self.client))
+            .await.map_err(anonymous::read_error)?;
+        response.json().await.map_err(|_| api_error("Could not read the game list returned by start.gg.", "invalid-response"))
+    }
+
+    async fn send_response(&self, request: reqwest::RequestBuilder) -> Result<reqwest::Response, ApiError> {
         self.throttle().await;
         let response = request
             .send()
@@ -93,6 +101,11 @@ impl StartggClient {
         if !status.is_success() {
             return Err(http_error(status));
         }
+        Ok(response)
+    }
+
+    async fn send<T: DeserializeOwned>(&self, request: reqwest::RequestBuilder) -> Result<T, ApiError> {
+        let response = self.send_response(request).await?;
         let envelope = response.json::<GraphqlEnvelope<T>>().await
             .map_err(|_| api_error("start.gg returned an invalid response.", "invalid-response"))?;
         if envelope.success == Some(false) {

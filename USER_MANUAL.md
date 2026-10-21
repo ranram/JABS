@@ -1,399 +1,140 @@
 # JABS User Manual
 
-This guide walks tournament organizers and stream crews through a normal JABS workflow.
+For downloads and installation, see the [README](README.md). For a guided introduction, choose a tutorial from **Help** in the toolbar.
 
-For installation and source builds, see [README.md](README.md). For code changes and deeper customization, see [TECH_MANUAL.md](TECH_MANUAL.md).
+## Run a match
 
-## Quick start
+Load a start.gg tournament link and select an event. Find a match by player, round, station, score, or set ID, then choose **Send to Stream** to show it in your overlays.
 
-Before your first tournament:
+Use **Edit stream state** to adjust players, scores, and match details. Changes save automatically. **Game** sets the rules and character choices; **Scoreboard styling** chooses the look. For games outside the built-in lineup, **Game profile for set** lets you change the rules profile if needed.
 
-1. Open JABS.
-2. Add a start.gg token if you plan to report results or want authenticated browsing.
-3. Load a tournament and event.
-4. Click a set and choose **Send to Stream**.
-5. Copy the Scoreboard URL from the sticky actions bar into a `1920×1080` OBS Browser Source.
-6. Change a score in JABS and confirm that OBS updates.
-7. Add any logos or artwork you need.
-8. Test one result report only on a bracket you are allowed to manage.
+For an exhibition, choose a game and enter the players without loading a tournament. Select saved players from the library to reuse their game preferences. If both have start.gg profiles, the Versus Screen can also show their head-to-head history. First-to formats and Topanga Rules are available for exhibitions.
 
-Keep JABS open while OBS uses a JABS source.
+Returning to a previously selected match restores its saved progress. JABS keeps these edits for seven days after the last change, and keeps the match currently on stream until you move on. Player profiles and overlay settings do not expire.
 
-To update an installed release, use **Check for updates** in the header, then **Update now** when a newer version is available. Finish pending saves and export any unfinished graphics first. Installation restarts JABS, so OBS sources briefly disconnect. Linux distribution packages use their package manager; the AppImage supports in-app updates.
+### Connect to start.gg
 
-## 1. Connect to start.gg
+Public tournaments work without a token. To report results, your start.gg account needs reporting permission for the tournament and a token:
 
-You can browse public tournaments, load sets, and control OBS without a token. Add one when you need to report results to start.gg or use authenticated browsing.
+1. Sign in to start.gg and open **Developer Settings**, linked in the official [authentication guide](https://developer.start.gg/docs/authentication/).
+2. Choose **Create new token** and give it a description such as `JABS`.
+3. Copy the token when it appears; start.gg shows it only once.
+4. In JABS, open **API access**, paste the token, and choose **Save token**.
 
-- **Save token** uses your operating system's secure credential store.
-- **Session token** keeps it only until JABS closes.
-- JABS never saves a token as plaintext.
+JABS saves tokens in your operating system's secure credential storage. If it is unavailable, **Use for session** keeps the token until JABS closes. Keep your token private and revoke it on start.gg if it is exposed.
 
-**Token stored** means the token was saved. **API verified** means start.gg accepted it.
+### Score and report
 
-Use a token from an account that can access the tournament. Reporting also requires permission to report that bracket.
+Local score changes do not update start.gg. Choose **Report result** and confirm when the set is complete. **Quick Score Update** reports another set without replacing the match on stream.
 
-## 2. Load a tournament
+To report an exact score, record each game in order as you update the streamed match. If you started with a score imported from start.gg, JABS can report only the winner. To include the exact score, reset the local scores and enter the games in order.
 
-Enter either:
+Under **Bracket → Options**, **Refresh set selector** updates the bracket list. **Refresh current set** reloads the on-stream set's status and scores from start.gg, replacing local scores after confirmation.
 
-- A tournament slug, such as `my-weekly-42`.
-- An official HTTPS start.gg tournament URL.
+### Shortcuts
 
-Choose the event after it loads.
+Enable shortcuts in the toolbar. They pause while you type or work in a dialog, and while match changes are being saved.
 
-JABS normally detects the game. If the game is not recognized, choose a **Game profile for set** before loading a set.
-
-**Styling** changes colors and presentation only. It does not change the event's game, character list, or reporting rules.
-
-### Sticky actions bar
-
-The actions bar stays below the main tabs while you scroll:
-
-- **Edit allowlist** opens the moderation exceptions editor. Saving applies the changes immediately.
-- **Reload allowlist** applies changes made to the file outside JABS.
-- **Reload assets** rescans artwork, photos, and logos.
-- **Refresh set selector** fetches the latest sets for the current filters.
-- **Refresh current set** updates the on-stream set and its Versus history while keeping its styling and broadcast extras.
-- **Clear bracket history** resets the bracket browser and removes recent tournament history.
-
-Hover over any of these buttons for a short description.
-
-## 3. Find a set
-
-Use these optional filters:
-
-- **Phase**
-- **Pool / phase group**
-- **Station**
-
-The **Filter By** pills can also narrow loaded sets by status, station, or assigned stream.
-
-Scroll down to load more sets. JABS keeps start.gg's bracket order.
-
-Use **Search sets** to find a player, round, station, score, or set ID. Search scans the full selected event, phase, pool, or station—even sets that have not appeared on screen yet.
-
-Large searches may take time. Select a phase or pool first when possible. You can cancel a search in progress.
-
-Set labels include:
-
-- Pending
-- On Stream
-- Completed
-- Station
-- Assigned Twitch or YouTube channel for upcoming sets
-
-Stream pills read `Twitch · Stream Name` or `YouTube · Stream Name`. JABS checks both the tournament stream queue and the assignment saved on the set. Completed sets leave this pill hidden.
-
-## 4. Choose what to do with a set
-
-Click anywhere on a set row.
-
-### Send to Stream
-
-Loads the set into the active OBS overlays.
-
-### Quick Score Update
-
-Reports a bracket set without changing the match currently shown in OBS.
-
-1. Enter the score with `−` and `+`.
-2. Check the winner and set ID.
-3. Choose **Confirm & update bracket**.
-4. Confirm the start.gg update.
-
-JABS checks the live set again before reporting. If someone else changed it, JABS stops instead of overwriting their work.
-
-## 5. Edit the stream match
-
-After using **Send to Stream**, use **Edit stream state**.
-
-Changes save automatically. Text stays local while you type. JABS checks the completed value after about 1.5 seconds without typing, or immediately when you leave the field. It reaches OBS only after the native check accepts the complete stream state.
-
-If text is rejected:
-
-- A toast names the field.
-- The text remains available for correction.
-- **Not sent to OBS** confirms viewers did not receive it.
-
-If JABS blocks a legitimate tag or sponsor, choose **Edit allowlist** in the sticky actions bar. Add the complete value on its own line and save. JABS applies the change immediately. Matching ignores capitalization but applies only to the complete field value, so allowing one tag does not weaken checks inside other text.
-
-### Match details
-
-You can edit:
-
-- Styling
-- Best of 3 or Best of 5
-- Display name
-- Round
-- Station
-
-The detected game name comes from start.gg. Styling is independent from game detection.
-
-### Player details
-
-Each player has:
-
-- Tag and prefix
-- Characters and sponsor
-- Display flag and state/province
-- Pronouns and seed
-
-The display-flag dropdown is searchable. It lists countries first and optional Pride flags afterward. Choosing a Pride flag changes only what appears on graphics; it keeps any country and state imported from start.gg. The first selected character is the lead artwork. Character-aware graphics can also show the full team's portraits.
-
-### Broadcast extras
-
-Open the accordion to enable:
-
-- Bottom-left and bottom-right text rails
-- A tournament or organizer logo
-
-Changing this logo also updates the Versus Screen, Winner & Champion, Top 8 Matchups, and Commentators when their tournament-logo switches are on.
-
-### Refresh current set
-
-Use **Refresh current set** when the set already on stream needs the newest start.gg names, scores, round, station, detected game, or head-to-head history. It keeps your current Styling and broadcast extras. Head-to-head history requires linked start.gg player profiles. To update the list of available sets instead, use **Refresh set selector**.
-
-If an unplayed set remains marked complete after you reset it on start.gg, use **Refresh current set** to import its corrected status and score.
-
-## 6. Score and report the streamed set
-
-Use the Live Controls `−` and `+` buttons after every game.
-
-- Lowering a score corrects that player's most recent recorded game win.
-- **Reset scores** starts a new empty game history.
-- **Swap players** keeps wins attached to the correct entrants.
-
-When the set is complete, **Report result** shows the winner, score, and set ID before asking for confirmation.
-
-If every game was entered in JABS, it can send the exact ordered game history. If JABS imported an existing nonzero score without game order, it safely reports only W/L. Reset and re-enter the full result when an exact score is required.
-
-JABS never reports automatically.
-
-### Keyboard shortcuts
-
-Turn shortcuts on or off from the sticky actions bar. They pause while you type, edit an unsaved match, use the set-action window, or wait for a save.
-
-- `1`: add a point to Player 1
-- `2`: add a point to Player 2
-- `Shift+1`: subtract a point from Player 1
-- `Shift+2`: subtract a point from Player 2
-- `Ctrl+Shift+R`: reset both scores
-- `Ctrl+Shift+S`: swap players
-- `Ctrl+Shift+C`: swap commentators
-
-## 7. Add JABS to OBS
-
-Create an OBS **Browser Source** with:
-
-- Width: `1920`
-- Height: `1080`
-- Custom CSS: none
-
-Copy the complete URL from the dropdown in the sticky actions bar. The port can change, so do not guess it.
-
-| Source | Route |
+| Shortcut | Action |
 | --- | --- |
-| Scoreboard | `/overlay/active/main` |
-| Winner & Champion | `/overlay/active/winner` |
-| Versus Screen | `/overlay/active/versus` |
-| Top 8 Matchups | `/overlay/active/top-eight-matchups` |
-| Commentators | `/overlay/commentators` |
+| `1` / `2` | Add a point to Player 1 / 2 |
+| `Shift+1` / `Shift+2` | Subtract a point from Player 1 / 2 |
+| `Ctrl+Shift+R` | Reset scores |
+| `Ctrl+Shift+S` | Swap players |
+| `Ctrl+Shift+C` | Swap commentators |
 
-If OBS loaded while JABS was closed, open JABS and use **Refresh cache of current page** in the Browser Source properties.
+## OBS
 
-The Winner source stays empty until the active set has a winner. It automatically uses the Champion presentation when the bracket context confirms a champion.
+Copy a source URL from **OBS URLs** in the toolbar and paste it into an OBS Browser Source. Set its size to `1920×1080`, clear any custom CSS, and keep JABS running while broadcasting.
 
-The older `/overlay/active/champion` route remains available for OBS scenes created before Winner and Champion were combined.
+The Scoreboard follows the current match. Winner & Champion stays blank until there is a winner, then chooses the winner or champion presentation automatically. Set up the other sources under **Overlays**. For Bracket View, choose a phase and pool; for Top 8 Matchups, load the opening matchups from your event.
 
-## 8. Use a custom scoreboard
+In **Edit stream state**, **Scoreboard font** changes the scoreboard and its information rails; **[DEFAULT]** restores the selected style's fonts. Custom scoreboards keep their own font choice. Use **Settings** for colors and broadcast language.
 
-The **Custom Scoreboard** tab lets you place JABS match information over your own scoreboard artwork.
+To use your own OBS background, enable **Transparent background** for the overlay. In Versus Screen, turn off **Match information backdrop** to remove the center panel's background while keeping the comparison rows visible.
 
-1. Send a set to stream.
-2. Prepare a transparent PNG that is exactly `1920×1080` and no larger than 20 MiB.
-3. Enter a name, choose the PNG, and select **Import scoreboard**.
-4. Choose the item you want to adjust, such as a player name, score, flag, round, logo, or lower rail.
-5. Drag the selected item in the preview, or use the arrow keys. Hold Shift for larger steps.
-6. Choose which details to show and adjust their alignment, size, color, or outline.
-7. Select **Save layout**. If the scoreboard is not already active, choose **Use in OBS**.
+For entrance animations when changing scenes, leave **Refresh browser when scene becomes active** and **Shutdown source when not visible** unchecked.
 
-Player details remain within their side of the top scoreboard area. Tournament logos and lower rails remain within the bottom area. These limits keep text from wandering into the middle of the game screen.
+### Stingers
 
-The regular active-scoreboard URL does not change. To return to a built-in game layout, choose **Use automatic styling** or select a Styling in **Edit stream state**.
+Add your Perfect and Winner videos under **Stingers** in WebM format. Use the preview to position the player's photo, character art, and name over the video. Winner playback requires a completed set and can start automatically.
 
-## 9. Other Overlays
+To try it first, use the [sample Winner stinger](examples/stingers/Winner-Placeholder.webm).
 
-Open the **Other Overlays** tab.
+Place the Stingers Browser Source above your other OBS sources and reuse it in the scenes where you want playback. Enable **Control audio via OBS** to mix its sound in OBS.
 
-Copy the browser-source URL from the dropdown in the sticky actions bar, then set the OBS source to `1920×1080`.
+The toolbar's **Stingers** menu lets you play or stop configured clips from any tab. If playback loses its connection, check that the source is in the active OBS scene, then choose **Reconnect OBS source**.
 
-Versus Screen, Winner & Champion, and Top 8 Matchups can hide the full-screen JABS background. Use transparent mode when you want your own OBS image or video underneath; information panels and player details remain visible.
+## Player Library
 
-### Top 8 Matchups
+Open **Players** to import players from an event, add a start.gg profile, or create a local player. Save their details and character choices for each game. To use those choices in an exhibition or graphic, select the player from the suggestions as you type their name.
 
-Load a start.gg event, open **Top 8 Matchups**, and select **Find matchups from the loaded event**. When start.gg provides a phase named **Top 8**, JABS reads that phase directly. Otherwise, JABS traces the bracket backward from Grand Finals to find the two opening Winners matches and two opening Losers matches. Confirm one character for each player. The selector includes the game's full roster, even when some portraits have not been added. If a selected character has no portrait, the overlay displays the character's name in its place. Use the **User media folders** section to open the portrait or tournament-logo folders. The overlay displays the saved matchups as soon as its browser source is open; there is no separate visibility switch.
+When you select a saved player, changes to their flag, pronouns, social handle, character, or outfit in **Edit stream state** also update their library profile. Name, sponsor, score, and seed changes apply to the current match.
 
-JABS trusts the character names included in its reviewed game rosters. Character names added through local media files still pass through moderation. Add a legitimate custom name to the moderation allowlist if JABS blocks it.
+In **Players**, choose **Use imported value** to show the imported start.gg value again. Clearing a field hides its value.
 
-Use **Show tournament logo** to control the event logo. **Flip Player 2 portraits** changes the orientation of every portrait on the right side.
+Use **Export library** to back up player records, and back up your image folders separately. **Import library** adds new players and keeps existing local records.
 
-### Versus Screen
+### Scoreboard photos and logos
 
-1. Send a set to stream.
-2. Choose a Styling.
-3. Choose Character Art or Player Photos.
-4. Toggle tournament and sponsor logos.
-5. Optionally refresh start.gg history.
-6. Select a media layer in the adjustment dropdown.
-7. Drag it, or use the keyboard.
+Enable **Player photos in scoreboards** in **Edit stream state**. Open **Players** to adjust each photo for the selected game and side. Both built-in and custom scoreboards place photos in fixed areas for that game. Player photos are unavailable for Smash Ultimate.
 
-Controls:
+To show a logo behind the photos, choose one option in **Edit stream state**:
 
-- Arrow: move
-- Shift+arrow: move farther
-- `+` / `-`: resize
-- `F`: flip the selected artwork horizontally
-- Reset: restore the default
+- **Tournament logo behind players:** select a logo under **Broadcast extras**.
+- **Sponsor logos behind players:** add logos to `sponsors/`, with filenames matching each player's sponsor or prefix.
 
-Artwork keeps its original orientation on both sides until you flip it.
+Selecting one option turns the other off. After adding logo files, choose **Reload assets**.
 
-After you stop moving the image, OBS updates in about two seconds.
+## Add artwork and photos
 
-### Winner & Champion
+Choose **Open assets folder** in the toolbar, or use its dropdown to open a specific folder. Add your files, then choose **Reload assets**.
 
-The accordion shows the current winner. Choose a Styling and turn available items on or off:
+| Media | Folder | Filename |
+| --- | --- | --- |
+| Character art | `game-assets/<game>/characters/` | Character name |
+| Square character portrait | `game-assets/<game>/portraits/` | Character name |
+| Player photo | `players/` | Player tag |
+| Player headshot | `player_headshots/` | Player tag |
+| Sponsor logo | `sponsors/` | Sponsor or prefix |
+| Tournament logo | `tourney-logos/` | Choose it in JABS |
 
-- Tournament logo
-- Player photo
-- Sponsor logo
-- Character art
+Use PNG, JPEG, or WebP. For player photos, a transparent `1024×1536` cutout works well; for scoreboard headshots, use `512×512`. Headshots take priority over regular photos on scoreboards.
 
-### Commentators
+Selecting a game may create empty character files. Replace these with your artwork. Numbered filenames such as `Mario-1.png` and `Mario-2.png` add outfits. See [Game artwork](game-assets/README.md) for naming details.
 
-Enter the tournament, logo, and both commentator identities. Then choose:
+In Versus Screen, Top 8 Generator, and YouTube Thumbnail Generator, drag either the photo or character art to move it. Click a visible part of the image to select it, or use `Alt+click` when images overlap. **Reset position** restores the selected image's position and size.
 
-- **Present for 10 seconds**
-- **Show persistently**
-- **Hide**
+With an image selected, arrow keys move it, `Shift` + arrows moves it farther, `+` / `-` resizes it, and `F` flips it.
 
-Use **Show tournament logo** to show or hide the selected event logo. Choose **Swap commentators** or press `Ctrl+Shift+C` to exchange their sides.
+## Custom scoreboards
 
-## 10. Add logos, photos, and character art
+Import a transparent PNG at `1920×1080`, up to 20 MiB. Position the player names, scores, and other fields over your frame, choose a font under **Appearance**, then choose **Use in OBS**. Your layout appears through the regular Scoreboard source URL.
 
-Media sections show the exact folder JABS uses. Choose **Open folder** instead of finding it manually.
+Layout changes save automatically. Drag a field to move it or use arrow keys for 1 px adjustments and `Shift` + arrows for 10 px. `Alt+click` reaches overlapping fields. **Mirror to Player 1/2** copies a field's size and placement to the opposite side; you can still edit each side separately.
 
-Use PNG, JPEG, or WebP files.
+Use **Broadcast extras** to enable the lower information rails and edit their text.
 
-| Media | Folder and naming |
+## Top 8 graphics and thumbnails
+
+Top 8 Generator can import completed event standings or use players you enter yourself. YouTube Thumbnail Generator can use the match on stream or a manually entered matchup. Choose the game, fill in the players, and adjust the appearance and artwork in the preview.
+
+Download the finished PNG from the toolbar: Top 8 graphics export at `1920×1080`, and thumbnails at `1280×720`.
+
+You can switch tabs and return to your unfinished graphic. Download it before closing or updating JABS, since generator drafts are not restored after a restart.
+
+## Troubleshooting and support
+
+- **Blank overlay:** check the Browser Source URL and active match, then use OBS's **Refresh cache of current page**. Winner & Champion needs a completed result.
+- **Missing image:** check its folder and filename, then reload assets. Keep only one image matching each player or sponsor name.
+- **Rejected report:** refresh the set and check your reporting permissions before retrying. Another organizer may have changed the result.
+
+For other problems, open **Help → Diagnostics & support** and export a report. Email **akatsatech@gmail.com** with what happened and roughly when, and attach the report after reviewing it. JABS does not send it automatically. Reports leave out tokens, player text, saved settings, and personal file paths.
+
+If JABS cannot open, its logs are in the application-data folder:
+
+| System | Logs folder |
 | --- | --- |
-| Tournament logo | `tourney-logos/<Logo>.png` |
-| Sponsor logo | `sponsors/<Sponsor or Prefix>.webp` |
-| Player photo | `players/<Player Tag>.webp` |
-| Full character art | `game-assets/<game>/characters/<Character>.png` |
-| Square portrait | `game-assets/<game>/portraits/<Character>.webp` |
-
-For supported games, filenames may use a canonical character name or one of the aliases in that game's catalog. Games without a built-in catalog use the names found in their asset folders. Player and sponsor media still match their displayed names. Examples:
-
-```text
-sponsors/BEAST.webp
-players/MenaRD.webp
-game-assets/street-fighter-6/characters/Elena.png
-game-assets/street-fighter-6/portraits/Elena.webp
-```
-
-For portraits, use a `384×384` square PNG or WebP with the face and upper body near the center. The same portrait works with Top 8 Matchups, the Versus Screen, Top 8 graphics, and YouTube thumbnails. Keep important details away from the outer edges because each layout may frame the image differently. JABS does not detect or reposition faces automatically.
-
-To add colors or outfits for one character, add a number to each filename:
-
-```text
-game-assets/super-smash-bros-ultimate/characters/Mario-1.png
-game-assets/super-smash-bros-ultimate/characters/Mario-2.png
-```
-
-JABS keeps both files under Mario and shows a **Color / outfit** selector. Use the same number in `characters/` and `portraits/` when the images belong together. The [Game artwork guide](game-assets/README.md) lists every supported filename style.
-
-Choose **Reload assets** after adding or replacing any local media, including tournament logos. You do not need to restart JABS.
-
-## 11. Create a Top 8 graphic
-
-Top 8 files download as `1920×1080` PNGs.
-
-JABS automatically tries to load the active event's finalized Top 8. You may also:
-
-- Enter another completed start.gg event URL.
-- Fill all eight placements manually.
-
-Then:
-
-1. Choose Styling.
-2. Choose Mosaic or Neon. Neon is selected by default.
-3. Choose Character Art or Player Photos.
-4. Enter the tournament and headline.
-5. Optionally choose a logo and background.
-6. Check all eight players.
-7. Select a player image to move or resize it.
-8. Download the PNG.
-
-The expected order is first, second, third, fourth, tied fifth, and tied seventh. JABS does not replace your manual draft with incomplete or unusual standings.
-
-## 12. Create a YouTube thumbnail
-
-Thumbnails download as `1280×720` PNGs.
-
-A newly streamed set fills the thumbnail automatically. Choose **Use stream match** to fill it again, or enter both players manually.
-
-1. Choose Styling.
-2. Choose Versus or Spotlight.
-3. Choose Character Art or Player Photos.
-4. Enter the tournament and headline.
-5. Choose logo options and, if wanted, a custom background image.
-6. Check both players and their characters.
-7. Select an image to move, resize, or flip it with `F`.
-8. Download the PNG.
-
-Both player sides keep the artwork’s original orientation until you flip it.
-
-## 13. Quick fixes
-
-### Overlay is blank
-
-- Keep JABS open.
-- Send a set to stream.
-- Check the complete OBS URL.
-- Refresh the OBS Browser Source.
-- Complete the score before testing Winner/Champion.
-
-### Image is missing
-
-- Use PNG, JPEG, or WebP.
-- Check the folder shown by JABS.
-- Match the player, sponsor, or character filename.
-- Choose **Reload assets** after adding or replacing the file.
-
-### Search is slow
-
-Choose a Phase or Pool, or wait for the page progress. Cancel if you no longer need it.
-
-### Report is rejected
-
-- Refresh the bracket.
-- Check whether another organizer updated the set.
-- Confirm your start.gg account can report the tournament.
-- Do not repeatedly retry an uncertain report.
-
-### A field is blocked
-
-Correct the named field and leave it again. Blocked text was not sent to OBS.
-
-### Bracket data looks stale
-
-Choose **Refresh set selector**. Use **Clear bracket history** to reset the browser and remove recent tournament history. It keeps the active stream state and saved set edits.
-
-## 14. End of the event
-
-1. Check the final bracket on start.gg.
-2. Download the graphics you still need.
-3. Hide the commentator overlay.
-4. Remove the token if the computer is shared.
-5. Wait for any pending autosave before closing JABS.
+| Windows | `%APPDATA%\gg.jabs.desktop\logs` |
+| macOS | `~/Library/Application Support/gg.jabs.desktop/logs` |
+| Linux | `$XDG_DATA_HOME/gg.jabs.desktop/logs`, usually `~/.local/share/gg.jabs.desktop/logs` |

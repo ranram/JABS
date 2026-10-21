@@ -1,23 +1,21 @@
 import { useEffect } from 'react';
 import { notifications } from '@mantine/notifications';
+import { useTranslation } from 'react-i18next';
 
 export type GeneratorWarning = {
-  message: string;
+  message?: string;
   revision: number;
 };
 
 export function nextGeneratorWarning(error: unknown, current?: GeneratorWarning): GeneratorWarning {
   return {
-    message: error instanceof Error ? error.message : 'JABS rejected this generator update.',
+    message: error instanceof Error ? error.message : undefined,
     revision: (current?.revision ?? 0) + 1
   };
 }
 
-export function useGeneratorWarningToast(
-  id: string,
-  warning: GeneratorWarning | undefined,
-  title: string
-) {
+export function useGeneratorWarningToast(id: string, warning: GeneratorWarning | undefined, title: string) {
+  const { t } = useTranslation('operator');
   useEffect(() => {
     if (!warning) return;
     // Recreate the fixed-id toast so an identical second rejection is visible
@@ -26,10 +24,9 @@ export function useGeneratorWarningToast(
     notifications.show({
       id,
       title,
-      message: warning.message,
+      message: warning.message || t('generators.previewFailed'),
       color: 'red',
-      autoClose: false,
       withCloseButton: true
     });
-  }, [id, title, warning]);
+  }, [id, title, warning, t]);
 }

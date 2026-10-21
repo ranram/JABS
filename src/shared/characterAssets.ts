@@ -5,6 +5,7 @@ type CharacterArtworkSubject = {
   character?: string;
   characters?: string[];
   characterAssetId?: string;
+  portraitAssetId?: string;
 };
 
 export type CharacterMediaKind = 'artwork' | 'portrait';
@@ -24,7 +25,7 @@ export function selectedCharacterAssetId(
 ): string | undefined {
   const asset = leadCharacterAsset(subject, assets);
   if (!asset) return undefined;
-  const selected = subject.characterAssetId;
+  const selected = mediaKind === 'portrait' ? subject.portraitAssetId ?? subject.characterAssetId : subject.characterAssetId;
   const variantId = mediaKind === 'portrait' ? 'portraitAssetId' : 'assetId';
   if (selected) {
     const selectedVariant = asset.variants.find((variant) =>

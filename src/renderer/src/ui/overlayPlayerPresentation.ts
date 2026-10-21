@@ -1,5 +1,10 @@
-import type { PlayerState } from '@shared/models';
 import { prideFlagDefinition } from '@shared/prideFlags';
+import noFlag from '../assets/Flag_of_None.webp';
+import type { PlayerState } from '@shared/models';
+
+export function sponsorLine(player: Pick<PlayerState, 'prefix' | 'sponsor'>): string {
+  return [...new Set([player.prefix, player.sponsor].filter((value): value is string => Boolean(value)))].join(' · ');
+}
 
 const bundledFlagUrls = import.meta.glob<string>(
   '../../../../node_modules/flag-icons/flags/4x3/*.svg',
@@ -20,12 +25,12 @@ export function countryFlagUrl(countryCode: string | undefined): string | undefi
 export function displayFlagUrl(
   countryCode: string | undefined,
   displayFlag: string | undefined
-): string | undefined {
+): string {
   const definition = prideFlagDefinition(displayFlag);
   if (definition) {
-    return bundledPrideFlagUrls[`../../../../flags/pride/${definition.file}`];
+    return bundledPrideFlagUrls[`../../../../flags/pride/${definition.file}`] ?? noFlag;
   }
-  return countryFlagUrl(countryCode);
+  return countryFlagUrl(countryCode) ?? noFlag;
 }
 
 export function displayFlagLabel(
@@ -33,15 +38,11 @@ export function displayFlagLabel(
   displayFlag: string | undefined
 ): string | undefined {
   const definition = prideFlagDefinition(displayFlag);
-  return definition ? `Pride: ${definition.label}` : countryCode?.toUpperCase();
+  if (definition) return `Pride: ${definition.label}`;
+  const country = countryCode?.trim().toUpperCase();
+  return country && countryFlagUrl(country) ? country : 'No flag selected';
 }
 
 export function isPrideDisplayFlag(displayFlag: string | undefined): boolean {
   return Boolean(prideFlagDefinition(displayFlag));
-}
-
-export function overlayPlayerDetails(player: PlayerState, seedLabel?: string): string {
-  return [player.state, seedLabel]
-    .filter((detail): detail is string => Boolean(detail))
-    .join(' · ');
 }

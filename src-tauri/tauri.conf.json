@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "JABS",
-  "version": "1.2.0",
+  "version": "1.5.0",
   "identifier": "gg.jabs.desktop",
   "build": {
     "beforeDevCommand": "pnpm run dev:web",
@@ -24,7 +24,7 @@
     ],
     "security": {
       "capabilities": ["main-window"],
-      "csp": "default-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; img-src 'self' data: blob: http://127.0.0.1:*; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:*"
+      "csp": "default-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; img-src 'self' data: blob: http://127.0.0.1:*; media-src 'self' http://127.0.0.1:*; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:*"
     }
   },
   "bundle": {
@@ -40,7 +40,8 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../tourney-logos/": "tourney-logos/"
+      "../src/renderer/src/assets/fonts/OFL-*.txt": "font-licenses/",
+      "../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md"
     }
   },
   "plugins": {

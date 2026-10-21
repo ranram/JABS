@@ -1,4 +1,6 @@
-import { MultiSelect, NumberInput } from '@mantine/core';
+import { CharacterSelect } from './CharacterSelect';
+import { PlayerNameInput } from '../players/PlayerNameInput';
+import { NumberInput } from '@mantine/core';
 import type { GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, GameCharacterAsset, SelectedSetState } from '@shared/models';
 import { memo, useMemo } from 'react';
@@ -15,6 +17,7 @@ function normalizeXHandle(value: string): string {
 
 type PlayerEditorProps = {
   side: 'one' | 'two';
+  libraryGameKey?: string;
   title: string;
   player: SelectedSetState['playerOne'];
   countries: CountryOption[];
@@ -52,16 +55,19 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
   ];
 
   return (
-    <fieldset className="player-editor">
+    <fieldset className="player-editor operator-inset">
       <legend>{title}</legend>
       <div className="player-field-row">
-        <BufferedTextInput
+        {props.libraryGameKey ? <PlayerNameInput
+          data-testid={`editor-${side}-name`} label={t('editor.playerTag')} value={player.name}
+          gameKey={props.libraryGameKey}
+          onCommit={(name) => onChange({ ...player, name, localPlayerId: undefined, playerId: undefined })}
+          onSelectPlayer={(saved) => onChange({ ...player, ...saved })}
+        /> : <BufferedTextInput
           data-stream-free-text={side === 'one' ? 'playerOneName' : 'playerTwoName'}
-          data-testid={`editor-${side}-name`}
-          label={t('editor.playerTag')}
-          value={player.name}
+          data-testid={`editor-${side}-name`} label={t('editor.playerTag')} value={player.name}
           onCommit={(name) => onChange({ ...player, name })}
-        />
+        />}
         <BufferedTextInput
           data-stream-free-text={side === 'one' ? 'playerOnePrefix' : 'playerTwoPrefix'}
           data-testid={`editor-${side}-prefix`}
@@ -72,7 +78,7 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
       </div>
       <div className="player-field-row">
         {hasField('character') && (
-          <MultiSelect
+          <CharacterSelect
             searchable
             clearable
             data-testid={`editor-${side}-character`}
@@ -145,7 +151,8 @@ export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps)
     </fieldset>
   );
 }, (previous, next) => (
-  previous.side === next.side
+  previous.libraryGameKey === next.libraryGameKey
+  && previous.side === next.side
   && previous.title === next.title
   && previous.player === next.player
   && previous.countries === next.countries

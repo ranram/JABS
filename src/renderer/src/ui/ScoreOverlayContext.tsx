@@ -1,7 +1,10 @@
+import { DisplayText } from './DisplayText';
 import { type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GameProfile } from '@shared/gameProfiles';
 import type { SelectedSetState } from '@shared/models';
+import { useMatchFormatLabel } from './useMatchFormatLabel';
+import { displayPhaseName } from '@shared/matchContext';
 
 type ScoreOverlayContextProps = {
   profile: GameProfile;
@@ -19,8 +22,8 @@ type BroadcastStyle = CSSProperties & {
 
 export function MatchChip({ profile, selectedSet }: ScoreOverlayContextProps) {
   return (
-    <div className="overlay-match-chip">
-      <strong>{roundLabel(selectedSet, profile)}</strong>
+    <div className="overlay-match-chip" data-entrance="round">
+      <strong><DisplayText text={roundLabel(selectedSet, profile)} /></strong>
     </div>
   );
 }
@@ -30,15 +33,14 @@ export function BroadcastLayer({
   selectedSet,
   logoUrl
 }: ScoreOverlayContextProps & { logoUrl?: string }) {
-  const { t } = useTranslation(['overlay', 'common']);
+  const { t } = useTranslation('overlay');
+  const matchLabel = useMatchFormatLabel(selectedSet);
   const broadcast = selectedSet.broadcast;
   const matchDetails = [
     profile.overlay.showMatchChip === false ? roundLabel(selectedSet, profile) : undefined,
-    phaseLabel(selectedSet),
-    selectedSet.matchFormat === 'first-to'
-      ? t('common:match.firstTo', { count: Math.ceil(selectedSet.bestOf / 2) })
-      : t('common:match.bestOf', { count: selectedSet.bestOf }),
-    stationLabel(selectedSet, t('common:match.stream'))
+    displayPhaseName(selectedSet.phase),
+    matchLabel,
+    selectedSet.station?.trim()
   ].filter(Boolean).join(' · ');
   const leftText = broadcast?.infoLeft?.trim();
   const rightText = broadcast?.infoRight?.trim();
@@ -49,12 +51,12 @@ export function BroadcastLayer({
       style={broadcastStyle(profile)}
       aria-label={t('broadcastInformation')}
     >
-      {broadcast?.infoBarEnabled ? <div className="overlay-info-rail overlay-info-left">{leftText}</div> : null}
+      {broadcast?.infoBarEnabled ? <div className="overlay-info-rail overlay-info-left" data-entrance="rail-left"><span className="overlay-info-text"><DisplayText text={leftText ?? ''} /></span></div> : null}
       <div className="overlay-logo-slot">
         {broadcast?.logoEnabled && logoUrl ? <BroadcastLogo src={logoUrl} /> : null}
       </div>
-      <div className="overlay-info-rail overlay-match-context-rail">{matchDetails}</div>
-      {broadcast?.infoBarEnabled ? <div className="overlay-info-rail overlay-info-right">{rightText}</div> : null}
+      <div className="overlay-info-rail overlay-match-context-rail" data-entrance="rail-center"><span className="overlay-info-text"><DisplayText text={matchDetails} /></span></div>
+      {broadcast?.infoBarEnabled ? <div className="overlay-info-rail overlay-info-right" data-entrance="rail-right"><span className="overlay-info-text"><DisplayText text={rightText ?? ''} /></span></div> : null}
     </aside>
   );
 }
@@ -74,14 +76,6 @@ function BroadcastLogo({ src }: { src: string }) {
 
 function roundLabel(selectedSet: SelectedSetState, profile: GameProfile): string {
   return selectedSet.round?.trim() || profile.terminology.set;
-}
-
-function stationLabel(selectedSet: SelectedSetState, fallback: string): string {
-  return selectedSet.station?.trim() || fallback;
-}
-
-function phaseLabel(selectedSet: SelectedSetState): string {
-  return [selectedSet.phase?.trim(), selectedSet.phaseGroup?.trim()].filter(Boolean).join(' · ');
 }
 
 function broadcastStyle(profile: GameProfile): BroadcastStyle {

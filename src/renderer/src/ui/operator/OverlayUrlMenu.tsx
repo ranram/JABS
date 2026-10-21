@@ -1,10 +1,9 @@
 import { Button, Menu } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { LocalHandoffUrl } from '../../desktopRuntime';
-
-const overlayKinds: LocalHandoffUrl[] = [
-  'score', 'versus', 'winner', 'top-eight-matchups', 'commentators'
-];
+import { sortByLabel } from './operatorUtils';
+import { publicOverlayKinds } from './overlaySources';
+import { en } from '../../i18n/catalogs/en';
 
 export function OverlayUrlMenu({
   copied,
@@ -18,9 +17,8 @@ export function OverlayUrlMenu({
   onCopy(kind: LocalHandoffUrl): void;
 }) {
   const { t } = useTranslation('operator');
-  const label = copied
-    ? t('live.copiedOverlay', { overlay: t(`live.overlayNames.${copied}`) })
-    : t('live.copyObs');
+  const sortedKinds = sortByLabel(publicOverlayKinds, (kind) => en.operator.live.overlayNames[kind], 'en');
+  const label = copied ? t('live.copiedOverlay', { overlay: t(`live.overlayNames.${copied}`) }) : t('live.copyObs');
   return (
     <Menu position="bottom-end" shadow="md" width={220}>
       <Menu.Target>
@@ -35,7 +33,7 @@ export function OverlayUrlMenu({
         </Button>
       </Menu.Target>
       <Menu.Dropdown>
-        {overlayKinds.map((kind) => (
+        {sortedKinds.map((kind) => (
           <Menu.Item key={kind} onClick={() => onCopy(kind)}>
             {t(`live.overlayNames.${kind}`)}
           </Menu.Item>

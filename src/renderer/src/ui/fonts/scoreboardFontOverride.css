@@ -1,0 +1,8 @@
+.overlay[data-scoreboard-font] .overlay-player-name,
+.overlay[data-scoreboard-font] .overlay-player-meta,
+.overlay[data-scoreboard-font] .overlay-player-score,
+.overlay[data-scoreboard-font] .overlay-match-chip,
+.overlay[data-scoreboard-font] .overlay-match-chip strong,
+.overlay[data-scoreboard-font] .overlay-info-rail {
+  font-family: var(--scoreboard-font-family), sans-serif;
+}

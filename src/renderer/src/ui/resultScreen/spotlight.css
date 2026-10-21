@@ -1,0 +1,56 @@
+/* A deliberately neutral stage: the player's artwork supplies the color. */
+.victory.spotlight,
+.spotlight .victory-ground {
+  background: #111;
+}
+
+.spotlight .victory-title {
+  color: white;
+}
+
+.spotlight .victory-name {
+  text-shadow: 0 12px 24px rgba(0, 0, 0, 0.65);
+}
+
+.spotlight .victory-opening {
+  text-shadow:
+    10px 14px 0 #080d17,
+    20px 25px 0 rgba(0, 0, 0, 0.45);
+}
+
+.spotlight .victory-logo {
+  width: 300px;
+  height: 150px;
+}
+
+.spotlight .victory-context {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 24px;
+}
+
+.spotlight .victory-details {
+  margin-top: 0;
+}
+
+.spotlight .victory-sponsor-logo {
+  flex-shrink: 0;
+  width: 180px;
+  height: 100px;
+  margin-top: 0;
+}
+
+.spotlight .victory-hero {
+  mask-image: linear-gradient(to bottom, #000 0% 84%, transparent 100%);
+}
+
+.spotlight .victory-character-art,
+.spotlight .victory-player-photo {
+  mask-image: linear-gradient(to right, transparent, #000 12% 86%, transparent);
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.3));
+}
+
+.victory.spotlight.is-transparent-background {
+  background: transparent;
+}

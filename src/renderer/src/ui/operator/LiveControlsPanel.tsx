@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
 import { Button, Code, Divider, Group, Kbd, Paper, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import { scoreLimitForBestOf } from '@shared/gameProfiles';
+import { scoreLimitForPlayer } from '@shared/gameProfiles';
 import type { LocalHandoffUrl } from '../../desktopRuntime';
 import type { SelectedSetState } from '@shared/models';
 import type { StartggReportReadiness } from '@shared/startggReporting';
 import { QuickScore } from './ScoreControls';
 import { OverlayUrlMenu } from './OverlayUrlMenu';
 import { ControlWarning } from './ControlWarning';
+import { useMatchFormatLabel } from '../useMatchFormatLabel';
 
 type LiveControlsPanelProps = {
   reportingEnabled: boolean;
@@ -43,7 +44,7 @@ export function LiveControlsPanel({
   onCopy
 }: LiveControlsPanelProps) {
   const { t } = useTranslation(['operator', 'common']);
-  const maxScore = scoreLimitForBestOf(selectedSet.gameId, selectedSet.bestOf);
+  const matchLabel = useMatchFormatLabel(selectedSet);
   const overlayUrl = localBaseUrl ? `${localBaseUrl}/overlay/active/main` : undefined;
 
   return (
@@ -52,31 +53,48 @@ export function LiveControlsPanel({
         <div>
           <Title order={2} size="h4">{t('operator:live.title')}</Title>
         </div>
-        {shortcutsEnabled && <Group gap="sm" className="score-shortcuts">
-          <ShortcutInstruction><Kbd>1</Kbd><Text size="xs" c="dimmed">{t('operator:live.playerOnePoint')}</Text></ShortcutInstruction>
-          <ShortcutInstruction>
-            <Kbd>Shift</Kbd><Text size="xs" c="dimmed">+</Text><Kbd>1</Kbd>
-            <Text size="xs" c="dimmed">{t('operator:live.subtractPlayerOnePoint')}</Text>
-          </ShortcutInstruction>
-          <ShortcutInstruction><Kbd>2</Kbd><Text size="xs" c="dimmed">{t('operator:live.playerTwoPoint')}</Text></ShortcutInstruction>
-          <ShortcutInstruction>
-            <Kbd>Shift</Kbd><Text size="xs" c="dimmed">+</Text><Kbd>2</Kbd>
-            <Text size="xs" c="dimmed">{t('operator:live.subtractPlayerTwoPoint')}</Text>
-          </ShortcutInstruction>
-          <ShortcutInstruction><Kbd>Ctrl+Shift+R</Kbd><Text size="xs" c="dimmed">{t('common:actions.resetScores')}</Text></ShortcutInstruction>
-          <ShortcutInstruction><Kbd>Ctrl+Shift+S</Kbd><Text size="xs" c="dimmed">{t('common:actions.swapPlayers')}</Text></ShortcutInstruction>
-        </Group>}
+        {shortcutsEnabled && <Stack gap="xs" className="score-shortcuts">
+          <Group gap="sm">
+            <ShortcutInstruction>
+              <Kbd>1</Kbd><Text size="xs" c="dimmed">{t('operator:live.playerOnePoint')}</Text>
+            </ShortcutInstruction>
+            <Divider orientation="vertical" h={20} />
+            <ShortcutInstruction>
+              <Kbd>Shift</Kbd><Text size="xs" c="dimmed">+</Text><Kbd>1</Kbd>
+              <Text size="xs" c="dimmed">{t('operator:live.subtractPlayerOnePoint')}</Text>
+            </ShortcutInstruction>
+          </Group>
+          <Group gap="sm">
+            <ShortcutInstruction>
+              <Kbd>2</Kbd><Text size="xs" c="dimmed">{t('operator:live.playerTwoPoint')}</Text>
+            </ShortcutInstruction>
+            <Divider orientation="vertical" h={20} />
+            <ShortcutInstruction>
+              <Kbd>Shift</Kbd><Text size="xs" c="dimmed">+</Text><Kbd>2</Kbd>
+              <Text size="xs" c="dimmed">{t('operator:live.subtractPlayerTwoPoint')}</Text>
+            </ShortcutInstruction>
+          </Group>
+          <Group gap="sm">
+            <ShortcutInstruction>
+              <Kbd>Ctrl+Shift+R</Kbd><Text size="xs" c="dimmed">{t('common:actions.resetScores')}</Text>
+            </ShortcutInstruction>
+            <Divider orientation="vertical" h={20} />
+            <ShortcutInstruction>
+              <Kbd>Ctrl+Shift+S</Kbd><Text size="xs" c="dimmed">{t('common:actions.swapPlayers')}</Text>
+            </ShortcutInstruction>
+          </Group>
+        </Stack>}
         <QuickScore
           label={selectedSet.playerOne.name}
           score={selectedSet.playerOne.score}
-          maxScore={maxScore}
+          maxScore={scoreLimitForPlayer(selectedSet, 'one')}
           disabled={loading || draftDirty}
           onChange={(score) => onScore('one', score)}
         />
         <QuickScore
           label={selectedSet.playerTwo.name}
           score={selectedSet.playerTwo.score}
-          maxScore={maxScore}
+          maxScore={scoreLimitForPlayer(selectedSet, 'two')}
           disabled={loading || draftDirty}
           onChange={(score) => onScore('two', score)}
         />
@@ -91,7 +109,7 @@ export function LiveControlsPanel({
 
         <ControlWarning message={draftDirty ? t('operator:editor.waitSave') : loading ? t('operator:editor.waitAction') : undefined} />
 
-        {selectedSet.matchFormat !== 'first-to' && <Paper withBorder p="sm" className="report-result-card">
+        {(selectedSet.matchFormat ?? 'best-of') === 'best-of' && <Paper withBorder p="sm" className="report-result-card operator-inset">
           <Stack gap="xs" w="100%" miw={0}>
             <Text fw={700}>{t('operator:live.startggResult')}</Text>
             {reportReadiness.ready && <Text size="sm" c="dimmed">
@@ -133,9 +151,7 @@ export function LiveControlsPanel({
           <Text ta="right">{selectedSet.playerTwo.name}</Text>
         </Group>
         <Text size="sm" c="dimmed">
-          {selectedSet.matchFormat === 'first-to'
-            ? t('common:match.firstTo', { count: maxScore })
-            : t('common:match.bestOf', { count: selectedSet.bestOf })}
+          {matchLabel}
         </Text>
       </Stack>
     </Paper>
@@ -144,7 +160,6 @@ export function LiveControlsPanel({
 
 function ShortcutInstruction({ children }: { children: ReactNode }) {
   return <Group gap={6} wrap="nowrap">
-    <Divider orientation="vertical" h={20} />
     {children}
   </Group>;
 }

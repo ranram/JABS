@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { SelectedSetState } from '@shared/models';
 import { LanguageSelect } from '../LanguageSelect';
 import { AppUpdateControls } from './AppUpdateControls';
+import brandLogo from '../../assets/jabs-logo.png';
 
 type OperatorTopbarProps = {
   tokenVerified: boolean;
@@ -34,7 +35,7 @@ export function OperatorTopbar({
   return (
     <header className="operator-topbar">
       <Group className="operator-brand" gap="sm" wrap="nowrap">
-        <span className="brand-mark">J</span>
+        <img className="brand-mark" src={brandLogo} alt="" />
         <div>
           <Text component="h1" fw={900} size="lg">
             JABS

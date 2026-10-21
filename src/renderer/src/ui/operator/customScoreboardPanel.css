@@ -1,21 +1,72 @@
+.operator-shell .panel.custom-scoreboard-workspace {
+  overflow: visible;
+}
+
+.custom-scoreboard-library-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.custom-scoreboard-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mantine-spacing-md);
+  align-items: start;
+}
+
+.custom-scoreboard-field-controls,
+.custom-scoreboard-preview-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.custom-scoreboard-preview-column {
+  width: min(100%, 1120px);
+  margin-inline: auto;
+  gap: 8px;
+}
+
+@media (min-width: 48em) {
+  .custom-scoreboard-library-controls {
+    grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.4fr);
+  }
+}
+
 .custom-scoreboard-preview-shell {
   position: relative;
-  width: min(100%, 1120px);
+  width: 100%;
   aspect-ratio: 16 / 9;
-  margin-inline: auto;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 12px;
+  border-radius: 0;
   background:
     linear-gradient(45deg, #222 25%, transparent 25% 75%, #222 75%),
     linear-gradient(45deg, #222 25%, #161616 25% 75%, #222 75%);
-  background-position: 0 0, 12px 12px;
+  background-position:
+    0 0,
+    12px 12px;
   background-size: 24px 24px;
+}
+
+@media (min-width: 1200px) {
+  .custom-scoreboard-editor-layout {
+    grid-template-columns: minmax(360px, 0.75fr) minmax(0, 1.4fr);
+  }
+
+  .custom-scoreboard-preview-column {
+    position: sticky;
+    top: calc(var(--workspace-header-height, 100px) + 12px);
+    width: min(100%, clamp(480px, calc((100dvh - var(--workspace-header-height, 100px) - 64px) * 16 / 9), 1120px));
+  }
 }
 
 @media (min-width: 62em) {
   .custom-scoreboard-import-button {
     align-self: start;
-    margin-top: 25px;
+    margin-top: var(--operator-input-label-offset);
   }
 }

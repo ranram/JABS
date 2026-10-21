@@ -1,0 +1,12 @@
+.operator-shell .mantine-Button-root.operator-destructive-button[data-variant="light"],
+.mantine-Button-root.operator-destructive-button {
+  border-color: var(--mantine-color-red-outline);
+  background: var(--button-bg);
+  color: var(--button-color);
+}
+
+.operator-shell .mantine-Button-root.operator-destructive-button:hover:not(:disabled):not([data-disabled]),
+.mantine-Button-root.operator-destructive-button:hover:not(:disabled):not([data-disabled]) {
+  background: var(--button-hover);
+  color: var(--button-hover-color, var(--button-color));
+}

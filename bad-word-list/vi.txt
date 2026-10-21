@@ -54,7 +54,6 @@ buồi
 bà cha mày
 bìu
 bít chi
-bòi
 bú bi của tôi
 bú cu
 bú cặc tôi
@@ -69,7 +68,6 @@ bỏ mịa
 bỏ mịe
 bố láo
 bực mình
-cac
 cacc
 cai lol
 cai lon
@@ -95,8 +93,6 @@ chet mje
 chetme
 chich
 chich choac
-châm
-chích
 chó cái
 chó má
 chó điên
@@ -174,14 +170,12 @@ cái lol
 cái lon
 cái lề gì thốn
 cái lờ
-có
 công việc thổi
 cđĩ
 cười ẻ
 cười ỉa
 cặc
 cặk
-cỏ
 cờ hó
 cờ lờ gờ tờ
 củ lol
@@ -208,8 +202,6 @@ dech
 dee chaw
 deet miee maii
 dek
-del
-dell
 dell an
 dell biet
 dell biết
@@ -233,13 +225,11 @@ dell đi
 dell được
 dellhieukieugi
 dellnoinhieu
-deo
 deohieukieugi
 di me
 dilol
 dilon
 diloz
-dime
 dimemay
 diml
 dis
@@ -301,18 +291,12 @@ gelo
 genjik
 germo
 giao hợp
-giái
-giật
 giới tính
-giựt
 goblo
 goblog
 goblok
-goo
-gà
 gà hút
 gà trống
-gái
 gái điếm
 ham lol
 ham lon
@@ -358,8 +342,6 @@ khổ dâm
 kimak
 kintil
 kirik
-kiu
-kiêm
 konti
 kontol
 kopet
@@ -372,7 +354,6 @@ kệ mje
 kệ mẹ
 kệ mịa
 kệ mịe
-l`
 la liếm
 lacur
 lam ye mo ye
@@ -385,7 +366,6 @@ liếm đít tôi
 lo dit
 loi lol
 loi lon
-lon
 lon ba gia may lam long
 lonte
 loz
@@ -396,16 +376,11 @@ lìn
 lòi lol
 lòi lon
 lòng tốt
-lông
-lắp
 lếu lều
 lồn
-lồng
 lỗ đít
 lộn xuống
-lờ
 lời nói dâm dục
-lừa
 ma cha may
 ma cha nha may
 maho
@@ -425,7 +400,6 @@ mom lon
 monyet
 mu lol
 mu lon
-má
 mát lol
 mát lon
 mâu thuẫn
@@ -470,7 +444,6 @@ người mách nước
 người mổ
 người tàn bạo
 người tàu
-ngực
 nhu lol
 nhu lon
 nhucaidaubuoi
@@ -489,11 +462,9 @@ nulo
 nung lol
 nung lon
 nungcak
-nuốt
 nyepong
 núm
 núm vú
-nỉ
 nốn lừng
 nội dung khiêu dâm
 nứng
@@ -503,7 +474,6 @@ nữ thần
 occho
 pante
 pantek
-patek
 pathek
 pecun
 pecundang
@@ -514,7 +484,6 @@ pelakor
 peler
 pepek
 phá thai
-phân
 phò
 phóng tinh
 phốc phốc
@@ -523,7 +492,6 @@ pukima
 pukimae
 pukimak
 pukimay
-quái
 quần lót
 ranh lol
 ranh lon
@@ -542,22 +510,17 @@ silit
 sinting
 sml
 sontoloyo
-sảng
 sấp mặt
 sủa bậy
 sủa càn
 sủa tiếp
 sủa đi
 sứt mẻ
-sừng
 sự phá thai
-tai
-taik
 tempek
 tempik
 tet lol
 tet lon
-tete
 tetek
 thang cho
 thang cho'
@@ -583,7 +546,6 @@ thằng mặt lồn
 thằng điên
 thủ dâm
 tiembokne
-tinh
 tinh dịch
 tinh dịcha
 tinh ranh
@@ -658,10 +620,8 @@ xàm lol
 xàm lon
 xáo trộn
 xây dựng
-xé
 xéo háng
 xì trum
-xó
 xạo lol
 xạo lon
 zái
@@ -672,7 +632,6 @@ zái
 âm vật
 âm đạo
 óc chó
-ôm
 ăn lol
 ăn lon
 ăn miếng trả miếng
@@ -687,7 +646,6 @@ zái
 đilol
 đilon
 điloz
-đis
 đis mịa
 đis mịe
 đit
@@ -702,14 +660,12 @@ zái
 đmmmmm
 đou má
 đuỹ
-đách
 đách lol
 đách lon
 đái
 đã ngủ
 đél
 đéo
-đê
 đê ca mờ
 đê ma ma
 đê mama

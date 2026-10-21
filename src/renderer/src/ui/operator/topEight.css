@@ -13,11 +13,17 @@
 }
 
 .top8-entrant-editor {
+  container: top8-entrant / inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--mantine-spacing-sm);
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  min-width: 0;
+  gap: var(--mantine-spacing-md);
+}
+
+@container top8-entrant (max-width: 22rem) {
+  .top8-entrant-editor .player-field-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .top8-canvas {
@@ -30,7 +36,7 @@
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--top8-accent) 50%, white 12%);
-  border-radius: 16px;
+  border-radius: 0;
   background: var(--top8-background);
   color: white;
   isolation: isolate;
@@ -47,12 +53,12 @@
 .top8-canvas::after {
   position: absolute;
   z-index: -1;
-  content: "";
+  content: '';
   pointer-events: none;
 }
 
-.top8-canvas[data-export-hide-pseudo="true"]::before,
-.top8-canvas[data-export-hide-pseudo="true"]::after {
+.top8-canvas[data-export-hide-pseudo='true']::before,
+.top8-canvas[data-export-hide-pseudo='true']::after {
   display: none !important;
 }
 
@@ -72,6 +78,8 @@
 .top8-neon-feature,
 .top8-neon-finalists {
   z-index: 1;
+  /* Reserve the scaled heading height plus a gap above the player frames. */
+  top: calc(5% + 8cqw * var(--appearance-text-scale, 1) + 1.25cqw);
 }
 
 .top8-canvas-header {
@@ -117,8 +125,8 @@
 .top8-canvas-header span,
 .top8-canvas-header small {
   color: color-mix(in srgb, var(--top8-accent) 72%, white);
-  font-size: 1.4cqw;
-  font-family: "JABS Bebas Neue", Impact, sans-serif;
+  font-size: calc(1.4cqw * var(--appearance-text-scale, 1));
+  font-family: 'JABS Bebas Neue', Impact, sans-serif;
   font-weight: 700;
   letter-spacing: 0.12em;
 }
@@ -132,9 +140,9 @@
 .top8-canvas-header strong {
   overflow: hidden;
   color: var(--top8-headline-color);
-  font-family: "JABS Titan One", "Arial Black", sans-serif;
-  font-size: 5.2cqw;
-  font-weight: 800;
+  font-family: 'JABS Anton', Impact, sans-serif;
+  font-size: calc(5.2cqw * var(--appearance-text-scale, 1));
+  font-weight: 400;
   letter-spacing: 0.02em;
   line-height: 1.08;
   text-overflow: ellipsis;
@@ -153,12 +161,22 @@
 }
 
 .top8-card-art {
+  --duo-photo-left: 16%;
+  --duo-photo-width: 84%;
+  --duo-photo-height: 70%;
   position: relative;
   grid-row: 1;
   min-height: 0;
   overflow: hidden;
-  background:
-    linear-gradient(145deg, color-mix(in srgb, var(--top8-accent) 36%, var(--top8-background)), var(--top8-background));
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--top8-accent) 36%, var(--top8-background)),
+    var(--top8-background)
+  );
+}
+
+.top8-card-art > .player-media-layers {
+  z-index: 1;
 }
 
 .top8-character-art {
@@ -174,9 +192,8 @@
 }
 
 /*
- * The React composition supplies a placement-tier baseline scale above this contained fit. Large
- * feature cards keep the full-subject bias, while 4th-7th cards begin substantially enlarged so the
- * operator normally needs only a small pose-specific adjustment.
+ * TopEightCanvas starts artwork at a larger size in the smaller placement cards.
+ * The user's zoom is applied on top of that starting size.
  */
 .top8-character-art.is-loaded {
   display: block;
@@ -261,8 +278,8 @@
   bottom: calc(100% + 0.25cqw);
   left: 1.2cqw;
   color: var(--top8-accent);
-  font-family: "JABS Bebas Neue", Impact, sans-serif;
-  font-size: 64px;
+  font-family: 'JABS Bebas Neue', Impact, sans-serif;
+  font-size: calc(64px * var(--appearance-text-scale, 1));
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -284,9 +301,9 @@
   display: block;
   min-width: 0;
   padding-block: 0.08em 0.12em;
-  font-family: "JABS Anton", Impact, sans-serif;
+  font-family: 'JABS Anton', Impact, sans-serif;
   font-weight: 400;
-  font-size: 2.3cqw;
+  font-size: calc(2.3cqw * var(--appearance-text-scale, 1));
   letter-spacing: -0.025em;
   line-height: 1;
   overflow-wrap: anywhere;
@@ -311,8 +328,8 @@
 .top8-sponsor-text {
   overflow: hidden;
   color: rgba(255, 255, 255, 0.78);
-  font-size: 0.92cqw;
-  font-family: "JABS Bebas Neue", Impact, sans-serif;
+  font-size: calc(0.92cqw * var(--appearance-text-scale, 1));
+  font-family: 'JABS Bebas Neue', Impact, sans-serif;
   font-weight: 700;
   letter-spacing: 0.08em;
   line-height: 1.1;
@@ -324,8 +341,8 @@
 .top8-x-handle {
   overflow: hidden;
   color: var(--top8-accent);
-  font-size: 0.86cqw;
-  font-family: "JABS Bebas Neue", Impact, sans-serif;
+  font-size: calc(0.86cqw * var(--appearance-text-scale, 1));
+  font-family: 'JABS Bebas Neue', Impact, sans-serif;
   font-weight: 700;
   letter-spacing: 0.07em;
   line-height: 1.1;
@@ -364,13 +381,13 @@
 .top8-sponsor-logo {
   position: absolute;
   z-index: 0;
-  top: 0.3cqw;
-  left: 0;
+  top: 0;
+  right: 0;
   display: none;
   width: 50%;
-  height: calc(100% - 0.6cqw);
+  height: 50%;
   object-fit: contain;
-  object-position: left center;
+  object-position: right top;
   opacity: 0.3;
   pointer-events: none;
 }
@@ -379,10 +396,19 @@
   display: block;
 }
 
+/* Natural wrapping leaves more room for names that mix wider scripts with Latin. */
+.top8-mosaic .top8-name-row > strong:has(.display-text) {
+  text-wrap: wrap;
+}
+
 /* Mosaic: conventional ranking in an asymmetric but immediately scannable grid. */
 .top8-mosaic {
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--top8-accent) 12%, var(--top8-background)), var(--top8-background) 32% 68%, color-mix(in srgb, var(--top8-accent) 12%, var(--top8-background)));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--top8-accent) 12%, var(--top8-background)),
+    var(--top8-background) 32% 68%,
+    color-mix(in srgb, var(--top8-accent) 12%, var(--top8-background))
+  );
 }
 
 .top8-mosaic .top8-canvas-header {
@@ -393,7 +419,6 @@
 
 .top8-mosaic-grid {
   position: absolute;
-  top: 18%;
   right: 3%;
   bottom: 4%;
   left: 3%;
@@ -401,36 +426,80 @@
   grid-template-columns: repeat(3, minmax(0, 0.9fr)) repeat(3, minmax(0, 1.1fr));
   grid-template-rows: repeat(2, minmax(0, 0.9fr)) repeat(2, minmax(0, 1.1fr));
   grid-template-areas:
-    "one one one two two three"
-    "one one one two two three"
-    "one one one four five six"
-    "one one one four seven eight";
+    'one one one two two three'
+    'one one one two two three'
+    'one one one four five six'
+    'one one one four seven eight';
   gap: 0.7cqw;
 }
 
-.top8-mosaic-position { min-width: 0; min-height: 0; }
-.top8-mosaic-position.position-1 { grid-area: one; }
-.top8-mosaic-position.position-2 { grid-area: two; }
-.top8-mosaic-position.position-3 { grid-area: three; }
-.top8-mosaic-position.position-4 { grid-area: four; }
-.top8-mosaic-position.position-5 { grid-area: five; }
-.top8-mosaic-position.position-6 { grid-area: six; }
-.top8-mosaic-position.position-7 { grid-area: seven; }
-.top8-mosaic-position.position-8 { grid-area: eight; }
-.top8-mosaic .top8-card { border-radius: 0.25cqw; }
-.top8-mosaic .top8-card:is(.placement-2, .placement-3) .top8-card-copy { min-height: 4.2cqw; }
-.top8-mosaic .placement-1 { border-width: 0.28cqw; }
-.top8-mosaic .placement-1 .top8-card-copy { padding: 0.65cqw 1cqw; }
-.top8-mosaic .placement-1 .top8-name-row > strong { font-size: 2.9cqw; }
-.top8-mosaic-position:not(.position-1) .top8-card-copy { gap: 0.15cqw; padding: 0.4cqw 0.6cqw; }
-.top8-mosaic-position:not(.position-1) .top8-placement { left: 0.6cqw; }
-.top8-mosaic-position:not(.position-1) .top8-name-row > strong { font-size: 1.45cqw; }
-.top8-mosaic-position:not(.position-1) .top8-placement { font-size: 3.3cqw; }
-.top8-mosaic-position.position-2 .top8-name-row > strong { font-size: 1.85cqw; }
-.top8-mosaic-position.position-3 .top8-name-row > strong { font-size: 1.6cqw; }
-.top8-mosaic-position.position-4 .top8-name-row > strong { font-size: 1.55cqw; }
+.top8-mosaic-position {
+  min-width: 0;
+  min-height: 0;
+}
+.top8-mosaic-position.position-1 {
+  grid-area: one;
+}
+.top8-mosaic-position.position-2 {
+  grid-area: two;
+}
+.top8-mosaic-position.position-3 {
+  grid-area: three;
+}
+.top8-mosaic-position.position-4 {
+  grid-area: four;
+}
+.top8-mosaic-position.position-5 {
+  grid-area: five;
+}
+.top8-mosaic-position.position-6 {
+  grid-area: six;
+}
+.top8-mosaic-position.position-7 {
+  grid-area: seven;
+}
+.top8-mosaic-position.position-8 {
+  grid-area: eight;
+}
+.top8-mosaic .top8-card {
+  border-radius: 0.25cqw;
+}
+.top8-mosaic .top8-card:is(.placement-2, .placement-3) .top8-card-copy {
+  min-height: 4.2cqw;
+}
+.top8-mosaic .placement-1 {
+  border-width: 0.28cqw;
+}
+.top8-mosaic .placement-1 .top8-card-copy {
+  padding: 0.65cqw 1cqw;
+}
+.top8-mosaic .placement-1 .top8-name-row > strong {
+  font-size: calc(2.9cqw * var(--appearance-text-scale, 1));
+}
+.top8-mosaic-position:not(.position-1) .top8-card-copy {
+  gap: 0.15cqw;
+  padding: 0.4cqw 0.6cqw;
+}
+.top8-mosaic-position:not(.position-1) .top8-placement {
+  left: 0.6cqw;
+}
+.top8-mosaic-position:not(.position-1) .top8-name-row > strong {
+  font-size: calc(1.45cqw * var(--appearance-text-scale, 1));
+}
+.top8-mosaic-position:not(.position-1) .top8-placement {
+  font-size: calc(3.3cqw * var(--appearance-text-scale, 1));
+}
+.top8-mosaic-position.position-2 .top8-name-row > strong {
+  font-size: calc(1.85cqw * var(--appearance-text-scale, 1));
+}
+.top8-mosaic-position.position-3 .top8-name-row > strong {
+  font-size: calc(1.6cqw * var(--appearance-text-scale, 1));
+}
+.top8-mosaic-position.position-4 .top8-name-row > strong {
+  font-size: calc(1.55cqw * var(--appearance-text-scale, 1));
+}
 .top8-mosaic .top8-card:is(.placement-5, .placement-7) .top8-placement {
-  font-size: 2cqw;
+  font-size: calc(2cqw * var(--appearance-text-scale, 1));
 }
 .top8-mosaic .top8-card:is(.placement-2, .placement-3, .placement-5, .placement-7) .top8-sponsor-text.is-empty,
 .top8-mosaic .top8-card:is(.placement-2, .placement-3, .placement-5, .placement-7) .top8-x-handle.is-empty {
@@ -457,45 +526,92 @@
 
 .top8-neon-feature {
   position: absolute;
-  top: 18%;
+  bottom: 6%;
   left: 4%;
   width: 31%;
-  height: 76%;
 }
 
 .top8-neon-finalists {
   position: absolute;
-  top: 18%;
+  bottom: 6%;
   right: 4%;
   display: grid;
   width: 59%;
-  height: 76%;
   grid-template-columns: repeat(22, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 1.1cqw;
 }
 
-.top8-neon-finalists > .top8-card:nth-child(1) { grid-column: 1 / 14; }
-.top8-neon-finalists > .top8-card:nth-child(2) { grid-column: 14 / 23; }
-.top8-neon-finalists > .top8-card:nth-child(3) { grid-column: 1 / 7; }
-.top8-neon-finalists > .top8-card:nth-child(4) { grid-column: 7 / 11; }
-.top8-neon-finalists > .top8-card:nth-child(5) { grid-column: 11 / 15; }
-.top8-neon-finalists > .top8-card:nth-child(6) { grid-column: 15 / 19; }
-.top8-neon-finalists > .top8-card:nth-child(7) { grid-column: 19 / 23; }
+.top8-neon-finalists > .top8-card:nth-child(1) {
+  grid-column: 1 / 14;
+}
+.top8-neon-finalists > .top8-card:nth-child(2) {
+  grid-column: 14 / 23;
+}
+.top8-neon-finalists > .top8-card:nth-child(3) {
+  grid-column: 1 / 7;
+}
+.top8-neon-finalists > .top8-card:nth-child(4) {
+  grid-column: 7 / 11;
+}
+.top8-neon-finalists > .top8-card:nth-child(5) {
+  grid-column: 11 / 15;
+}
+.top8-neon-finalists > .top8-card:nth-child(6) {
+  grid-column: 15 / 19;
+}
+.top8-neon-finalists > .top8-card:nth-child(7) {
+  grid-column: 19 / 23;
+}
 .top8-neon .top8-card {
   border: 0.16cqw solid var(--neon-cyan);
   border-radius: 0;
   box-shadow: inset 0 0 1.1cqw color-mix(in srgb, var(--neon-cyan) 10%, transparent);
 }
-.top8-neon-feature .top8-card { border-width: 0.3cqw; }
-.top8-neon-feature .top8-name-row > strong { font-size: 3.2cqw; }
-.top8-neon-finalists .top8-card-copy { padding: 0.55cqw 0.7cqw; }
-.top8-neon-finalists .top8-placement { left: 0.7cqw; }
-.top8-neon-finalists .top8-name-row > strong { font-size: 1.4cqw; }
-.top8-neon-finalists .top8-placement { font-size: 3.3cqw; }
-.top8-neon-finalists > .top8-card:nth-child(1) .top8-name-row > strong { font-size: 2cqw; }
-.top8-neon-finalists > .top8-card:nth-child(2) .top8-name-row > strong { font-size: 1.7cqw; }
-.top8-neon-finalists > .top8-card:nth-child(3) .top8-name-row > strong { font-size: 1.55cqw; }
+.top8-neon-feature .top8-card {
+  border-width: 0.3cqw;
+}
+.top8-neon .top8-name-row {
+  display: flex;
+  height: 4.2cqw;
+  align-items: center;
+}
+.top8-neon .top8-name-row > strong {
+  flex: 1;
+  padding-block: 0;
+  text-wrap: nowrap;
+  white-space: nowrap;
+}
+.top8-neon-feature .top8-name-row > strong {
+  font-size: calc(3.2cqw * var(--appearance-text-scale, 1));
+}
+.top8-neon-finalists .top8-card-copy {
+  padding: 0.55cqw 0.7cqw;
+}
+.top8-neon-finalists .top8-name-row {
+  height: 2cqw;
+}
+.top8-neon-finalists > .top8-card:nth-child(-n + 2) .top8-name-row {
+  height: 2.8cqw;
+}
+.top8-neon-finalists .top8-placement {
+  left: 0.7cqw;
+}
+.top8-neon-finalists .top8-name-row > strong {
+  font-size: calc(1.4cqw * var(--appearance-text-scale, 1));
+}
+.top8-neon-finalists .top8-placement {
+  font-size: calc(3.3cqw * var(--appearance-text-scale, 1));
+}
+.top8-neon-finalists > .top8-card:nth-child(1) .top8-name-row > strong {
+  font-size: calc(2cqw * var(--appearance-text-scale, 1));
+}
+.top8-neon-finalists > .top8-card:nth-child(2) .top8-name-row > strong {
+  font-size: calc(1.7cqw * var(--appearance-text-scale, 1));
+}
+.top8-neon-finalists > .top8-card:nth-child(3) .top8-name-row > strong {
+  font-size: calc(1.55cqw * var(--appearance-text-scale, 1));
+}
 
 .top8-canvas-footer {
   position: absolute;
@@ -510,8 +626,8 @@
 .top8-canvas-footer span {
   display: inline-block;
   color: color-mix(in srgb, var(--top8-accent) 72%, white);
-  font-family: "JABS Bebas Neue", Impact, sans-serif;
-  font-size: 1.1cqw;
+  font-family: 'JABS Bebas Neue', Impact, sans-serif;
+  font-size: calc(1.1cqw * var(--appearance-text-scale, 1));
   font-weight: 700;
   letter-spacing: 0.1em;
   line-height: 1.2;
@@ -519,6 +635,7 @@
 }
 
 @media (max-width: 700px) {
-  .top8-canvas { border-radius: 10px; }
-  .top8-style-control .mantine-SegmentedControl-label { padding-inline: 8px; }
+  .top8-style-control .mantine-SegmentedControl-label {
+    padding-inline: 8px;
+  }
 }

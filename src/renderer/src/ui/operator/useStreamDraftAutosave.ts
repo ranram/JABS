@@ -65,14 +65,15 @@ export function useStreamDraftAutosave({
       api.reportRendererDiagnostic('stream-save:renderer-start');
       try {
         const response = await api.updateSelectedSet(submitted);
-        setOverlayState(response);
+        const canApplyReply = (current?: SelectedSetState) =>
+          !current || current.updatedAt === submitted.updatedAt || current.updatedAt === response.selectedSet.updatedAt;
+        // A newer realtime update takes precedence over a delayed HTTP reply.
+        setOverlayState((current) => (canApplyReply(current?.selectedSet) ? response : current));
         failedKeyRef.current = undefined;
         setDraftState((current) => {
           if (!current) return current;
-          // The realtime broadcast of this save can arrive before the HTTP
-          // response and swap in a reconciled draft whose only difference is
-          // the backend-bumped version. That echo is still this save, so the
-          // comparison must ignore updatedAt or the draft stays dirty forever.
+          if (!canApplyReply(current.baseline)) return current;
+          // The WebSocket echo may arrive first. Compare content without its native timestamp.
           if (operatorDraftContentKey(current.value, assetCatalogSlug) === submittedKey) {
             return { value: response.selectedSet, baseline: response.selectedSet, dirty: false };
           }

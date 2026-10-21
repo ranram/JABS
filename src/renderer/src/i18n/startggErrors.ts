@@ -1,7 +1,10 @@
 import type { StartggErrorCode } from '@shared/models';
 import { i18n } from './index';
+import { localizedNativeError } from './nativeErrors';
 
 const translationKeys = {
+  'player-reference': 'errors:startgg.playerReference',
+  'player-not-found': 'errors:startgg.playerNotFound',
   'anonymous-unavailable': 'errors:startgg.publicUnavailable',
   'token-missing': 'errors:startgg.tokenMissing',
   authentication: 'errors:startgg.authentication',
@@ -20,8 +23,8 @@ export function localizedStartggError(
   payload: { error?: string; code?: string } | undefined,
   fallback: string
 ): string {
-  if (payload?.code && payload.code in translationKeys) {
+  if (payload?.code && Object.hasOwn(translationKeys, payload.code)) {
     return i18n.t(translationKeys[payload.code as StartggErrorCode]);
   }
-  return payload?.error ?? fallback;
+  return localizedNativeError(payload?.error, fallback);
 }

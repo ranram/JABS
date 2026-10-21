@@ -1,32 +1,52 @@
 import { z } from 'zod';
+import { bundledFontIds, bundledFontSchema, type BundledFontId } from './fonts';
+
+export const customScoreboardFontIds = bundledFontIds;
+export type CustomScoreboardFontId = BundledFontId;
+export const defaultCustomScoreboardFont: CustomScoreboardFontId = 'bebas-neue';
 
 export const customScoreboardRegionIds = [
-  'playerOneFlag', 'playerOneSponsor', 'playerOneXHandle', 'playerOneName', 'playerOnePronouns',
-  'playerOneSeed', 'playerOneScore', 'playerTwoFlag', 'playerTwoSponsor', 'playerTwoXHandle',
-  'playerTwoName', 'playerTwoPronouns', 'playerTwoSeed', 'playerTwoScore',
-  'matchLabel', 'logo',
-  'infoLeft', 'infoCenter', 'infoRight'
+  'playerOneFlag',
+  'playerOneXHandle',
+  'playerOneName',
+  'playerOnePronouns',
+  'playerOneSeed',
+  'playerOneScore',
+  'playerTwoFlag',
+  'playerTwoXHandle',
+  'playerTwoName',
+  'playerTwoPronouns',
+  'playerTwoSeed',
+  'playerTwoScore',
+  'matchLabel',
+  'logo',
+  'infoLeft',
+  'infoCenter',
+  'infoRight'
 ] as const;
 
-export type CustomScoreboardRegionId = typeof customScoreboardRegionIds[number];
+export type CustomScoreboardRegionId = (typeof customScoreboardRegionIds)[number];
 
-const regionSchema = z.object({
-  x: z.number().int().min(0).max(1900),
-  y: z.number().int().min(0).max(1060),
-  width: z.number().int().min(20).max(1920),
-  height: z.number().int().min(20).max(1080),
-  align: z.enum(['left', 'center', 'right'])
-}).superRefine((region, context) => {
-  if (region.x + region.width > 1920 || region.y + region.height > 1080) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Keep this region inside the 1920×1080 canvas.'
-    });
-  }
-});
+const regionSchema = z
+  .object({
+    x: z.number().int().min(0).max(1900),
+    y: z.number().int().min(0).max(1060),
+    width: z.number().int().min(20).max(1920),
+    height: z.number().int().min(20).max(1080),
+    align: z.enum(['left', 'center', 'right'])
+  })
+  .superRefine((region, context) => {
+    if (region.x + region.width > 1920 || region.y + region.height > 1080) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Keep this region inside the 1920×1080 canvas.'
+      });
+    }
+  });
 
 const playerElementRegionsSchema = z.object({
   flag: regionSchema,
+  // Preserve older layout files; the name region now owns sponsor text too.
   sponsor: regionSchema,
   xHandle: regionSchema.optional(),
   name: regionSchema,
@@ -62,10 +82,18 @@ export const customScoreboardSchema = z.object({
     seeds: z.boolean(),
     round: z.boolean(),
     tournamentLogo: z.boolean(),
-    bottomRails: z.boolean()
+    bottomRails: z.boolean(),
+    infoLeft: z.boolean().default(true),
+    infoCenter: z.boolean().default(true),
+    infoRight: z.boolean().default(true)
   }),
   typography: z.object({
+    font: bundledFontSchema.optional(),
     textColor: z.string().regex(/^#[0-9a-f]{6}$/i),
+    sponsorColor: z
+      .string()
+      .regex(/^#[0-9a-f]{6}$/i)
+      .optional(),
     outline: z.enum(['none', 'soft', 'strong']),
     nameSize: z.number().int().min(12).max(96),
     metaSize: z.number().int().min(10).max(64),
@@ -92,24 +120,30 @@ function defaultPlayerElementRegion(side: PlayerSide, element: PlayerElement): C
     return side === 'playerOne' ? defaultPlayerOneXHandle : defaultPlayerTwoXHandle;
   }
   return {
-    x: 0, y: 0, width: 100, height: 40,
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 40,
     align: side === 'playerOne' ? 'left' : 'right'
   };
 }
 
-const playerRegionLocations: Partial<Record<CustomScoreboardRegionId, {
-  side: PlayerSide;
-  element: PlayerElement;
-}>> = {
+const playerRegionLocations: Partial<
+  Record<
+    CustomScoreboardRegionId,
+    {
+      side: PlayerSide;
+      element: PlayerElement;
+    }
+  >
+> = {
   playerOneFlag: { side: 'playerOne', element: 'flag' },
-  playerOneSponsor: { side: 'playerOne', element: 'sponsor' },
   playerOneXHandle: { side: 'playerOne', element: 'xHandle' },
   playerOneName: { side: 'playerOne', element: 'name' },
   playerOnePronouns: { side: 'playerOne', element: 'pronouns' },
   playerOneSeed: { side: 'playerOne', element: 'seed' },
   playerOneScore: { side: 'playerOne', element: 'score' },
   playerTwoFlag: { side: 'playerTwo', element: 'flag' },
-  playerTwoSponsor: { side: 'playerTwo', element: 'sponsor' },
   playerTwoXHandle: { side: 'playerTwo', element: 'xHandle' },
   playerTwoName: { side: 'playerTwo', element: 'name' },
   playerTwoPronouns: { side: 'playerTwo', element: 'pronouns' },
@@ -136,10 +170,11 @@ export function withCustomScoreboardRegion(
   region: CustomScoreboardRegion
 ): CustomScoreboard {
   const location = playerRegionLocations[id];
-  if (!location) return {
-    ...scoreboard,
-    regions: { ...scoreboard.regions, [id]: region }
-  };
+  if (!location)
+    return {
+      ...scoreboard,
+      regions: { ...scoreboard.regions, [id]: region }
+    };
   return {
     ...scoreboard,
     playerElements: {
@@ -152,8 +187,34 @@ export function withCustomScoreboardRegion(
   };
 }
 
+export function oppositeCustomScoreboardRegionId(id: CustomScoreboardRegionId): CustomScoreboardRegionId | undefined {
+  const source = playerRegionLocations[id];
+  if (!source) return undefined;
+  return customScoreboardRegionIds.find((candidate) => {
+    const target = playerRegionLocations[candidate];
+    return target && target.side !== source.side && target.element === source.element;
+  });
+}
+
+export function mirrorCustomScoreboardRegion(
+  scoreboard: CustomScoreboard,
+  id: CustomScoreboardRegionId
+): CustomScoreboard {
+  const target = oppositeCustomScoreboardRegionId(id);
+  if (!target) return scoreboard;
+  const source = clampCustomScoreboardRegion(id, customScoreboardRegion(scoreboard, id));
+  return withCustomScoreboardRegion(scoreboard, target, {
+    ...source,
+    x: 1920 - source.x - source.width,
+    align: source.align === 'left' ? 'right' : source.align === 'right' ? 'left' : 'center'
+  });
+}
+
 export function customScoreboardRegionBounds(id: CustomScoreboardRegionId): {
-  x: number; y: number; width: number; height: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 } {
   if (id.startsWith('playerOne')) return { x: 0, y: 0, width: 960, height: 250 };
   if (id.startsWith('playerTwo')) return { x: 960, y: 0, width: 960, height: 250 };
@@ -161,4 +222,20 @@ export function customScoreboardRegionBounds(id: CustomScoreboardRegionId): {
     return { x: 0, y: 780, width: 1920, height: 300 };
   }
   return { x: 0, y: 0, width: 1920, height: 1080 };
+}
+
+export function clampCustomScoreboardRegion(
+  id: CustomScoreboardRegionId,
+  region: CustomScoreboardRegion
+): CustomScoreboardRegion {
+  const bounds = customScoreboardRegionBounds(id);
+  const width = Math.max(20, Math.min(bounds.width, region.width));
+  const height = Math.max(20, Math.min(bounds.height, region.height));
+  return {
+    ...region,
+    width,
+    height,
+    x: Math.max(bounds.x, Math.min(bounds.x + bounds.width - width, region.x)),
+    y: Math.max(bounds.y, Math.min(bounds.y + bounds.height - height, region.y))
+  };
 }

@@ -1,9 +1,9 @@
 # Player photos
 
-Place player photos in this folder as PNG, JPEG, or WebP files. A transparent PNG or WebP cutout usually works best in overlays and graphics.
+Recommended: **1024×1536 px (2:3)**, framed from head to waist. Other sizes work; transparent PNG or WebP cutouts fit best.
 
-Name each file after the player's full **Tag**. JABS ignores capitalization, spaces, punctuation, and accents when matching names, so `Sonic-Fox.webp` matches `SonicFox`. If two files resolve to the same tag, JABS shows neither because it cannot choose safely.
+Use PNG, JPEG, or WebP named after the player's full tag. Matching ignores capitalization, spaces, punctuation, and accents: `Sonic-Fox.webp` matches SonicFox. Duplicate matches leave the photo blank.
 
-Installed copies use a `players` folder inside the JABS app-data folder. Only add photos you have permission to display or share.
+To use another filename, set **Player photo filename** in the saved player's profile, including the extension.
 
-After adding, replacing, or renaming a photo, choose **Reload assets** in JABS. You do not need to restart the app.
+Installed copies use the app-data `players/` folder, accessible from JABS. Choose **Reload assets** after changing files. Only add photos you have permission to use or share.

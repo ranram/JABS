@@ -20,19 +20,6 @@ type ModerationAllowlistControlsProps = {
 
 export function ModerationAllowlistControls({ onApplied }: ModerationAllowlistControlsProps) {
   const { t } = useTranslation('operator');
-  function translateModerationError(raw: string): string {
-    if (
-      raw === 'moderation.fileTooLarge' ||
-      raw === 'moderation.tooManyEntries'
-    ) {
-      return t(raw);
-    }
-    if (raw.startsWith('moderation.lineTooLong|')) {
-      const line = raw.slice('moderation.lineTooLong|'.length);
-      return t('moderation.lineTooLong', { line });
-    }
-    return raw;
-  }
   const [opened, setOpened] = useState(false);
   const [contents, setContents] = useState('');
   const [opening, setOpening] = useState(false);
@@ -49,7 +36,7 @@ export function ModerationAllowlistControls({ onApplied }: ModerationAllowlistCo
     } catch (error) {
       notifications.show({
         color: 'red',
-        message: translateModerationError(failureMessage(error, t('moderation.openFailed'))),
+        message: failureMessage(error, t('moderation.openFailed')),
         withCloseButton: true
       });
     } finally {
@@ -71,8 +58,7 @@ export function ModerationAllowlistControls({ onApplied }: ModerationAllowlistCo
     } catch (error) {
       notifications.show({
         color: 'red',
-        message: translateModerationError(failureMessage(error, t('moderation.saveFailed'))),
-        autoClose: false,
+        message: failureMessage(error, t('moderation.saveFailed')),
         withCloseButton: true
       });
     } finally {
@@ -93,8 +79,7 @@ export function ModerationAllowlistControls({ onApplied }: ModerationAllowlistCo
     } catch (error) {
       notifications.show({
         color: 'red',
-        message: translateModerationError(failureMessage(error, t('moderation.reloadFailed'))),
-        autoClose: false,
+        message: failureMessage(error, t('moderation.reloadFailed')),
         withCloseButton: true
       });
     } finally {
@@ -111,12 +96,7 @@ export function ModerationAllowlistControls({ onApplied }: ModerationAllowlistCo
           </Button>
         </Tooltip>
         <Tooltip label={t('moderation.reloadHint')} openDelay={350}>
-          <Button
-            size="compact-xs"
-            variant="default"
-            loading={reloading}
-            onClick={() => void reloadAllowlist()}
-          >
+          <Button size="compact-xs" variant="default" loading={reloading} onClick={() => void reloadAllowlist()}>
             {t('moderation.reload')}
           </Button>
         </Tooltip>
@@ -131,7 +111,9 @@ export function ModerationAllowlistControls({ onApplied }: ModerationAllowlistCo
         closeOnEscape={!saving}
       >
         <Stack gap="sm">
-          <Text size="sm" c="dimmed">{t('moderation.editorDescription')}</Text>
+          <Text size="sm" c="dimmed">
+            {t('moderation.editorDescription')}
+          </Text>
           <Textarea
             value={contents}
             onChange={(event) => setContents(event.currentTarget.value)}

@@ -1,361 +1,123 @@
 # JABS Technical Manual
 
-This manual is for developers and designers who want to change JABS. For tournament operation, see the [User Manual](USER_MANUAL.md).
+Development setup is in the [README](README.md). Broadcast operation and media setup are in the [User Manual](USER_MANUAL.md).
 
-The paths and commands below describe the current project. You can adapt a fork to your needs. Changes submitted to the main project are reviewed through the usual pull request process.
+## Architecture
 
-## Get started
-
-JABS uses Tauri 2, Rust, React, Vite, and Mantine. Install the platform requirements listed in the main [README](README.md), then install the locked dependencies:
-
-```sh
-pnpm install --frozen-lockfile
-```
-
-Start the desktop app:
-
-```sh
-pnpm run dev
-```
-
-Useful checks:
-
-| Command | Purpose |
-| --- | --- |
-| `pnpm run typecheck` | Check TypeScript and generated catalogs |
-| `pnpm test` | Run frontend tests |
-| `pnpm run check:rust` | Check the Rust application |
-| `pnpm check` | Run all project checks |
-| `pnpm run build:web` | Build the renderer only |
-| `pnpm run build` | Build the packaged desktop app |
-
-## Project map
+JABS uses Tauri 2 with a Rust core and a React/Vite renderer. Mantine supplies operator controls. OBS pages use separate styling and a fixed `1920×1080` canvas.
 
 | Area | Location |
 | --- | --- |
-| Desktop and native application | `src-tauri/` |
-| Rust source | `src-tauri/src/` |
-| React renderer | `src/renderer/src/` |
-| Main operator interface | `src/renderer/src/ui/OperatorDashboard.tsx` |
-| Operator controls and generators | `src/renderer/src/ui/operator/` |
-| Shared models and game settings | `src/shared/` |
-| Main application styles | `src/renderer/src/controlDeck.*.css` |
-| OBS overlay styles | `src/renderer/src/styles.css` |
-| Character source lists | `character-lists/` |
-| Game artwork | `game-assets/` |
-| Player photos | `players/` |
-| Sponsor logos | `sponsors/` |
-| Tournament logos | `tourney-logos/` |
-| Interface translations | `src/renderer/src/i18n/catalogs/` |
+| Native state, SQLite, secrets, local HTTP and WebSockets | `src-tauri/src/` |
+| start.gg transport, including anonymous public reads | `crates/jabs-startgg-client/` |
+| Operator UI and graphic generators | `src/renderer/src/ui/operator/` |
+| OBS components and feature styles | `src/renderer/src/ui/` |
+| Shared schemas, game profiles, and rules | `src/shared/` |
+| Translations | `src/renderer/src/i18n/catalogs/` |
+| Reviewed character rosters and aliases | `character-lists/` |
 
-Frontend components, their CSS, and focused unit tests are kept near the feature they cover. Shared code lives in `src/shared/`, while Rust tests stay with their Rust modules.
+Feature folders group components, CSS, and unit tests. Shared request and response types live in `src/shared/`; changes to these types need corresponding Rust and TypeScript updates, including support for existing saved data.
 
-## Change the operator interface
+## Local OBS service
 
-The operator interface starts in these files:
+OBS connects to a local service at `http://127.0.0.1:4279` by default. The service listens only on the local computer. Requests that change app state require `X-JABS-Action: renderer-v1`. Tokens stay in the native core and are never included in URLs or API responses.
 
-- `src/renderer/src/ui/OperatorDashboard.tsx` assembles the dashboard.
-- `src/renderer/src/ui/operator/WorkspacePanels.tsx` contains the main workspaces.
-- `src/renderer/src/ui/operator/StartggPanel.tsx` handles tournament and set selection.
-- `src/renderer/src/ui/operator/StreamEditorPanel.tsx` contains stream-state editing.
-- `src/renderer/src/controlDeck.*.css` contains the application layout and styling.
-- `src/renderer/src/ui/theme.ts` contains the Mantine theme.
-
-Controls for a specific feature normally have a matching component under `src/renderer/src/ui/operator/`. For example, player fields are in `PlayerEditor.tsx`, commentator fields are in `CommentatorControls.tsx`, and score controls are in `ScoreControls.tsx`.
-
-`WorkspaceMaintenanceBar.tsx` renders the sticky reload and maintenance actions below the main tabs. Its asset button calls `useAssetCatalogReload.ts`, which rescans local media and clears the renderer's raster cache. Individual panels use this shared refresh rather than maintaining separate logo or media reload actions.
-
-Run `pnpm run dev` to review interface changes in the desktop window.
-
-## Change score overlays
-
-Score overlays are rendered by `src/renderer/src/ui/OverlayView.tsx`. Their shared presentation helpers are in:
-
-- `src/renderer/src/ui/ScoreOverlayContext.tsx`
-- `src/renderer/src/ui/overlayPresentation.ts`
-- `src/renderer/src/ui/overlayPlayerPresentation.ts`
-- `src/renderer/src/styles.css`
-
-Game names, aliases, themes, and overlay templates are defined in `src/shared/gameProfiles.ts`.
-
-OBS uses a transparent 1920×1080 browser source. The active score overlay is available at:
-
-```text
-http://127.0.0.1:4279/overlay/active/main
-```
-
-When adjusting an overlay, open the matching game and check that names, scores, flags, pronouns, characters, round information, and station information fit at both short and long lengths.
-
-## Change custom scoreboards
-
-Custom scoreboards place live match data over a user-provided transparent `1920×1080` PNG. The active scoreboard route remains `/overlay/active/main`.
-
-| Part | File |
+| Source | Route |
 | --- | --- |
-| Shared model, defaults, and bounds | `src/shared/customScoreboards.ts` |
-| Native import, validation, and storage | `src-tauri/src/custom_scoreboards.rs` |
-| Selection helpers | `src/renderer/src/customScoreboardSelection.ts` |
-| Editor controls | `src/renderer/src/ui/operator/CustomScoreboardPanel.tsx` |
-| Preview and OBS canvas | `src/renderer/src/ui/CustomScoreboardCanvas.tsx` |
-| Canvas styling | `src/renderer/src/ui/customScoreboard.css` |
+| Scoreboard | `/overlay/active/main` |
+| Versus Screen | `/overlay/active/versus` |
+| Winner & Champion | `/overlay/active/winner` |
+| Stats: Player 1 | `/overlay/active/stats?player=1` |
+| Stats: Player 2 | `/overlay/active/stats?player=2` |
+| Top 8 Matchups | `/overlay/active/top-eight-matchups` |
+| Commentators | `/overlay/commentators` |
+| Bracket | `/overlay/active/bracket` |
+| Stingers | `/overlay/stingers` |
 
-The native importer accepts PNG files up to 20 MiB and verifies their dimensions and transparency. Saved scoreboards live in the JABS application-data directory, including during development.
+The scoreboard route shows the selected built-in or custom layout. The result route chooses Winner or Champion from the match result; `/overlay/active/champion` remains a supported alias.
 
-Player 1 elements use the region `x: 0–960, y: 0–250`; Player 2 elements use `x: 960–1920, y: 0–250`. The tournament logo and lower rails use the bottom `300px`. `customScoreboardRegionBounds()` supplies these limits to the preview controls, while the native importer checks saved layouts against the same regions.
+## Catalogs and translations
 
-Selecting a custom scoreboard changes presentation only. Returning to automatic styling restores the built-in overlay without changing the detected game, reporting rules, or character catalog.
+Built-in rosters are maintained in `character-lists/<game-id>.json`. Saved selections refer to canonical character names, so renaming one affects existing saves. Aliases apply within a single game and must remain unique after normalization.
 
-## Change Winner and Champion screens
-
-The main files are:
-
-- `src/renderer/src/ui/OverlayView.tsx`
-- `src/renderer/src/ui/announcementPresentation.ts`
-- `src/renderer/src/styles.css`
-- `src/shared/resultScreen.ts`
-- `src-tauri/src/result_screen.rs`
-- `src/renderer/src/ui/operator/ResultScreenControls.tsx`
-
-Use these routes in OBS:
-
-```text
-http://127.0.0.1:4279/overlay/active/winner
-http://127.0.0.1:4279/overlay/active/champion
-```
-
-The controls allow tournament logos, player photos, sponsor logos, character artwork, and team portraits to be shown when matching media is available.
-
-## Change the Versus Screen
-
-The main files are:
-
-- `src/renderer/src/ui/VersusOverlay.tsx`
-- `src/renderer/src/ui/versusOverlay.css`
-- `src/renderer/src/ui/operator/VersusPreview.tsx`
-- `src/renderer/src/ui/operator/VersusScreenControls.tsx`
-- `src/shared/versusScreen.ts`
-- `src-tauri/src/versus_screen.rs`
-
-The OBS route is:
-
-```text
-http://127.0.0.1:4279/overlay/active/versus
-```
-
-Media placement is handled by `AdjustableMediaImage.tsx` and `adjustableMedia.css`. The preview supports dragging, arrow-key movement, scaling, and resetting a layer.
-
-## Change the Top 8 Matchups overlay
-
-The operator preview and OBS route share the same presentation component:
-
-- `src/renderer/src/ui/TopEightMatchupsOverlay.tsx`
-- `src/renderer/src/ui/topEightMatchupsOverlay.css`
-- `src/renderer/src/ui/operator/TopEightMatchupsPreview.tsx`
-- `src/renderer/src/ui/operator/TopEightMatchupsControls.tsx`
-- `src/shared/topEightMatchups.ts`
-- `src-tauri/src/top_eight_matchups.rs`
-
-The OBS route is:
-
-```text
-http://127.0.0.1:4279/overlay/active/top-eight-matchups
-```
-
-The route always renders the saved state. If the event contains a phase named **Top 8**, detection reads that phase first. Otherwise, it uses bracket topology to find the four opening matches. Each player is limited to one portrait character.
-
-## Change the Commentator overlay
-
-The main files are:
-
-- `src/renderer/src/ui/operator/CommentatorControls.tsx`
-- `src/renderer/src/ui/OverlayView.tsx`
-- `src/renderer/src/ui/commentatorOverlay.css`
-- `src/shared/commentators.ts`
-- `src-tauri/src/commentators.rs`
-
-The OBS route is:
-
-```text
-http://127.0.0.1:4279/overlay/commentators
-```
-
-The easiest visual adjustments are the custom properties near the top of `.commentator-lower-third` in `commentatorOverlay.css`:
-
-```css
---commentator-rail-height: 90px;
---commentator-edge-cut: 34px;
---commentator-border-size: 4px;
---commentator-logo-width: 340px;
---commentator-logo-height: 180px;
-```
-
-These values control the rail height, angled ends, border thickness, and logo area.
-
-## Change Top 8 graphics
-
-Top 8 exports are 1920×1080 PNG files. The available layouts are Mosaic and Neon, with Neon used by default.
-
-| Part | File |
-| --- | --- |
-| Fields and validation | `src/shared/topEight.ts` |
-| Editor state | `src/renderer/src/ui/operator/useTopEightDraft.ts` |
-| Controls | `src/renderer/src/ui/operator/TopEightGenerator.tsx` |
-| Preview canvas | `src/renderer/src/ui/operator/TopEightCanvas.tsx` |
-| Layout and styling | `src/renderer/src/ui/operator/topEight.css` |
-| Background handling | `src/renderer/src/ui/operator/topEightBackground.ts` |
-| Media loading | `src/renderer/src/ui/operator/useTopEightMedia.ts` |
-
-Layout order and placement values are defined in the canvas, shared model, and stylesheet. Event import is handled by the generator controls and draft hook. All player fields remain editable after importing standings.
-
-## Change YouTube thumbnails
-
-Thumbnail exports are 1280×720 PNG files. The available layouts are Versus and Spotlight.
-
-| Part | File |
-| --- | --- |
-| Fields and validation | `src/shared/thumbnail.ts` |
-| Editor state | `src/renderer/src/ui/operator/useThumbnailDraft.ts` |
-| Controls | `src/renderer/src/ui/operator/ThumbnailGenerator.tsx` |
-| Preview canvas | `src/renderer/src/ui/operator/ThumbnailCanvas.tsx` |
-| Layout and styling | `src/renderer/src/ui/operator/thumbnail.css` |
-
-The generator can start from the active stream match or be filled manually. Player details, media, labels, and layout choices are controlled by the editor and canvas files above.
-
-## Graphic export
-
-Top 8 and thumbnail downloads use `src/renderer/src/ui/operator/exportGraphic.ts`. The exporter turns the preview into a PNG and adds the selected local images in their visual order.
-
-If a new image does not appear in the downloaded file, compare it with the existing image layers in the canvas component. Exported layers use `data-export-image-layer`, and clipped areas use `data-export-clip`.
-
-If new text appears in the preview but export is rejected, add that text to the trusted-text list passed to the exporter by the canvas.
-
-## Add local media
-
-During development, JABS reads media from the repository folders. Packaged builds use matching folders in the application-data location shown by JABS under **Media folders**.
-
-Supported formats are PNG, JPEG, and WebP.
-
-```text
-tourney-logos/<Logo>.png
-sponsors/<Sponsor or Prefix>.webp
-players/<Player Tag>.webp
-game-assets/<game-slug>/characters/<Character>.png
-game-assets/<game-slug>/portraits/<Character>.webp
-```
-
-The filename is the name JABS uses for matching. Player photos should match the player tag. Sponsor logos can match the sponsor or prefix. Character artwork and portraits should use the same filename stem, such as:
-
-```text
-game-assets/ultimate-marvel-vs-capcom-3/characters/Doctor Doom.png
-game-assets/ultimate-marvel-vs-capcom-3/portraits/Doctor Doom.webp
-```
-
-Square portraits work best in the small team slots. After adding files while JABS is open, use **Reload assets** in the sticky utility bar.
-
-Numbered filename suffixes group colors or outfits under one character. Supported examples include `Mario1.png`, `Mario-2.png`, `Mario (3).png`, and `Mario [4].png`. Use the same number for matching files in `characters/` and `portraits/`. The parser and matching rules live in `src-tauri/src/catalogs/character_assets.rs`; the user-facing convention is documented in `game-assets/README.md`.
-
-**Reload assets** is global. It clears the raster cache and rescans character art, portraits, player photos, sponsor logos, and tournament logos. It also reloads tournament logos when no game catalog is selected.
-
-## Update a character roster
-
-To edit a built-in roster, open `character-lists/<game-id>.json`. Each entry in `characters` has a display name and a list of alternate names:
-
-```json
-{ "name": "M. Bison", "aliases": ["Bison", "Dictator"] }
-```
-
-In this example, JABS recognizes `Bison` and `Dictator` in artwork filenames and imported character names, but still shows M. Bison in the dropdown. Add alternate spellings to `aliases` rather than changing `name`, since saved selections use that name. Use an empty array (`[]`) when no aliases are needed.
-
-You do not need aliases for differences in punctuation, spacing, capitalization, or accents: `AKI` already matches `A.K.I.`. Each alias belongs to one character within that game's roster. The catalog check catches duplicates and names assigned to more than one character.
-
-Games without a built-in roster take their character names from artwork filenames. They do not need a JSON catalog. See [Game artwork](game-assets/README.md) for filenames and numbered outfits.
-
-After editing a catalog, regenerate the application data:
+After editing a roster, regenerate and check the catalogs:
 
 ```sh
 pnpm run rosters:sync
 pnpm run rosters:check
 ```
 
-Review the edited catalog and generated files together.
+Game profiles are defined in `src/shared/gameProfiles.ts`. Team sizes and match formats are defined in `characterTeamPolicies.json` and `matchFormatPolicies.json`. Artwork filenames are parsed in `src-tauri/src/catalogs/character_assets.rs`; the naming rules are described in [Game artwork](game-assets/README.md).
 
-Team-size settings are stored in `src/shared/characterTeamPolicies.json`. Character helpers are in `src/shared/characterTeams.ts`.
+For other games, JABS caches character names from start.gg in `.jabs-roster.json`. This file helps distinguish punctuation and numbers in character names from outfit suffixes. To fetch updated names, choose **Clear bracket history** and reselect the game. If no roster is available, JABS derives names from filenames.
 
-## Add or change a supported game
+Moderation runs in Rust. `moderation.rs` handles matching, while `state/text_moderation.rs` checks stream fields during edits, imports, and restoration. Source lists are in `bad-word-list/`; matching rules and reviewed exceptions are maintained under `scripts/`.
 
-Start with `src/shared/gameProfiles.ts`. Each supported game has its display name, recognized aliases, theme values, rules, and overlay template there.
+After changing a source list, run `pnpm run moderation:sync` and `pnpm run moderation:check`. A leading `!` protects a term from local allowlist exceptions. This annotation belongs in the source file and must be retained when updating upstream lists. The generator checks for conflicts with reviewed exclusions.
 
-A full game addition normally touches:
+The local `moderation-allowlist.txt` allows exceptions for complete field values. Protected whole terms and disguised spellings cannot be added. A protected fragment inside a longer word can still receive an exception for that full word. If an edited allowlist is rejected, the previous rules remain active.
 
-1. `src/shared/gameProfiles.ts` for the game profile and start.gg name aliases.
-2. `src/renderer/src/ui/OverlayView.tsx` for a new score-overlay template, if needed.
-3. `src/renderer/src/styles.css` for its overlay styling.
-4. `character-lists/` for its roster.
-5. `src/shared/matchFormatPolicies.json` for a game-specific match format, if needed.
-6. `src/shared/characterTeamPolicies.json` for games that use teams.
-7. Focused tests beside the changed shared or renderer file.
+Catalog entries normally match whole words or phrases. A leading `~` also matches a term inside longer words or across separators; use `!~` when the term is protected as well. A leading `=` allows an exact field value, subject to the protected-term checks. Keep these markers when updating source lists. Exact matching ignores case and surrounding whitespace after Unicode normalization. Rejected input is excluded from errors and logs.
 
-Run the roster sync after adding the character list, then open an event for that game and review its operator controls and OBS overlay.
+Interface text is maintained in `en.ts` and `es-419.ts` under `src/renderer/src/i18n/catalogs/`. New or changed text needs an entry in both languages. Imported names and event labels retain their original language.
 
-Games without a built-in profile can still use media under a folder derived from their start.gg game name.
+## Persistence and exports
 
-## Change moderation data
+The database, imported custom scoreboards, and stinger videos are stored in Tauri's application-data directory. During development, media catalogs use repository folders. Installed copies use matching folders in the application-data directory; JABS displays their paths in the interface.
 
-Moderation source files are stored in `bad-word-list/` and the reviewed allowlists under `scripts/`. The generated Rust catalog is `src-tauri/src/generated_moderation_terms.rs`.
+Stinger settings are saved in SQLite. Playback requests stay in memory, and each request is assigned to one active OBS source to prevent duplicate playback. The source at `/overlay/stingers` plays WebM videos, with support for loading portions of a file. Users convert videos before importing them and control audio levels in OBS. Shared framing settings are defined in `src/shared/stingers.ts`.
 
-After changing a source or allowlist, run:
+The Player Library stores profiles and local overrides in `players`, searchable tags in `player_aliases`, and game preferences in `player_games`. Related records use `players.local_id`; start.gg IDs distinguish players who share a tag. An absent override uses the imported value, while an empty string deliberately hides it. Use SQLite's `.backup` command when backing up a running app so recent database writes are included.
+
+`set_overrides` stores each match's progress as JSON, keyed by its start.gg set ID. Returning to a match restores that progress and applies current Player Library defaults. Images remain in the media folders; the saved match contains their filenames.
+
+Saved matches expire seven days after their last edit. JABS removes expired records at startup and when selecting a match, while retaining the match currently on stream. Player profiles and overlay settings do not expire.
+
+Top 8 and thumbnail PNG exports are handled by `ui/operator/exportGraphic.ts`. The exporter identifies image layers through `data-export-image-layer`, clipping regions through `data-export-clip`, and permitted labels through `trustedText`.
+
+Both generators share image controls in `GeneratorMediaControls.tsx`, editor layout styles in `generatorLayout.css`, and fonts in `generatorFonts.css`. The exported designs use `topEight.css` and `thumbnail.css`, keeping editor spacing separate from the finished image.
+
+Font IDs are defined in `src/shared/fonts.ts`; font declarations and selectors are in `ui/fonts/`. The `scoreboardFont` preference controls built-in scoreboards and their rails. It is stored separately from the `appearance` object used by presets and exports. Custom scoreboards save their own choice in `typography.font`.
+
+Help tutorials are implemented in `ui/tutorials/`. Starting a guide loads Driver.js; `tutorials.ts` defines the highlighted controls and navigation, and the translation catalogs provide the text. Popovers use JABS styles and Mantine controls. Score shortcuts pause during a tour, and closing it cancels any observers waiting for the next highlighted control.
+
+## Scoreboard photos
+
+The `scoreboard-photos` setting enables player photos. Each player's position, scale, and flip settings are saved in `player_scoreboard_photos` for each game and side. JABS looks for a matching headshot in `player_headshots/` first, then a photo in `players/`. Older crop settings still work; replacing an image resets its framing until the user adjusts it.
+
+Built-in and custom scoreboards use the same photo shapes from `src/shared/scoreboardPhotoLayouts.json`. Changing the scoreboard style does not move the photo panels. Games without a photo layout, including Smash Ultimate, display no photo layer and do not load photo media.
+
+Photo panels can show either a tournament logo (`logoBackdrop`) or each player's sponsor logo (`sponsorBackdrop`) behind the photo. Both options are off by default. Logos appear at 14% opacity: expanded logos stay upright, while wide logos follow opposite diagonals on the two sides. Their proportions are preserved, and the panel mask prevents them from covering protected parts of the game HUD. This feature uses the shared image cache and works independently of the main broadcast logo's visibility setting.
+
+## Verification
+
+Contributor checks:
 
 ```sh
-pnpm run moderation:sync
-pnpm run moderation:check
+pnpm check
+cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
 
-Review both the source change and generated Rust change before committing them. Test ordinary player names and tournament names as well as terms that should be rejected.
+While developing, use `pnpm test` or focused native tests. `pnpm run typecheck` also checks generated catalogs and source-size limits.
 
-Packaged installations create `moderation-allowlist.txt` in the application-data directory. Development builds use the file at the repository root, where Git ignores it. This file is for local tournament decisions and is not compiled into JABS. Each non-comment line permits one exact complete field value after capitalization and whitespace normalization. The app loads it at startup and when the user chooses **Reload allowlist**.
+Unit tests sit beside the feature they cover; workflow tests live in `src/integration/`. Useful regressions check saved data, validation, responses arriving out of order, and user actions. Shared controls need thorough coverage once, followed by short integration checks in the screens that use them. `createTestCustomScoreboard` provides a standard layout fixture; migration tests use explicit older inputs. Database paging tests need only enough records to cross a page boundary.
 
-## Add or change a translation
+## Diagnostics and native error text
 
-The bundled catalogs are:
+`diagnostics.rs` writes logs in the background under `app_data_dir/logs`, keeping up to three files of 2 MB each. Entries identify the event, affected feature, app version, and session. Where relevant, they also include HTTP status and the location in the source code. Repeated entries are counted together, and a session marker helps identify unexpected shutdowns. Tokens, player text, saved settings, URLs, and raw error contents are excluded.
 
-```text
-src/renderer/src/i18n/catalogs/en.ts
-src/renderer/src/i18n/catalogs/es-419.ts
-```
+`diagnostics.ts` reports failures from the interface and desktop commands. OBS pages send diagnostic details to `/api/diagnostics/renderer`; these requests require the action header, pass origin checks, and are limited to 1 KB.
 
-User-facing interface text should use a translation key from these catalogs. When adding a language, also update the language selector and locale list under `src/renderer/src/i18n/`.
+Users can export a diagnostic report, open the logs folder, or start a support email from **Help → Diagnostics & support**. They review and attach the report before sending it.
 
-Player names, tournament names, sponsor names, phases, rounds, and other imported event data are displayed as provided and are not translated.
-
-## Native application and start.gg
-
-The Rust application lives in `src-tauri/src/`:
-
-| Area | File |
-| --- | --- |
-| Tauri setup and commands | `lib.rs` |
-| Local HTTP service and WebSockets | `local_server.rs` |
-| start.gg client | `startgg.rs` |
-| Public start.gg access | `crates/jabs-startgg-client/src/anonymous.rs` |
-| GraphQL queries | `startgg_queries.rs` |
-| Result reporting routes | `reporting_routes.rs` |
-| Saved stream state | `state.rs` |
-| SQLite storage | `database.rs` |
-| Media catalogs | `catalogs.rs` |
-| Token storage | `secrets.rs` |
-| Moderation | `moderation.rs` |
-| Custom scoreboards | `custom_scoreboards.rs` |
-
-Shared request and response shapes live in `src/shared/`. When a field crosses between Rust and TypeScript, update both sides and check saved-state compatibility.
+`i18n/nativeErrors.ts` translates native errors before the interface displays them. Known error codes use the regular translation catalogs; older English messages use `nativeErrors.es-419.json`. New native messages need Spanish translations so users receive the same recovery advice in either language. Unrecognized errors show a translated fallback message. The original diagnostic records and API responses remain unchanged.
 
 ## Build an installer
-
-Build the package for the current operating system with:
 
 ```sh
 pnpm run build
 ```
 
-Tauri places release packages under `src-tauri/target/release/bundle/`. Windows, macOS, and Linux packages must be built on their respective supported build environments.
+Build in a supported environment for the target OS. Packages go to `src-tauri/target/release/bundle/`. Keep local tokens, databases, and unlicensed media out of distributions; see [asset licensing](ASSET_LICENSES.md).
 
-Before distributing a build, check that it does not contain local tokens, databases, downloaded media, screenshots, or build-only test material. Release checksums should match the exact files being distributed.
+`pnpm run clean:native` removes Rust build artifacts.

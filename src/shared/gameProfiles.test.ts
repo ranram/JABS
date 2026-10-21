@@ -2,19 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   bestOfOptionsForGame,
   defaultBestOfForGame,
-  defaultGameId,
   gameIdForStartggVideogame,
-  resolveGameProfile,
+  resolveStartggGameProfileId,
   scoreLimitForBestOf
 } from './gameProfiles';
 
 describe('game profiles', () => {
-  it('resolves current, legacy, and unknown profile IDs', () => {
-    expect(resolveGameProfile('tekken-8').label).toBe('Tekken 8');
-    expect(resolveGameProfile('avatar-fighters')).toMatchObject({ id: 'avatar-legends', shortLabel: 'AL' });
-    expect(resolveGameProfile('unknown-game').id).toBe(defaultGameId);
-  });
-
   it('maps reviewed start.gg titles without fuzzy-matching similar games', () => {
     const recognized = [
       ['Street Fighter™ 6', 'street-fighter-6'],
@@ -39,11 +32,18 @@ describe('game profiles', () => {
     for (const name of ['Street Fighter 6 Teams', 'Tekken 7', 'Guilty Gear Xrd REV 2']) {
       expect(gameIdForStartggVideogame({ id: 'game-id', name }), name).toBeUndefined();
     }
+    const vampireSavior = { id: '582', name: 'Vampire Savior: The Lord of Vampire' };
+    expect(gameIdForStartggVideogame(vampireSavior)).toBeUndefined();
+    expect(resolveStartggGameProfileId(vampireSavior)).toBe('street-fighter-6');
+    expect(resolveStartggGameProfileId(vampireSavior, 'guilty-gear-strive')).toBe('guilty-gear-strive');
+    expect(resolveStartggGameProfileId(vampireSavior, '')).toBe('street-fighter-6');
+    expect(resolveStartggGameProfileId({ id: '1', name: 'Tekken 8' }, 'street-fighter-6')).toBe('tekken-8');
   });
 
   it('derives score limits and applies phase and game format rules', () => {
     expect(bestOfOptionsForGame('street-fighter-6')).toEqual([3, 5]);
     expect(scoreLimitForBestOf('street-fighter-6', 3)).toBe(2);
+    expect(scoreLimitForBestOf('street-fighter-6', 5)).toBe(3);
     expect(scoreLimitForBestOf('street-fighter-6', 99)).toBe(3);
     expect(defaultBestOfForGame('street-fighter-6', { phase: 'Pools' })).toBe(3);
     expect(defaultBestOfForGame('street-fighter-6', { phase: 'Top 8' })).toBe(5);

@@ -4,7 +4,7 @@ use std::{path::Path, sync::Mutex};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 pub struct Database {
-    connection: Mutex<Connection>,
+    pub(crate) connection: Mutex<Connection>,
     recovery_notices: Mutex<Vec<String>>,
 }
 
@@ -53,6 +53,9 @@ impl Database {
                UNIQUE(surface_id, payload)
              );"
         ).map_err(|_| "Unable to initialize JABS's local database.".to_owned())?;
+        connection.execute_batch(crate::player_library::SCHEMA)
+            .map_err(|_| "Unable to initialize the player library.".to_owned())?;
+        prune_expired_set_overrides(&connection)?;
         Ok(Self { connection: Mutex::new(connection), recovery_notices: Mutex::new(Vec::new()) })
     }
 
@@ -62,6 +65,8 @@ impl Database {
     }
 
     pub fn record_recovery_notice(&self, message: String) -> Result<(), String> {
+        crate::diagnostics::record(crate::diagnostics::Event::SettingsRecovered,
+            crate::diagnostics::Context { area: crate::diagnostics::Area::Settings, ..Default::default() });
         self.recovery_notices.lock()
             .map_err(|_| "Recovery notices are unavailable.".to_owned())?.push(message);
         Ok(())
@@ -167,6 +172,7 @@ impl Database {
     pub fn load_set_override(&self, set_id: &str) -> Result<Option<String>, String> {
         let connection = self.connection.lock()
             .map_err(|_| "Local database is unavailable.".to_owned())?;
+        prune_expired_set_overrides(&connection)?;
         let mut statement = connection.prepare(
             "SELECT payload FROM set_overrides WHERE set_id = ?1"
         ).map_err(|_| "Unable to read saved set details.".to_owned())?;
@@ -230,6 +236,36 @@ impl Database {
             .map_err(|_| "Unable to read recent tournament history.".to_owned())
     }
 
+    pub fn startgg_cache(&self, key: &str) -> Result<Option<(String, bool)>, String> {
+        use rusqlite::OptionalExtension;
+        let connection = self.connection.lock()
+            .map_err(|_| "Local database is unavailable.".to_owned())?;
+        connection
+            .query_row(
+                "SELECT payload, datetime(updated_at) > datetime('now', '-1 day')
+                 FROM startgg_cache WHERE cache_key = ?1",
+                [key],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()
+            .map_err(|_| "Unable to load cached game data.".to_owned())
+    }
+
+    pub fn save_startgg_cache(&self, key: &str, payload: &str) -> Result<(), String> {
+        let connection = self.connection.lock()
+            .map_err(|_| "Local database is unavailable.".to_owned())?;
+        connection
+            .execute(
+                "INSERT INTO startgg_cache (cache_key, payload, updated_at)
+                 VALUES (?1, ?2, ?3)
+                 ON CONFLICT(cache_key) DO UPDATE SET
+                 payload = excluded.payload, updated_at = excluded.updated_at",
+                params![key, payload, now_rfc3339()?],
+            )
+            .map_err(|_| "Unable to cache game data.".to_owned())?;
+        Ok(())
+    }
+
     pub fn clear_startgg_cache_and_history(&self) -> Result<(), String> {
         let mut connection = self.connection.lock()
             .map_err(|_| "Local database is unavailable.".to_owned())?;
@@ -244,6 +280,20 @@ impl Database {
     }
 }
 
+// Expire inactive matches on startup and selection, rather than on every score or artwork edit.
+fn prune_expired_set_overrides(connection: &Connection) -> Result<(), String> {
+    connection.execute(
+        "DELETE FROM set_overrides
+         WHERE (datetime(updated_at) IS NULL OR datetime(updated_at) <= datetime('now', '-7 days'))
+           AND set_id != COALESCE((
+               SELECT json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END, '$.selectedSet.setId')
+               FROM app_state WHERE id = 1
+           ), '')",
+        [],
+    ).map_err(|_| "Unable to remove expired saved match edits.".to_owned())?;
+    Ok(())
+}
+
 pub fn now_rfc3339() -> Result<String, String> {
     OffsetDateTime::now_utc().format(&Rfc3339)
         .map_err(|_| "Unable to create a local state timestamp.".to_owned())
@@ -252,6 +302,28 @@ pub fn now_rfc3339() -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::Database;
+
+    #[test]
+    fn saved_match_edits_expire_after_seven_days_but_preserve_the_on_air_match() {
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        database.save_overlay_state(r#"{"selectedSet":{"setId":"active"}}"#, "fixture").unwrap();
+        {
+            let connection = database.connection.lock().unwrap();
+            connection.execute_batch(
+                "INSERT INTO set_overrides VALUES ('expired', 'old', datetime('now', '-7 days'));
+                 INSERT INTO set_overrides VALUES ('recent', 'kept', datetime('now', '-6 days'));
+                 INSERT INTO set_overrides VALUES ('active', 'live', datetime('now', '-30 days'));
+                 INSERT INTO set_overrides VALUES ('invalid-date', 'old', 'broken');"
+            ).unwrap();
+        }
+        assert_eq!(database.load_set_override("expired").unwrap(), None);
+        assert_eq!(database.load_set_override("invalid-date").unwrap(), None);
+        assert_eq!(database.load_set_override("recent").unwrap().as_deref(), Some("kept"));
+        assert_eq!(database.load_set_override("active").unwrap().as_deref(), Some("live"));
+        database.save_overlay_state(r#"{"selectedSet":{}}"#, "fixture").unwrap();
+        assert_eq!(database.load_set_override("active").unwrap(), None);
+        assert_eq!(database.load_set_override("recent").unwrap().as_deref(), Some("kept"));
+    }
 
     #[test]
     fn recovery_preserves_rejected_payloads_and_keeps_settings_when_a_logo_is_missing() {
@@ -307,13 +379,21 @@ mod tests {
     }
 
     #[test]
-    fn recent_history_is_bounded_and_clear_preserves_other_tables() {
+    fn recent_history_is_bounded_and_cache_cleanup_removes_game_data() {
         let database = Database::open(std::path::Path::new(":memory:")).unwrap();
         for index in 0..10 {
             database.record_recent_tournament(&format!("event-{index}")).unwrap();
         }
         assert_eq!(database.recent_tournaments().unwrap().len(), 8);
+        database.save_startgg_cache("fgc-v1", "{\"games\":[]}").unwrap();
+        assert_eq!(database.startgg_cache("fgc-v1").unwrap(), Some(("{\"games\":[]}".to_owned(), true)));
+        database.connection.lock().unwrap().execute(
+            "UPDATE startgg_cache SET updated_at = '2020-01-01T00:00:00Z'", [],
+        ).unwrap();
+        let (_, fresh) = database.startgg_cache("fgc-v1").unwrap().unwrap();
+        assert!(!fresh);
         database.clear_startgg_cache_and_history().unwrap();
+        assert!(database.startgg_cache("fgc-v1").unwrap().is_none());
         assert!(database.recent_tournaments().unwrap().is_empty());
     }
 }

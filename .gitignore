@@ -18,8 +18,11 @@ moderation-allowlist.txt
 # User-provided media catalogs stay local. Commit only their usage notes.
 game-assets/*/characters/
 game-assets/*/portraits/
+game-assets/*/.jabs-roster*
 players/*
 !players/README.md
+player_headshots/*
+!player_headshots/README.md
 sponsors/*
 !sponsors/README.md
 tourney-logos/*
@@ -29,3 +32,4 @@ tourney-logos/*
 .DS_Store
 Thumbs.db
 *.log
+/local-reference/

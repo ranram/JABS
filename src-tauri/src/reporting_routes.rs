@@ -76,6 +76,8 @@ async fn perform_active_report(runtime: &RuntimeState, body: ReportSetBody) -> R
         Ok(reported) => reported,
         Err(error) => return reporting_error(error, "reload bracket data from start.gg"),
     };
+    runtime.versus_history.invalidate();
+    runtime.player_stats.invalidate();
     let state = match runtime.overlay.mark_reported(&runtime.database, &body.set_id, &reported.state) {
         Ok(state) => state,
         Err(error) => return secure_json((StatusCode::CONFLICT, Json(serde_json::json!({
@@ -189,6 +191,8 @@ async fn perform_quick_report(runtime: &RuntimeState, body: QuickReportBody) -> 
         Ok(reported) => reported,
         Err(error) => return reporting_error(error, "refresh the bracket"),
     };
+    runtime.versus_history.invalidate();
+    runtime.player_stats.invalidate();
     secure_json(Json(serde_json::json!({
         "reportedSetId": reported.id,
         "reportedSetState": reported.state,
@@ -222,6 +226,9 @@ fn reporting_error(mut error: crate::startgg::ApiError, recovery: &str) -> Respo
     if error.code == "permission" {
         error.error = "This token cannot report this set. Use an account authorized for this tournament; OAuth integrations require tournament.reporter.".to_owned();
     } else if matches!(error.code, "network" | "timeout" | "upstream" | "invalid-response") {
+        crate::diagnostics::record(crate::diagnostics::Event::ReportOutcomeUncertain,
+            crate::diagnostics::Context { area: crate::diagnostics::Area::Reporting,
+                reason: Some(crate::diagnostics::Reason::from_code(error.code)), ..Default::default() });
         error.error = format!("{} The report outcome may be uncertain; {recovery} before trying again.", error.error);
     }
     startgg_error(error)

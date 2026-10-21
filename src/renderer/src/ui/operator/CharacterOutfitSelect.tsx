@@ -37,8 +37,6 @@ export function CharacterOutfitSelect({
     <Select
       data-testid={testId}
       label={t('editor.colorOutfit')}
-      description={t('editor.colorOutfitHelp')}
-      inputWrapperOrder={['label', 'input', 'description', 'error']}
       placeholder={placeholder}
       data={options.map((option) => ({
         ...option,

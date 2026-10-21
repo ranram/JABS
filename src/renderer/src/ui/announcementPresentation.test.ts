@@ -18,4 +18,27 @@ describe('announcement presentation', () => {
     expect(announcementPresentation(completedSet('Grand Finals', 'two', 'alpha'))?.kind).toBe('winner');
     expect(announcementPresentation(completedSet('Grand Final Reset', 'two', 'alpha'))?.kind).toBe('champion');
   });
+
+  it('waits for Topanga deuce to finish and awards the deciding win at 9–9', () => {
+    const selected = { ...completedSet('Exhibition', 'one'), matchFormat: 'topanga' as const, bestOf: 13 };
+    for (const [winningScore, losingScore, finished] of [
+      [6, 0, false], [6, 6, false], [7, 0, true], [7, 5, true], [7, 6, false],
+      [7, 7, false], [8, 6, true], [8, 7, false], [9, 7, true],
+      [9, 8, false], [9, 9, false], [10, 8, true], [10, 9, true], [10, 10, false]
+    ] as const) {
+      for (const side of ['one', 'two'] as const) {
+        const result = announcementPresentation({
+          ...selected,
+          // A stale completion marker must not announce a winner during deuce.
+          state: '3',
+          playerOne: { ...selected.playerOne, score: side === 'one' ? winningScore : losingScore },
+          playerTwo: { ...selected.playerTwo, score: side === 'two' ? winningScore : losingScore }
+        });
+        if (finished) expect(result).toMatchObject({
+          kind: 'winner', winner: { entrantId: side === 'one' ? 'alpha' : 'beta' }
+        });
+        else expect(result, `${side}: ${winningScore}–${losingScore}`).toBeUndefined();
+      }
+    }
+  });
 });

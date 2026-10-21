@@ -33,7 +33,6 @@ type SetSelectorPanelProps = {
   modalOpen: boolean;
   loading: boolean;
   loadingMore: boolean;
-  gameProfileAvailable: boolean;
   headerAction?: ReactNode;
   onSearchFocus(): void;
   onSearchChange(search: string): void;
@@ -61,7 +60,6 @@ function SetSelectorPanelComponent({
   modalOpen,
   loading,
   loadingMore,
-  gameProfileAvailable,
   headerAction,
   onSearchFocus,
   onSearchChange,
@@ -216,7 +214,7 @@ function SetSelectorPanelComponent({
             set={set}
             assignment={assignmentBySetId.get(set.id)}
             activeSetId={activeSetId}
-            disabled={loading || draftDirty || !gameProfileAvailable}
+            disabled={loading || draftDirty}
             onOpenSet={onOpenSet}
           />
         ))}

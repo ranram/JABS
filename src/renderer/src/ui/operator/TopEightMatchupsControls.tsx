@@ -11,10 +11,10 @@ import {
   type TopEightMatchupsState
 } from '@shared/topEightMatchups';
 import { api } from '../../api';
+import { useCatalogRevision } from '../../hooks/useCatalogRevision';
 import { useSettingsDraft } from '../../hooks/useSettingsDraft';
 import { BufferedTextInput } from './BufferedTextInput';
 import { TopEightMatchupPlayerEditor } from './TopEightMatchupPlayerEditor';
-import { MediaFoldersAccordion } from './MediaFoldersAccordion';
 import { TopEightMatchupsPreview } from './TopEightMatchupsPreview';
 
 export function TopEightMatchupsControls({
@@ -35,6 +35,7 @@ export function TopEightMatchupsControls({
   assetCatalogSlug?: string;
 }) {
   const { t } = useTranslation(['operator', 'common']);
+  const catalogRevision = useCatalogRevision();
   const {
     state,
     update,
@@ -67,7 +68,7 @@ export function TopEightMatchupsControls({
     return () => {
       cancelled = true;
     };
-  }, [state?.assetCatalogSlug, assetCatalogRevision]);
+  }, [state?.assetCatalogSlug, assetCatalogRevision, catalogRevision]);
   useEffect(() => {
     if (!state || !assetCatalogSlug || appliedCatalog.current === assetCatalogSlug) return;
     appliedCatalog.current = assetCatalogSlug;
@@ -142,10 +143,27 @@ export function TopEightMatchupsControls({
       );
       const opening = topEightPhase ? detectExplicitTopEightOpeningSets(sets) : detectTopEightOpeningSets(sets);
       if (!opening) throw new Error(t('operator:topEightMatchups.notDetected'));
+      const imported = opening.map(importedMatchup);
+      const preferences = await api.resolvePlayers(
+        imported.flatMap((matchup) => matchup.players.map(({ playerId }) => ({ playerId }))),
+        assetCatalogSlug ?? state.assetCatalogSlug
+      );
+      imported.forEach((matchup, index) =>
+        matchup.players.forEach((player, side) => {
+          const saved = preferences[index * 2 + side];
+          if (saved)
+            Object.assign(player, {
+              localPlayerId: saved.localPlayerId,
+              character: saved.character ?? undefined,
+              characterAssetId: saved.characterAssetId ?? undefined,
+              portraitAssetId: saved.portraitAssetId ?? undefined
+            });
+        })
+      );
       const saved = await update({
         assetCatalogSlug: assetCatalogSlug ?? state.assetCatalogSlug,
         eventName: selectedEventName ?? state.eventName,
-        matchups: opening.map(importedMatchup)
+        matchups: imported
       });
       if (saved) {
         notifications.show({
@@ -165,7 +183,7 @@ export function TopEightMatchupsControls({
     return (
       <Stack gap="sm">
         <Text c={loadError ? 'red' : 'dimmed'}>
-          {loadError ? translatedError(loadError) : t('operator:topEightMatchups.loading')}
+          {loadError ? failureText(loadError) : t('operator:topEightMatchups.loading')}
         </Text>
         {Boolean(loadError) && (
           <Button variant="default" onClick={() => void loadState()}>
@@ -176,6 +194,14 @@ export function TopEightMatchupsControls({
     );
   return (
     <Stack gap="md">
+      <Button loading={loading} disabled={!selectedEventId} onClick={() => void detect()}>
+        {t('operator:topEightMatchups.detect')}
+      </Button>
+      {progress && (
+        <Text role="status" c="dimmed" size="sm">
+          {progress}
+        </Text>
+      )}
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <Select
           label={t('operator:workspaces.styling')}
@@ -200,40 +226,32 @@ export function TopEightMatchupsControls({
           searchable
           clearable
           label={t('operator:topEight.tournamentLogo')}
-          placeholder={t('operator:topEight.noLogo')}
+          placeholder={t('operator:broadcast.useRailsLogo')}
           value={state.logoAssetId ?? null}
           data={logos.map((logo) => ({ value: logo.id, label: logo.label }))}
           onChange={(logoAssetId) => void update({ logoAssetId: logoAssetId || undefined })}
         />
       </SimpleGrid>
-      <Switch
-        label={t('operator:workspaces.transparentBackground')}
-        description={t('operator:workspaces.transparentBackgroundHelp')}
-        checked={!state.showBackground}
-        onChange={(event) => void update({ showBackground: !event.currentTarget.checked })}
-      />
-      <Switch
-        label={t('operator:thumbnail.showTournamentLogo')}
-        description={t('operator:broadcast.sharedLogoHelp')}
-        checked={state.showTournamentLogo}
-        onChange={(event) => void update({ showTournamentLogo: event.currentTarget.checked })}
-      />
-      <Switch
-        label={t('operator:topEightMatchups.flipPlayerTwo')}
-        description={t('operator:topEightMatchups.flipPlayerTwoHelp')}
-        checked={state.flipPlayerTwoPortraits}
-        onChange={(event) => void update({ flipPlayerTwoPortraits: event.currentTarget.checked })}
-      />
-      <Button loading={loading} disabled={!selectedEventId} onClick={() => void detect()}>
-        {t('operator:topEightMatchups.detect')}
-      </Button>
-      {progress && (
-        <Text role="status" c="dimmed" size="sm">
-          {progress}
-        </Text>
-      )}
+      <SimpleGrid type="container" cols={{ base: 1, '48rem': 3 }} w="100%" maw={1080} spacing="md">
+        <Switch
+          label={t('operator:workspaces.transparentBackground')}
+          checked={!state.showBackground}
+          onChange={(event) => void update({ showBackground: !event.currentTarget.checked })}
+        />
+        <Switch
+          label={t('operator:thumbnail.showTournamentLogo')}
+          description={t('operator:broadcast.sharedLogoHelp')}
+          checked={state.showTournamentLogo}
+          onChange={(event) => void update({ showTournamentLogo: event.currentTarget.checked })}
+        />
+        <Switch
+          label={t('operator:topEightMatchups.flipPlayerTwo')}
+          checked={state.flipPlayerTwoPortraits}
+          onChange={(event) => void update({ flipPlayerTwoPortraits: event.currentTarget.checked })}
+        />
+      </SimpleGrid>
       <TopEightMatchupsPreview state={state} />
-      <SimpleGrid cols={{ base: 1, md: 2 }}>
+      <SimpleGrid type="container" cols={{ base: 1, '40rem': 2, '72rem': 4 }}>
         {state.matchups.flatMap((matchup, matchupIndex) =>
           matchup.players.map((player, playerIndex) => (
             <TopEightMatchupPlayerEditor
@@ -249,7 +267,6 @@ export function TopEightMatchupsControls({
           ))
         )}
       </SimpleGrid>
-      <MediaFoldersAccordion gameAssetSubpath={`${state.assetCatalogSlug}/characters`} />
     </Stack>
   );
 
@@ -257,42 +274,12 @@ export function TopEightMatchupsControls({
     notifications.show({
       color: 'red',
       title: t('operator:topEightMatchups.title'),
-      message: translatedError(error)
+      message: failureText(error)
     });
   }
 
-  function translatedError(error: unknown): string {
-    const message = error instanceof Error ? error.message : '';
-    switch (message) {
-      case 'topEightMatchups.serializeFailed':
-        return t('operator:topEightMatchups.serializeFailed');
-      case 'topEightMatchups.unavailable':
-        return t('operator:topEightMatchups.unavailable');
-      case 'topEightMatchups.invalidStyling':
-        return t('operator:topEightMatchups.invalidStyling');
-      case 'topEightMatchups.invalidCatalog':
-        return t('operator:topEightMatchups.invalidCatalog');
-      case 'topEightMatchups.invalidTournamentName':
-        return t('operator:topEightMatchups.invalidTournamentName');
-      case 'topEightMatchups.invalidMatchupCount':
-        return t('operator:topEightMatchups.invalidMatchupCount');
-      case 'topEightMatchups.invalidBracketOrder':
-        return t('operator:topEightMatchups.invalidBracketOrder');
-      case 'topEightMatchups.invalidPlayerName':
-        return t('operator:topEightMatchups.invalidPlayerName');
-      case 'topEightMatchups.blockedCharacter':
-        return t('operator:topEightMatchups.blockedCharacter');
-      case 'topEightMatchups.blockedTournamentName':
-        return t('operator:topEightMatchups.blockedTournamentName');
-      case 'topEightMatchups.blockedEventName':
-        return t('operator:topEightMatchups.blockedEventName');
-      case 'topEightMatchups.blockedPlayerName':
-        return t('operator:topEightMatchups.blockedPlayerName');
-      case 'topEightMatchups.blockedSponsor':
-        return t('operator:topEightMatchups.blockedSponsor');
-      default:
-        return message || t('operator:topEightMatchups.unavailable');
-    }
+  function failureText(error: unknown): string {
+    return error instanceof Error && error.message ? error.message : t('operator:topEightMatchups.unavailable');
   }
 }
 
@@ -303,6 +290,7 @@ function isTopEightPhaseName(name: string): boolean {
 function importedMatchup(set: SetSummary, index: number): TopEightMatchupsState['matchups'][number] {
   const player = (entrant: SetSummary['entrantOne'], side: number) => ({
     entrantId: entrant?.id,
+    playerId: entrant?.playerId ?? undefined,
     name: entrant?.name ?? `Player ${index * 2 + side + 1}`,
     sponsor: entrant?.sponsor
   });

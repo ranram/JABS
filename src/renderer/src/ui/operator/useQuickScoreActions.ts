@@ -11,7 +11,7 @@ import { restoreModeratedSet, restoreModeratedSummary } from './moderationRefres
 
 type UseQuickScoreActionsOptions = {
   startgg: StartggGateway;
-  setLoadGameId?: GameId;
+  setLoadGameId: GameId;
   selectedEventId: string;
   tournamentSlug: string;
   assetCatalogSlug?: string;
@@ -66,10 +66,7 @@ export function useQuickScoreActions({
   }
 
   async function begin(nextTarget = target, closeOnFailure = false): Promise<void> {
-    if (!nextTarget || !setLoadGameId) {
-      setMessage(t('browser.chooseProfile'), 'warning');
-      return;
-    }
+    if (!nextTarget) return;
     setLoading(true);
     setReceipt(undefined);
     setMessage(undefined, 'info');
@@ -92,7 +89,7 @@ export function useQuickScoreActions({
   }
 
   async function refreshModerated(): Promise<void> {
-    if (!target || !setLoadGameId) return;
+    if (!target) return;
     const response = await startgg.inspectStartggSet(target.id, setLoadGameId, {
       eventId: selectedEventId || undefined,
       tournamentSlug: tournamentSlug || undefined,

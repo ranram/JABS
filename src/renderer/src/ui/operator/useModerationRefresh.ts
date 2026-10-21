@@ -1,5 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { OverlayState, SelectedSetState, StartggSetScope } from '@shared/models';
+import { versusHistoryMatch } from '@shared/versusScreen';
 import type { OperatorDraftState } from '../../operatorDraft';
 import { api } from '../../api';
 import { restoreModeratedSet } from './moderationRefresh';
@@ -37,10 +38,8 @@ export function useModerationRefresh(options: Options) {
           dirty: current.dirty
         } : current);
       }));
-      if (activeSet.eventId && activeSet.playerOne.playerId && activeSet.playerTwo.playerId) {
-        tasks.push(api.refreshVersusHistory());
-      }
     }
+    if (versusHistoryMatch(activeSet)) tasks.push(api.refreshVersusHistory());
     if (options.quickScoreOpen) tasks.push(options.refreshQuickScore());
     if (options.setScope) tasks.push(options.refreshSets(options.setScope));
     await Promise.allSettled(tasks);

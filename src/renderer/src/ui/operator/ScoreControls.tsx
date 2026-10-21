@@ -13,7 +13,7 @@ type QuickScoreProps = {
 export function QuickScore({ label, score, maxScore, disabled, onChange }: QuickScoreProps) {
   const { t } = useTranslation('operator');
   return (
-    <Paper className="quick-score" radius="md" p="sm" withBorder>
+    <Paper className="quick-score operator-inset" radius="md" p="sm" withBorder>
       <Stack gap={2}>
         <Text className="quick-score-label" size="sm" fw={700}>{label}</Text>
         <Text className="quick-score-value" size="xl" fw={900}>{score}</Text>

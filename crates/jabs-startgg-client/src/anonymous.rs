@@ -4,6 +4,7 @@ use crate::{ApiError, api_error};
 
 // The public website has a separate schema/version lifecycle from the developer API.
 const ENDPOINT: &str = "https://www.start.gg/api/-/gql";
+const VIDEOGAME_REGISTRY: &str = "https://www.start.gg/api/-/rest/videogames";
 const CLIENT_VERSION: &str = "20";
 
 pub(super) fn read_request(client: &Client, query: &str, variables: Value) -> Result<RequestBuilder, ApiError> {
@@ -15,6 +16,12 @@ pub(super) fn read_request(client: &Client, query: &str, variables: Value) -> Re
     Ok(client.post(ENDPOINT)
         .header("client-version", CLIENT_VERSION)
         .json(&json!({ "query": query, "variables": variables })))
+}
+
+// The legacy registry includes genre labels but omits some newer games.
+// JABS applies reviewed genre corrections and supplements in the native core.
+pub(super) fn registry_request(client: &Client) -> RequestBuilder {
+    client.get(VIDEOGAME_REGISTRY).header("client-version", CLIENT_VERSION)
 }
 
 pub(super) fn read_error(error: ApiError) -> ApiError {
@@ -38,6 +45,11 @@ mod tests {
         assert_eq!(request.headers()["client-version"], CLIENT_VERSION);
         assert!(!request.headers().contains_key("authorization"));
         assert!(!request.headers().contains_key("cookie"));
+        let registry = registry_request(&client).build().unwrap();
+        assert_eq!(registry.method(), reqwest::Method::GET);
+        assert_eq!(registry.url().as_str(), VIDEOGAME_REGISTRY);
+        assert!(!registry.headers().contains_key("authorization"));
+        assert!(!registry.headers().contains_key("cookie"));
         for query in ["mutation Report { reportBracketSet(setId: 1) { id } }", "subscription Updates { id }", "{ event(id: 1) { id } }"] {
             assert!(read_request(&client, query, json!({})).is_err());
         }

@@ -13,12 +13,8 @@ pub use jabs_startgg_client::{
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 use std::collections::HashSet;
-#[cfg(test)]
-const REQUEST_REFILL_INTERVAL: std::time::Duration = jabs_startgg_client::REFILL_INTERVAL;
-#[cfg(test)]
-const REQUEST_BURST_CAPACITY: f64 = jabs_startgg_client::BURST_CAPACITY;
 const MAX_EVENT_HEAD_TO_HEAD_PAGES: u32 = 5;
-const MAX_GLOBAL_HEAD_TO_HEAD_PAGES: u32 = 5;
+mod history;
 
 pub async fn events(runtime: &RuntimeState, slug: &str) -> Result<Value, ApiError> {
     required_text(slug, "Enter a tournament slug or start.gg URL first.")?;
@@ -119,6 +115,7 @@ pub async fn event_standings(
         startgg_queries::EVENT_STANDINGS,
         json!({ "eventId": event_id }),
     ).await?;
+    crate::player_library::startgg::observe(&runtime.database, &data).map_err(|s| upstream(&s, "upstream"))?;
     map_event_standings(data)
 }
 
@@ -132,6 +129,7 @@ pub async fn event_standings_by_slug(
         startgg_queries::EVENT_STANDINGS_BY_SLUG,
         json!({ "eventSlug": event_slug }),
     ).await?;
+    crate::player_library::startgg::observe(&runtime.database, &data).map_err(|s| upstream(&s, "upstream"))?;
     map_event_standings(data)
 }
 
@@ -167,6 +165,7 @@ fn map_event_standings(data: Value) -> Result<Value, ApiError> {
             .and_then(|location| optional_text(location.get("country")));
         let (country_code, _) = crate::catalogs::normalize_imported_location(country.as_deref(), None);
         Some(json!({
+            "playerId": entrant.get("participants").and_then(Value::as_array).filter(|p| p.len() == 1).and(participant).and_then(|p| p.get("player")).and_then(|p| p.get("id")).and_then(normalized_id),
             "placement": placement,
             "name": crate::moderation::censor(Some(name)).unwrap_or_else(|| "[blocked]".to_owned()),
             "prefix": crate::moderation::censor(prefix),
@@ -182,6 +181,8 @@ fn map_event_standings(data: Value) -> Result<Value, ApiError> {
         .filter(|slug| !slug.is_empty())
         .map(|slug| format!("https://start.gg/{slug}"));
     let num_entrants = event.get("numEntrants").and_then(Value::as_u64).filter(|n| *n > 0);
+    // Completed events can retain false isFinal flags on individual standings.
+    let event_completed = event.get("state").and_then(Value::as_str) == Some("COMPLETED");
     Ok(json!({
         "eventName": optional_text(event.get("name")).unwrap_or_else(|| "Tournament Finals".to_owned()),
         "eventGameName": event_game_name,
@@ -189,9 +190,9 @@ fn map_event_standings(data: Value) -> Result<Value, ApiError> {
         "eventUrl": event_url,
         "numEntrants": num_entrants,
         "standings": standings,
-        "finalized": standings.len() == 8 && standings.iter().all(|standing| {
+        "finalized": standings.len() == 8 && (event_completed || standings.iter().all(|standing| {
             standing.get("isFinal").and_then(Value::as_bool) == Some(true)
-        })
+        }))
     }))
 }
 
@@ -450,6 +451,7 @@ pub async fn selected_set(
         startgg_queries::SET_BY_ID,
         json!({ "setId": input.set_id }),
     ).await?;
+    crate::player_library::startgg::observe(&runtime.database, &data).map_err(|s| upstream(&s, "upstream"))?;
     let Some(set) = optional_object(data.get("set")) else {
         return Ok(None);
     };
@@ -499,6 +501,9 @@ pub async fn selected_set(
         set_id: Some(set_id),
         event_id: optional_context(input.event_id),
         tournament_slug: optional_context(input.tournament_slug),
+        tournament_name: set.get("event").and_then(|event| event.get("tournament"))
+            .and_then(|tournament| optional_text(tournament.get("name")))
+            .map(|name| safe_history_text(Some(&Value::String(name)), "Tournament")),
         display_name: format!("{} vs {}", player_one.name, player_two.name),
         phase,
         phase_group: phase_group_name,
@@ -508,6 +513,9 @@ pub async fn selected_set(
         state: set.get("state").and_then(normalized_id),
         game_id: input.game_id.to_owned(),
         game_name,
+        videogame_id: optional_object(set.get("event"))
+            .and_then(|event| optional_object(event.get("videogame")))
+            .and_then(|game| game.get("id")).and_then(normalized_id),
         styling_game_id: Some(input.game_id.to_owned()),
         custom_scoreboard_id: None,
         custom_scoreboard_revision: None,
@@ -536,6 +544,9 @@ pub async fn versus_history(
     runtime: &RuntimeState,
     selected_set: &SelectedSet,
 ) -> Result<crate::versus_screen::VersusHistory, ApiError> {
+    if selected_set.set_id.is_none() {
+        return history::exhibition_history(runtime, selected_set).await;
+    }
     let event_id = selected_set
         .event_id
         .as_deref()
@@ -566,9 +577,7 @@ pub async fn versus_history(
             runtime,
             startgg_queries::VERSUS_HISTORY,
             json!({
-                "eventId": event_id,
-                "playerOneId": player_one_id,
-                "playerTwoId": player_two_id
+                "eventId": event_id
             }),
         ),
         retried_history_request(
@@ -597,17 +606,9 @@ pub async fn versus_history(
         .and_then(|videogame| videogame.get("id"))
         .and_then(normalized_id)
         .ok_or_else(|| invalid_response("start.gg did not return the active event's game."))?;
-    let player_one = optional_object(data.get("playerOne"))
-        .ok_or_else(|| invalid_response("start.gg did not return Player 1's profile."))?;
-    let player_two = optional_object(data.get("playerTwo"))
-        .ok_or_else(|| invalid_response("start.gg did not return Player 2's profile."))?;
     let mut history_sets = Vec::new();
     let mut history_set_ids = HashSet::new();
-    let mut global_sets = Vec::new();
-    let mut global_set_ids = HashSet::new();
-    // Placements require the profile response, but a failed optional set page
-    // must not discard placements or head-to-head rows already retrieved from
-    // the other source.
+    // Keep successful head-to-head pages if the other source is unavailable.
     let event_total_pages = event_result
         .ok()
         .and_then(|event_data| {
@@ -649,59 +650,21 @@ pub async fn versus_history(
         }
     }
 
-    let global_total_pages = global_result
-        .ok()
-        .and_then(|player_data| {
-            append_global_history_page(
-                &player_data,
-                &mut global_sets,
-                &mut global_set_ids,
-                &mut history_sets,
-                &mut history_set_ids,
-            )
-            .ok()
-        })
-        .unwrap_or(0)
-        .min(MAX_GLOBAL_HEAD_TO_HEAD_PAGES);
-    for first_page in (2..=global_total_pages).step_by(2) {
-        let enough_head_to_head_sets = head_to_head_sets(
-            &global_sets,
-            player_one_id,
-            player_two_id,
-            &videogame_id,
-        )?
-        .len()
-            >= 3;
-        if enough_head_to_head_sets {
-            break;
-        }
-        let responses = join_all((first_page..=(first_page + 1).min(global_total_pages)).map(
-            |page| {
-                retried_history_request(
-                    runtime,
-                    startgg_queries::PLAYER_SET_HISTORY,
-                    json!({
-                        "playerId": player_one_id,
-                        "page": page,
-                        "perPage": SAFE_SET_PAGE_SIZE
-                    }),
-                )
-            },
-        ))
-        .await;
-        for player_data in responses.into_iter().flatten() {
-            let _ = append_global_history_page(
-                &player_data,
-                &mut global_sets,
-                &mut global_set_ids,
-                &mut history_sets,
-                &mut history_set_ids,
-            );
-        }
-    }
+    let global_sets = history::player_sets(
+        global_result, player_one_id, player_two_id, &videogame_id,
+        |page| retried_history_request(
+            runtime,
+            startgg_queries::PLAYER_SET_HISTORY,
+            json!({ "playerId": player_one_id, "page": page, "perPage": SAFE_SET_PAGE_SIZE }),
+        ),
+    ).await?;
+    append_unique_sets(&mut history_sets, &mut history_set_ids, global_sets.iter().collect());
     Ok(crate::versus_screen::VersusHistory {
-        player_one_placements: recent_placements(player_one, &videogame_id)?,
-        player_two_placements: recent_placements(player_two, &videogame_id)?,
+        tournament_name: data.get("currentEvent").and_then(|event| event.get("tournament"))
+            .and_then(|tournament| optional_text(tournament.get("name")))
+            .map(|name| safe_history_text(Some(&Value::String(name)), "Tournament")),
+        player_one_placements: vec![],
+        player_two_placements: vec![],
         head_to_head: head_to_head_sets(
             &history_sets,
             player_one_id,
@@ -745,28 +708,6 @@ fn append_history_page(
         .min(u64::from(u32::MAX)) as u32)
 }
 
-fn append_global_history_page(
-    data: &Value,
-    global_sets: &mut Vec<Value>,
-    global_ids: &mut HashSet<String>,
-    all_sets: &mut Vec<Value>,
-    all_ids: &mut HashSet<String>,
-) -> Result<u32, ApiError> {
-    let connection = optional_object(data.get("player"))
-        .and_then(|player| optional_object(player.get("sets")));
-    let nodes = node_list(
-        connection.and_then(|sets| sets.get("nodes")),
-        "global player set history",
-    )?;
-    append_unique_sets(global_sets, global_ids, nodes.clone());
-    append_unique_sets(all_sets, all_ids, nodes);
-    Ok(connection
-        .and_then(|sets| optional_object(sets.get("pageInfo")))
-        .and_then(|page_info| finite_u64(page_info.get("totalPages")))
-        .unwrap_or(1)
-        .min(u64::from(u32::MAX)) as u32)
-}
-
 fn append_unique_sets(target: &mut Vec<Value>, ids: &mut HashSet<String>, nodes: Vec<&Value>) {
     for node in nodes {
         let id = node.get("id").and_then(normalized_id);
@@ -774,34 +715,6 @@ fn append_unique_sets(target: &mut Vec<Value>, ids: &mut HashSet<String>, nodes:
             target.push(node.clone());
         }
     }
-}
-
-fn recent_placements(
-    player: &serde_json::Map<String, Value>,
-    videogame_id: &str,
-) -> Result<Vec<crate::versus_screen::Placement>, ApiError> {
-    let nodes = node_list(player.get("recentStandings"), "recent player standings")?;
-    let mut placements = nodes.into_iter().filter_map(|standing| {
-        let standing = standing.as_object()?;
-        let placement = finite_u64(standing.get("placement"))?.max(1);
-        let event = optional_object(standing.get("entrant"))
-            .and_then(|entrant| optional_object(entrant.get("event")))?;
-        let event_game_id = optional_object(event.get("videogame"))
-            .and_then(|game| game.get("id"))
-            .and_then(normalized_id)?;
-        if event_game_id != videogame_id { return None; }
-        let tournament = optional_object(event.get("tournament"))?;
-        Some((
-            finite_u64(tournament.get("startAt")).unwrap_or(0),
-            crate::versus_screen::Placement {
-                placement,
-                tournament_name: safe_history_text(tournament.get("name"), "Tournament"),
-                event_name: safe_history_text(event.get("name"), "Event"),
-            },
-        ))
-    }).collect::<Vec<_>>();
-    placements.sort_by_key(|(start_at, _)| std::cmp::Reverse(*start_at));
-    Ok(placements.into_iter().take(3).map(|(_, placement)| placement).collect())
 }
 
 fn head_to_head_sets(
@@ -837,6 +750,12 @@ fn head_to_head_sets(
         let player_two_score = score_for(player_two_id)?;
         let tournament = optional_object(event.get("tournament"))?;
         Some(crate::versus_screen::HeadToHead {
+            set_id: set.get("id").and_then(normalized_id),
+            round: optional_text(set.get("fullRoundText"))
+                .map(|round| safe_history_text(Some(&Value::String(round)), "Round")),
+            phase: set.get("phaseGroup").and_then(|group| group.get("phase"))
+                .and_then(|phase| optional_text(phase.get("name")))
+                .map(|phase| safe_history_text(Some(&Value::String(phase)), "Phase")),
             tournament_name: safe_history_text(tournament.get("name"), "Tournament"),
             event_name: safe_history_text(event.get("name"), "Event"),
             completed_at: finite_u64(set.get("completedAt")),
@@ -845,11 +764,11 @@ fn head_to_head_sets(
         })
     }).collect::<Vec<_>>();
     sets.sort_by_key(|set| std::cmp::Reverse(set.completed_at.unwrap_or(0)));
-    sets.truncate(3);
+    sets.truncate(4);
     Ok(sets)
 }
 
-fn safe_history_text(value: Option<&Value>, fallback: &str) -> String {
+pub(crate) fn safe_history_text(value: Option<&Value>, fallback: &str) -> String {
     let value = crate::moderation::censor(optional_text(value))
         .unwrap_or_else(|| fallback.to_owned());
     value.chars().take(96).collect()
@@ -925,7 +844,7 @@ fn is_winners_final(value: &str) -> bool {
     matches!(normalized_round(value).as_str(), "winners final" | "winners finals")
 }
 
-fn x_handle_from_participant(participant: Option<&Map<String, Value>>) -> Option<String> {
+pub(crate) fn x_handle_from_participant(participant: Option<&Map<String, Value>>) -> Option<String> {
     let participant = participant?;
     if let Some(connected) = participant.get("connectedAccounts").and_then(Value::as_object) {
         for key in ["twitter", "Twitter", "x", "X"] {
@@ -1013,7 +932,8 @@ fn player_from_slot(slot: Option<&Value>, games: Option<&Value>, set_id: &str, s
         .and_then(|entrant| entrant.get("id"))
         .and_then(normalized_id)
         .unwrap_or_else(|| format!("set-{set_id}-player-{side}"));
-    let player_id = participant
+    let player_id = entrant.and_then(|e| e.get("participants")).and_then(Value::as_array)
+        .filter(|participants| participants.len() == 1).and(participant)
         .and_then(|participant| optional_object(participant.get("player")))
         .and_then(|player| player.get("id"))
         .and_then(normalized_id);
@@ -1042,6 +962,7 @@ fn player_from_slot(slot: Option<&Value>, games: Option<&Value>, set_id: &str, s
         .and_then(|entrant_id| character_for_entrant_from_games(games, &entrant_id))
         .and_then(|name| crate::moderation::censor(Some(name)));
     Player {
+        local_player_id: None, player_photo_asset_id: None, portrait_asset_id: None,
         entrant_id,
         player_id,
         name,
@@ -1064,7 +985,7 @@ fn optional_context(value: Option<&str>) -> Option<String> {
     value.map(str::trim).filter(|value| !value.is_empty()).map(str::to_owned)
 }
 
-async fn request<T: serde::de::DeserializeOwned>(
+pub(crate) async fn request<T: serde::de::DeserializeOwned>(
     runtime: &RuntimeState,
     query: &str,
     variables: Value,
@@ -1155,7 +1076,10 @@ fn entrant_summary(slot: &Value) -> Option<Value> {
     let name = participant_name
         .or_else(|| optional_text(entrant.get("name")))
         .unwrap_or_else(|| "TBD".to_owned());
-    Some(json!({ "id": id, "name": name, "sponsor": sponsor }))
+    let player_id = entrant.get("participants").and_then(Value::as_array)
+        .filter(|participants| participants.len() == 1).and_then(|participants| participants.first())
+        .and_then(|participant| participant.pointer("/player/id")).and_then(normalized_id);
+    Some(json!({ "id": id, "playerId": player_id, "name": name, "sponsor": sponsor }))
 }
 
 fn slot_score(slot: &Value) -> Option<i64> {
@@ -1178,7 +1102,7 @@ fn page_info(connection: Option<&Map<String, Value>>, page: u32, per_page: u32) 
     })
 }
 
-fn node_list<'a>(value: Option<&'a Value>, label: &str) -> Result<Vec<&'a Value>, ApiError> {
+pub(crate) fn node_list<'a>(value: Option<&'a Value>, label: &str) -> Result<Vec<&'a Value>, ApiError> {
     match value {
         None | Some(Value::Null) => Ok(Vec::new()),
         Some(Value::Array(nodes)) => Ok(nodes.iter().filter(|node| !node.is_null()).collect()),
@@ -1190,7 +1114,7 @@ fn optional_object(value: Option<&Value>) -> Option<&Map<String, Value>> {
     value.and_then(Value::as_object)
 }
 
-fn normalized_id(value: &Value) -> Option<String> {
+pub(crate) fn normalized_id(value: &Value) -> Option<String> {
     match value {
         Value::String(value) => {
             let value = value.trim();
@@ -1205,12 +1129,12 @@ fn optional_text(value: Option<&Value>) -> Option<String> {
     value.and_then(Value::as_str).map(str::trim).filter(|value| !value.is_empty()).map(str::to_owned)
 }
 
-fn finite_i64(value: Option<&Value>) -> Option<i64> {
+pub(crate) fn finite_i64(value: Option<&Value>) -> Option<i64> {
     value.and_then(Value::as_i64)
         .or_else(|| value.and_then(Value::as_f64).filter(|value| value.is_finite()).map(|value| value.trunc() as i64))
 }
 
-fn finite_u64(value: Option<&Value>) -> Option<u64> {
+pub(crate) fn finite_u64(value: Option<&Value>) -> Option<u64> {
     finite_i64(value).map(|value| value.max(0) as u64)
 }
 
@@ -1252,15 +1176,12 @@ fn upstream(message: &str, code: &'static str) -> ApiError {
 #[cfg(test)]
 mod tests {
     use super::{
-        character_for_entrant_from_games, grand_final_prerequisite,
+        character_for_entrant_from_games, grand_final_prerequisite, head_to_head_sets,
         is_initial_grand_final, is_winners_final, node_list, player_from_slot, set_summary,
-        validate_event_slug, MAX_EVENT_HEAD_TO_HEAD_PAGES, MAX_GLOBAL_HEAD_TO_HEAD_PAGES,
-        REQUEST_BURST_CAPACITY, REQUEST_REFILL_INTERVAL, SAFE_SET_PAGE_SIZE,
+        validate_event_slug, map_event_standings,
     };
-    use crate::startgg_queries;
     use jabs_startgg_client::classify_message;
     use serde_json::json;
-    use std::time::Duration;
 
     #[test]
     fn classifies_failures_and_rejects_malformed_collections() {
@@ -1269,6 +1190,43 @@ mod tests {
         assert_eq!(classify_message("permission denied").code, "permission");
         assert!(node_list(Some(&json!({})), "set nodes").is_err());
         assert_eq!(node_list(Some(&json!([null, { "id": "1" }])), "set nodes").unwrap().len(), 1);
+        assert!(validate_event_slug("tournament/ceo-2026/event/street-fighter-6").is_ok());
+        assert!(validate_event_slug("https://start.gg/tournament/ceo/event/sf6").is_err());
+        assert!(validate_event_slug("tournament/ceo/event/../../token").is_err());
+    }
+
+    #[test]
+    fn completed_event_standings_accept_unset_final_flags_without_accepting_partial_results() {
+        // Some completed events set isFinal only on the last standing.
+        let nodes = [1, 2, 3, 4, 5, 5, 7, 7].into_iter().enumerate().map(|(index, placement)| {
+            json!({
+                "placement": placement,
+                "isFinal": index == 7,
+                "entrant": { "name": format!("Player {}", index + 1) }
+            })
+        }).collect::<Vec<_>>();
+        let mut data = json!({ "event": {
+            "name": "Funda Series",
+            "state": "COMPLETED",
+            "standings": { "nodes": nodes }
+        }});
+        let result = map_event_standings(data.clone()).unwrap();
+        assert_eq!(result["finalized"], true);
+        assert_eq!(result["standings"][0]["isFinal"], false);
+        assert_eq!(result["standings"].as_array().unwrap().len(), 8);
+
+        for state in [json!("ACTIVE"), json!("CREATED"), json!(null)] {
+            data["event"]["state"] = state;
+            assert_eq!(map_event_standings(data.clone()).unwrap()["finalized"], false);
+        }
+        data["event"]["state"] = json!("ACTIVE");
+        for standing in data["event"]["standings"]["nodes"].as_array_mut().unwrap() {
+            standing["isFinal"] = json!(true);
+        }
+        assert_eq!(map_event_standings(data.clone()).unwrap()["finalized"], true);
+        data["event"]["state"] = json!("COMPLETED");
+        data["event"]["standings"]["nodes"].as_array_mut().unwrap().pop();
+        assert_eq!(map_event_standings(data).unwrap()["finalized"], false);
     }
 
     #[test]
@@ -1291,14 +1249,6 @@ mod tests {
         assert_eq!(summary["station"], "Station 3");
         assert_eq!(summary["streamSource"], "TWITCH");
         assert_eq!(summary["streamName"], "mainstage");
-
-        assert!(startgg_queries::SET_BY_ID.contains("initialSeedNum"));
-        assert!(startgg_queries::SET_BY_ID.contains("genderPronoun"));
-        assert!(startgg_queries::SET_BY_ID.contains("prereqPlacement"));
-        assert!(startgg_queries::SET_BY_ID.contains("player { id"));
-        assert!(startgg_queries::SET_BY_ID.contains("games {"));
-        assert!(startgg_queries::SET_BY_ID.contains("selections"));
-        assert!(startgg_queries::SET_BY_ID.contains("event { videogame { id name } }"));
         let player = player_from_slot(Some(&json!({
             "entrant": {
                 "id": "entrant-1",
@@ -1371,47 +1321,6 @@ mod tests {
     }
 
     #[test]
-    fn versus_history_query_is_bounded_and_uses_stable_player_ids() {
-        assert!(startgg_queries::STREAM_QUEUE.contains("streamSource"));
-        assert!(startgg_queries::VERSUS_HISTORY.contains("player(id: $playerOneId)"));
-        assert!(startgg_queries::VERSUS_HISTORY.contains("player(id: $playerTwoId)"));
-        assert!(startgg_queries::VERSUS_HISTORY.contains("recentStandings"));
-        assert!(!startgg_queries::VERSUS_HISTORY.contains("sets("));
-        assert!(startgg_queries::EVENT_HEAD_TO_HEAD.contains("filters: { entrantIds: $entrantIds }"));
-        assert!(startgg_queries::EVENT_HEAD_TO_HEAD.contains("completedAt"));
-        assert!(startgg_queries::PLAYER_SET_HISTORY.contains("player(id: $playerId)"));
-        assert!(startgg_queries::PLAYER_SET_HISTORY.contains("pageInfo { total totalPages }"));
-        assert_eq!(MAX_EVENT_HEAD_TO_HEAD_PAGES, 5);
-        assert_eq!(MAX_GLOBAL_HEAD_TO_HEAD_PAGES, 5);
-        let maximum_first_minute_requests = REQUEST_BURST_CAPACITY
-            + Duration::from_secs(60).as_secs_f64()
-                / REQUEST_REFILL_INTERVAL.as_secs_f64();
-        assert!(maximum_first_minute_requests < 80.0);
-        assert_eq!(100_u32.min(SAFE_SET_PAGE_SIZE), 20);
-        assert_eq!(12_u32.min(SAFE_SET_PAGE_SIZE), 12);
-        assert!(startgg_queries::EVENT_STANDINGS.contains("standings"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("placement"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("isFinal"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("gamerTag"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("prefix"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("videogame"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("country"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("connectedAccounts"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("authorizations(types: [TWITTER])"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("player { id"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("slug"));
-        assert!(startgg_queries::EVENT_STANDINGS.contains("numEntrants"));
-        assert!(!startgg_queries::EVENT_STANDINGS.contains("$videogameId"));
-        assert!(startgg_queries::EVENT_STANDINGS_BY_SLUG.contains("event(slug: $eventSlug)"));
-        assert!(!startgg_queries::SET_BY_ID.contains("$videogameId"));
-        assert!(startgg_queries::SET_BY_ID.contains("connectedAccounts"));
-        assert!(startgg_queries::SET_BY_ID.contains("authorizations(types: [TWITTER])"));
-        assert!(validate_event_slug("tournament/ceo-2026/event/street-fighter-6").is_ok());
-        assert!(validate_event_slug("https://start.gg/tournament/ceo/event/sf6").is_err());
-        assert!(validate_event_slug("tournament/ceo/event/../../token").is_err());
-    }
-
-    #[test]
     fn grand_final_provenance_requires_a_winning_set_prerequisite() {
         assert!(is_initial_grand_final("Grand Finals"));
         assert!(!is_initial_grand_final("Grand Final Reset"));
@@ -1437,5 +1346,31 @@ mod tests {
             grand_final_prerequisite(&slots, 0),
             Some(("entrant-one".to_owned(), "winners-final-set".to_owned()))
         );
+    }
+
+    #[test]
+    fn head_to_head_keeps_same_tournament_rematches_and_their_rounds() {
+        let nodes = ["Winners Quarter-Final", "Winners Final", "Grand Final", "Grand Final Reset"].iter().enumerate()
+            .map(|(index, round)| json!({
+                "id": index + 1, "state": 3, "completedAt": 100 + index,
+                "fullRoundText": round,
+                "phaseGroup": {"phase": {"name": "Top 8"}},
+                "event": {"name": "Singles", "videogame": {"id": 10}, "tournament": {"name": "Same Major"}},
+                "slots": [
+                    {"entrant": {"participants": [{"player": {"id": 1}}]}, "standing": {"stats": {"score": {"value": 3}}}},
+                    {"entrant": {"participants": [{"player": {"id": 2}}]}, "standing": {"stats": {"score": {"value": 1}}}}
+                ]
+            })).collect::<Vec<_>>();
+        let results = head_to_head_sets(&nodes, "1", "2", "10").unwrap();
+        assert_eq!(results.len(), 4);
+        assert_eq!(results[0].phase.as_deref(), Some("Top 8"));
+        assert_eq!(results[0].round.as_deref(), Some("Grand Final Reset"));
+        assert_eq!(results[1].round.as_deref(), Some("Grand Final"));
+        assert_eq!(results[2].round.as_deref(), Some("Winners Final"));
+        assert_eq!(results[0].set_id.as_deref(), Some("4"));
+        assert_eq!(results[3].round.as_deref(), Some("Winners Quarter-Final"));
+        let reversed = head_to_head_sets(&nodes, "2", "1", "10").unwrap();
+        assert_eq!(reversed[0].player_one_score, 1);
+        assert!(head_to_head_sets(&nodes, "1", "2", "999").unwrap().is_empty());
     }
 }

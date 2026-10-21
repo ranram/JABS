@@ -6,15 +6,32 @@ export type OperatorDraftState = {
   dirty: boolean;
 };
 
+export function sameDraftMatch(left: SelectedSetState, right: SelectedSetState): boolean {
+  // Exhibitions have no set ID, so game context must distinguish their drafts.
+  return (
+    left.setId === right.setId &&
+    left.eventId === right.eventId &&
+    left.videogameId === right.videogameId &&
+    left.assetCatalogSlug === right.assetCatalogSlug &&
+    left.gameId === right.gameId
+  );
+}
+
 const playerMetadataKeys = [
+  'localPlayerId',
+  'playerId',
+  'playerPhotoAssetId',
   'name',
   'prefix',
   'sponsor',
   'characters',
   'character',
   'characterAssetId',
+  'portraitAssetId',
   'country',
   'state',
+  'displayFlag',
+  'xHandle',
   'pronouns',
   'seed'
 ] as const satisfies ReadonlyArray<keyof PlayerState>;
@@ -23,11 +40,7 @@ function playerByEntrant(state: SelectedSetState, entrantId: string): PlayerStat
   return [state.playerOne, state.playerTwo].find((player) => player.entrantId === entrantId);
 }
 
-function mergePlayer(
-  livePlayer: PlayerState,
-  draft: SelectedSetState,
-  baseline: SelectedSetState
-): PlayerState {
+function mergePlayer(livePlayer: PlayerState, draft: SelectedSetState, baseline: SelectedSetState): PlayerState {
   const draftPlayer = playerByEntrant(draft, livePlayer.entrantId);
   const baselinePlayer = playerByEntrant(baseline, livePlayer.entrantId);
   if (!draftPlayer || !baselinePlayer) {
@@ -38,10 +51,11 @@ function mergePlayer(
   for (const key of playerMetadataKeys) {
     const draftValue = draftPlayer[key];
     const baselineValue = baselinePlayer[key];
-    const changed = Array.isArray(draftValue) && Array.isArray(baselineValue)
-      ? draftValue.length !== baselineValue.length
-        || draftValue.some((value, index) => value !== baselineValue[index])
-      : draftValue !== baselineValue;
+    const changed =
+      Array.isArray(draftValue) && Array.isArray(baselineValue)
+        ? draftValue.length !== baselineValue.length ||
+          draftValue.some((value, index) => value !== baselineValue[index])
+        : draftValue !== baselineValue;
     if (changed) {
       Object.assign(merged, { [key]: draftPlayer[key] });
     }
@@ -82,10 +96,7 @@ export function reconcileDirtyDraft(
   };
 }
 
-export function normalizeOperatorDraft(
-  draft: SelectedSetState,
-  assetCatalogSlug?: string
-): SelectedSetState {
+export function normalizeOperatorDraft(draft: SelectedSetState, assetCatalogSlug?: string): SelectedSetState {
   return {
     ...draft,
     assetCatalogSlug: assetCatalogSlug ?? draft.assetCatalogSlug,
@@ -93,18 +104,8 @@ export function normalizeOperatorDraft(
   };
 }
 
-/**
- * Content key used to decide whether the operator actually changed the draft.
- * `updatedAt` is deliberately excluded: the native core bumps that version on
- * every accepted save, so the realtime echo of this window's own autosave
- * always carries a new timestamp even when the operator changed nothing.
- * Comparing it would keep the draft dirty forever and retrigger the autosave
- * in an endless "Saving shortly"/"Updating OBS" loop.
- */
-export function operatorDraftContentKey(
-  draft: SelectedSetState,
-  assetCatalogSlug?: string
-): string {
+/** Ignore native save timestamps so a realtime echo still matches the submitted content. */
+export function operatorDraftContentKey(draft: SelectedSetState, assetCatalogSlug?: string): string {
   const { updatedAt: _version, ...content } = normalizeOperatorDraft(draft, assetCatalogSlug);
   return JSON.stringify(content);
 }

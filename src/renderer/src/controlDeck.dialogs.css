@@ -28,11 +28,11 @@
   justify-content: space-between;
   gap: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-  padding: 21px 26px 18px;
+  padding: var(--mantine-spacing-md);
 }
 
 .set-action-body {
-  padding: 24px 26px 28px;
+  padding: var(--mantine-spacing-md);
 }
 
 .set-action-heading > div {
@@ -116,7 +116,7 @@
 
 .quick-score-sheet {
   display: grid;
-  gap: 14px;
+  gap: var(--mantine-spacing-md);
 }
 
 .quick-score-toolbar {
@@ -211,14 +211,6 @@
   .set-action-backdrop {
     align-items: end;
     padding: 10px;
-  }
-
-  .set-action-heading {
-    padding: 17px 18px 15px;
-  }
-
-  .set-action-body {
-    padding: 18px;
   }
 
   .quick-score-toolbar {

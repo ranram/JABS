@@ -3,6 +3,9 @@ import { canonicalGameId, type GameId } from './gameProfiles';
 import type { SetSummary } from './models';
 
 const playerSchema = z.object({
+  playerId: z.string().optional(),
+  localPlayerId: z.string().optional(),
+  portraitAssetId: z.string().optional(),
   entrantId: z.string().optional(),
   name: z.string().trim().min(1).max(100),
   sponsor: z.string().trim().max(100).optional(),

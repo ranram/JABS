@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <title>Melty Blood: Type Lumina — photo aperture (right)</title>
+  <desc>White photo aperture on a transparent 1920×1080 canvas.</desc>
+  <defs><mask id="coverage-right" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 0 0 L 177 0 L 226 49 L 226 117 L 196 161 L 0 213 Z" transform="translate(1920 0) scale(-1 1)" fill="white"/><ellipse cx="175" cy="176" rx="51" ry="51" fill="black"/><ellipse cx="1745" cy="176" rx="51" ry="51" fill="black"/><rect x="226" y="86" width="600" height="32" fill="black"/><rect x="1094" y="86" width="600" height="32" fill="black"/><rect x="227" y="125" width="224" height="34" fill="black"/><rect x="1469" y="125" width="224" height="34" fill="black"/></mask></defs>
+  <g mask="url(#coverage-right)"><path d="M 0 0 L 177 0 L 226 49 L 226 117 L 196 161 L 0 213 Z" transform="translate(1920 0) scale(-1 1)" fill="white"/></g>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <title>Mortal Kombat 1 — photo aperture (left)</title>
+  <desc>White photo aperture on a transparent 1920×1080 canvas.</desc>
+  <defs><mask id="coverage-left" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 24 75 L 99 75 L 119 94 L 118 146 L 132 172 L 127 193 L 25 193 Z" fill="white"/><rect x="119" y="92" width="68" height="62" fill="black"/><rect x="1733" y="92" width="68" height="62" fill="black"/><rect x="135" y="155" width="40" height="22" fill="black"/><rect x="1745" y="155" width="40" height="22" fill="black"/><rect x="45" y="49" width="842" height="17" fill="black"/><rect x="1033" y="49" width="842" height="17" fill="black"/></mask></defs>
+  <g mask="url(#coverage-left)"><path d="M 24 75 L 99 75 L 119 94 L 118 146 L 132 172 L 127 193 L 25 193 Z" fill="white"/></g>
+</svg>

@@ -1,11 +1,20 @@
-import { Button, Group, Switch, Text, Tooltip } from '@mantine/core';
+import { Button, Group, Switch, Text, Tooltip, Menu, Box } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import type { StartggSetScope } from '@shared/models';
+import { PlayerLibraryButton } from '../players/PlayerLibraryModal';
+import { SettingsButton } from '../appearance/SettingsPanel';
+import { AssetsMenu } from './AssetsMenu';
+import type { SelectedSetState, StartggSetScope } from '@shared/models';
 import { ModerationAllowlistControls } from './ModerationAllowlistControls';
 import type { LocalHandoffUrl } from '../../desktopRuntime';
 import { OverlayUrlMenu } from './OverlayUrlMenu';
+import { StingerQuickMenu } from '../stingers/StingerQuickMenu';
+import { HelpMenu } from '../tutorials/HelpMenu';
+import type { TutorialWorkspace } from '../tutorials/tutorials';
+import { Fragment, type ReactNode } from 'react';
 
 type WorkspaceMaintenanceBarProps = {
+  activeSet?: SelectedSetState;
+  assetCatalogSlug?: string;
   keyboardShortcuts: { enabled: boolean; setEnabled(value: boolean): void };
   reloadWarning?: string;
   loading: boolean;
@@ -23,10 +32,15 @@ type WorkspaceMaintenanceBarProps = {
   onClearCache(): void;
   onModerationApplied(): void;
   onCopy(kind: LocalHandoffUrl): void;
+  onConfigureStingers(): void;
+  onTutorialWorkspace(workspace: TutorialWorkspace): void;
 };
 
 export function WorkspaceMaintenanceBar({
-  keyboardShortcuts, reloadWarning,
+  activeSet,
+  assetCatalogSlug,
+  keyboardShortcuts,
+  reloadWarning,
   loading,
   reloadingAssets,
   reloadSelectedSetDisabled,
@@ -41,93 +55,150 @@ export function WorkspaceMaintenanceBar({
   onUnloadTournament,
   onClearCache,
   onModerationApplied,
-  onCopy
+  onCopy,
+  onConfigureStingers,
+  onTutorialWorkspace
 }: WorkspaceMaintenanceBarProps) {
   const { t } = useTranslation('operator');
-
-  return (
-    <Group className="workspace-maintenance-bar" gap="md" align="flex-end" wrap="nowrap">
-      <div className="workspace-maintenance-group">
-        <Text className="workspace-maintenance-label">{t('utilityGroups.bracket')}</Text>
+  // Navigation keeps the English order in every language.
+  const bracketActions: Array<{
+    id: string;
+    label: string;
+    disabled: boolean;
+    help?: string;
+    testId?: string;
+    onClick(): void;
+  }> = [
+    {
+      id: 'clear',
+      label: t('startgg.clearCache'),
+      disabled: loading,
+      testId: 'clear-startgg-cache',
+      onClick: onClearCache
+    },
+    {
+      id: 'reload',
+      label: t('editor.reload'),
+      disabled: reloadSelectedSetDisabled,
+      help: reloadWarning ?? t(loading ? 'editor.waitAction' : 'editor.reloadHint'),
+      onClick: onReloadSelectedSet
+    },
+    {
+      id: 'refresh',
+      label: t('browser.refresh'),
+      disabled: loading || !setScope,
+      help: t(loading ? 'editor.waitAction' : 'browser.selectEvent'),
+      onClick: () => setScope && onReloadBracketData(setScope)
+    }
+  ];
+  if (tournamentLoaded)
+    bracketActions.push({
+      id: 'unload',
+      label: t('startgg.unloadTournament'),
+      disabled: unloadTournamentDisabled,
+      testId: 'unload-tournament',
+      onClick: onUnloadTournament
+    });
+  const tools = [
+    { id: 'help', content: <HelpMenu navigate={onTutorialWorkspace} /> },
+    { id: 'players', content: <PlayerLibraryButton selectedSet={activeSet} compact /> },
+    { id: 'settings', content: <SettingsButton compact /> }
+  ];
+  const groups: Array<{ id: string; label: string; tutorial?: string; content: ReactNode }> = [
+    {
+      id: 'bracket',
+      label: t('utilityGroups.bracket'),
+      tutorial: 'bracket-options',
+      content: (
         <Group className="workspace-maintenance-actions" gap="xs" wrap="nowrap">
-          <Tooltip label={loading ? t('editor.waitAction') : !setScope ? t('browser.selectEvent') : t('browser.refreshHint')}
-            position="bottom" multiline w={260} events={{ hover: true, focus: true, touch: true }} openDelay={350}>
-            <span tabIndex={loading || !setScope ? 0 : undefined} role={loading || !setScope ? 'group' : undefined} aria-label={t('browser.refresh')}>
-              <Button
-                size="compact-xs"
-                variant="default"
-                disabled={loading || !setScope}
-                onClick={() => setScope && onReloadBracketData(setScope)}
-              >
-                {t('browser.refresh')}
+          <Menu position="bottom-start" shadow="md" width={280}>
+            <Menu.Target>
+              <Button size="compact-xs" variant="default" rightSection={<span aria-hidden="true">▾</span>}>
+                {t('quickTools.bracketOptions')}
               </Button>
-            </span>
-          </Tooltip>
-          <Tooltip label={reloadWarning ?? (loading ? t('editor.waitAction') : t('editor.reloadHint'))}
-            position="bottom" multiline w={260} events={{ hover: true, focus: true, touch: true }} openDelay={350}>
-            <span tabIndex={reloadSelectedSetDisabled ? 0 : undefined} role={reloadSelectedSetDisabled ? 'group' : undefined} aria-label={t('editor.reload')}>
-              <Button
-                size="compact-xs"
-                variant="default"
-                disabled={reloadSelectedSetDisabled}
-                onClick={onReloadSelectedSet}
-              >
-                {t('editor.reload')}
-              </Button>
-            </span>
-          </Tooltip>
-          {tournamentLoaded && (
-            <Tooltip label={t('startgg.unloadTournamentHint')} openDelay={350}>
-              <span>
-                <Button
-                  data-testid="unload-tournament"
-                  size="compact-xs"
-                  variant="default"
-                  disabled={unloadTournamentDisabled}
-                  onClick={onUnloadTournament}
+            </Menu.Target>
+            <Menu.Dropdown>
+              {bracketActions.map((action) => (
+                <Menu.Item
+                  key={action.id}
+                  data-testid={action.testId}
+                  disabled={action.disabled}
+                  onClick={action.onClick}
                 >
-                  {t('startgg.unloadTournament')}
-                </Button>
-              </span>
-            </Tooltip>
-          )}
-          <Tooltip label={t('startgg.clearCacheHint')} openDelay={350}>
-            <span>
-              <Button
-                data-testid="clear-startgg-cache"
-                size="compact-xs"
-                variant="default"
-                disabled={loading}
-                onClick={onClearCache}
-              >
-                {t('startgg.clearCache')}
-              </Button>
-            </span>
-          </Tooltip>
+                  {action.label}
+                  {action.disabled && action.help && (
+                    <Text size="xs" c="dimmed">
+                      {action.help}
+                    </Text>
+                  )}
+                </Menu.Item>
+              ))}
+            </Menu.Dropdown>
+          </Menu>
         </Group>
-      </div>
-      <div className="workspace-maintenance-group">
-        <Text className="workspace-maintenance-label">{t('utilityGroups.media')}</Text>
+      )
+    },
+    {
+      id: 'media',
+      label: t('utilityGroups.media'),
+      tutorial: 'assets',
+      content: (
         <Group className="workspace-maintenance-actions" gap="xs" wrap="nowrap">
+          <AssetsMenu game={assetCatalogSlug} />
           <Tooltip label={t('browser.reloadAssetsHint')} openDelay={350}>
-            <span>
+            <Box component="span" display="flex">
               <Button size="compact-xs" variant="default" loading={reloadingAssets} onClick={onReloadAssets}>
                 {t('browser.reloadAssets')}
               </Button>
-            </span>
+            </Box>
           </Tooltip>
         </Group>
-      </div>
-      <div className="workspace-maintenance-group">
-        <Text className="workspace-maintenance-label">{t('utilityGroups.moderation')}</Text>
-        <ModerationAllowlistControls onApplied={onModerationApplied} />
-      </div>
-      <div className="workspace-maintenance-group">
-        <Text className="workspace-maintenance-label">{t('utilityGroups.obs')}</Text>
-        <OverlayUrlMenu copied={copiedHandoff} disabled={!localBaseUrl} compact onCopy={onCopy} />
-      </div>
-      <Switch className="workspace-shortcuts-toggle" size="xs" label={t('editor.enableShortcuts')} checked={keyboardShortcuts.enabled}
-        onChange={(event) => keyboardShortcuts.setEnabled(event.currentTarget.checked)} />
+      )
+    },
+    {
+      id: 'moderation',
+      label: t('utilityGroups.moderation'),
+      content: <ModerationAllowlistControls onApplied={onModerationApplied} />
+    },
+    {
+      id: 'obs',
+      label: t('utilityGroups.obs'),
+      tutorial: 'obs',
+      content: (
+        <Group gap="xs" wrap="nowrap">
+          <OverlayUrlMenu copied={copiedHandoff} disabled={!localBaseUrl} compact onCopy={onCopy} />
+          <StingerQuickMenu activeSet={activeSet} onConfigure={onConfigureStingers} />
+        </Group>
+      )
+    },
+    {
+      id: 'tools',
+      label: t('quickTools.tools'),
+      content: (
+        <Group gap="xs" wrap="nowrap">
+          {tools.map((tool) => (
+            <Fragment key={tool.id}>{tool.content}</Fragment>
+          ))}
+        </Group>
+      )
+    }
+  ];
+
+  return (
+    <Group className="workspace-maintenance-bar" gap="md" align="flex-end" wrap="wrap">
+      {groups.map((group) => (
+        <div key={group.id} className="workspace-maintenance-group" data-tutorial={group.tutorial}>
+          <Text className="workspace-maintenance-label">{group.label}</Text>
+          {group.content}
+        </div>
+      ))}
+      <Switch
+        className="workspace-shortcuts-toggle"
+        size="xs"
+        label={t('editor.enableShortcuts')}
+        checked={keyboardShortcuts.enabled}
+        onChange={(event) => keyboardShortcuts.setEnabled(event.currentTarget.checked)}
+      />
     </Group>
   );
 }

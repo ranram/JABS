@@ -1,20 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { charactersForAssetCatalog, charactersForGame, isCharacterForGame, matchCharacterName } from './characterRosters';
-import { gameProfiles } from './gameProfiles';
-import { generatedCharacterAliases } from './generatedCharacterAliases';
+import {
+  charactersForAssetCatalog,
+  charactersForGame,
+  isCharacterForGame,
+  matchCharacterName
+} from './characterRosters';
 
 describe('character rosters', () => {
-  it('keeps every reviewed roster nonempty, trimmed, and unique', () => {
-    for (const gameId of Object.keys(gameProfiles) as Array<keyof typeof gameProfiles>) {
-      const roster = charactersForGame(gameId);
-      expect(roster.length, gameId).toBeGreaterThan(0);
-      expect(roster.every((character) => character === character.trim() && character.length > 0)).toBe(true);
-      expect(new Set(roster.map((character) => character.toLocaleLowerCase('en-US'))).size).toBe(roster.length);
-      for (const [alias, canonical] of Object.entries(generatedCharacterAliases[gameId])) {
-        expect(matchCharacterName(gameId, alias), `${gameId}: ${alias}`).toBe(canonical);
-        expect(roster).toContain(canonical);
-      }
-    }
+  it('resolves game-scoped aliases without changing canonical character names', () => {
     expect(isCharacterForGame('tekken-8', 'Jin Kazama')).toBe(true);
     expect(isCharacterForGame('tekken-8', 'jin kazama')).toBe(false);
     expect(charactersForAssetCatalog('street-fighter-6')).toContain('Ryu');

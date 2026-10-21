@@ -15,6 +15,7 @@ import type {
 export type BracketBrowserState = {
   bracketRefresh?: BracketRefresh;
   tournamentSlug: string;
+  loadedTournamentSlug: string;
   recentTournaments: RecentTournament[];
   events: StartggEvent[];
   selectedEventId: string;
@@ -39,6 +40,7 @@ export type BracketBrowserState = {
 
 export const initialBracketBrowserState: BracketBrowserState = {
   tournamentSlug: '',
+  loadedTournamentSlug: '',
   recentTournaments: [],
   events: [],
   selectedEventId: '',

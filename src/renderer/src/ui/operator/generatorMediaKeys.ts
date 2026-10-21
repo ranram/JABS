@@ -1,7 +1,8 @@
 import { playerCharacters } from '@shared/characterTeams';
 
-type GeneratorSubject = {
+export type GeneratorSubject = {
   name: string;
+  playerPhotoAssetId?: string;
   sponsor?: string;
   character?: string;
   characters?: string[];
@@ -13,14 +14,16 @@ export function generatorIdentityKey(
   context: { tournamentName?: string; headline?: string }
 ): string {
   return JSON.stringify({
-    identities: subjects.map(({ name, sponsor }) => ({ name, sponsor })),
+    identities: subjects.map(({ name, sponsor, playerPhotoAssetId }) => ({ name, sponsor, playerPhotoAssetId })),
     context
   });
 }
 
 export function generatorCharacterKey(subjects: readonly GeneratorSubject[]): string {
-  return JSON.stringify(subjects.map((subject) => ({
-    characters: playerCharacters(subject),
-    characterAssetId: subject.characterAssetId
-  })));
+  return JSON.stringify(
+    subjects.map((subject) => ({
+      characters: playerCharacters(subject),
+      characterAssetId: subject.characterAssetId
+    }))
+  );
 }

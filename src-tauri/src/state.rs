@@ -1,7 +1,12 @@
+mod text_moderation;
+
+pub use text_moderation::censor_untrusted_selected_set;
+use text_moderation::assert_safe_state;
+
 use crate::{database::{Database, now_rfc3339}, moderation};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{collections::{HashMap, HashSet}, path::Path, sync::{LazyLock, RwLock}};
+use std::{collections::{HashMap, HashSet}, path::Path, sync::{LazyLock, RwLock, atomic::{AtomicU64, Ordering}}};
 use time::{Duration, OffsetDateTime, format_description::well_known::Rfc3339};
 use tokio::sync::broadcast;
 
@@ -47,6 +52,8 @@ pub struct SelectedSet {
     pub event_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tournament_slug: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tournament_name: Option<String>,
     pub display_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub phase: Option<String>,
@@ -63,6 +70,8 @@ pub struct SelectedSet {
     pub game_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub game_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub videogame_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub styling_game_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -86,6 +95,12 @@ pub struct SelectedSet {
 #[derive(Clone, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Player {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub local_player_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub player_photo_asset_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub portrait_asset_id: Option<String>,
     pub entrant_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub player_id: Option<String>,
@@ -145,6 +160,7 @@ pub struct GameResult {
 
 pub struct OverlayStore {
     state: RwLock<OverlayState>,
+    history_revision: AtomicU64,
     updates: broadcast::Sender<String>,
 }
 
@@ -152,6 +168,16 @@ pub struct OverlayStore {
 pub enum UpdateSelectedSetError {
     Invalid(String),
     Conflict(String),
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExhibitionGameSelection {
+    pub game_id: String,
+    pub game_name: String,
+    pub videogame_id: String,
+    pub asset_catalog_slug: String,
+    pub updated_at: String,
 }
 
 pub struct ReportableResult {
@@ -168,7 +194,9 @@ impl OverlayStore {
             |state: &mut OverlayState| {
                 migrate_match_format(&mut state.selected_set);
                 normalize_character_teams(&mut state.selected_set);
-                validate_state(state)
+                validate_state(state)?;
+                censor_untrusted_selected_set(&mut state.selected_set);
+                Ok(())
             },
         )?;
         let payload = serde_json::to_string(&state)
@@ -177,6 +205,7 @@ impl OverlayStore {
         let (updates, _) = broadcast::channel(32);
         Ok(Self {
             state: RwLock::new(state),
+            history_revision: AtomicU64::new(0),
             updates,
         })
     }
@@ -196,6 +225,32 @@ impl OverlayStore {
         self.state.read()
             .map(|state| state.selected_set.clone())
             .map_err(|_| "Local stream state is unavailable.".to_owned())
+    }
+
+    // Score and artwork edits leave history requests running. A matchup change
+    // makes older requests outdated, even after switching away and back to the same set.
+    pub fn history_snapshot(&self) -> Result<(SelectedSet, u64), String> {
+        let state = self.state.read().map_err(|_| "Local stream state is unavailable.")?;
+        Ok((state.selected_set.clone(), self.history_revision.load(Ordering::Relaxed)))
+    }
+
+    pub fn with_history_revision<T>(
+        &self,
+        revision: u64,
+        apply: impl FnOnce() -> Result<T, String>,
+    ) -> Result<Option<T>, String> {
+        let _state = self.state.read().map_err(|_| "Local stream state is unavailable.")?;
+        if self.history_revision.load(Ordering::Relaxed) != revision {
+            return Ok(None);
+        }
+        apply().map(Some)
+    }
+
+    fn record_matchup_change(&self, previous: &SelectedSet, next: &SelectedSet) {
+        if crate::versus_history::HistoryMatch::from_set(previous)
+            != crate::versus_history::HistoryMatch::from_set(next) {
+            self.history_revision.fetch_add(1, Ordering::Relaxed);
+        }
     }
 
     pub fn replace_selected_set(
@@ -219,6 +274,7 @@ impl OverlayStore {
         let payload = serde_json::to_string(&next)
             .map_err(|_| "Unable to serialize local stream state.".to_owned())?;
         persist_stream_state(database, &next, &payload)?;
+        self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
         drop(current);
         let _ = self.updates.send(payload.clone());
@@ -237,10 +293,13 @@ impl OverlayStore {
         let mut current = self.state.write()
             .map_err(|_| UpdateSelectedSetError::Invalid("Local stream state is unavailable.".to_owned()))?;
         submitted.phase = current.selected_set.phase.clone();
+        submitted.tournament_name = current.selected_set.tournament_name.clone();
         submitted.phase_group = current.selected_set.phase_group.clone();
         submitted.winners_side_entrant_id = current.selected_set.winners_side_entrant_id.clone();
         submitted.game_name = current.selected_set.game_name.clone();
+        submitted.videogame_id = current.selected_set.videogame_id.clone();
         submitted.game_history = current.selected_set.game_history.clone();
+        if current.selected_set.set_id.is_some() {
         submitted.player_one.player_id = player_id_for_entrant(
             &current.selected_set,
             &submitted.player_one.entrant_id,
@@ -249,6 +308,18 @@ impl OverlayStore {
             &current.selected_set,
             &submitted.player_two.entrant_id,
         );
+        }
+        for player in [&mut submitted.player_one, &mut submitted.player_two] {
+            if let Some(local_id) = player.local_player_id.as_deref() {
+                if database.library_player(local_id).map_err(UpdateSelectedSetError::Invalid)?.is_none() {
+                    // Deleting a library record must not prevent editing the match already on stream.
+                    player.local_player_id = None;
+                } else {
+                    database.library_resolve(Some(local_id), player.player_id.as_deref())
+                        .map_err(UpdateSelectedSetError::Invalid)?;
+                }
+            }
+        }
         validate_state(&OverlayState { selected_set: submitted.clone() })
             .map_err(UpdateSelectedSetError::Invalid)?;
         assert_safe_state(&submitted).map_err(UpdateSelectedSetError::Invalid)?;
@@ -278,11 +349,83 @@ impl OverlayStore {
             .map_err(|_| UpdateSelectedSetError::Invalid("Unable to serialize local stream state.".to_owned()))?;
         persist_stream_state(database, &next, &payload)
             .map_err(UpdateSelectedSetError::Invalid)?;
+        self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
         drop(current);
         let _ = self.updates.send(payload.clone());
         serde_json::from_str(&payload)
             .map_err(|_| UpdateSelectedSetError::Invalid("Unable to serialize local stream state.".to_owned()))
+    }
+
+    pub fn select_exhibition_game(
+        &self,
+        database: &Database,
+        selection: ExhibitionGameSelection,
+    ) -> Result<Value, UpdateSelectedSetError> {
+        let invalid = UpdateSelectedSetError::Invalid;
+        let mut current = self
+            .state
+            .write()
+            .map_err(|_| invalid("Local stream state is unavailable.".to_owned()))?;
+        if current.selected_set.set_id.is_some()
+            || current.selected_set.event_id.is_some()
+            || current.selected_set.tournament_slug.is_some()
+        {
+            return Err(invalid(
+                "Unload the tournament before choosing an exhibition game.".to_owned(),
+            ));
+        }
+        if selection.updated_at != current.selected_set.updated_at {
+            return Err(UpdateSelectedSetError::Conflict(
+                "The stream match changed while you were choosing a game. Select the game again.".to_owned()
+            ));
+        }
+        if selection.game_name.trim().is_empty()
+            || selection.game_name.len() > 180
+            || selection.videogame_id.is_empty()
+            || selection.videogame_id.len() > 20
+            || !selection
+                .videogame_id
+                .bytes()
+                .all(|byte| byte.is_ascii_digit())
+        {
+            return Err(invalid("Choose a valid exhibition game.".to_owned()));
+        }
+        moderation::assert_safe(&[("Game name", Some(selection.game_name.as_str()))])
+            .map_err(invalid)?;
+        let mut next = current.clone();
+        let selected = &mut next.selected_set;
+        selected.game_id = selection.game_id;
+        selected.game_name = Some(selection.game_name.trim().to_owned());
+        selected.videogame_id = Some(selection.videogame_id);
+        selected.asset_catalog_slug = Some(selection.asset_catalog_slug);
+        if selected.custom_scoreboard_id.is_none() {
+            selected.styling_game_id = Some(selected.game_id.clone());
+        }
+        // Keep the players and broadcast settings when changing exhibition games.
+        // Reset gameplay and old artwork before loading the new game's library defaults.
+        for player in [&mut selected.player_one, &mut selected.player_two] {
+            player.score = 0;
+            player.characters.clear();
+            player.character = None;
+            player.character_asset_id = None;
+            player.portrait_asset_id = None;
+        }
+        crate::player_library::startgg::fill_defaults(database, selected).map_err(invalid)?;
+        normalize_character_teams(selected);
+        assert_safe_state(selected).map_err(invalid)?;
+        selected.game_history = Some(Vec::new());
+        selected.updated_at = next_timestamp(&current.selected_set.updated_at).map_err(invalid)?;
+        validate_state(&next).map_err(invalid)?;
+        let payload = serde_json::to_string(&next)
+            .map_err(|_| invalid("Unable to serialize local stream state.".to_owned()))?;
+        persist_stream_state(database, &next, &payload).map_err(invalid)?;
+        self.record_matchup_change(&current.selected_set, &next.selected_set);
+        *current = next;
+        drop(current);
+        let _ = self.updates.send(payload.clone());
+        serde_json::from_str(&payload)
+            .map_err(|_| invalid("Unable to serialize local stream state.".to_owned()))
     }
 
     pub fn clear_selected_set(&self, database: &Database) -> Result<Value, String> {
@@ -293,6 +436,7 @@ impl OverlayStore {
         let payload = serde_json::to_string(&next)
             .map_err(|_| "Unable to serialize local stream state.".to_owned())?;
         persist_stream_state(database, &next, &payload)?;
+        self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
         drop(current);
         let _ = self.updates.send(payload.clone());
@@ -302,8 +446,6 @@ impl OverlayStore {
 
     pub fn set_score(&self, database: &Database, side: &str, requested_score: u32) -> Result<Value, String> {
         self.mutate(database, |selected_set| {
-            let limit = score_limit(selected_set.best_of);
-            let score = requested_score.min(limit);
             let selections = recorded_character_selections(selected_set);
             let (winner_id, previous_score, other_score) = match side {
                 "one" => (
@@ -318,6 +460,13 @@ impl OverlayStore {
                 ),
                 _ => return Err("Choose player side one or two.".to_owned()),
             };
+            // Corrections remain possible after deuce changes the target.
+            let limit = if requested_score > previous_score {
+                player_score_limit(selected_set, other_score).max(previous_score)
+            } else {
+                score_limit(selected_set)
+            };
+            let score = requested_score.min(limit);
             update_history(
                 &mut selected_set.game_history,
                 &winner_id,
@@ -392,6 +541,7 @@ impl OverlayStore {
         let payload = serde_json::to_string(&next)
             .map_err(|_| "Unable to serialize local stream state.".to_owned())?;
         persist_stream_state(database, &next, &payload)?;
+        self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
         drop(current);
         let _ = self.updates.send(payload.clone());
@@ -423,6 +573,7 @@ fn default_state() -> OverlayState {
             set_id: None,
             event_id: None,
             tournament_slug: None,
+            tournament_name: None,
             display_name: "Waiting for set".to_owned(),
             phase: None,
             phase_group: None,
@@ -431,11 +582,12 @@ fn default_state() -> OverlayState {
             station: None,
             state: None,
             game_id: "street-fighter-6".to_owned(),
-            game_name: Some("Street Fighter 6".to_owned()),
+            game_name: None,
+            videogame_id: None,
             styling_game_id: Some("street-fighter-6".to_owned()),
             custom_scoreboard_id: None,
             custom_scoreboard_revision: None,
-            asset_catalog_slug: Some("street-fighter-6".to_owned()),
+            asset_catalog_slug: None,
             match_format: Some("best-of".to_owned()),
             best_of: 3,
             broadcast: Some(BroadcastPresentation {
@@ -447,6 +599,7 @@ fn default_state() -> OverlayState {
             }),
             game_history: Some(Vec::new()),
             player_one: Player {
+                local_player_id: None, player_photo_asset_id: None, portrait_asset_id: None,
                 entrant_id: "p1".to_owned(),
                 player_id: None,
                 name: "Player 1".to_owned(),
@@ -464,6 +617,7 @@ fn default_state() -> OverlayState {
                 score: 0,
             },
             player_two: Player {
+                local_player_id: None, player_photo_asset_id: None, portrait_asset_id: None,
                 entrant_id: "p2".to_owned(),
                 player_id: None,
                 name: "Player 2".to_owned(),
@@ -537,13 +691,24 @@ fn validate_state(state: &OverlayState) -> Result<(), String> {
     if !matches!(selected_set.best_of, 3 | 5 | 9 | 13 | 19) {
         return Err("Choose a supported match length.".to_owned());
     }
-    if !matches!(selected_set.match_format.as_deref(), None | Some("best-of") | Some("first-to")) {
+    if !matches!(
+        selected_set.match_format.as_deref(),
+        None | Some("best-of") | Some("first-to") | Some("topanga")
+    ) {
         return Err("Choose a supported match format.".to_owned());
     }
-    if selected_set.match_format.as_deref() != Some("first-to")
+    if matches!(selected_set.match_format.as_deref(), None | Some("best-of"))
         && !matches!(selected_set.best_of, 3 | 5)
     {
         return Err("Best-of must be 3 or 5.".to_owned());
+    }
+    if selected_set.match_format.as_deref() == Some("topanga")
+        && (selected_set.best_of != 13
+            || selected_set.set_id.is_some()
+            || selected_set.event_id.is_some()
+            || selected_set.tournament_slug.is_some())
+    {
+        return Err("Topanga Rules are for exhibitions: first to 7, win by two, up to 10.".to_owned());
     }
     if selected_set.winners_side_entrant_id.as_ref().is_some_and(|entrant_id| {
         entrant_id != &selected_set.player_one.entrant_id
@@ -551,7 +716,7 @@ fn validate_state(state: &OverlayState) -> Result<(), String> {
     }) {
         return Err("The winners-side entrant must be one of the selected set entrants.".to_owned());
     }
-    let limit = score_limit(selected_set.best_of);
+    let limit = score_limit(selected_set);
     if selected_set.player_one.score > limit || selected_set.player_two.score > limit {
         return Err("Score exceeds the selected match length.".to_owned());
     }
@@ -617,12 +782,15 @@ pub fn report_readiness(selected_set: &SelectedSet) -> Result<ReportableResult, 
     if selected_set.set_id.is_none() {
         return Err("Load a start.gg set before reporting a result.".to_owned());
     }
-    if selected_set.match_format.as_deref() == Some("first-to") {
-        return Err("First-to exhibition scores are local-only and cannot be reported to start.gg.".to_owned());
+    if matches!(
+        selected_set.match_format.as_deref(),
+        Some("first-to") | Some("topanga")
+    ) {
+        return Err("Exhibition scores stay in JABS and cannot be reported to start.gg.".to_owned());
     }
     required(&selected_set.player_one.entrant_id, "Player one entrant ID")?;
     required(&selected_set.player_two.entrant_id, "Player two entrant ID")?;
-    let target = score_limit(selected_set.best_of);
+    let target = score_limit(selected_set);
     let player_one_won = selected_set.player_one.score == target
         && selected_set.player_two.score < target;
     let player_two_won = selected_set.player_two.score == target
@@ -646,95 +814,10 @@ pub fn report_readiness(selected_set: &SelectedSet) -> Result<ReportableResult, 
     })
 }
 
-pub fn censor_untrusted_selected_set(selected_set: &mut SelectedSet) {
-    let generated_display_name = selected_set.display_name == "[blocked]"
-        || selected_set.display_name
-        == format!(
-            "{} vs {}",
-            selected_set.player_one.name, selected_set.player_two.name
-        );
-    selected_set.phase = moderation::censor(selected_set.phase.take());
-    selected_set.phase_group = moderation::censor(selected_set.phase_group.take());
-    selected_set.round = moderation::censor(selected_set.round.take());
-    selected_set.station = moderation::censor(selected_set.station.take());
-    censor_player(&mut selected_set.player_one);
-    censor_player(&mut selected_set.player_two);
-    selected_set.display_name = if generated_display_name {
-        format!(
-            "{} vs {}",
-            selected_set.player_one.name, selected_set.player_two.name
-        )
-    } else {
-        censor_required(&selected_set.display_name)
-    };
-    if let Some(broadcast) = &mut selected_set.broadcast {
-        broadcast.info_left = moderation::censor(broadcast.info_left.take());
-        broadcast.info_right = moderation::censor(broadcast.info_right.take());
-    }
-}
-
-fn censor_player(player: &mut Player) {
-    player.name = censor_required(&player.name);
-    player.prefix = moderation::censor(player.prefix.take());
-    player.sponsor = moderation::censor(player.sponsor.take());
-    player.x_handle = moderation::censor(player.x_handle.take());
-    player.characters = player.characters.drain(..)
-        .filter_map(|character| moderation::censor_character(Some(character)))
-        .collect();
-    player.character = player.characters.first().cloned();
-    player.pronouns = moderation::censor(player.pronouns.take());
-}
-
-fn censor_required(value: &str) -> String {
-    moderation::censor(Some(value.to_owned())).unwrap_or_else(|| "[blocked]".to_owned())
-}
-
-fn assert_safe_state(selected_set: &SelectedSet) -> Result<(), String> {
-    let generated_display_name = format!(
-        "{} vs {}",
-        selected_set.player_one.name, selected_set.player_two.name
-    );
-    if selected_set.display_name != generated_display_name {
-        moderation::assert_safe(&[(
-            "Display name",
-            Some(selected_set.display_name.as_str()),
-        )])?;
-    }
-    moderation::assert_safe(&[
-        ("Phase", selected_set.phase.as_deref()),
-        ("Pool", selected_set.phase_group.as_deref()),
-        ("Round", selected_set.round.as_deref()),
-        ("Station", selected_set.station.as_deref()),
-        ("Player one name", Some(selected_set.player_one.name.as_str())),
-        ("Player one prefix", selected_set.player_one.prefix.as_deref()),
-        ("Player one sponsor", selected_set.player_one.sponsor.as_deref()),
-        ("Player one x.com handle", selected_set.player_one.x_handle.as_deref()),
-        ("Player one pronouns", selected_set.player_one.pronouns.as_deref()),
-        ("Player two name", Some(selected_set.player_two.name.as_str())),
-        ("Player two prefix", selected_set.player_two.prefix.as_deref()),
-        ("Player two sponsor", selected_set.player_two.sponsor.as_deref()),
-        ("Player two x.com handle", selected_set.player_two.x_handle.as_deref()),
-        ("Player two pronouns", selected_set.player_two.pronouns.as_deref()),
-        ("Left broadcast text", selected_set.broadcast.as_ref().and_then(|value| value.info_left.as_deref())),
-        ("Right broadcast text", selected_set.broadcast.as_ref().and_then(|value| value.info_right.as_deref())),
-    ])?;
-    for (label, player) in [
-        ("Player one character", &selected_set.player_one),
-        ("Player two character", &selected_set.player_two),
-    ] {
-        for character in &player.characters {
-            if moderation::contains_blocked_text_for_character(character) {
-                return Err(format!(
-                    "Blocked offensive text in {}. Remove it before saving stream state.",
-                    label
-                ));
-            }
-        }
-    }
-    Ok(())
-}
-
-fn validate_characters(selected_set: &SelectedSet, game_asset_directory: &Path) -> Result<(), String> {
+fn validate_characters(
+    selected_set: &SelectedSet,
+    game_asset_directory: &Path,
+) -> Result<(), String> {
     let catalog_slug = selected_set
         .asset_catalog_slug
         .as_deref()
@@ -742,7 +825,9 @@ fn validate_characters(selected_set: &SelectedSet, game_asset_directory: &Path) 
     let maximum = max_characters_for_game(&selected_set.game_id);
     for player in [&selected_set.player_one, &selected_set.player_two] {
         if player.characters.len() > maximum {
-            return Err(format!("This game supports at most {maximum} selected characters per player."));
+            return Err(format!(
+                "This game supports at most {maximum} selected characters per player."
+            ));
         }
         for character in &player.characters {
             if !crate::catalogs::is_character_for_game(catalog_slug, character)
@@ -751,6 +836,13 @@ fn validate_characters(selected_set: &SelectedSet, game_asset_directory: &Path) 
                     catalog_slug,
                     character,
                 )
+                && crate::catalogs::canonical_character_for_catalog(
+                    game_asset_directory,
+                    catalog_slug,
+                    character,
+                )
+                .as_deref()
+                    != Some(character.as_str())
             {
                 return Err("Choose a character from this event’s local game catalog.".to_owned());
             }
@@ -772,7 +864,7 @@ fn normalize_character_teams(selected_set: &mut SelectedSet) {
     }
 }
 
-fn max_characters_for_game(game_id: &str) -> usize {
+pub(crate) fn max_characters_for_game(game_id: &str) -> usize {
     CHARACTER_TEAM_LIMITS.get(game_id).copied().unwrap_or(1)
 }
 
@@ -804,8 +896,21 @@ fn required(value: &str, label: &str) -> Result<(), String> {
     }
 }
 
-fn score_limit(best_of: u32) -> u32 {
-    best_of / 2 + 1
+fn score_limit(selected_set: &SelectedSet) -> u32 {
+    if selected_set.match_format.as_deref() == Some("topanga") {
+        10
+    } else {
+        selected_set.best_of / 2 + 1
+    }
+}
+
+fn player_score_limit(selected_set: &SelectedSet, other_score: u32) -> u32 {
+    if selected_set.match_format.as_deref() == Some("topanga") {
+        // Start at seven; deuce requires two clear wins until the ten-win cap.
+        (other_score + 2).clamp(7, 10)
+    } else {
+        score_limit(selected_set)
+    }
 }
 
 fn update_history(
@@ -867,10 +972,298 @@ pub(crate) fn next_timestamp(previous: &str) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        GameResult, OverlayStore, default_state, migrate_match_format,
+        ExhibitionGameSelection, GameResult, OverlayStore, UpdateSelectedSetError, default_state, migrate_match_format,
         normalize_character_teams, report_readiness, validate_characters, validate_selected_set,
     };
     use crate::database::Database;
+
+    #[test]
+    fn topanga_deuce_targets_allow_corrections_and_persist_without_tournament_reporting() {
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let store = OverlayStore::load(&database).unwrap();
+        let unused = std::path::Path::new("unused");
+        let mut selected = store.selected_set().unwrap();
+        selected.match_format = Some("topanga".to_owned());
+        selected.best_of = 13;
+        store
+            .update_selected_set(&database, unused, unused, selected)
+            .unwrap();
+
+        for (side, other, player) in [("one", "two", "playerOne"), ("two", "one", "playerTwo")] {
+            store.reset_scores(&database).unwrap();
+            for score in 1..=5 {
+                store.set_score(&database, side, score).unwrap();
+                store.set_score(&database, other, score).unwrap();
+            }
+            store.set_score(&database, side, 6).unwrap();
+            store.set_score(&database, side, 7).unwrap();
+            // Seven wins with a two-game lead ends the match; an extra point is ignored.
+            assert_eq!(
+                store.set_score(&database, side, 8).unwrap()["selectedSet"][player]["score"],
+                7
+            );
+            store.set_score(&database, other, 6).unwrap();
+            assert_eq!(
+                store.set_score(&database, side, 8).unwrap()["selectedSet"][player]["score"],
+                8
+            );
+            assert_eq!(
+                store.set_score(&database, side, 9).unwrap()["selectedSet"][player]["score"],
+                8
+            );
+            store.set_score(&database, other, 7).unwrap();
+            store.set_score(&database, other, 8).unwrap();
+            store.set_score(&database, side, 9).unwrap();
+            store.set_score(&database, other, 9).unwrap();
+            let state = store.set_score(&database, side, 10).unwrap();
+            assert_eq!(state["selectedSet"][player]["score"], 10);
+            assert_eq!(
+                state["selectedSet"]["gameHistory"]
+                    .as_array()
+                    .unwrap()
+                    .len(),
+                19
+            );
+            assert_eq!(
+                OverlayStore::load(&database).unwrap().current().unwrap(),
+                state
+            );
+            let capped = store.set_score(&database, side, 11).unwrap();
+            assert_eq!(capped["selectedSet"][player]["score"], 10);
+            assert_eq!(
+                capped["selectedSet"]["gameHistory"],
+                state["selectedSet"]["gameHistory"]
+            );
+
+            // Lowering the opponent's score must not block a one-point correction.
+            store.set_score(&database, other, 5).unwrap();
+            assert_eq!(
+                store.set_score(&database, side, 11).unwrap()["selectedSet"][player]["score"],
+                10
+            );
+            let state = store.set_score(&database, side, 9).unwrap();
+            assert_eq!(state["selectedSet"][player]["score"], 9);
+            assert_eq!(
+                state["selectedSet"]["gameHistory"]
+                    .as_array()
+                    .unwrap()
+                    .len(),
+                14
+            );
+            store.swap_players(&database).unwrap();
+            assert_eq!(
+                store.selected_set().unwrap().player_one.score,
+                if side == "one" { 5 } else { 9 }
+            );
+        }
+
+        let mut selected = store.selected_set().unwrap();
+        selected.best_of = 19;
+        assert!(validate_selected_set(&selected).is_err());
+        selected.best_of = 13;
+        selected.set_id = Some("123".to_owned());
+        assert!(validate_selected_set(&selected).is_err());
+        assert!(report_readiness(&selected)
+            .err()
+            .unwrap()
+            .contains("cannot be reported"));
+    }
+
+    #[test]
+    fn first_to_scores_reach_their_target_and_preserve_history_after_corrections() {
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let store = OverlayStore::load(&database).unwrap();
+        let unused = std::path::Path::new("unused");
+        for target in [2, 3, 5, 7, 10] {
+            store.clear_selected_set(&database).unwrap();
+            let mut selected = store.selected_set().unwrap();
+            selected.match_format = Some("first-to".to_owned());
+            selected.best_of = target * 2 - 1;
+            store
+                .update_selected_set(&database, unused, unused, selected)
+                .unwrap();
+            for (side, player) in [("one", "playerOne"), ("two", "playerTwo")] {
+                store.reset_scores(&database).unwrap();
+                for score in 1..=target {
+                    let state = store.set_score(&database, side, score).unwrap();
+                    assert_eq!(
+                        state["selectedSet"][player]["score"], score,
+                        "FT{target}: {side}"
+                    );
+                }
+                let state = store.set_score(&database, side, target + 1).unwrap();
+                assert_eq!(state["selectedSet"][player]["score"], target);
+                assert_eq!(
+                    state["selectedSet"]["gameHistory"]
+                        .as_array()
+                        .unwrap()
+                        .len(),
+                    target as usize
+                );
+                assert_eq!(
+                    OverlayStore::load(&database).unwrap().current().unwrap(),
+                    state
+                );
+                let state = store.set_score(&database, side, target - 1).unwrap();
+                assert_eq!(state["selectedSet"][player]["score"], target - 1);
+                assert_eq!(
+                    state["selectedSet"]["gameHistory"]
+                        .as_array()
+                        .unwrap()
+                        .len(),
+                    (target - 1) as usize
+                );
+                let mut linked = store.selected_set().unwrap();
+                linked.set_id = Some("123".to_owned());
+                assert!(report_readiness(&linked).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn exhibition_game_changes_reset_gameplay_and_cannot_replace_a_tournament() {
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let store = OverlayStore::load(&database).unwrap();
+        let unused = std::path::Path::new("unused");
+        let mut selected = store.selected_set().unwrap();
+        selected.player_one.name = "Local player".to_owned();
+        selected.player_one.characters = vec!["Ryu".to_owned()];
+        selected.broadcast.as_mut().unwrap().info_left = Some("Exhibition".to_owned());
+        selected.match_format = Some("first-to".to_owned());
+        selected.best_of = 9;
+        store
+            .update_selected_set(&database, unused, unused, selected)
+            .unwrap();
+        store.set_score(&database, "one", 1).unwrap();
+        let selection = |updated_at: String| ExhibitionGameSelection {
+            game_id: "street-fighter-6".to_owned(),
+            game_name: "Samurai Shodown".to_owned(),
+            videogame_id: "334".to_owned(),
+            asset_catalog_slug: "samurai-shodown".to_owned(),
+            updated_at,
+        };
+        let version = store.selected_set().unwrap().updated_at;
+        let mut updates = store.subscribe();
+        let state = store
+            .select_exhibition_game(&database, selection(version.clone()))
+            .unwrap();
+        assert_eq!(state["selectedSet"]["gameName"], "Samurai Shodown");
+        assert_eq!(state["selectedSet"]["videogameId"], "334");
+        assert_eq!(state["selectedSet"]["assetCatalogSlug"], "samurai-shodown");
+        assert_eq!(state["selectedSet"]["playerOne"]["name"], "Local player");
+        assert_eq!(state["selectedSet"]["playerOne"]["score"], 0);
+        assert!(store
+            .selected_set()
+            .unwrap()
+            .player_one
+            .characters
+            .is_empty());
+        assert!(state["selectedSet"]["gameHistory"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+        assert_eq!(state["selectedSet"]["broadcast"]["infoLeft"], "Exhibition");
+        assert_eq!(state["selectedSet"]["matchFormat"], "first-to");
+        assert_eq!(state["selectedSet"]["bestOf"], 9);
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&updates.try_recv().unwrap()).unwrap(),
+            state
+        );
+        assert_eq!(
+            OverlayStore::load(&database).unwrap().current().unwrap(),
+            state
+        );
+        assert!(matches!(
+            store.select_exhibition_game(&database, selection(version)),
+            Err(UpdateSelectedSetError::Conflict(_))
+        ));
+
+        database.observe_players(vec![
+            ("1".into(), crate::player_library::Profile { name: "Alpha".into(), ..Default::default() }),
+            ("2".into(), crate::player_library::Profile { name: "Bravo".into(), ..Default::default() }),
+        ]).unwrap();
+        let mut linked = store.selected_set().unwrap();
+        for (player, id, character) in [
+            (&mut linked.player_one, "1", "Demitri"),
+            (&mut linked.player_two, "2", "Morrigan"),
+        ] {
+            let mut record = database.library_resolve(None, Some(id)).unwrap().unwrap();
+            record.games = vec![crate::player_library::GamePreferences {
+                game_key: "vampire-savior-the-lord-of-vampire".into(),
+                characters: vec![character.into()],
+                character_asset_id: Some(format!("{character}.png")),
+                portrait_asset_id: Some(format!("{character}-portrait.png")),
+            }];
+            let record = database.library_save(record).unwrap().player;
+            player.local_player_id = Some(record.local_id);
+            player.player_id = record.player_id;
+            player.portrait_asset_id = Some("old-game-portrait.png".into());
+        }
+        store.update_selected_set(&database, unused, unused, linked).unwrap();
+        let previous_revision = store.history_snapshot().unwrap().1;
+        store.select_exhibition_game(&database, ExhibitionGameSelection {
+            game_id: "street-fighter-6".into(),
+            game_name: "Vampire Savior: The Lord of Vampire".into(),
+            videogame_id: "582".into(),
+            asset_catalog_slug: "vampire-savior-the-lord-of-vampire".into(),
+            updated_at: store.selected_set().unwrap().updated_at,
+        }).unwrap();
+        let (switched, revision) = store.history_snapshot().unwrap();
+        assert_ne!(revision, previous_revision);
+        let context = crate::versus_history::HistoryMatch::from_set(&switched).unwrap();
+        assert_eq!((context.game_id.as_str(), context.player_one_id.as_str(), context.player_two_id.as_str()), ("582", "1", "2"));
+        for (player, character) in [(&switched.player_one, "Demitri"), (&switched.player_two, "Morrigan")] {
+            assert_eq!(player.characters, [character]);
+            assert_eq!(player.character.as_deref(), Some(character));
+            assert_eq!(player.character_asset_id, Some(format!("{character}.png")));
+            assert_eq!(player.portrait_asset_id, Some(format!("{character}-portrait.png")));
+        }
+        let deleted_id = switched.player_one.local_player_id.clone().unwrap();
+        let deleted = database.library_player(&deleted_id).unwrap().unwrap();
+        database.library_delete(&deleted_id, &deleted.updated_at).unwrap();
+        store.select_exhibition_game(&database, selection(switched.updated_at)).unwrap();
+        let switched = store.selected_set().unwrap();
+        assert!(switched.player_one.local_player_id.is_none());
+        assert!(switched.player_two.local_player_id.is_some());
+        for player in [&switched.player_one, &switched.player_two] {
+            assert!(player.characters.is_empty());
+            assert!(player.character.is_none());
+            assert!(player.character_asset_id.is_none());
+            assert!(player.portrait_asset_id.is_none());
+        }
+
+        let mut tournament = store.selected_set().unwrap();
+        tournament.set_id = Some("123".to_owned());
+        store
+            .replace_selected_set(&database, unused, unused, tournament)
+            .unwrap();
+        let before = store.current().unwrap();
+        assert!(matches!(
+            store.select_exhibition_game(
+                &database,
+                selection(store.selected_set().unwrap().updated_at)
+            ),
+            Err(UpdateSelectedSetError::Invalid(_))
+        ));
+        assert_eq!(store.current().unwrap(), before);
+        let cleared = store.clear_selected_set(&database).unwrap();
+        for field in [
+            "setId",
+            "eventId",
+            "tournamentSlug",
+            "gameName",
+            "videogameId",
+            "assetCatalogSlug",
+        ] {
+            assert!(cleared["selectedSet"].get(field).is_none(), "{field}");
+        }
+        assert!(store
+            .select_exhibition_game(
+                &database,
+                selection(store.selected_set().unwrap().updated_at)
+            )
+            .is_ok());
+    }
 
     #[test]
     fn score_history_correction_and_swap_are_persisted() {

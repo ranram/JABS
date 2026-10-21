@@ -1,18 +1,20 @@
+mod realtime;
+mod selection;
 use axum::{
     body::{Body, Bytes},
     Json, Router,
-    extract::{DefaultBodyLimit, Path as AxumPath, Query, State, WebSocketUpgrade, ws::{Message, WebSocket}},
+    extract::{DefaultBodyLimit, Path as AxumPath, Query, State, WebSocketUpgrade},
     http::{HeaderMap, HeaderValue, Method, StatusCode, Uri, header},
     response::{IntoResponse, Response},
     routing::{delete, get, post, put},
 };
-use futures_util::StreamExt;
 use serde::Serialize;
 use serde::Deserialize;
 use std::{io, net::{Ipv4Addr, SocketAddrV4, TcpListener}, sync::Arc};
 use crate::{runtime::RuntimeState, secrets::{self, TokenStatus}};
-use tokio::sync::broadcast;
 use tower_http::cors::CorsLayer;
+
+// Server startup and route registration
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,6 +37,13 @@ fn loopback_address(port: u16) -> SocketAddrV4 {
 }
 
 pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>) -> io::Result<()> {
+    let stinger_runtime = runtime.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+        loop { interval.tick().await; stinger_runtime.stingers.expire(); }
+    });
+    crate::versus_history::watch(runtime.clone());
+    tokio::spawn(crate::bracket_screen::run_refresh(runtime.clone()));
     let listener = tokio::net::TcpListener::from_std(listener)?;
     let cors = CorsLayer::new()
         .allow_origin([
@@ -56,22 +65,36 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         ])
         .allow_credentials(true);
     let app = Router::new()
+        .route("/api/diagnostics/renderer", post(crate::diagnostics::commands::overlay_diagnostic)
+            .layer(DefaultBodyLimit::max(1024)))
+        .merge(crate::player_library::routes::router())
+        .merge(crate::player_stats::router())
+        .merge(crate::stingers::router())
+        .merge(crate::scoreboard_photos::router())
         .route("/api/health", get({
             let runtime = runtime.clone();
             move || health(port, runtime)
         }))
+        // Stream state and live scores
         .route("/api/state", get(current_state))
         .route("/api/moderation/text", post(validate_moderation_text))
         .route("/api/state/selected-set", put(update_selected_set).delete(clear_selected_set))
+        .route("/api/state/exhibition-game", post(select_exhibition_game))
         .route("/api/state/score", post(set_score))
         .route("/api/state/scores/reset", post(reset_scores))
         .route("/api/state/players/swap", post(swap_players))
+        .route("/api/settings/appearance", get(crate::appearance_preferences::current).put(crate::appearance_preferences::update))
+        // Broadcast layouts
         .route("/api/broadcast/commentators", get(commentator_state).put(update_commentator_state))
         .route("/api/broadcast/result-screen", get(result_screen_state).put(update_result_screen_state))
+        .route("/api/broadcast/bracket-screen", get(crate::bracket_screen::current).put(crate::bracket_screen::update))
+        .route("/api/broadcast/bracket-screen/refresh", post(crate::bracket_screen::refresh_route))
         .route("/api/broadcast/versus-screen", get(versus_screen_state).put(update_versus_screen_state))
         .route("/api/broadcast/top-eight-matchups", get(top_eight_matchups_state).put(update_top_eight_matchups_state))
         .route("/api/broadcast/versus-screen/history", post(refresh_versus_history))
+        // Media catalogs and image files
         .route("/api/assets/logos", get(logos))
+        .route("/api/assets/reload", post(reload_assets))
         .route("/api/assets/catalog-summary", get(asset_catalog_summary))
         .route("/assets/tournament-logos/{asset_id}", get(logo_asset))
         .route("/api/assets/player-media", get(player_media))
@@ -79,8 +102,10 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .route("/assets/sponsor-logos/{asset_id}", get(sponsor_logo_asset))
         .route("/assets/player-photos/{asset_id}", get(player_photo_asset))
         .route("/api/assets/game-characters", get(game_character_assets))
+        .route("/api/assets/game-characters/prepare", post(crate::startgg_characters::prepare))
         .route("/assets/game-characters/{game_id}/{asset_id}", get(game_character_asset))
         .route("/assets/game-character-portraits/{game_id}/{asset_id}", get(game_character_portrait))
+        // Custom scoreboard files and settings
         .route("/api/custom-scoreboards", get(custom_scoreboards))
         .route(
             "/api/custom-scoreboards/import",
@@ -93,48 +118,195 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
             put(update_custom_scoreboard).delete(delete_custom_scoreboard),
         )
         .route("/assets/custom-scoreboards/{scoreboard_id}/frame", get(custom_scoreboard_frame))
+        // Country and region choices
         .route("/api/locations/countries", get(countries))
         .route("/api/locations/states", get(states))
+        // start.gg browsing, selection, and reporting
+        .route("/api/startgg/videogames", get(startgg_videogames))
         .route("/api/startgg/events", get(startgg_events))
         .route("/api/startgg/recent-tournaments", get(recent_tournaments))
         .route("/api/startgg/cache", delete(clear_startgg_cache))
         .route("/api/startgg/stream-queue", get(startgg_stream_queue))
         .route("/api/startgg/phases", get(startgg_phases))
-        .route("/api/startgg/event-standings", get(startgg_event_standings))
+        .route("/api/startgg/event-standings", post(startgg_event_standings))
         .route("/api/startgg/phase-groups", get(startgg_phase_groups))
         .route("/api/startgg/sets", get(startgg_sets))
         .route("/api/startgg/inspect-set", post(inspect_startgg_set))
         .route("/api/startgg/select-set", post(select_startgg_set))
         .merge(crate::reporting_routes::router())
+        // Realtime updates and application pages
         .route("/ws", get(websocket))
         .fallback(web_or_not_found)
         .with_state(runtime)
-        .layer(cors);
+        .layer(cors)
+        .layer(axum::middleware::from_fn(move |request: axum::extract::Request, next: axum::middleware::Next| async move {
+            if let Some(response) = reject_untrusted_request(request.method(), request.headers(), port) {
+                return response;
+            }
+            let route = request.uri().path().to_owned();
+            let response = next.run(request).await;
+            if response.status().is_client_error() || response.status().is_server_error() {
+                crate::diagnostics::http_failure(&route, response.status().as_u16());
+            }
+            response
+        }));
     axum::serve(listener, app).await
 }
 
-async fn logos(State(runtime): State<Arc<RuntimeState>>) -> Response {
-    match crate::catalogs::list_logo_assets(&runtime.logo_directory) {
-        Ok(logos) => secure_json(Json(serde_json::json!({ "logos": logos }))),
+// Server health
+
+async fn health(port: u16, runtime: Arc<RuntimeState>) -> impl IntoResponse {
+    match runtime.database.recovery_notices() {
+        Ok(recovery_notices) => secure_json(Json(HealthResponse {
+            ok: true, port, token: secrets::status(&runtime), recovery_notices,
+        })),
         Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
     }
 }
 
-async fn asset_catalog_summary(
-    State(runtime): State<Arc<RuntimeState>>,
-    Query(query): Query<GameCharacterAssetsQuery>,
-) -> Response {
-    match crate::catalogs::asset_catalog_summary(
-        &runtime.logo_directory,
-        &runtime.sponsor_directory,
-        &runtime.player_photo_directory,
-        &runtime.game_asset_directory,
-        &query.game_id,
-    ) {
-        Ok(summary) => secure_json(Json(summary)),
-        Err(error) => secure_json((StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": error })))),
+// Stream state and live score controls
+
+async fn current_state(State(runtime): State<Arc<RuntimeState>>) -> Response {
+    match runtime.overlay.current() {
+        Ok(state) => secure_json(Json(state)),
+        Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
     }
 }
+
+async fn update_selected_set(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+    Json(selected_set): Json<crate::state::SelectedSet>,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    let previous = runtime.overlay.selected_set().ok();
+    match runtime.overlay.update_selected_set(
+        &runtime.database,
+        &runtime.logo_directory,
+        &runtime.game_asset_directory,
+        selected_set,
+    ) {
+        Ok(state) => {
+            if let (Some(previous), Ok(next)) = (previous, serde_json::from_value::<crate::state::OverlayState>(state.clone())) {
+                let _ = runtime.versus_screen.reset_media_for_match_change(
+                    &runtime.database, &previous, &next.selected_set,
+                );
+                runtime.stingers.score_updated(&previous, &next.selected_set);
+            }
+            secure_json(Json(state))
+        },
+        Err(crate::state::UpdateSelectedSetError::Invalid(error)) => secure_json((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({ "error": error })),
+        )),
+        Err(crate::state::UpdateSelectedSetError::Conflict(error)) => secure_json((
+            StatusCode::CONFLICT,
+            Json(serde_json::json!({ "error": error })),
+        )),
+    }
+}
+
+async fn select_exhibition_game(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+    Json(selection): Json<crate::state::ExhibitionGameSelection>,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    let previous = runtime.overlay.selected_set().ok();
+    match runtime
+        .overlay
+        .select_exhibition_game(&runtime.database, selection)
+    {
+        Ok(state) => {
+            if let (Some(previous), Ok(next)) = (previous, serde_json::from_value::<crate::state::OverlayState>(state.clone())) {
+                let _ = runtime.versus_screen.reset_media_for_match_change(
+                    &runtime.database, &previous, &next.selected_set,
+                );
+            }
+            secure_json(Json(state))
+        },
+        Err(crate::state::UpdateSelectedSetError::Invalid(error)) => secure_json((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({ "error": error })),
+        )),
+        Err(crate::state::UpdateSelectedSetError::Conflict(error)) => secure_json((
+            StatusCode::CONFLICT,
+            Json(serde_json::json!({ "error": error })),
+        )),
+    }
+}
+
+async fn clear_selected_set(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    match runtime.overlay.clear_selected_set(&runtime.database) {
+        Ok(state) => {
+            let _ = runtime.bracket_screen.clear(&runtime.database);
+            let _ = runtime.versus_screen.reset_media_placements(&runtime.database);
+            secure_json(Json(state))
+        },
+        Err(error) => secure_json((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": error })),
+        )),
+    }
+}
+
+#[derive(Deserialize)]
+struct ScoreBody {
+    side: String,
+    score: u32,
+}
+
+async fn set_score(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+    Json(body): Json<ScoreBody>,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    let previous = runtime.overlay.selected_set().ok();
+    let result = runtime.overlay.set_score(&runtime.database, &body.side, body.score);
+    if let (Some(previous), Ok(state)) = (previous, &result) {
+        if let Ok(next) = serde_json::from_value::<crate::state::OverlayState>(state.clone()) {
+            runtime.stingers.score_updated(&previous, &next.selected_set);
+        }
+    }
+    state_result(result)
+}
+
+async fn reset_scores(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    let result = runtime.overlay.reset_scores(&runtime.database);
+    if result.is_ok() { runtime.stingers.reset_completion(); }
+    state_result(result)
+}
+
+async fn swap_players(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    state_result(runtime.overlay.swap_players(&runtime.database))
+}
+
+// Broadcast settings and match history
 
 async fn commentator_state(State(runtime): State<Arc<RuntimeState>>) -> Response {
     match runtime.commentators.current() {
@@ -211,17 +383,44 @@ async fn refresh_versus_history(
     headers: HeaderMap,
 ) -> Response {
     if let Some(response) = reject_untrusted_mutation(&headers) { return response; }
-    let selected_set = match runtime.overlay.selected_set() {
-        Ok(selected_set) => selected_set,
-        Err(error) => return secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
-    };
-    match crate::startgg::versus_history(&runtime, &selected_set).await {
-        Ok(history) => match runtime.versus_screen.replace_history(&runtime.database, history) {
-            Ok(state) => secure_json(Json(state)),
-            Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
-        },
+    match crate::versus_history::refresh(runtime, true).await {
+        Ok(state) => secure_json(Json(state)),
         Err(error) => startgg_error(error),
     }
+}
+
+// Media catalogs and artwork
+
+async fn logos(State(runtime): State<Arc<RuntimeState>>) -> Response {
+    match crate::catalogs::list_logo_assets(&runtime.logo_directory) {
+        Ok(logos) => secure_json(Json(serde_json::json!({ "logos": logos }))),
+        Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
+    }
+}
+
+async fn asset_catalog_summary(
+    State(runtime): State<Arc<RuntimeState>>,
+    Query(query): Query<GameCharacterAssetsQuery>,
+) -> Response {
+    match crate::catalogs::asset_catalog_summary(
+        &runtime.logo_directory,
+        &runtime.sponsor_directory,
+        &runtime.player_photo_directory,
+        &runtime.game_asset_directory,
+        &query.game_id,
+    ) {
+        Ok(summary) => secure_json(Json(summary)),
+        Err(error) => secure_json((StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": error })))),
+    }
+}
+
+async fn reload_assets(State(runtime): State<Arc<RuntimeState>>, headers: HeaderMap) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    runtime.player_stats.invalidate_images();
+    runtime.asset_catalog_revision.send_modify(|revision| *revision += 1);
+    secure_json(Json(serde_json::json!({ "revision": *runtime.asset_catalog_revision.borrow() })))
 }
 
 async fn logo_asset(
@@ -372,6 +571,38 @@ async fn game_character_portrait(
     serve_resolved_raster(resolved, "Character portrait").await
 }
 
+async fn catalog_raster_asset(
+    directory: &std::path::Path,
+    asset_id: &str,
+    asset_label: &str,
+    resolve: fn(&std::path::Path, &str) -> Option<(std::path::PathBuf, &'static str)>,
+) -> Response {
+    serve_resolved_raster(resolve(directory, asset_id), asset_label).await
+}
+
+pub(crate) async fn serve_resolved_raster(
+    resolved: Option<(std::path::PathBuf, &'static str)>,
+    asset_label: &str,
+) -> Response {
+    let Some((path, mime)) = resolved else {
+        return secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({
+            "error": format!("{asset_label} asset not found.")
+        }))));
+    };
+    match tokio::fs::read(path).await {
+        Ok(bytes) if crate::catalogs::valid_raster_bytes(&bytes, mime) => {
+            let mut response = Response::new(Body::from(bytes));
+            response.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(mime));
+            secure_json(response)
+        }
+        _ => secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({
+            "error": format!("{asset_label} asset not found.")
+        })))),
+    }
+}
+
+// Custom scoreboards
+
 #[derive(Deserialize)]
 struct CustomScoreboardImportQuery {
     name: String,
@@ -467,35 +698,7 @@ async fn custom_scoreboard_frame(
     secure_json(response)
 }
 
-async fn catalog_raster_asset(
-    directory: &std::path::Path,
-    asset_id: &str,
-    asset_label: &str,
-    resolve: fn(&std::path::Path, &str) -> Option<(std::path::PathBuf, &'static str)>,
-) -> Response {
-    serve_resolved_raster(resolve(directory, asset_id), asset_label).await
-}
-
-async fn serve_resolved_raster(
-    resolved: Option<(std::path::PathBuf, &'static str)>,
-    asset_label: &str,
-) -> Response {
-    let Some((path, mime)) = resolved else {
-        return secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({
-            "error": format!("{asset_label} asset not found.")
-        }))));
-    };
-    match tokio::fs::read(path).await {
-        Ok(bytes) if crate::catalogs::valid_raster_bytes(&bytes, mime) => {
-            let mut response = Response::new(Body::from(bytes));
-            response.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static(mime));
-            secure_json(response)
-        }
-        _ => secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({
-            "error": format!("{asset_label} asset not found.")
-        })))),
-    }
-}
+// Country and region options
 
 async fn countries() -> Response {
     secure_json(Json(serde_json::json!({ "countries": crate::catalogs::country_options() })))
@@ -515,6 +718,8 @@ async fn states(Query(query): Query<StatesQuery>) -> Response {
     }
 }
 
+// start.gg catalogs, bracket browsing, and cache management
+
 async fn recent_tournaments(State(runtime): State<Arc<RuntimeState>>) -> Response {
     match runtime.database.recent_tournaments() {
         Ok(tournaments) => secure_json(Json(serde_json::json!({ "tournaments": tournaments }))),
@@ -532,23 +737,11 @@ async fn clear_startgg_cache(
             Json(serde_json::json!({ "error": "This local mutation requires JABS's trusted renderer." })),
         ));
     }
+    runtime.player_stats.invalidate();
     match runtime.database.clear_startgg_cache_and_history() {
         Ok(()) => secure_json(Json(serde_json::json!({ "cleared": true }))),
         Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
     }
-}
-
-fn has_renderer_action_header(headers: &HeaderMap) -> bool {
-    headers.get("x-jabs-action")
-        .and_then(|value| value.to_str().ok())
-        == Some("renderer-v1")
-}
-
-pub(crate) fn reject_untrusted_mutation(headers: &HeaderMap) -> Option<Response> {
-    (!has_renderer_action_header(headers)).then(|| secure_json((
-        StatusCode::FORBIDDEN,
-        Json(serde_json::json!({ "error": "This local mutation requires JABS's trusted renderer." })),
-    )))
 }
 
 #[derive(Deserialize)]
@@ -569,8 +762,10 @@ async fn startgg_events(
 
 async fn startgg_event_standings(
     State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
     Query(query): Query<EventStandingsQuery>,
 ) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) { return response; }
     let result = match (query.event_id.as_deref(), query.event_slug.as_deref()) {
         (Some(event_id), None) => crate::startgg::event_standings(&runtime, event_id).await,
         (None, Some(event_slug)) => crate::startgg::event_standings_by_slug(&runtime, event_slug).await,
@@ -590,6 +785,13 @@ async fn startgg_event_standings(
 struct EventStandingsQuery {
     event_id: Option<String>,
     event_slug: Option<String>,
+}
+
+async fn startgg_videogames(State(runtime): State<Arc<RuntimeState>>) -> Response {
+    match crate::startgg_videogames::list(&runtime).await {
+        Ok(result) => secure_json(Json(result)),
+        Err(error) => startgg_error(error),
+    }
 }
 
 async fn startgg_stream_queue(
@@ -667,6 +869,8 @@ async fn startgg_sets(
     }
 }
 
+// Selecting a start.gg set for the stream
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SelectedSetBody {
@@ -691,8 +895,10 @@ fn default_true() -> bool {
 
 async fn inspect_startgg_set(
     State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
     Json(body): Json<SelectedSetBody>,
 ) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) { return response; }
     match fetch_selected_set(&runtime, &body).await {
         Ok(Some(mut selected_set)) => {
             reconcile_imported_characters(&mut selected_set, &runtime.game_asset_directory);
@@ -719,40 +925,10 @@ async fn select_startgg_set(
         Ok(None) => return secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Set not found." })))),
         Err(error) => return startgg_error(error),
     };
-    reconcile_imported_characters(&mut fresh, &runtime.game_asset_directory);
-    if body.restore_overrides {
-        if let Some(set_id) = fresh.set_id.as_deref() {
-            let saved = runtime
-                .database
-                .load_set_override(set_id)
-                .ok()
-                .flatten()
-                .and_then(|payload| serde_json::from_str::<crate::state::SelectedSet>(&payload).ok())
-                .map(|mut saved| {
-                    crate::state::migrate_match_format(&mut saved);
-                    saved
-                })
-                .filter(|saved| crate::state::validate_selected_set(saved).is_ok());
-            if let Some(mut saved) = saved {
-                saved.game_id = fresh.game_id.clone();
-                saved.game_name = fresh.game_name.clone().or(saved.game_name);
-                let fresh_players = [&fresh.player_one, &fresh.player_two];
-                saved.player_one.player_id = fresh_players.iter()
-                    .find(|player| player.entrant_id == saved.player_one.entrant_id)
-                    .and_then(|player| player.player_id.clone());
-                saved.player_two.player_id = fresh_players.iter()
-                    .find(|player| player.entrant_id == saved.player_two.entrant_id)
-                    .and_then(|player| player.player_id.clone());
-                saved.set_id = fresh.set_id.clone();
-                saved.phase = fresh.phase.clone();
-                saved.phase_group = fresh.phase_group.clone();
-                saved.winners_side_entrant_id = fresh.winners_side_entrant_id.clone();
-                saved.event_id = fresh.event_id.clone().or(saved.event_id);
-                saved.tournament_slug = fresh.tournament_slug.clone().or(saved.tournament_slug);
-                saved.asset_catalog_slug = fresh.asset_catalog_slug.clone().or(saved.asset_catalog_slug);
-                fresh = saved;
-            }
-        }
+    if let Err(error) = selection::apply_player_preferences(
+        &runtime.database, &runtime.game_asset_directory, &mut fresh, body.restore_overrides,
+    ) {
+        return state_result(Err(error));
     }
     if body.preserve_broadcast {
         if let Ok(current) = runtime.overlay.selected_set() {
@@ -770,9 +946,8 @@ async fn select_startgg_set(
             }
         }
     }
-    let previous_set_id = runtime.overlay.selected_set().ok()
-        .and_then(|current| current.set_id);
-    let selected_set_changed = previous_set_id.as_deref() != fresh.set_id.as_deref();
+    let previous = runtime.overlay.selected_set().ok();
+    let selected_set_changed = previous.as_ref().and_then(|current| current.set_id.as_deref()) != fresh.set_id.as_deref();
     crate::state::censor_untrusted_selected_set(&mut fresh);
     if let Some(slug) = fresh.tournament_slug.as_deref() {
         if runtime.database.record_recent_tournament(slug).is_err() {
@@ -788,8 +963,17 @@ async fn select_startgg_set(
         fresh,
     ) {
         Ok(state) => {
-            if selected_set_changed {
-                let _ = runtime.versus_screen.reset_media_placements(&runtime.database);
+            if let (Some(previous), Ok(next)) = (previous, serde_json::from_value::<crate::state::OverlayState>(state.clone())) {
+                let _ = runtime.versus_screen.reset_media_for_match_change(
+                    &runtime.database, &previous, &next.selected_set,
+                );
+            }
+            // Sending the same set again can refresh an expired history entry too.
+            if !selected_set_changed {
+                let history_runtime = runtime.clone();
+                tokio::spawn(async move {
+                    let _ = crate::versus_history::refresh(history_runtime, false).await;
+                });
             }
             secure_json(Json(serde_json::json!({ "state": state, "source": "live" })))
         }
@@ -851,64 +1035,23 @@ async fn fetch_selected_set(
 }
 
 pub(crate) fn startgg_error(error: crate::startgg::ApiError) -> Response {
+    crate::diagnostics::record(crate::diagnostics::Event::StartggFailed, crate::diagnostics::Context {
+        area: crate::diagnostics::Area::Startgg,
+        reason: Some(crate::diagnostics::Reason::from_code(error.code)),
+        ..Default::default()
+    });
     let status = match error.code {
         "token-missing" | "authentication" => StatusCode::UNAUTHORIZED,
         "permission" => StatusCode::FORBIDDEN,
         "rate-limit" => StatusCode::TOO_MANY_REQUESTS,
-        "invalid-response" => StatusCode::UNPROCESSABLE_ENTITY,
+        "invalid-response" | "player-reference" => StatusCode::UNPROCESSABLE_ENTITY,
+        "player-not-found" => StatusCode::NOT_FOUND,
         _ => StatusCode::BAD_GATEWAY,
     };
     secure_json((status, Json(error)))
 }
 
-async fn current_state(State(runtime): State<Arc<RuntimeState>>) -> Response {
-    match runtime.overlay.current() {
-        Ok(state) => secure_json(Json(state)),
-        Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
-    }
-}
-
-async fn update_selected_set(
-    State(runtime): State<Arc<RuntimeState>>,
-    headers: HeaderMap,
-    Json(selected_set): Json<crate::state::SelectedSet>,
-) -> Response {
-    if let Some(response) = reject_untrusted_mutation(&headers) {
-        return response;
-    }
-    match runtime.overlay.update_selected_set(
-        &runtime.database,
-        &runtime.logo_directory,
-        &runtime.game_asset_directory,
-        selected_set,
-    ) {
-        Ok(state) => secure_json(Json(state)),
-        Err(crate::state::UpdateSelectedSetError::Invalid(error)) => secure_json((
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Json(serde_json::json!({ "error": error })),
-        )),
-        Err(crate::state::UpdateSelectedSetError::Conflict(error)) => secure_json((
-            StatusCode::CONFLICT,
-            Json(serde_json::json!({ "error": error })),
-        )),
-    }
-}
-
-async fn clear_selected_set(
-    State(runtime): State<Arc<RuntimeState>>,
-    headers: HeaderMap,
-) -> Response {
-    if let Some(response) = reject_untrusted_mutation(&headers) {
-        return response;
-    }
-    match runtime.overlay.clear_selected_set(&runtime.database) {
-        Ok(state) => secure_json(Json(state)),
-        Err(error) => secure_json((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": error })),
-        )),
-    }
-}
+// Text moderation
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -962,59 +1105,7 @@ async fn validate_moderation_text(
     }
 }
 
-#[derive(Deserialize)]
-struct ScoreBody {
-    side: String,
-    score: u32,
-}
-
-async fn set_score(
-    State(runtime): State<Arc<RuntimeState>>,
-    headers: HeaderMap,
-    Json(body): Json<ScoreBody>,
-) -> Response {
-    if let Some(response) = reject_untrusted_mutation(&headers) {
-        return response;
-    }
-    state_result(runtime.overlay.set_score(&runtime.database, &body.side, body.score))
-}
-
-async fn reset_scores(
-    State(runtime): State<Arc<RuntimeState>>,
-    headers: HeaderMap,
-) -> Response {
-    if let Some(response) = reject_untrusted_mutation(&headers) {
-        return response;
-    }
-    state_result(runtime.overlay.reset_scores(&runtime.database))
-}
-
-async fn swap_players(
-    State(runtime): State<Arc<RuntimeState>>,
-    headers: HeaderMap,
-) -> Response {
-    if let Some(response) = reject_untrusted_mutation(&headers) {
-        return response;
-    }
-    state_result(runtime.overlay.swap_players(&runtime.database))
-}
-
-fn broadcast_result(result: Result<serde_json::Value, String>) -> Response {
-    match result {
-        Err(error) if error == crate::persisted_state::STALE_SETTINGS => secure_json((
-            StatusCode::CONFLICT,
-            Json(serde_json::json!({ "error": error, "code": "conflict" })),
-        )),
-        result => state_result(result),
-    }
-}
-
-pub(crate) fn state_result(result: Result<serde_json::Value, String>) -> Response {
-    match result {
-        Ok(state) => secure_json(Json(state)),
-        Err(error) => secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({ "error": error })))),
-    }
-}
+// Live state updates
 
 async fn websocket(
     State(runtime): State<Arc<RuntimeState>>,
@@ -1024,7 +1115,7 @@ async fn websocket(
     if !trusted_websocket_origin(&headers, runtime.api_port.load(std::sync::atomic::Ordering::Acquire)) {
         return StatusCode::FORBIDDEN.into_response();
     }
-    upgrade.on_upgrade(move |socket| websocket_session(socket, runtime))
+    upgrade.on_upgrade(move |socket| realtime::websocket_session(socket, runtime))
 }
 
 fn trusted_websocket_origin(headers: &HeaderMap, port: u16) -> bool {
@@ -1037,137 +1128,7 @@ fn trusted_websocket_origin(headers: &HeaderMap, port: u16) -> bool {
         || origin == format!("http://127.0.0.1:{port}")
 }
 
-async fn websocket_session(mut socket: WebSocket, runtime: Arc<RuntimeState>) {
-    let mut updates = runtime.overlay.subscribe();
-    let mut commentator_updates = runtime.commentators.subscribe();
-    let mut result_screen_updates = runtime.result_screen.subscribe();
-    let mut versus_screen_updates = runtime.versus_screen.subscribe();
-    let mut top_eight_matchups_updates = runtime.top_eight_matchups.subscribe();
-    let Ok(initial) = runtime.overlay.current().and_then(overlay_state_message) else {
-        return;
-    };
-    if socket.send(Message::Text(initial.into())).await.is_err() {
-        return;
-    }
-
-    loop {
-        tokio::select! {
-            update = updates.recv() => match update {
-                Ok(update) => {
-                    let Ok(update) = serde_json::from_str(&update)
-                        .map_err(|_| "State serialization failed.".to_owned())
-                        .and_then(overlay_state_message)
-                    else {
-                        continue;
-                    };
-                    if socket.send(Message::Text(update.into())).await.is_err() {
-                        break;
-                    }
-                }
-                Err(broadcast::error::RecvError::Lagged(_)) => continue,
-                Err(broadcast::error::RecvError::Closed) => break,
-            },
-            update = commentator_updates.recv() => match update {
-                Ok(update) => {
-                    let Ok(payload) = serde_json::from_str::<serde_json::Value>(&update)
-                        .map_err(|_| "State serialization failed.".to_owned())
-                        .and_then(commentator_state_message)
-                    else { continue; };
-                    if socket.send(Message::Text(payload.into())).await.is_err() { break; }
-                }
-                Err(broadcast::error::RecvError::Lagged(_)) => continue,
-                Err(broadcast::error::RecvError::Closed) => break,
-            },
-            update = result_screen_updates.recv() => match update {
-                Ok(update) => {
-                    let Ok(payload) = serde_json::from_str::<serde_json::Value>(&update)
-                        .map_err(|_| "State serialization failed.".to_owned())
-                        .and_then(result_screen_state_message)
-                    else { continue; };
-                    if socket.send(Message::Text(payload.into())).await.is_err() { break; }
-                }
-                Err(broadcast::error::RecvError::Lagged(_)) => continue,
-                Err(broadcast::error::RecvError::Closed) => break,
-            },
-            update = versus_screen_updates.recv() => match update {
-                Ok(update) => {
-                    let Ok(payload) = serde_json::from_str::<serde_json::Value>(&update)
-                        .map_err(|_| "State serialization failed.".to_owned())
-                        .and_then(versus_screen_state_message)
-                    else { continue; };
-                    if socket.send(Message::Text(payload.into())).await.is_err() { break; }
-                }
-                Err(broadcast::error::RecvError::Lagged(_)) => continue,
-                Err(broadcast::error::RecvError::Closed) => break,
-            },
-            update = top_eight_matchups_updates.recv() => match update {
-                Ok(update) => {
-                    let Ok(payload) = serde_json::from_str::<serde_json::Value>(&update)
-                        .map_err(|_| "State serialization failed.".to_owned())
-                        .and_then(top_eight_matchups_state_message)
-                    else { continue; };
-                    if socket.send(Message::Text(payload.into())).await.is_err() { break; }
-                }
-                Err(broadcast::error::RecvError::Lagged(_)) => continue,
-                Err(broadcast::error::RecvError::Closed) => break,
-            },
-            incoming = socket.next() => match incoming {
-                Some(Ok(Message::Ping(payload))) => {
-                    if socket.send(Message::Pong(payload)).await.is_err() {
-                        break;
-                    }
-                }
-                Some(Ok(Message::Close(_))) | Some(Err(_)) | None => break,
-                _ => {}
-            }
-        }
-    }
-}
-
-fn commentator_state_message(state: serde_json::Value) -> Result<String, String> {
-    serde_json::to_string(&serde_json::json!({
-        "event": "commentator-state",
-        "payload": state
-    })).map_err(|_| "State serialization failed.".to_owned())
-}
-
-fn result_screen_state_message(state: serde_json::Value) -> Result<String, String> {
-    serde_json::to_string(&serde_json::json!({
-        "event": "result-screen-state",
-        "payload": state
-    })).map_err(|_| "State serialization failed.".to_owned())
-}
-
-fn versus_screen_state_message(state: serde_json::Value) -> Result<String, String> {
-    serde_json::to_string(&serde_json::json!({
-        "event": "versus-screen-state",
-        "payload": state
-    })).map_err(|_| "State serialization failed.".to_owned())
-}
-
-fn top_eight_matchups_state_message(state: serde_json::Value) -> Result<String, String> {
-    serde_json::to_string(&serde_json::json!({
-        "event": "top-eight-matchups-state",
-        "payload": state
-    })).map_err(|_| "State serialization failed.".to_owned())
-}
-
-fn overlay_state_message(state: serde_json::Value) -> Result<String, String> {
-    serde_json::to_string(&serde_json::json!({
-        "event": "overlay-state",
-        "payload": state
-    }))
-    .map_err(|_| "State serialization failed.".to_owned())
-}
-
-async fn health(port: u16, runtime: Arc<RuntimeState>) -> impl IntoResponse {
-    match runtime.database.recovery_notices() {
-        Ok(recovery_notices) => secure_json(Json(HealthResponse {
-            ok: true, port, token: secrets::status(&runtime), recovery_notices,
-        })),
-        Err(error) => secure_json((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": error })))),
-    }
-}
+// Web pages and packaged assets
 
 async fn web_or_not_found(
     State(_runtime): State<Arc<RuntimeState>>,
@@ -1238,6 +1199,55 @@ async fn web_or_not_found(
     }
 }
 
+// Shared request guards and response helpers
+
+fn reject_untrusted_request(method: &Method, headers: &HeaderMap, port: u16) -> Option<Response> {
+    // Loopback binding alone does not stop a website from rebinding its DNS to us.
+    let expected_host = format!("127.0.0.1:{port}");
+    let mut hosts = headers.get_all(header::HOST).iter();
+    let trusted_host = hosts.next().and_then(|value| value.to_str().ok()) == Some(expected_host.as_str())
+        && hosts.next().is_none();
+    if !trusted_host || (headers.contains_key(header::ORIGIN) && !trusted_websocket_origin(headers, port)) {
+        return Some(secure_json((StatusCode::FORBIDDEN, Json(serde_json::json!({
+            "error": "This request requires JABS's local origin."
+        })))));
+    }
+    if !matches!(*method, Method::GET | Method::HEAD | Method::OPTIONS) {
+        return reject_untrusted_mutation(headers);
+    }
+    None
+}
+
+fn has_renderer_action_header(headers: &HeaderMap) -> bool {
+    headers.get("x-jabs-action")
+        .and_then(|value| value.to_str().ok())
+        == Some("renderer-v1")
+}
+
+pub(crate) fn reject_untrusted_mutation(headers: &HeaderMap) -> Option<Response> {
+    (!has_renderer_action_header(headers)).then(|| secure_json((
+        StatusCode::FORBIDDEN,
+        Json(serde_json::json!({ "error": "This local mutation requires JABS's trusted renderer." })),
+    )))
+}
+
+fn broadcast_result(result: Result<serde_json::Value, String>) -> Response {
+    match result {
+        Err(error) if error == crate::persisted_state::STALE_SETTINGS => secure_json((
+            StatusCode::CONFLICT,
+            Json(serde_json::json!({ "error": error, "code": "conflict" })),
+        )),
+        result => state_result(result),
+    }
+}
+
+pub(crate) fn state_result(result: Result<serde_json::Value, String>) -> Response {
+    match result {
+        Ok(state) => secure_json(Json(state)),
+        Err(error) => secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({ "error": error })))),
+    }
+}
+
 pub(crate) fn secure_json(response: impl IntoResponse) -> Response {
     let mut response = response.into_response();
     let headers = response.headers_mut();
@@ -1247,13 +1257,15 @@ pub(crate) fn secure_json(response: impl IntoResponse) -> Response {
     response
 }
 
+// Tests
+
 #[cfg(test)]
 mod tests {
-    use super::{has_renderer_action_header, retain_broadcast_extras, trusted_websocket_origin};
-    use axum::http::{HeaderMap, HeaderValue, header};
+    use super::{has_renderer_action_header, reject_untrusted_request, retain_broadcast_extras, trusted_websocket_origin};
+    use axum::http::{HeaderMap, HeaderValue, Method, header};
 
-    #[test]
-    fn local_requests_require_exact_origin_and_mutation_headers() {
+    #[tokio::test]
+    async fn local_requests_require_exact_origin_and_mutation_headers() {
         let mut headers = HeaderMap::new();
         headers.insert(header::ORIGIN, HeaderValue::from_static("http://127.0.0.1:4279"));
         assert!(trusted_websocket_origin(&headers, 4279));
@@ -1268,6 +1280,46 @@ mod tests {
         assert!(has_renderer_action_header(&mutation_headers));
         mutation_headers.insert("x-jabs-action", HeaderValue::from_static("renderer-v2"));
         assert!(!has_renderer_action_header(&mutation_headers));
+
+        let mut request_headers = HeaderMap::new();
+        assert!(reject_untrusted_request(&Method::GET, &request_headers, 4279).is_some());
+        request_headers.insert(header::HOST, HeaderValue::from_static("127.0.0.1:4279"));
+        assert!(reject_untrusted_request(&Method::GET, &request_headers, 4279).is_none());
+        assert!(reject_untrusted_request(&Method::GET, &request_headers, 4280).is_some());
+        assert!(reject_untrusted_request(&Method::POST, &request_headers, 4279).is_some());
+        request_headers.insert("x-jabs-action", HeaderValue::from_static("renderer-v1"));
+        assert!(reject_untrusted_request(&Method::POST, &request_headers, 4279).is_none());
+        request_headers.insert(header::ORIGIN, HeaderValue::from_static("http://127.0.0.1:4279"));
+        assert!(reject_untrusted_request(&Method::POST, &request_headers, 4279).is_none());
+        request_headers.insert(header::ORIGIN, HeaderValue::from_static("https://attacker.example"));
+        assert!(reject_untrusted_request(&Method::GET, &request_headers, 4279).is_some());
+        request_headers.remove(header::ORIGIN);
+        request_headers.insert(header::HOST, HeaderValue::from_static("attacker.example:4279"));
+        assert!(reject_untrusted_request(&Method::POST, &request_headers, 4279).is_some());
+        request_headers.insert(header::HOST, HeaderValue::from_static("127.0.0.1:4279"));
+        request_headers.append(header::HOST, HeaderValue::from_static("attacker.example:4279"));
+        assert!(reject_untrusted_request(&Method::GET, &request_headers, 4279).is_some());
+
+        let directory = std::path::PathBuf::from("unused");
+        let runtime = std::sync::Arc::new(crate::runtime::RuntimeState::new(
+            crate::database::Database::open(std::path::Path::new(":memory:")).unwrap(),
+            directory.clone(), directory.clone(), directory.clone(),
+            directory.clone(), directory.clone(), directory,
+        ).unwrap());
+        let mut assets = runtime.asset_catalog_revision.subscribe();
+        let revision = *assets.borrow();
+        let rejected = super::reload_assets(axum::extract::State(runtime.clone()), HeaderMap::new()).await;
+        assert_eq!(rejected.status(), axum::http::StatusCode::FORBIDDEN);
+        assert!(!assets.has_changed().unwrap());
+        let mut reload_headers = HeaderMap::new();
+        reload_headers.insert("x-jabs-action", HeaderValue::from_static("renderer-v1"));
+        let accepted = super::reload_assets(axum::extract::State(runtime), reload_headers).await;
+        assert_eq!(accepted.status(), axum::http::StatusCode::OK);
+        assets.changed().await.unwrap();
+        let body = axum::body::to_bytes(accepted.into_body(), 1024).await.unwrap();
+        let response: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(response["revision"], revision + 1);
+        assert_eq!(*assets.borrow_and_update(), revision + 1);
     }
 
     #[test]
@@ -1297,5 +1349,81 @@ mod tests {
 
         assert!(fresh.broadcast == current.broadcast);
         assert_eq!(fresh.styling_game_id.as_deref(), Some("street-fighter-6"));
+    }
+
+    #[tokio::test]
+    async fn versus_placement_resets_on_game_and_match_transitions_and_rejects_old_edits() {
+        use crate::{database::Database, runtime::RuntimeState, state::ExhibitionGameSelection, versus_screen::VersusScreenState};
+        use axum::{extract::State, Json};
+        use std::{path::PathBuf, sync::Arc};
+
+        let directory = PathBuf::from("unused");
+        let runtime = Arc::new(RuntimeState::new(
+            Database::open(std::path::Path::new(":memory:")).unwrap(),
+            directory.clone(), directory.clone(), directory.clone(),
+            directory.clone(), directory.clone(), directory,
+        ).unwrap());
+        let mut headers = HeaderMap::new();
+        headers.insert("x-jabs-action", HeaderValue::from_static("renderer-v1"));
+
+        fn adjust(runtime: &RuntimeState) -> VersusScreenState {
+            let mut settings: VersusScreenState = serde_json::from_value(runtime.versus_screen.current().unwrap()).unwrap();
+            settings.media_mode = "combined".into();
+            settings.show_match_backdrop = false;
+            for placement in &mut settings.media_placements {
+                placement.character.scale = 2.0;
+                placement.character.x = 0.3;
+                placement.photo.y = 0.2;
+            }
+            serde_json::from_value(runtime.versus_screen.replace(&runtime.database, settings).unwrap()).unwrap()
+        }
+        fn assert_reset(runtime: &RuntimeState) {
+            let settings: VersusScreenState = serde_json::from_value(runtime.versus_screen.current().unwrap()).unwrap();
+            for placement in settings.media_placements {
+                assert_eq!(placement.character, crate::versus_screen::MediaTransform::default());
+                assert_eq!(placement.photo, crate::versus_screen::MediaTransform::default());
+            }
+            assert_eq!(settings.media_mode, "combined");
+            assert!(!settings.show_match_backdrop);
+        }
+
+        let initial = runtime.overlay.selected_set().unwrap();
+        let response = super::select_exhibition_game(State(runtime.clone()), headers.clone(), Json(ExhibitionGameSelection {
+            game_id: "street-fighter-6".into(), game_name: "Vampire Savior The Lord of Vampire".into(),
+            videogame_id: "582".into(), asset_catalog_slug: "vampire-savior-the-lord-of-vampire".into(),
+            updated_at: initial.updated_at,
+        })).await;
+        assert_eq!(response.status(), axum::http::StatusCode::OK);
+        let delayed_edit = adjust(&runtime);
+        let before_score = runtime.versus_screen.current().unwrap();
+        let mut exhibition = runtime.overlay.selected_set().unwrap();
+        exhibition.station = Some("Station 1".into());
+        let response = super::update_selected_set(State(runtime.clone()), headers.clone(), Json(exhibition)).await;
+        assert_eq!(response.status(), axum::http::StatusCode::OK);
+        let response = super::set_score(State(runtime.clone()), headers.clone(), Json(super::ScoreBody { side: "one".into(), score: 1 })).await;
+        assert_eq!(response.status(), axum::http::StatusCode::OK);
+        assert_eq!(runtime.versus_screen.current().unwrap(), before_score);
+
+        let exhibition = runtime.overlay.selected_set().unwrap();
+        let response = super::select_exhibition_game(State(runtime.clone()), headers.clone(), Json(ExhibitionGameSelection {
+            game_id: "street-fighter-6".into(), game_name: "Street Fighter 6".into(),
+            videogame_id: "43868".into(), asset_catalog_slug: "street-fighter-6".into(),
+            updated_at: exhibition.updated_at,
+        })).await;
+        assert_eq!(response.status(), axum::http::StatusCode::OK);
+        assert_reset(&runtime);
+        assert_eq!(runtime.versus_screen.replace(&runtime.database, delayed_edit).unwrap_err(), crate::persisted_state::STALE_SETTINGS);
+
+        adjust(&runtime);
+        let mut tournament = runtime.overlay.selected_set().unwrap();
+        tournament.set_id = Some("123".into());
+        tournament.event_id = Some("456".into());
+        let response = super::update_selected_set(State(runtime.clone()), headers.clone(), Json(tournament)).await;
+        assert_eq!(response.status(), axum::http::StatusCode::OK);
+        assert_reset(&runtime);
+        adjust(&runtime);
+        let response = super::clear_selected_set(State(runtime.clone()), headers).await;
+        assert_eq!(response.status(), axum::http::StatusCode::OK);
+        assert_reset(&runtime);
     }
 }

@@ -1,8 +1,11 @@
+import { useAppearanceStyle } from '../appearance/AppearanceProvider';
+import { DisplayText } from '../DisplayText';
 import { type CSSProperties, type Ref } from 'react';
 import type { GameProfile } from '@shared/gameProfiles';
 import type { ThumbnailDraft } from '@shared/thumbnail';
 import type { MediaLayerKind, MediaTransform, PlayerMediaPlacement } from '@shared/mediaPlacement';
-import { AdjustableMediaImage } from './AdjustableMediaImage';
+import { PlayerMediaLayers } from '../PlayerMediaLayers';
+import { mediaInteractionKey } from '../mediaIdentity';
 import { displayFlagUrl, isPrideDisplayFlag } from '../overlayPlayerPresentation';
 import type { CharacterPortrait } from '../../characterPortraits';
 import { CharacterPortraitStrip } from '../CharacterPortraitStrip';
@@ -14,9 +17,7 @@ export type ThumbnailMedia = {
   characterPortraits?: CharacterPortrait[];
 };
 
-export function thumbnailTrustedText(
-  draft: ThumbnailDraft
-): string[] {
+export function thumbnailTrustedText(draft: ThumbnailDraft): string[] {
   return [
     draft.tournamentName,
     draft.headline,
@@ -31,6 +32,7 @@ export function thumbnailTrustedText(
 }
 
 type ThumbnailCanvasProps = {
+  editable?: boolean;
   draft: ThumbnailDraft;
   stylingProfile: GameProfile;
   media: [ThumbnailMedia, ThumbnailMedia];
@@ -50,6 +52,7 @@ type ThumbnailStyle = CSSProperties & {
 };
 
 export function ThumbnailCanvas({
+  editable = true,
   draft,
   stylingProfile,
   media,
@@ -60,14 +63,20 @@ export function ThumbnailCanvas({
   onSelectLayer,
   onPlacementChange
 }: ThumbnailCanvasProps) {
+  const appearanceStyle = useAppearanceStyle();
   const style: ThumbnailStyle = {
     '--thumbnail-accent': stylingProfile.overlay.accent,
     '--thumbnail-background': stylingProfile.overlay.background,
     '--thumbnail-headline-color': draft.headlineColor,
-    '--adjustable-media-outline': `color-mix(in srgb, ${stylingProfile.overlay.accent} 82%, white)`
+    '--adjustable-media-outline': `color-mix(in srgb, ${stylingProfile.overlay.accent} 82%, white)`,
+    ...appearanceStyle
   };
   return (
-    <section ref={canvasRef} className={`thumbnail-canvas thumbnail-style-${draft.style}${draft.background ? ' has-custom-background' : ''}`} style={style}>
+    <section
+      ref={canvasRef}
+      className={`thumbnail-canvas thumbnail-style-${draft.style}${draft.background ? ' has-custom-background' : ''}`}
+      style={style}
+    >
       {draft.background && (
         <LoadedImage src={draft.background.dataUrl} className="thumbnail-custom-background" layer="background" />
       )}
@@ -82,20 +91,28 @@ export function ThumbnailCanvas({
       </header>
       <div className="thumbnail-matchup">
         <ThumbnailPlayer
+          key={mediaInteractionKey(draft.players[0], [0, draft.assetCatalogSlug, draft.sourceSetId])}
+          editable={editable}
           side="one"
           playerIndex={0}
           player={draft.players[0]}
+          mediaMode={draft.mediaMode}
           media={media[0]}
           placement={placements[0]}
           selectedLayer={selectedLayer}
           onSelectLayer={onSelectLayer}
           onPlacementChange={onPlacementChange}
         />
-        <div className="thumbnail-versus" data-export-text>VS</div>
+        <div className="thumbnail-versus" data-export-text>
+          VS
+        </div>
         <ThumbnailPlayer
+          key={mediaInteractionKey(draft.players[1], [1, draft.assetCatalogSlug, draft.sourceSetId])}
+          editable={editable}
           side="two"
           playerIndex={1}
           player={draft.players[1]}
+          mediaMode={draft.mediaMode}
           media={media[1]}
           placement={placements[1]}
           selectedLayer={selectedLayer}
@@ -103,24 +120,31 @@ export function ThumbnailCanvas({
           onPlacementChange={onPlacementChange}
         />
       </div>
-      <footer><span data-export-text>JABS broadcast graphic</span><strong data-export-text>{draft.gameName}</strong></footer>
+      <footer>
+        <span data-export-text>JABS broadcast graphic</span>
+        <strong data-export-text>{draft.gameName}</strong>
+      </footer>
     </section>
   );
 }
 
 function ThumbnailPlayer({
+  editable,
   side,
   playerIndex,
   player,
+  mediaMode,
   media,
   placement,
   selectedLayer,
   onSelectLayer,
   onPlacementChange
 }: {
+  editable: boolean;
   side: 'one' | 'two';
   playerIndex: 0 | 1;
   player: ThumbnailDraft['players'][number];
+  mediaMode: ThumbnailDraft['mediaMode'];
   media: ThumbnailMedia;
   placement: PlayerMediaPlacement;
   selectedLayer?: { player: 0 | 1; layer: MediaLayerKind };
@@ -129,31 +153,28 @@ function ThumbnailPlayer({
 }) {
   const flagUrl = displayFlagUrl(player.country, player.displayFlag);
   const prideFlag = isPrideDisplayFlag(player.displayFlag);
+  const flag = flagUrl && (
+    <LoadedImage src={flagUrl} className={`thumbnail-country-flag${prideFlag ? ' is-pride' : ''}`} layer="foreground" />
+  );
   return (
-    <article className={`thumbnail-player thumbnail-player-${side}${media.playerPhotoUrl ? ' has-photo' : ''}${media.characterUrl ? ' has-character' : ''}${media.sponsorLogoUrl ? ' has-sponsor' : ''}`} data-export-clip>
+    <article
+      className={`thumbnail-player thumbnail-player-${side}${media.playerPhotoUrl ? ' has-photo' : ''}${media.characterUrl ? ' has-character' : ''}${media.sponsorLogoUrl ? ' has-sponsor' : ''}`}
+      data-export-clip
+    >
       <div className="thumbnail-subject">
-        {media.characterUrl && (
-          <AdjustableMediaImage
-            src={media.characterUrl}
-            className="thumbnail-character"
-            label={`${player.name} character artwork`}
-            transform={placement.character}
-            selected={selectedLayer?.player === playerIndex && selectedLayer.layer === 'character'}
-            onSelect={() => onSelectLayer(playerIndex, 'character')}
-            onChange={(transform) => onPlacementChange(playerIndex, 'character', transform)}
-          />
-        )}
-        {media.playerPhotoUrl && (
-          <AdjustableMediaImage
-            src={media.playerPhotoUrl}
-            className="thumbnail-player-photo"
-            label={`${player.name} player photo`}
-            transform={placement.photo}
-            selected={selectedLayer?.player === playerIndex && selectedLayer.layer === 'photo'}
-            onSelect={() => onSelectLayer(playerIndex, 'photo')}
-            onChange={(transform) => onPlacementChange(playerIndex, 'photo', transform)}
-          />
-        )}
+        <PlayerMediaLayers
+          mode={mediaMode}
+          name={player.name}
+          characterUrl={media.characterUrl}
+          photoUrl={media.playerPhotoUrl}
+          showPhotoPlaceholder={mediaMode !== 'combined'}
+          characterClass="thumbnail-character"
+          photoClass="thumbnail-player-photo"
+          placement={placement}
+          selectedLayer={selectedLayer?.player === playerIndex ? selectedLayer.layer : undefined}
+          onSelect={editable ? (layer) => onSelectLayer(playerIndex, layer) : undefined}
+          onChange={editable ? (layer, transform) => onPlacementChange(playerIndex, layer, transform) : undefined}
+        />
       </div>
       <CharacterPortraitStrip
         portraits={media.characterPortraits ?? []}
@@ -161,13 +182,25 @@ function ThumbnailPlayer({
         side={side === 'one' ? 'left' : 'right'}
       />
       <div className="thumbnail-identity" data-export-shape="thumbnail-identity">
-        {media.sponsorLogoUrl && <LoadedImage src={media.sponsorLogoUrl} className="thumbnail-sponsor-logo" layer="foreground" />}
-        {player.sponsor && <span className="thumbnail-sponsor-text" data-export-text>{player.sponsor}</span>}
-        <span className="thumbnail-name-row">
-          {side === 'one' && flagUrl && <LoadedImage src={flagUrl} className={`thumbnail-country-flag${prideFlag ? ' is-pride' : ''}`} layer="foreground" />}
-          <strong data-export-text>{player.name}</strong>
-          {side === 'two' && flagUrl && <LoadedImage src={flagUrl} className={`thumbnail-country-flag${prideFlag ? ' is-pride' : ''}`} layer="foreground" />}
-        </span>
+        {media.sponsorLogoUrl && (
+          <LoadedImage src={media.sponsorLogoUrl} className="thumbnail-sponsor-logo" layer="foreground" />
+        )}
+        {side === 'one' && flag}
+        <div className="thumbnail-identity-copy">
+          {player.sponsor && (
+            <span className="thumbnail-sponsor-text" data-export-text>
+              <span className="thumbnail-sponsor-label">{player.sponsor}</span>
+            </span>
+          )}
+          <span className="thumbnail-name-row">
+            <strong data-export-text="wrapped">
+              <span className="thumbnail-name-text">
+                <DisplayText text={player.name} />
+              </span>
+            </strong>
+          </span>
+        </div>
+        {side === 'two' && flag}
       </div>
     </article>
   );
@@ -192,8 +225,12 @@ function LoadedImage({
       aria-hidden="true"
       data-export-image-layer={layer}
       data-export-mirror-x={mirrorX || undefined}
-      onLoad={(event) => { event.currentTarget.style.removeProperty('display'); }}
-      onError={(event) => { event.currentTarget.style.display = 'none'; }}
+      onLoad={(event) => {
+        event.currentTarget.style.removeProperty('display');
+      }}
+      onError={(event) => {
+        event.currentTarget.style.display = 'none';
+      }}
     />
   );
 }

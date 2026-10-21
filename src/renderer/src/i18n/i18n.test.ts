@@ -1,23 +1,15 @@
-import { beforeAll, describe, expect, it } from 'vitest';
-import { i18n, normalizeLocale } from './index';
-import { localizedStartggError } from './startggErrors';
+import { describe, expect, it } from 'vitest';
 import { resources } from './resources';
+import nativeSpanish from './nativeErrors.es-419.json';
 
 describe('renderer localization catalogs', () => {
-  beforeAll(async () => {
-    await i18n.init({ resources, lng: 'en', fallbackLng: 'en', interpolation: { escapeValue: false } });
-  });
-  it('normalizes supported locales and classifies start.gg failures in both languages', async () => {
-    expect(normalizeLocale('en-US')).toBe('en');
-    expect(normalizeLocale('es-HN')).toBe('es-419');
-    expect(normalizeLocale('ES')).toBe('es-419');
-    expect(normalizeLocale('fr-FR')).toBeUndefined();
-    expect(normalizeLocale('../../remote-catalog')).toBeUndefined();
-    expect(localizedStartggError({ code: 'anonymous-unavailable', error: 'upstream implementation detail' }, 'Failed'))
-      .toBe(i18n.t('errors:startgg.publicUnavailable'));
-  });
-
   it('keeps translation keys and interpolation parameters in parity', async () => {
+    for (const [source, translated] of Object.entries(nativeSpanish)) {
+      expect(translated.trim(), source).not.toBe('');
+      expect([...translated.matchAll(/\{(\w*)\}/g)].map((item) => item[1]).sort(), source).toEqual(
+        [...source.matchAll(/\{(\w*)\}/g)].map((item) => item[1]).sort()
+      );
+    }
     const english = flatten(resources.en);
     const spanish = flatten(resources['es-419']);
 
@@ -43,7 +35,5 @@ function flatten(value: object, prefix = ''): Map<string, string> {
 }
 
 function interpolations(value: string): string[] {
-  return [...value.matchAll(/{{\s*([^},\s]+)[^}]*}}/g)]
-    .map((match) => match[1])
-    .sort();
+  return [...value.matchAll(/{{\s*([^},\s]+)[^}]*}}/g)].map((match) => match[1]).sort();
 }

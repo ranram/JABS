@@ -1,0 +1,23 @@
+.display-text {
+  font: inherit;
+  line-height: normal;
+}
+
+.display-text .display-text-fallback {
+  font-family: system-ui, 'Noto Sans', sans-serif;
+  font-size: inherit;
+  font-weight: 700;
+  font-style: normal;
+  line-height: normal;
+  letter-spacing: normal;
+}
+
+.display-text .display-text-cjk {
+  font-family: 'Noto Sans CJK JP', 'Yu Gothic', Meiryo, system-ui, sans-serif;
+}
+
+/* Other scripts and accents need their font's full height, even in compact rows. */
+:is(.overlay, .top8-matchups-overlay, .custom-scoreboard-canvas, .top8-canvas, .thumbnail-canvas)
+  :has(> .display-text) {
+  line-height: normal;
+}

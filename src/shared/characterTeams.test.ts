@@ -9,17 +9,27 @@ describe('character teams', () => {
     expect(characterTeamSelection(['Ryu', 'Ken'])).toEqual({
       character: 'Ryu',
       characters: ['Ryu', 'Ken'],
-      characterAssetId: undefined
+      characterAssetId: undefined,
+      portraitAssetId: undefined
     });
     expect(characterTeamSelection([])).toEqual({
       character: undefined,
       characters: undefined,
-      characterAssetId: undefined
+      characterAssetId: undefined,
+      portraitAssetId: undefined
     });
     expect(characterTeamSelection(['Ryu'], {
       character: 'Ryu',
       characterAssetId: 'Ryu (3).png'
     }).characterAssetId).toBe('Ryu (3).png');
+    expect(characterTeamSelection(['Ken'], {
+      character: 'Ryu', characterAssetId: 'Ryu (3).png', portraitAssetId: 'Ryu-3.png'
+    })).toMatchObject({ character: 'Ken', characterAssetId: undefined, portraitAssetId: undefined });
+    expect(characterTeamSelection(['Ryu', 'Ken'], {
+      character: 'Ryu', portraitAssetId: 'Ryu-3.png'
+    }).portraitAssetId).toBe('Ryu-3.png');
+    expect(maxCharactersForGame('samurai-shodown')).toBe(1);
+    expect(maxCharactersForGame('constructor')).toBe(1);
     const assets = [{
       character: 'Ryu',
       assetId: 'Ryu (1).png',

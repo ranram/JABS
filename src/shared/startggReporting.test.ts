@@ -32,6 +32,22 @@ describe('start.gg report readiness', () => {
       ready: false,
       reason: expect.stringContaining('already marked complete')
     });
+    expect(startggReportReadiness({
+      ...selectedSet,
+      matchFormat: 'first-to',
+      bestOf: 19,
+      playerOne: { ...selectedSet.playerOne, score: 10 }
+    })).toMatchObject({
+      ready: false,
+      reasonCode: 'exhibition-local-only'
+    });
+    expect(startggReportReadiness({
+      ...selectedSet,
+      matchFormat: 'topanga',
+      bestOf: 13,
+      playerOne: { ...selectedSet.playerOne, score: 10 },
+      playerTwo: { ...selectedSet.playerTwo, score: 9 }
+    })).toMatchObject({ ready: false, reasonCode: 'exhibition-local-only' });
   });
 
   it('builds ordered start.gg game data only from a complete recorded history', () => {

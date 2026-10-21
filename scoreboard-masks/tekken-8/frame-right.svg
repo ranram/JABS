@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <title>Tekken 8 — opaque portrait frame (right)</title>
+  <desc>Opaque photo backing on a transparent 1920×1080 canvas.</desc>
+  <defs><mask id="coverage-right" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080" style="mask-type:luminance"><path d="M 0 0 L 179 0 L 179 69 L 209 110 L 0 110 Z" transform="translate(1920 0) scale(-1 1)" fill="white"/><rect x="215" y="76" width="635" height="32" fill="black"/><rect x="1070" y="76" width="635" height="32" fill="black"/><rect x="720" y="33" width="111" height="38" fill="black"/><rect x="1089" y="33" width="111" height="38" fill="black"/></mask></defs>
+  <g mask="url(#coverage-right)"><path d="M 0 0 L 179 0 L 179 69 L 209 110 L 0 110 Z" transform="translate(1920 0) scale(-1 1)" fill="#11151c"/></g>
+</svg>

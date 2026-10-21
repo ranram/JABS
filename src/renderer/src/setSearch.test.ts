@@ -14,5 +14,9 @@ describe('loaded set search', () => {
     expect(filterLoadedSets(sets, 'set-2')).toEqual([sets[1]]);
     expect(filterLoadedSets(sets, '  ')).toBe(sets);
     expect(filterLoadedSets(sets, 'echo')).toEqual([]);
+    const pool = { ...sets[0]!, phase: 'Pool' };
+    expect(filterLoadedSets([pool], 'pools alpha')).toEqual([pool]);
+    expect(filterLoadedSets([pool], 'pool alpha')).toEqual([pool]);
+    expect(pool.phase).toBe('Pool');
   });
 });

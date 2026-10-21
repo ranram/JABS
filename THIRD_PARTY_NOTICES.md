@@ -4,6 +4,10 @@ JABS uses third-party software, data, fonts, and moderation resources.
 
 This file provides attribution for those components. The original license terms remain controlling and should be retained with source and release distributions where required.
 
+## App artwork
+
+The project owner supplied the boxing-glove artwork as public-domain material. The original PNG is `src-tauri/app-icon.png`; the header image and platform icons are resized copies.
+
 ## Countries States Cities
 
 - Package: `@countrystatecity/countries@1.0.7`
@@ -18,11 +22,9 @@ The database requires attribution under the ODbL 1.0. Adapted versions of the da
 
 ## Moderation resources
 
-JABS uses reviewed profanity and offensive-language resources to help prevent malicious or abusive text from reaching broadcast-facing surfaces.
+JABS uses reviewed word lists to check player tags, pronouns, sponsor names, and other text before it appears in OBS or exported graphics.
 
-This includes user-controlled or imported fields such as player tags, pronouns, sponsor information, and other text that may appear in OBS overlays or generated graphics.
-
-These resources are moderation inputs. Inclusion of a word or phrase in an upstream list does not mean that JABS endorses the list's classification in every language, culture, or context. Moderation data may be reviewed, normalized, excluded, or supplemented to reduce false positives.
+A word's inclusion in an upstream list does not mean JABS treats it as offensive in every context. The project reviews these lists and adjusts them to reduce false positives.
 
 ### 2Toad Profanity
 
@@ -42,7 +44,7 @@ JABS uses this package as a reviewed source for profanity detection and moderati
 
 JABS uses reviewed portions of these multilingual word lists as build-time moderation data.
 
-The lists help detect abusive, obscene, discriminatory, or otherwise inappropriate text supplied by malicious users before that text can appear in tournament broadcasts or exported graphics.
+The lists help detect abusive or discriminatory text before it appears in tournament broadcasts or exported graphics.
 
 The V2 project is an aggregation of material from multiple earlier profanity and offensive-language resources. Its repository declares CC0 1.0 Universal, while individual upstream sources may have their own licenses and attribution requirements.
 
@@ -77,6 +79,21 @@ This attribution is retained because material originating from the original LDNO
 
 JABS uses i18next and react-i18next for its bundled English and Latin American Spanish interface.
 
+## Anime.js
+
+- Package: `animejs@4.5.0`
+- Source: [juliangarnier/anime](https://github.com/juliangarnier/anime)
+- License: MIT
+- Copyright: Copyright (c) 2025 Julian Garnier
+
+JABS uses Anime.js for short OBS overlay entrances.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 ## Flag Icons
 
 - Package: `flag-icons@7.3.0`
@@ -86,15 +103,50 @@ JABS uses i18next and react-i18next for its bundled English and Latin American S
 
 JABS bundles SVG country flags for offline use in the application and OBS overlays. No remote flag service or operating-system emoji support is required.
 
-## Generator display fonts
+## Bundled display fonts
 
-JABS bundles the following fonts from the Google Fonts repository for offline Top 8 and YouTube thumbnail rendering:
+JABS bundles the following fonts from the Google Fonts repository for offline graphics and OBS overlays:
 
-- **Bebas Neue Regular**: Copyright © 2010 Dharma Type
 - **Anton Regular**: Copyright 2020 The Anton Project Authors
-- **Titan One Regular**: Copyright © 2011 Rodrigo Fuenzalida; Reserved Font Name: Titan
+- **Archivo Black Regular**: Copyright 2017 The Archivo Black Project Authors
+- **Barlow Condensed Regular and Bold**: Copyright 2017 The Barlow Project Authors
+- **Bebas Neue Regular**: Copyright © 2010 Dharma Type
 - **Bungee Shade Regular**: Copyright 2023 The Bungee Project Authors
+- **Inter Variable**: Copyright 2020 The Inter Project Authors
+- **Lato Regular and Bold**: Copyright (c) 2010–2014 by tyPoland Lukasz Dziedzic
+- **Montserrat Variable**: Copyright 2024 The Montserrat.Git Project Authors
+- **Oswald Variable**: Copyright 2016 The Oswald Project Authors
+- **Oxanium Variable**: Copyright 2019 The Oxanium Project Authors
+- **Titan One Regular**: Copyright (c) 2011 Rodrigo Fuenzalida
 
 Each font is licensed under the **SIL Open Font License 1.1**.
 
-The corresponding license text is distributed with the bundled font files. JABS does not contact Google Fonts at runtime.
+The original license texts are included under `font-licenses/` in desktop resources and beside the source font files. JABS does not contact Google Fonts at runtime.
+
+## Driver.js
+
+- Package: `driver.js@1.9.0`
+- Source: [nilbuild/driver.js](https://github.com/nilbuild/driver.js)
+- License: MIT
+
+The MIT License
+
+Copyright (c) Kamran Ahmed
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { recordDiagnostic } from '../../diagnostics';
+import { CharacterSelect } from './CharacterSelect';
+import { GeneratorNavigation } from './GeneratorNavigation';
+import { PanelHeader } from '../PanelHeader';
+import { PlayerNameInput } from '../players/PlayerNameInput';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Badge,
-  Box,
-  Button,
   Center,
   ColorInput,
   Group,
   Loader,
-  MultiSelect,
   Overlay,
   Paper,
   SegmentedControl,
@@ -27,7 +29,6 @@ import { characterTeamSelection, maxCharactersForGame, playerCharacters } from '
 
 import type { CountryOption, LogoAsset } from '@shared/models';
 import type { MediaLayerKind, MediaTransform } from '@shared/mediaPlacement';
-import { MediaFoldersAccordion } from './MediaFoldersAccordion';
 import { normalizeEventSlug } from '@shared/startgg';
 import {
   hasConventionalTopEightPlacements,
@@ -41,10 +42,7 @@ import { api } from '../../api';
 import { sortByLabel } from './operatorUtils';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
 import { CharacterOutfitSelect } from './CharacterOutfitSelect';
-import {
-  TopEightCanvas,
-  topEightTrustedText
-} from './TopEightCanvas';
+import { TopEightCanvas, topEightTrustedText } from './TopEightCanvas';
 import { useTopEightMedia } from './useTopEightMedia';
 import { useLogoAssetUrl } from '../../hooks/useLogoAssetUrl';
 import type { TopEightDraftController } from './useTopEightDraft';
@@ -52,24 +50,23 @@ import { useGeneratorWarningToast } from './useGeneratorWarningToast';
 import { exportGraphicAsPng, safeGraphicFilename } from './exportGraphic';
 import { GraphicBackgroundControls } from './GraphicBackgroundControls';
 import { BufferedTextInput } from './BufferedTextInput';
-import { MediaControlHint } from './MediaControlHint';
+import { GeneratorMediaControls } from './GeneratorMediaControls';
 import { TopEightEventDetails } from './TopEightEventDetails';
 import './generatorFonts.css';
 import './adjustableMedia.css';
 import './topEight.css';
 
 type TopEightGeneratorProps = {
+  gameSelector?: ReactNode;
+  gameContextReady?: boolean;
   controller: TopEightDraftController;
   profiles: GameProfile[];
   selectedEventId?: string;
   moderationRevision: number;
   logos: LogoAsset[];
   assetCatalogRevision: number;
-  assetCatalogSlug?: string;
   countries: CountryOption[];
 };
-
-const noMediaSelection = '__none__';
 
 function normalizeTopEightXHandle(value: string): string | undefined {
   const normalized = value.trim().replace(/^@+/, '').trim();
@@ -78,84 +75,128 @@ function normalizeTopEightXHandle(value: string): string | undefined {
 
 export function TopEightGenerator({
   controller,
+  gameSelector,
+  gameContextReady = true,
   profiles,
   selectedEventId,
   moderationRevision,
   logos,
   assetCatalogRevision,
-  assetCatalogSlug,
   countries
 }: TopEightGeneratorProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
   const { draft } = controller;
-  const resolvedAssetCatalogSlug = assetCatalogSlug ?? draft.assetCatalogSlug;
   const profile = profiles.find((candidate) => candidate.id === draft.gameId) ?? profiles[0];
   const locale = i18n.resolvedLanguage ?? i18n.language;
-  const sortedProfiles = useMemo(() => sortByLabel(profiles, (profile) => profile.styleName, locale), [profiles, locale]);
+  const sortedProfiles = useMemo(
+    () => sortByLabel(profiles, (profile) => profile.styleName, locale),
+    [profiles, locale]
+  );
   const {
-    previewDraft, media, availableCharacterNames, characterAssets, mediaWarning
+    previewDraft,
+    media,
+    ready: mediaReady,
+    availableCharacterNames,
+    characterAssets,
+    mediaWarning
   } = useTopEightMedia(draft, assetCatalogRevision);
-  const canvasDraft = useMemo(() => ({
-    ...previewDraft,
-    background: draft.background
-  }), [draft.background, previewDraft]);
+  const canvasDraft = useMemo(
+    () => ({
+      ...previewDraft,
+      background: draft.background
+    }),
+    [draft.background, previewDraft]
+  );
   useGeneratorWarningToast(
     'jabs-top-eight-generator-warning',
     mediaWarning,
     String(t('operator:notices.actionFailed'))
   );
-  const characters = useMemo(() => sortByLabel(
-    [...new Set([
-      ...charactersForAssetCatalog(draft.assetCatalogSlug),
-      ...availableCharacterNames
-    ])],
-    (character) => character,
-    i18n.resolvedLanguage ?? i18n.language
-  ), [availableCharacterNames, draft.assetCatalogSlug, i18n.language, i18n.resolvedLanguage]);
-  const visibleMedia = useMemo(() => media.map((entrantMedia) => ({
-    characterUrl: previewDraft.mediaMode === 'character' ? entrantMedia.characterUrl : undefined,
-    playerPhotoUrl: previewDraft.mediaMode === 'photo' ? entrantMedia.playerPhotoUrl : undefined,
-    sponsorLogoUrl: entrantMedia.sponsorLogoUrl,
-    characterPortraits: previewDraft.mediaMode === 'character' ? entrantMedia.characterPortraits : undefined
-  })), [media, previewDraft.mediaMode]);
+  const characters = useMemo(
+    () =>
+      sortByLabel(
+        [...new Set([...charactersForAssetCatalog(draft.assetCatalogSlug), ...availableCharacterNames])],
+        (character) => character,
+        i18n.resolvedLanguage ?? i18n.language
+      ),
+    [availableCharacterNames, draft.assetCatalogSlug, i18n.language, i18n.resolvedLanguage]
+  );
+  const visibleMedia = useMemo(
+    () =>
+      media.map((entrantMedia) => ({
+        characterUrl: previewDraft.mediaMode !== 'photo' ? entrantMedia.characterUrl : undefined,
+        playerPhotoUrl: previewDraft.mediaMode !== 'character' ? entrantMedia.playerPhotoUrl : undefined,
+        sponsorLogoUrl: entrantMedia.sponsorLogoUrl,
+        characterPortraits: previewDraft.mediaMode !== 'photo' ? entrantMedia.characterPortraits : undefined
+      })),
+    [media, previewDraft.mediaMode]
+  );
   const stylingProfile = profiles.find((candidate) => candidate.id === previewDraft.stylingGameId) ?? profile;
   const validation = validateTopEightDraft(draft);
-  const previewCurrent = previewDraft === draft;
+  const previewCurrent = mediaReady && previewDraft === draft;
   const logoUrl = useLogoAssetUrl(draft.logoAssetId);
-  const sortedLogos = useMemo(() => sortByLabel(
-    logos,
-    (logo) => logo.label,
-    i18n.resolvedLanguage ?? i18n.language
-  ), [i18n.language, i18n.resolvedLanguage, logos]);
-  const [standingsLoading, setStandingsLoading] = useState(false);
+  const sortedLogos = useMemo(
+    () => sortByLabel(logos, (logo) => logo.label, i18n.resolvedLanguage ?? i18n.language),
+    [i18n.language, i18n.resolvedLanguage, logos]
+  );
+  const [automaticStandingsLoading, setAutomaticStandingsLoading] = useState(false);
+  const [manualStandingsLoading, setManualStandingsLoading] = useState(false);
+  const standingsLoading = automaticStandingsLoading || manualStandingsLoading;
+  const manualStandingsRequest = useRef(0);
   const [standingsMessage, setStandingsMessage] = useState<string>();
   const [loadUrl, setLoadUrl] = useState('');
+  useEffect(() => {
+    manualStandingsRequest.current += 1;
+    setManualStandingsLoading(false);
+    return () => {
+      manualStandingsRequest.current += 1;
+    };
+  }, [selectedEventId, draft.assetCatalogSlug, moderationRevision]);
   const [exporting, setExporting] = useState(false);
-  const [selectedEntrant, setSelectedEntrant] = useState<number>();
+  const { selectedLayer, setSelectedLayer } = controller;
+  const sectionId = useId();
   const canvasRef = useRef<HTMLElement>(null);
-  const automaticStandingsRequest = useRef<{
-    eventId: string;
-    moderationRevision: number;
-    promise: ReturnType<typeof api.eventStandings>;
-  } | undefined>(undefined);
-  const placementOptions = useMemo(() => visibleMedia.flatMap((entrantMedia, index) => {
-    const hasMedia = draft.mediaMode === 'character'
-      ? Boolean(entrantMedia.characterUrl)
-      : Boolean(entrantMedia.playerPhotoUrl);
-    return hasMedia ? [{ value: String(index), label: draft.entrants[index]?.name ?? `Player ${index + 1}` }] : [];
-  }), [draft.entrants, draft.mediaMode, visibleMedia]);
+  const automaticStandingsRequest = useRef<
+    | {
+        eventId: string;
+        moderationRevision: number;
+        promise: ReturnType<typeof api.eventStandings>;
+      }
+    | undefined
+  >(undefined);
+  const placementOptions = useMemo(
+    () =>
+      visibleMedia.flatMap((entrantMedia, index) => {
+        const layers: MediaLayerKind[] = [];
+        if (draft.mediaMode !== 'photo' && entrantMedia.characterUrl) layers.push('character');
+        if (draft.mediaMode === 'photo' || (draft.mediaMode === 'combined' && entrantMedia.playerPhotoUrl))
+          layers.push('photo');
+        return layers.map((layer) => ({
+          value: `${index}:${layer}`,
+          label: t(layer === 'photo' ? 'operator:thumbnail.adjustPhoto' : 'operator:thumbnail.adjustCharacter', {
+            player: draft.entrants[index]?.name ?? `Player ${index + 1}`
+          })
+        }));
+      }),
+    [draft.entrants, draft.mediaMode, visibleMedia, t]
+  );
   useEffect(() => {
-    if (selectedEntrant !== undefined && placementOptions.some((option) => option.value === String(selectedEntrant))) return;
-    setSelectedEntrant(undefined);
-  }, [placementOptions, selectedEntrant]);
-  useEffect(() => {
-    setSelectedEntrant(undefined);
-  }, [draft.gameId, draft.stylingGameId, draft.style, draft.mediaMode, ...draft.entrants.map(({ name }) => name)]);
-  useEffect(() => {
-    if (!selectedEventId) return;
+    if (!placementOptions.length) return;
     if (
-      automaticStandingsRequest.current?.eventId !== selectedEventId
-      || automaticStandingsRequest.current?.moderationRevision !== moderationRevision
+      selectedLayer &&
+      placementOptions.some((option) => option.value === `${selectedLayer.entrant}:${selectedLayer.layer}`)
+    )
+      return;
+    setSelectedLayer(undefined);
+  }, [placementOptions, selectedLayer]);
+  useEffect(() => {
+    if (!selectedEventId) {
+      setAutomaticStandingsLoading(false);
+      return;
+    }
+    if (
+      automaticStandingsRequest.current?.eventId !== selectedEventId ||
+      automaticStandingsRequest.current?.moderationRevision !== moderationRevision
     ) {
       automaticStandingsRequest.current = {
         eventId: selectedEventId,
@@ -164,36 +205,46 @@ export function TopEightGenerator({
       };
     }
     let active = true;
-    setStandingsLoading(true);
+    setAutomaticStandingsLoading(true);
     setStandingsMessage(undefined);
-    void automaticStandingsRequest.current.promise.then((result) => {
-      if (active) importFinalStandings(result);
-    }).catch((error) => {
-      if (active) setStandingsMessage(error instanceof Error ? error.message : t('operator:topEight.standingsFailed'));
-    }).finally(() => {
-      if (active) setStandingsLoading(false);
-    });
-    return () => { active = false; };
+    void automaticStandingsRequest.current.promise
+      .then((result) => {
+        if (active) importFinalStandings(result);
+      })
+      .catch((error) => {
+        if (active)
+          setStandingsMessage(error instanceof Error ? error.message : t('operator:topEight.standingsFailed'));
+      })
+      .finally(() => {
+        if (active) setAutomaticStandingsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [selectedEventId, moderationRevision]);
 
   function resetSelectedPlacement() {
-    if (selectedEntrant === undefined) return;
-    controller.resetMediaTransform(selectedEntrant, draft.mediaMode);
+    if (!selectedLayer) return;
+    controller.resetMediaTransform(selectedLayer.entrant, selectedLayer.layer);
     window.requestAnimationFrame(() => {
-      canvasRef.current?.querySelector<HTMLElement>('.keyboard-adjustable-media.is-selected')?.focus({ preventScroll: true });
+      canvasRef.current
+        ?.querySelector<HTMLElement>('.keyboard-adjustable-media.is-selected')
+        ?.focus({ preventScroll: true });
     });
   }
 
   async function loadFinalStandingsUrl() {
-    setStandingsLoading(true);
+    const request = ++manualStandingsRequest.current;
+    setManualStandingsLoading(true);
     setStandingsMessage(undefined);
     try {
       const result = await api.eventStandingsBySlug(normalizeEventSlug(loadUrl));
-      importFinalStandings(result);
+      if (request === manualStandingsRequest.current) importFinalStandings(result);
     } catch (error) {
-      setStandingsMessage(error instanceof Error ? error.message : t('operator:topEight.standingsFailed'));
+      if (request === manualStandingsRequest.current)
+        setStandingsMessage(error instanceof Error ? error.message : t('operator:topEight.standingsFailed'));
     } finally {
-      setStandingsLoading(false);
+      if (request === manualStandingsRequest.current) setManualStandingsLoading(false);
     }
   }
 
@@ -209,36 +260,37 @@ export function TopEightGenerator({
     const detectedGame = result.eventGameName
       ? gameIdForStartggVideogame({ id: '', name: result.eventGameName })
       : undefined;
-    controller.setGameContext(detectedGame, result.eventGameName);
-    const detectedAssetSlug = detectedGame ?? gameAssetCatalogSlug({ name: result.eventGameName });
-    if (detectedAssetSlug) controller.setAssetCatalogSlug(detectedAssetSlug);
+    if (!selectedEventId && gameContextReady) {
+      const detectedAssetSlug = detectedGame ?? gameAssetCatalogSlug({ name: result.eventGameName });
+      controller.setGameContext(detectedGame, result.eventGameName, detectedAssetSlug);
+    }
     controller.useFinalStandings(result);
-    setSelectedEntrant(undefined);
+    setSelectedLayer(undefined);
     setStandingsMessage(t('operator:topEight.standingsLoaded', { event: result.eventName }));
   }
 
   async function downloadPng() {
-    if (!canvasRef.current || validation || !previewCurrent) return;
+    if (!canvasRef.current || !gameContextReady || validation || !previewCurrent) return;
     setExporting(true);
     try {
+      const filename = safeGraphicFilename(draft.tournamentName, 'top-8');
       await exportGraphicAsPng(canvasRef.current, {
         ...broadcastSurfaceSpecs['top-eight'].canvas,
-        filename: safeGraphicFilename(draft.tournamentName, 'top-8'),
+        filename,
         trustedText: topEightTrustedText(previewDraft)
       });
       notifications.show({
         title: t('operator:notices.done'),
-        message: t('operator:topEight.downloaded'),
+        message: t('operator:messages.exportCompleted', { filename }),
         color: 'green',
-        autoClose: 6_000,
         withCloseButton: true
       });
     } catch (error) {
+      recordDiagnostic('export-failed', { area: 'generators' });
       notifications.show({
         title: t('operator:notices.actionFailed'),
         message: error instanceof Error ? error.message : t('operator:topEight.downloadFailed'),
         color: 'red',
-        autoClose: false,
         withCloseButton: true
       });
     } finally {
@@ -248,248 +300,283 @@ export function TopEightGenerator({
 
   if (!profile) return null;
   return (
-    <Stack gap="md">
-      <Paper className="panel top8-generator-controls" p="lg" radius="lg" withBorder>
-        <Group justify="space-between" align="flex-start" mb="md">
-          <div>
-            <Title order={2} size="h4">{t('operator:workspaces.generators.topEight.title')}</Title>
-            <Text c="dimmed" size="sm">{t('operator:topEight.description')}</Text>
-          </div>
-          <Badge color={validation ? 'yellow' : 'green'} variant="light">
-            {validation ? t('operator:topEight.draft') : t('operator:topEight.ready')}
-          </Badge>
-        </Group>
-
-        <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
-          <Select
-            label={t('operator:workspaces.styling')}
-            value={draft.stylingGameId}
-            searchable
-            data={sortedProfiles.map((candidate) => ({ value: candidate.id, label: candidate.styleName }))}
-            onChange={(value) => {
-              if (value) controller.setStyling(value as typeof draft.stylingGameId);
-              setSelectedEntrant(undefined);
-            }}
-          />
-          <Select
-            label={t('operator:topEight.tournamentLogo')}
-            value={draft.logoAssetId ?? null}
-            placeholder={t('operator:topEight.noLogo')}
-            searchable
-            clearable
-            data={sortedLogos.map((logo) => ({ value: logo.id, label: logo.label }))}
-            onChange={(value) => controller.setLogo(value ?? undefined)}
-          />
-          <div>
-            <Text fw={700} size="sm" mb={5}>{t('operator:topEight.mediaMode')}</Text>
-            <SegmentedControl
-              fullWidth
-              value={draft.mediaMode}
-              data={topEightMediaModeIds.map((mode) => ({
-                value: mode,
-                label: t(`operator:topEight.mediaModes.${mode}`)
-              }))}
-              onChange={(value) => {
-                controller.setMediaMode(value as TopEightMediaMode);
-                setSelectedEntrant(undefined);
-              }}
-            />
-          </div>
-          <div>
-            <Text fw={700} size="sm" mb={5}>{t('operator:topEight.style')}</Text>
-            <SegmentedControl
-              className="top8-style-control"
-              fullWidth
-              value={draft.style}
-              data={topEightStyleIds.map((style) => ({
-                value: style,
-                label: t(`operator:topEight.styles.${style}`)
-              }))}
-              onChange={(value) => {
-                controller.setStyle(value as TopEightStyleId);
-                setSelectedEntrant(undefined);
-              }}
-            />
-          </div>
-        </SimpleGrid>
-        <SimpleGrid type="container" cols={{ base: 1, '36rem': 3 }} mt="md">
-          <BufferedTextInput
-            label={t('operator:topEight.tournament')}
-            value={draft.tournamentName}
-            onCommit={controller.setTournamentName}
-          />
-          <BufferedTextInput
-            label={t('operator:topEight.headline')}
-            value={draft.headline}
-            onCommit={controller.setHeadline}
-          />
-          <ColorInput
-            label={t('operator:topEight.headlineColor')}
-            value={draft.headlineColor}
-            onChange={controller.setHeadlineColor}
-            format="hex"
-          />
-        </SimpleGrid>
-
-        <GraphicBackgroundControls value={draft.background} onChange={controller.setBackground} />
-
-        <Box mt="md">
-          <TopEightEventDetails
-            controller={controller}
-            loadUrl={loadUrl}
-            onLoadUrlChange={setLoadUrl}
-            onLoad={() => void loadFinalStandingsUrl()}
-            loading={standingsLoading}
-          />
-        </Box>
-
-        <Group mt="md" justify="flex-end" align="center">
-          <Text size="xs" c="dimmed">
-            {t('operator:topEight.assetsMatched', { count: availableCharacterNames.length })}
-          </Text>
-        </Group>
-        <Box mt="xs">
-          <MediaFoldersAccordion gameAssetSubpath={`${resolvedAssetCatalogSlug}/characters`} />
-        </Box>
-        {standingsMessage && <Text size="sm" mt="xs">{standingsMessage}</Text>}
-        {validation && (
-          <Text size="sm" c="yellow" mt="sm">
-            {t(`operator:topEight.validation.${validation}`)}
-          </Text>
-        )}
-      </Paper>
-
-      <Paper className="panel top8-preview-panel" p="md" radius="lg" pos="relative" withBorder>
-        {exporting && (
-          <Overlay color="#080a10" backgroundOpacity={1} zIndex={20} center>
-            <Center>
-              <Stack align="center" gap="xs">
-                <Loader color="yellow" />
-                <Text fw={800}>{t('operator:topEight.nowDownloading')}</Text>
-              </Stack>
-            </Center>
-          </Overlay>
-        )}
-        <Group justify="space-between" mb="sm">
-          <Text fw={800}>{t('operator:topEight.preview')}</Text>
-          <Button
-            size="compact-sm"
-            disabled={Boolean(validation) || !previewCurrent || exporting}
-            loading={exporting}
-            onClick={() => void downloadPng()}
-          >
-            {t('operator:topEight.downloadPng')}
-          </Button>
-        </Group>
-        <Text c="dimmed" size="xs" mb="sm">
-          {t('operator:topEight.previewQuality')}
-        </Text>
-        {placementOptions.length > 0 && (
-          <Stack gap="xs" mb="md">
-            <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
-              <Select
-                label={t('operator:topEight.adjustLayer')}
-                value={selectedEntrant === undefined ? noMediaSelection : String(selectedEntrant)}
-                placeholder={t('common:actions.select')}
-                clearable
-                data={[
-                  { value: noMediaSelection, label: t('common:actions.select') },
-                  ...placementOptions
-                ]}
-                onChange={(value) => setSelectedEntrant(
-                  !value || value === noMediaSelection ? undefined : Number(value)
-                )}
+    <div className="generator-page">
+      <GeneratorNavigation
+        detailsId={`${sectionId}-details`}
+        previewId={`${sectionId}-preview`}
+        exporting={exporting}
+        reason={
+          !gameContextReady
+            ? t('operator:generators.selectGame')
+            : validation
+              ? t(`operator:topEight.validation.${validation}`)
+              : !previewCurrent
+                ? t('operator:quickTools.loadingPreview')
+                : undefined
+        }
+        onDownload={() => void downloadPng()}
+      />
+      <Stack className="top8-generator-workspace" gap="md">
+        <div className="generator-settings-row">
+          <Paper className="panel generator-section" data-tutorial="top-eight-setup" p="lg" radius="lg" withBorder>
+            <PanelHeader
+              title={t('operator:workspaces.generators.topEight.title')}
+              description={t('operator:topEight.description')}
+              mb="md"
+            >
+              <Badge color={validation ? 'yellow' : 'green'} variant="light">
+                {validation ? t('operator:topEight.draft') : t('operator:topEight.ready')}
+              </Badge>
+            </PanelHeader>
+            <Stack gap="md">
+              {gameSelector}
+              <TopEightEventDetails
+                controller={controller}
+                loadUrl={loadUrl}
+                onLoadUrlChange={setLoadUrl}
+                onLoad={() => void loadFinalStandingsUrl()}
+                loading={standingsLoading}
               />
-              <Group align="flex-end">
-                <Button fullWidth variant="default" disabled={selectedEntrant === undefined} onClick={resetSelectedPlacement}>
-                  {t('operator:topEight.resetPlacement')}
-                </Button>
-              </Group>
-            </SimpleGrid>
-            <MediaControlHint />
-          </Stack>
-        )}
-        <TopEightCanvas
-          canvasRef={canvasRef}
-          draft={canvasDraft}
-          stylingProfile={stylingProfile}
-          media={visibleMedia}
-          logoUrl={logoUrl}
-          placements={controller.mediaPlacements}
-          selectedEntrant={selectedEntrant}
-          onSelectEntrant={setSelectedEntrant}
-          onPlacementChange={(index: number, layer: MediaLayerKind, transform: MediaTransform) => (
-            controller.setMediaTransform(index, layer, transform)
-          )}
-        />
-      </Paper>
-
-      <Paper className="panel top8-entrants-panel" p="lg" radius="lg" withBorder>
-        <Title order={2} size="h4" mb="md">{t('operator:topEight.placements')}</Title>
-        <SimpleGrid type="container" cols={{ base: 1, '42rem': 2 }}>
-          {draft.entrants.map((entrant, index) => (
-            <Paper key={`${entrant.placement}-${index}`} className="top8-entrant-editor" p="sm" radius="md" withBorder>
-              <Group gap="xs" mb="sm">
-                <Badge variant="filled">#{entrant.placement}</Badge>
-                <Text fw={800}>{t('operator:topEight.placement', { count: entrant.placement })}</Text>
-              </Group>
-              <div className="player-field-row">
+              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '36rem': 2 }}>
                 <BufferedTextInput
-                  label={t('operator:topEight.playerTag')}
-                  value={entrant.name}
-                  onCommit={(name) => controller.setEntrant(index, { name })}
+                  label={t('operator:topEight.tournament')}
+                  value={draft.tournamentName}
+                  onCommit={controller.setTournamentName}
                 />
                 <BufferedTextInput
-                  label={t('operator:topEight.sponsor')}
-                  value={entrant.sponsor ?? ''}
-                  onCommit={(sponsor) => controller.setEntrant(index, {
-                    sponsor: sponsor || undefined
-                  })}
+                  label={t('operator:topEight.headline')}
+                  value={draft.headline}
+                  onCommit={controller.setHeadline}
                 />
-              </div>
-              <div className="player-field-row">
-                <MultiSelect
-                  label={t('operator:editor.characters')}
-                  value={playerCharacters(entrant)}
-                  placeholder={t('common:actions.select')}
+              </SimpleGrid>
+              {standingsMessage && <Text size="sm">{standingsMessage}</Text>}
+              {!gameContextReady && (
+                <Text c="yellow" size="sm">
+                  {t('operator:generators.selectEvent')}
+                </Text>
+              )}
+              {validation && (
+                <Text size="sm" c="yellow">
+                  {t(`operator:topEight.validation.${validation}`)}
+                </Text>
+              )}
+            </Stack>
+          </Paper>
+          <Paper className="panel generator-section top8-generator-controls" p="lg" radius="lg" withBorder>
+            <PanelHeader title={t('operator:quickTools.presentation')} mb="md" />
+            <Stack gap="md">
+              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '36rem': 2 }}>
+                <Select
+                  label={t('operator:workspaces.styling')}
+                  value={draft.stylingGameId}
+                  searchable
+                  data={sortedProfiles.map((candidate) => ({ value: candidate.id, label: candidate.styleName }))}
+                  onChange={(value) => {
+                    if (value) controller.setStyling(value as typeof draft.stylingGameId);
+                    setSelectedLayer(undefined);
+                  }}
+                />
+                <Select
+                  label={t('operator:topEight.tournamentLogo')}
+                  value={draft.logoAssetId ?? null}
+                  placeholder={t('operator:topEight.noLogo')}
                   searchable
                   clearable
-                  maxValues={maxCharactersForGame(draft.gameId)}
-                  data={characters.map((character) => ({ value: character, label: character }))}
-                  onChange={(values) => controller.setEntrant(
-                    index,
-                    characterTeamSelection(values, entrant)
+                  data={sortedLogos.map((logo) => ({ value: logo.id, label: logo.label }))}
+                  onChange={(value) => controller.setLogo(value ?? undefined)}
+                />
+              </SimpleGrid>
+              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '36rem': 2 }}>
+                <div>
+                  <Text fw={700} size="sm" mb={4}>
+                    {t('operator:topEight.mediaMode')}
+                  </Text>
+                  <SegmentedControl
+                    fullWidth
+                    value={draft.mediaMode}
+                    data={topEightMediaModeIds.map((mode) => ({
+                      value: mode,
+                      label: t(`operator:topEight.mediaModes.${mode}`)
+                    }))}
+                    onChange={(value) => {
+                      controller.setMediaMode(value as TopEightMediaMode);
+                      setSelectedLayer(undefined);
+                    }}
+                  />
+                  {draft.mediaMode === 'combined' && (
+                    <Text c="dimmed" size="sm" mt="xs">
+                      {t('operator:mediaControls.combinedEditingHelp')}
+                    </Text>
                   )}
-                />
-                <CharacterOutfitSelect
-                  subject={entrant}
-                  assets={characterAssets}
-                  onChange={(characterAssetId) => controller.setEntrant(index, {
-                    characterAssetId
-                  })}
-                />
-              </div>
-              <div className="player-field-row">
-                <DisplayFlagSelect
-                  label={t('operator:topEight.displayFlag')}
-                  placeholder={t('common:actions.select')}
-                  countries={countries}
-                  country={entrant.country}
-                  displayFlag={entrant.displayFlag}
-                  onChange={(selection) => controller.setEntrant(index, selection)}
-                />
-                <BufferedTextInput
-                  label={t('operator:topEight.xHandle')}
-                  value={entrant.xHandle ?? ''}
-                  onCommit={(xHandle) => controller.setEntrant(index, {
-                    xHandle: normalizeTopEightXHandle(xHandle)
-                  })}
-                />
-              </div>
-            </Paper>
-          ))}
-        </SimpleGrid>
-      </Paper>
-    </Stack>
+                </div>
+                <div>
+                  <Text fw={700} size="sm" mb={4}>
+                    {t('operator:topEight.style')}
+                  </Text>
+                  <SegmentedControl
+                    className="top8-style-control"
+                    fullWidth
+                    value={draft.style}
+                    data={topEightStyleIds.map((style) => ({
+                      value: style,
+                      label: t(`operator:topEight.styles.${style}`)
+                    }))}
+                    onChange={(value) => {
+                      controller.setStyle(value as TopEightStyleId);
+                      setSelectedLayer(undefined);
+                    }}
+                  />
+                </div>
+              </SimpleGrid>
+              <ColorInput
+                label={t('operator:topEight.headlineColor')}
+                value={draft.headlineColor}
+                onChange={controller.setHeadlineColor}
+                format="hex"
+              />
+              <GraphicBackgroundControls value={draft.background} onChange={controller.setBackground} />
+              <Group justify="flex-end" align="center">
+                <Text size="xs" c="dimmed">
+                  {t('operator:topEight.assetsMatched', { count: availableCharacterNames.length })}
+                </Text>
+              </Group>
+            </Stack>
+          </Paper>
+        </div>
+        <Paper
+          id={`${sectionId}-preview`}
+          className="panel generator-section generator-section-target top8-preview-panel generator-preview-panel"
+          p="lg"
+          radius="lg"
+          pos="relative"
+          withBorder
+        >
+          {exporting && (
+            <Overlay color="#080a10" backgroundOpacity={1} zIndex={20} center>
+              <Center>
+                <Stack align="center" gap="xs">
+                  <Loader color="yellow" />
+                  <Text fw={800}>{t('operator:topEight.nowDownloading')}</Text>
+                </Stack>
+              </Center>
+            </Overlay>
+          )}
+          <Text fw={800} mb="sm">
+            {t('operator:topEight.preview')}
+          </Text>
+          <Text c="dimmed" size="xs" mb="sm">
+            {t('operator:topEight.previewQuality')}
+          </Text>
+          <GeneratorMediaControls
+            options={placementOptions}
+            selection={selectedLayer && { index: selectedLayer.entrant, layer: selectedLayer.layer }}
+            label={t('operator:topEight.adjustLayer')}
+            resetLabel={t('operator:topEight.resetPlacement')}
+            onSelect={(selection) =>
+              setSelectedLayer(selection && { entrant: selection.index, layer: selection.layer })
+            }
+            onReset={resetSelectedPlacement}
+          />
+          <TopEightCanvas
+            editable={previewCurrent}
+            canvasRef={canvasRef}
+            draft={canvasDraft}
+            stylingProfile={stylingProfile}
+            media={visibleMedia}
+            logoUrl={logoUrl}
+            placements={controller.mediaPlacements}
+            selectedLayer={selectedLayer}
+            onSelectLayer={(entrant, layer) => setSelectedLayer({ entrant, layer })}
+            onPlacementChange={(index: number, layer: MediaLayerKind, transform: MediaTransform) =>
+              controller.setMediaTransform(index, layer, transform)
+            }
+          />
+        </Paper>
+        <Paper
+          id={`${sectionId}-details`}
+          className="panel generator-section generator-section-target top8-entrants-panel"
+          p="lg"
+          radius="lg"
+          withBorder
+        >
+          <Title order={2} size="h4" mb="md">
+            {t('operator:topEight.placements')}
+          </Title>
+          <SimpleGrid type="container" cols={{ base: 1, '40rem': 2, '72rem': 4 }}>
+            {draft.entrants.map((entrant, index) => (
+              <Paper
+                key={`${entrant.placement}-${index}`}
+                className="top8-entrant-editor operator-inset"
+                p="md"
+                radius="md"
+                withBorder
+              >
+                <Text fw={800}>{t('operator:topEight.placement', { count: entrant.placement })}</Text>
+                <div className="player-field-row">
+                  <PlayerNameInput
+                    label={t('operator:topEight.playerTag')}
+                    value={entrant.name}
+                    gameKey={draft.assetCatalogSlug}
+                    onCommit={(name) =>
+                      controller.setEntrant(index, { name, playerId: undefined, localPlayerId: undefined })
+                    }
+                    onSelectPlayer={(saved) => controller.setEntrant(index, saved)}
+                  />
+                  <BufferedTextInput
+                    label={t('operator:topEight.sponsor')}
+                    value={entrant.sponsor ?? ''}
+                    onCommit={(sponsor) =>
+                      controller.setEntrant(index, {
+                        sponsor: sponsor || undefined
+                      })
+                    }
+                  />
+                </div>
+                <div className="player-field-row">
+                  <CharacterSelect
+                    label={t('operator:editor.characters')}
+                    value={playerCharacters(entrant)}
+                    placeholder={t('common:actions.select')}
+                    searchable
+                    clearable
+                    maxValues={maxCharactersForGame(draft.assetCatalogSlug ?? draft.gameId)}
+                    data={characters.map((character) => ({ value: character, label: character }))}
+                    onChange={(values) => controller.setEntrant(index, characterTeamSelection(values, entrant))}
+                  />
+                  <CharacterOutfitSelect
+                    subject={entrant}
+                    assets={characterAssets}
+                    onChange={(characterAssetId) =>
+                      controller.setEntrant(index, {
+                        characterAssetId
+                      })
+                    }
+                  />
+                </div>
+                <div className="player-field-row">
+                  <DisplayFlagSelect
+                    label={t('operator:topEight.displayFlag')}
+                    placeholder={t('common:actions.select')}
+                    countries={countries}
+                    country={entrant.country}
+                    displayFlag={entrant.displayFlag}
+                    onChange={(selection) => controller.setEntrant(index, selection)}
+                  />
+                  <BufferedTextInput
+                    label={t('operator:topEight.xHandle')}
+                    value={entrant.xHandle ?? ''}
+                    onCommit={(xHandle) =>
+                      controller.setEntrant(index, {
+                        xHandle: normalizeTopEightXHandle(xHandle)
+                      })
+                    }
+                  />
+                </div>
+              </Paper>
+            ))}
+          </SimpleGrid>
+        </Paper>
+      </Stack>
+    </div>
   );
 }

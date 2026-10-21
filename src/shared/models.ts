@@ -3,6 +3,9 @@ import type { GameId } from './gameProfiles';
 export type PlayerSide = 'one' | 'two';
 
 export type PlayerState = {
+  localPlayerId?: string;
+  playerPhotoAssetId?: string;
+  portraitAssetId?: string;
   entrantId: string;
   playerId?: string;
   name: string;
@@ -50,6 +53,7 @@ export type AssetCatalogCounts = {
   tournamentLogos: number;
   sponsorLogos: number;
   playerPhotos: number;
+  playerHeadshots?: number;
 };
 
 export type AssetCatalogSummary = {
@@ -107,10 +111,19 @@ export type SetGameResult = {
   selections?: SetGameCharacterSelection[];
 };
 
+export type ExhibitionGameSelection = {
+  gameId: GameId;
+  gameName: string;
+  videogameId: string;
+  assetCatalogSlug: string;
+  updatedAt: string;
+};
+
 export type SelectedSetState = {
   setId?: string;
   eventId?: string;
   tournamentSlug?: string;
+  tournamentName?: string;
   displayName: string;
   phase?: string;
   phaseGroup?: string;
@@ -120,12 +133,13 @@ export type SelectedSetState = {
   state?: string;
   gameId: GameId;
   gameName?: string;
+  videogameId?: string;
   stylingGameId?: GameId;
   /** Game-agnostic scoreboard artwork and layout selected from the native catalog. */
   customScoreboardId?: string;
   customScoreboardRevision?: string;
   assetCatalogSlug?: string;
-  matchFormat?: 'best-of' | 'first-to';
+  matchFormat?: 'best-of' | 'first-to' | 'topanga';
   bestOf: number;
   broadcast?: BroadcastPresentation;
   gameHistory?: SetGameResult[];
@@ -154,11 +168,13 @@ export type SetSummary = {
   streamName?: string;
   streamSource?: string;
   entrantOne?: {
+    playerId?: string | null;
     id: string;
     name: string;
     sponsor?: string;
   };
   entrantTwo?: {
+    playerId?: string | null;
     id: string;
     name: string;
     sponsor?: string;
@@ -252,6 +268,8 @@ export type StartggStreamAssignment = {
 };
 
 export type StartggErrorCode =
+  | 'player-reference'
+  | 'player-not-found'
   | 'anonymous-unavailable'
   | 'token-missing'
   | 'authentication'
@@ -275,6 +293,7 @@ export type StartggEventsResult = StartggResultMeta & {
 };
 
 export type StartggEventStanding = {
+  playerId?: string | null;
   placement: number;
   name: string;
   prefix?: string;

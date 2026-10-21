@@ -1,4 +1,5 @@
 import { toBlob } from 'html-to-image';
+import { applyTextShadow, captureWrappedText, drawWrappedText, type ExportTextRun } from './exportText';
 
 type ExportGraphicOptions = {
   width: number;
@@ -30,6 +31,7 @@ type ShapeLayer = {
 };
 
 type TextLayer = {
+  runs?: ExportTextRun[];
   text: string;
   rect: DOMRect;
   color: string;
@@ -208,6 +210,7 @@ function visibleTextElements(source: HTMLElement): HTMLElement[] {
 function textLayer(element: HTMLElement): TextLayer {
   const style = getComputedStyle(element);
   return {
+    runs: element.dataset.exportText === 'wrapped' ? captureWrappedText(element) : undefined,
     text: element.textContent?.trim() ?? '',
     rect: element.getBoundingClientRect(),
     color: style.color,
@@ -277,6 +280,10 @@ function drawTextLayer(
   scaleX: number,
   scaleY: number
 ): void {
+  if (layer.runs) {
+    drawWrappedText(context, layer.runs, sourceRect, scaleX, scaleY);
+    return;
+  }
   const text = transformText(layer.text, layer.textTransform);
   const box = {
     x: (layer.rect.left - sourceRect.left) * scaleX,
@@ -329,21 +336,16 @@ function drawSpacedText(
   y: number,
   spacing: number
 ): void {
-  let cursor = x;
-  for (const character of text) {
-    context.fillText(character, cursor, y);
-    cursor += context.measureText(character).width + spacing;
+  if (Reflect.has(context, 'letterSpacing')) {
+    context.letterSpacing = `${spacing}px`;
+    context.fillText(text, x, y);
+    return;
   }
-}
-
-function applyTextShadow(context: CanvasRenderingContext2D, value: string, scale: number): void {
-  if (!value || value === 'none') return;
-  const color = value.match(/rgba?\([^)]+\)|#[\da-f]{3,8}/i)?.[0];
-  const sizes = [...value.matchAll(/(-?\d+(?:\.\d+)?)px/g)].map((match) => Number(match[1]));
-  if (color) context.shadowColor = color;
-  context.shadowOffsetX = (sizes[0] ?? 0) * scale;
-  context.shadowOffsetY = (sizes[1] ?? 0) * scale;
-  context.shadowBlur = Math.max(0, ...(sizes.slice(2).map((size) => size * scale)));
+  // Keep joined letters intact when native letter spacing is unavailable.
+  const width = context.measureText(text).width;
+  context.translate(x, y);
+  if (width && spacing) context.scale((width + Math.max(0, text.length - 1) * spacing) / width, 1);
+  context.fillText(text, 0, 0);
 }
 
 function drawImageLayer(

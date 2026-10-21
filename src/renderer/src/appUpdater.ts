@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invokeNative } from './nativeCommand';
 import { check, type DownloadEvent, type Update } from '@tauri-apps/plugin-updater';
 import { isTauriRuntime } from './desktopRuntime';
 
@@ -9,7 +9,7 @@ export type UpdateSupport = {
 
 export const appUpdater = {
   async support(): Promise<UpdateSupport | undefined> {
-    return isTauriRuntime() ? invoke<UpdateSupport>('get_update_support') : undefined;
+    return isTauriRuntime() ? invokeNative<UpdateSupport>('get_update_support') : undefined;
   },
   check(): Promise<Update | null> {
     return check({ timeout: 15_000 });
@@ -18,6 +18,6 @@ export const appUpdater = {
     return update.downloadAndInstall(onProgress, { timeout: 120_000 });
   },
   restart(): Promise<void> {
-    return invoke('restart_app');
+    return invokeNative('restart_app');
   }
 };

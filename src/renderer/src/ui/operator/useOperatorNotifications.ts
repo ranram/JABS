@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
-import { noticeLabels, type NoticeSink, type OperatorNotice } from './operatorNotice';
+import { noticeLabels, type NoticeSink } from './operatorNotice';
 
 const toneColors = {
   error: 'red',
@@ -12,10 +12,19 @@ const toneColors = {
 
 export function useOperatorNotifications(stateError?: string): NoticeSink {
   const { t } = useTranslation('operator');
-  const [notice, setNotice] = useState<OperatorNotice>();
-  const setMessage = useCallback<NoticeSink>((message, tone) => {
-    setNotice(message === undefined ? undefined : { message, tone });
-  }, []);
+  // Send feedback before the action closes its modal or switches views.
+  const setMessage = useCallback<NoticeSink>(
+    (message, tone) => {
+      if (message === undefined) return;
+      notifications.show({
+        title: t(`notices.${noticeLabels[tone]}`),
+        message,
+        color: toneColors[tone],
+        withCloseButton: true
+      });
+    },
+    [t]
+  );
 
   useEffect(() => {
     if (!stateError) return;
@@ -24,21 +33,9 @@ export function useOperatorNotifications(stateError?: string): NoticeSink {
       title: t('notices.connection'),
       message: stateError,
       color: 'red',
-      autoClose: false,
       withCloseButton: true
     });
   }, [stateError, t]);
 
-  useEffect(() => {
-    if (!notice) return;
-    const { message, tone } = notice;
-    notifications.show({
-      title: t(`notices.${noticeLabels[tone]}`),
-      message,
-      color: toneColors[tone],
-      autoClose: tone === 'error' ? false : 6_000,
-      withCloseButton: true
-    });
-  }, [notice, t]);
   return setMessage;
 }

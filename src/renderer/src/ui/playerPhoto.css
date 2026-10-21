@@ -1,0 +1,7 @@
+.announcement-player-photo.is-placeholder,
+.victory-player-photo.is-placeholder:not(.victory-shadow),
+.versus-photo.is-placeholder,
+.thumbnail-player-photo.is-placeholder,
+.top8-player-photo.is-placeholder {
+  filter: brightness(0) invert(0.55);
+}

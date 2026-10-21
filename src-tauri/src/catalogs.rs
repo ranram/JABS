@@ -7,6 +7,8 @@ use std::{
 use unicode_normalization::{UnicodeNormalization, char::is_combining_mark};
 
 mod character_assets;
+mod character_setup;
+pub use character_setup::{prepare_character_files, built_in_roster, local_character_roster, repair_existing_character_folders};
 pub use character_assets::{
     canonical_character_for_catalog, character_names_match, has_game_character_asset,
     is_character_for_game, list_game_character_assets, resolve_game_character_asset,
@@ -58,6 +60,7 @@ pub struct AssetCatalogCounts {
     tournament_logos: usize,
     sponsor_logos: usize,
     player_photos: usize,
+    player_headshots: usize,
 }
 
 #[derive(Serialize)]
@@ -207,6 +210,7 @@ pub fn asset_catalog_summary(
         tournament_logos: logos.len(),
         sponsor_logos,
         player_photos,
+        player_headshots: catalog_asset_ids_result(&player_photo_directory.with_file_name("player_headshots"))?.len(),
     };
     Ok(AssetCatalogSummary { logos, counts })
 }
@@ -293,13 +297,17 @@ fn match_player_media(
     player_photo_asset_ids: &[String],
     player: &Player,
 ) -> PlayerMediaMatch {
-    match_player_media_values(
+    let mut matched = match_player_media_values(
         sponsor_asset_ids,
         player_photo_asset_ids,
         &player.name,
         player.prefix.as_deref(),
         player.sponsor.as_deref(),
-    )
+    );
+    if let Some(asset_id) = &player.player_photo_asset_id {
+        matched.player_photo_asset_id = player_photo_asset_ids.iter().find(|id| *id == asset_id).cloned();
+    }
+    matched
 }
 
 fn match_player_media_values(
@@ -335,7 +343,7 @@ fn catalog_asset_ids(directory: &Path) -> Vec<String> {
     catalog_asset_ids_result(directory).unwrap_or_default()
 }
 
-fn catalog_asset_ids_result(directory: &Path) -> Result<Vec<String>, String> {
+pub(crate) fn catalog_asset_ids_result(directory: &Path) -> Result<Vec<String>, String> {
     let entries = match std::fs::read_dir(directory) {
         Ok(entries) => entries,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
@@ -345,13 +353,13 @@ fn catalog_asset_ids_result(directory: &Path) -> Result<Vec<String>, String> {
         .filter_map(Result::ok)
         .filter_map(|entry| {
             let id = entry.file_name().into_string().ok()?;
-            entry.file_type().ok()?.is_file().then_some(id)
+            if !valid_media_id(&id) || !entry.file_type().ok()?.is_file() { return None; }
+            (entry.metadata().ok()?.len() > 0).then_some(id)
         })
-        .filter(|id| valid_media_id(id))
         .collect())
 }
 
-fn match_unique_asset_id(asset_ids: &[String], candidate: &str) -> Option<String> {
+pub(crate) fn match_unique_asset_id(asset_ids: &[String], candidate: &str) -> Option<String> {
     let needle = normalize_label(candidate);
     if needle.is_empty() {
         return None;
@@ -369,11 +377,11 @@ fn match_unique_asset_id(asset_ids: &[String], candidate: &str) -> Option<String
     matches.next().is_none().then_some(matched)
 }
 
-fn valid_logo_id(value: &str) -> bool {
+pub(crate) fn valid_logo_id(value: &str) -> bool {
     let Some((stem, extension)) = value.rsplit_once('.') else {
         return false;
     };
-    !stem.is_empty()
+    value.len() <= 255 && !stem.is_empty()
         && stem.chars().next().is_some_and(|character| character.is_ascii_alphanumeric())
         && stem.chars().all(|character| {
             character.is_ascii_alphanumeric() || matches!(character, '.' | '_' | '-')
@@ -381,7 +389,7 @@ fn valid_logo_id(value: &str) -> bool {
         && matches!(extension.to_ascii_lowercase().as_str(), "png" | "jpg" | "jpeg" | "webp")
 }
 
-fn valid_media_id(value: &str) -> bool {
+pub(crate) fn valid_media_id(value: &str) -> bool {
     let Some((stem, extension)) = value.rsplit_once('.') else {
         return false;
     };

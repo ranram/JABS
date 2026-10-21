@@ -1,0 +1,35 @@
+.player-media-layers {
+  position: absolute;
+  inset: 0;
+}
+
+/* Let clicks pass through photos when image editing is disabled. */
+.player-media-layers .player-media-photo:not(.keyboard-adjustable-media) {
+  pointer-events: none;
+  user-select: none;
+}
+
+.player-media-layers.is-combined.has-character .player-media-character {
+  z-index: 0;
+  inset: var(--duo-character-top, 0%) auto auto var(--duo-character-left, -12%);
+  width: var(--duo-character-width, 118%);
+  height: var(--duo-character-height, 100%);
+  object-fit: contain;
+  object-position: center top;
+  transform-origin: center;
+  filter: drop-shadow(0 0.5cqw 0.7cqw rgb(0 0 0 / 30%));
+}
+
+.player-media-layers.is-combined.has-character .player-media-photo {
+  z-index: 3;
+  inset: auto auto 0 var(--duo-photo-left, 24%);
+  width: var(--duo-photo-width, 76%);
+  height: var(--duo-photo-height, 68%);
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 0.3cqw 0.45cqw rgb(0 0 0 / 35%));
+}
+
+.player-media-layers.is-combined.has-character .player-media-photo.is-placeholder {
+  filter: brightness(0) invert(0.55);
+}

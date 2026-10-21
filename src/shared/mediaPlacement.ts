@@ -1,4 +1,15 @@
+import { z } from 'zod';
+
+export const mediaTransformSchema = z.object({
+  x: z.number().finite().min(-0.85).max(0.85),
+  y: z.number().finite().min(-0.85).max(0.85),
+  scale: z.number().finite().min(0.35).max(2.5),
+  flipped: z.boolean().default(false)
+});
+
 export type MediaLayerKind = 'character' | 'photo';
+export const playerMediaModeIds = ['character', 'photo', 'combined'] as const;
+export type PlayerMediaMode = (typeof playerMediaModeIds)[number];
 
 export type MediaTransform = {
   x: number;
@@ -27,6 +38,12 @@ export function clampMediaTransform(transform: MediaTransform): MediaTransform {
 
 export function toggleMediaFlip(transform: MediaTransform): MediaTransform {
   return { ...transform, flipped: !transform.flipped };
+}
+
+export function sameMediaTransform(first: MediaTransform, second: MediaTransform): boolean {
+  return (
+    first.x === second.x && first.y === second.y && first.scale === second.scale && first.flipped === second.flipped
+  );
 }
 
 export function mediaMirrorX(defaultMirror: boolean, transform: MediaTransform): boolean {

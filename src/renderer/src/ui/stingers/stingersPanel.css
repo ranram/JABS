@@ -1,0 +1,11 @@
+.stinger-panel-preview {
+  width: min(100%, 960px, calc(50dvh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-md);
+  background-color: #161a22;
+  background-image: conic-gradient(#232a34 25%, transparent 0 50%, #232a34 0 75%, transparent 0);
+  background-size: 24px 24px;
+}

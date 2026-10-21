@@ -6,8 +6,11 @@ const stylingGameIdSchema = z.custom<GameId>(
 );
 
 export const resultScreenStateSchema = z.object({
+  composition: z.enum(['classic', 'victory', 'spotlight']).default('classic'),
   stylingGameId: stylingGameIdSchema,
+  logoAssetId: z.string().trim().min(1).max(255).optional(),
   showBackground: z.boolean().default(true),
+  showTextBackdrop: z.boolean().default(false),
   showTournamentLogo: z.boolean(),
   showPlayerPhoto: z.boolean(),
   showSponsorLogo: z.boolean(),

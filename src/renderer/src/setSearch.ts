@@ -1,4 +1,5 @@
 import type { SetSummary } from '@shared/models';
+import { displayPhaseName } from '@shared/matchContext';
 
 function normalizeSearchText(value: string | undefined): string {
   return (value ?? '')
@@ -18,7 +19,7 @@ export function filterLoadedSets(sets: SetSummary[], search: string): SetSummary
   return sets.filter((set) => {
     const searchable = normalizeSearchText([
       set.id,
-      set.phase,
+      displayPhaseName(set.phase),
       set.phaseGroup,
       set.round,
       set.station,

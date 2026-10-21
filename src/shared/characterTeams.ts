@@ -1,11 +1,10 @@
 import policies from './characterTeamPolicies.json';
-import type { GameId } from './gameProfiles';
 
-const teamPolicies = policies as Record<GameId, number>;
+const teamPolicies: Record<string, number> = policies;
 
 /** Maximum roster slots used by the game's standard competitive format. */
-export function maxCharactersForGame(gameId?: GameId): number {
-  return gameId ? teamPolicies[gameId] ?? 1 : 1;
+export function maxCharactersForGame(gameId?: string): number {
+  return gameId && Object.hasOwn(teamPolicies, gameId) ? teamPolicies[gameId] ?? 1 : 1;
 }
 
 export function playerCharacters(player: { character?: string; characters?: string[] }): string[] {
@@ -24,11 +23,12 @@ export function playerPortraitCharacters(player: {
 /** Keeps the legacy lead slot synchronized with the ordered team array. */
 export function characterTeamSelection(
   characters: string[],
-  current?: { character?: string; characterAssetId?: string }
+  current?: { character?: string; characterAssetId?: string; portraitAssetId?: string }
 ): {
   character?: string;
   characters?: string[];
   characterAssetId?: string;
+  portraitAssetId?: string;
 } {
   const character = characters[0];
   return {
@@ -36,6 +36,9 @@ export function characterTeamSelection(
     characters: characters.length ? characters : undefined,
     characterAssetId: character && character === current?.character
       ? current.characterAssetId
+      : undefined,
+    portraitAssetId: character && character === current?.character
+      ? current.portraitAssetId
       : undefined
   };
 }

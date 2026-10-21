@@ -1,0 +1,9 @@
+[data-entrance-pending] [data-entrance] {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-entrance-pending] [data-entrance] {
+    visibility: visible;
+  }
+}

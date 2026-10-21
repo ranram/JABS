@@ -1,0 +1,6 @@
+.combined-media-layer {
+  display: contents;
+}
+.combined-media-editor.is-dragging .keyboard-adjustable-media {
+  cursor: grabbing;
+}

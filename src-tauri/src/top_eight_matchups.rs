@@ -10,6 +10,12 @@ const SURFACE_ID: &str = "top-eight-matchups";
 #[serde(rename_all = "camelCase")]
 pub struct MatchupPlayer {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub player_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub local_player_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub portrait_asset_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub entrant_id: Option<String>,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -182,6 +188,7 @@ fn validate(state: &TopEightMatchupsState) -> Result<(), String> {
 
 fn default_state() -> TopEightMatchupsState {
     let player = |number| MatchupPlayer {
+        player_id: None, local_player_id: None, portrait_asset_id: None,
         entrant_id: None,
         name: format!("Player {number}"),
         sponsor: None,
@@ -269,30 +276,39 @@ mod tests {
     }
 
     #[test]
-    fn logo_visibility_migrates_and_round_trips_for_both_overlays() {
-        let mut top_eight = serde_json::to_value(default_state()).unwrap();
-        top_eight.as_object_mut().unwrap().remove("showTournamentLogo");
-        let mut restored: TopEightMatchupsState = serde_json::from_value(top_eight).unwrap();
-        assert!(restored.show_tournament_logo);
-        assert!(!restored.flip_player_two_portraits);
-        restored.show_tournament_logo = false;
-        restored.logo_asset_id = Some("tournament.png".to_owned());
-        let saved = serde_json::to_value(&restored).unwrap();
-        let restored: TopEightMatchupsState = serde_json::from_value(saved).unwrap();
-        assert!(!restored.show_tournament_logo);
-        assert_eq!(restored.logo_asset_id.as_deref(), Some("tournament.png"));
+    fn legacy_logo_settings_survive_native_saves_and_reload() {
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let mut legacy = serde_json::to_value(default_state()).unwrap();
+        legacy.as_object_mut().unwrap().remove("showTournamentLogo");
+        database.save_broadcast_surface(SURFACE_ID, &legacy.to_string(), "2026-09-08T00:00:00Z").unwrap();
+        let store = TopEightMatchupsStore::load(&database).unwrap();
+        let current = store.current().unwrap();
+        assert_eq!(current["showTournamentLogo"], true);
+        assert_eq!(current["flipPlayerTwoPortraits"], false);
+        let mut submitted: TopEightMatchupsState = serde_json::from_value(current).unwrap();
+        submitted.show_tournament_logo = false;
+        submitted.logo_asset_id = Some("tournament.png".to_owned());
+        store.replace(&database, submitted).unwrap();
+        let restored = TopEightMatchupsStore::load(&database).unwrap().current().unwrap();
+        assert_eq!(restored["showTournamentLogo"], false);
+        assert_eq!(restored["logoAssetId"], "tournament.png");
 
         let legacy = serde_json::json!({
-            "tournamentName": "Tournament", "commentators": [],
+            "tournamentName": "Tournament",
+            "commentators": [{ "name": "One", "handle": "" }, { "name": "Two", "handle": "" }],
             "presentation": "hidden", "updatedAt": "2026-09-08T00:00:00Z"
         });
-        let mut restored: crate::commentators::CommentatorState = serde_json::from_value(legacy).unwrap();
-        assert!(restored.show_tournament_logo);
-        restored.show_tournament_logo = false;
-        restored.logo_asset_id = Some("tournament.png".to_owned());
-        let saved = serde_json::to_value(&restored).unwrap();
-        let restored: crate::commentators::CommentatorState = serde_json::from_value(saved).unwrap();
-        assert!(!restored.show_tournament_logo);
-        assert_eq!(restored.logo_asset_id.as_deref(), Some("tournament.png"));
+        database.save_broadcast_surface("commentators", &legacy.to_string(), "2026-09-08T00:00:00Z").unwrap();
+        let logos = std::path::Path::new("unused");
+        let store = crate::commentators::CommentatorStore::load(&database, logos).unwrap();
+        let current = store.current().unwrap();
+        assert_eq!(current["showTournamentLogo"], true);
+        let mut submitted: crate::commentators::CommentatorState = serde_json::from_value(current).unwrap();
+        submitted.show_tournament_logo = false;
+        store.replace(&database, logos, submitted).unwrap();
+        let restored = crate::commentators::CommentatorStore::load(&database, logos).unwrap().current().unwrap();
+        assert_eq!(restored["showTournamentLogo"], false);
+        assert_eq!(restored["commentators"], legacy["commentators"]);
     }
+
 }

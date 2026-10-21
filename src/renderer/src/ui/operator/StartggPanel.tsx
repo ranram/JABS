@@ -1,3 +1,5 @@
+import { ImportEventPlayers } from '../players/ImportEventPlayers';
+import { DestructiveButton } from '../DestructiveButton';
 import type { NoticeSink } from './operatorNotice';
 import {
   Badge,
@@ -11,40 +13,37 @@ import {
   Stack,
   Tabs,
   Text,
-  TextInput,
-  Title
+  TextInput
 } from '@mantine/core';
-import { useEffect, useMemo, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { GameId, GameProfile } from '@shared/gameProfiles';
-import type {
-  CountryOption,
-  RecentTournament,
-  LogoAsset,
-  SelectedSetState,
-  StartggEvent,
-  StartggPageInfo,
-  StartggPhase,
-  StartggPhaseGroup,
-  StartggSetScope
-} from '@shared/models';
+import { resolveStartggGameProfileId, type GameId, type GameProfile } from '@shared/gameProfiles';
+import type { CountryOption, LogoAsset, SelectedSetState } from '@shared/models';
 import { PaginationControls } from './ScoreControls';
 import { MediaFolderControls } from './MediaFolderControls';
 import { sortByLabel } from './operatorUtils';
 import { OtherOverlaysPanel } from './WorkspacePanels';
+import { StingersPanel } from '../stingers/StingersPanel';
 import { ThumbnailGenerator } from './ThumbnailGenerator';
 import { useThumbnailDraft } from './useThumbnailDraft';
 import { TopEightGenerator } from './TopEightGenerator';
 import { useTopEightDraft } from './useTopEightDraft';
-import { generatorGameContext } from './generatorGameContext';
+import { useGameAssetPreparation, type GameAssetSelection } from './useGameAssetPreparation';
+import { GameSelect } from './GameSelect';
+import { api, invalidateCatalogRasterCache } from '../../api';
+import { generatorGameContext, standaloneGameContext } from './generatorGameContext';
 import { CustomScoreboardPanel } from './CustomScoreboardPanel';
 import { WorkspaceMaintenanceBar } from './WorkspaceMaintenanceBar';
 import type { LocalHandoffUrl } from '../../desktopRuntime';
-import { BracketRefreshStatus, type BracketRefresh } from './BracketRefreshStatus';
+import { BracketRefreshStatus } from './BracketRefreshStatus';
+import { PanelHeader } from '../PanelHeader';
+import type { BracketController } from './bracketController';
+import { displayPhaseName } from '@shared/matchContext';
+import type { CharacterCatalogOptions } from './useCharacterCatalogOptions';
 
 type StartggPanelProps = {
+  bracket: BracketController;
   keyboardShortcuts: { enabled: boolean; setEnabled(value: boolean): void };
-  bracketRefresh?: BracketRefresh;
   reloadWarning?: string;
   tokenInputRef: RefObject<HTMLInputElement | null>;
   tokenConfigured: boolean;
@@ -52,24 +51,16 @@ type StartggPanelProps = {
   tokenSessionOnly: boolean;
   tokenVerified: boolean;
   tokenInputReady: boolean;
-  tournamentSlug: string;
-  recentTournaments: RecentTournament[];
-  events: StartggEvent[];
-  selectedEventId: string;
   detectedGameId?: GameId;
   detectedProfile?: GameProfile;
   profiles: GameProfile[];
-  selectionGameId: GameId | '';
-  phases: StartggPhase[];
-  selectedPhaseId: string;
-  phaseGroups: StartggPhaseGroup[];
-  selectedPhaseGroupId: string;
-  phaseGroupPageInfo?: StartggPageInfo;
-  stationNumber: string;
-  setScope?: StartggSetScope;
   localBaseUrl?: string;
   copiedHandoff?: LocalHandoffUrl;
   activeSet?: SelectedSetState;
+  streamDraft?: SelectedSetState;
+  streamCharacterCatalog?: CharacterCatalogOptions;
+  streamPending?: boolean;
+  onPatchStream?(patch: Partial<SelectedSetState>): void;
   logos: LogoAsset[];
   loading: boolean;
   reloadingAssets: boolean;
@@ -82,20 +73,8 @@ type StartggPanelProps = {
   onTokenInputReady(ready: boolean): void;
   onSaveToken(): void;
   onRemoveToken(): void;
-  onTournamentSlug(slug: string): void;
-  onLoadEvents(slug?: string): void;
-  onUnloadTournament(): void;
-  onClearCache(): void;
-  onSelectEvent(eventId: string): void;
-  onSelectionGame(gameId: GameId | ''): void;
-  onSelectPhase(phaseId: string): void;
-  onSelectPhaseGroup(phaseGroupId: string): void;
-  onStationNumber(station: string): void;
-  onBrowseStation(): void;
-  onLoadPhaseGroups(page: number): void;
-  onBrowseAllSets(): void;
-  onRefreshScope(scope: StartggSetScope): void;
   onReloadSelectedSet(): void;
+  onPatchBroadcast?(patch: Partial<NonNullable<SelectedSetState['broadcast']>>): void;
   onCustomScoreboard(scoreboardId?: string, revision?: string): void;
   onMessage: NoticeSink;
   onModerationApplied(): void;
@@ -105,31 +84,25 @@ type StartggPanelProps = {
 };
 
 export function StartggPanel({
-  keyboardShortcuts, bracketRefresh, reloadWarning,
+  bracket,
+  keyboardShortcuts,
+  reloadWarning,
   tokenInputRef,
   tokenConfigured,
   tokenStorageAvailable,
   tokenSessionOnly,
   tokenVerified,
   tokenInputReady,
-  tournamentSlug,
-  recentTournaments,
-  events,
-  selectedEventId,
   detectedGameId,
   detectedProfile,
   profiles,
-  selectionGameId,
-  phases,
-  selectedPhaseId,
-  phaseGroups,
-  selectedPhaseGroupId,
-  phaseGroupPageInfo,
-  stationNumber,
-  setScope,
   localBaseUrl,
   copiedHandoff,
   activeSet,
+  streamDraft,
+  streamCharacterCatalog,
+  streamPending,
+  onPatchStream,
   logos,
   loading,
   reloadingAssets,
@@ -141,20 +114,8 @@ export function StartggPanel({
   onTokenInputReady,
   onSaveToken,
   onRemoveToken,
-  onTournamentSlug,
-  onLoadEvents,
-  onUnloadTournament,
-  onClearCache,
-  onSelectEvent,
-  onSelectionGame,
-  onSelectPhase,
-  onSelectPhaseGroup,
-  onStationNumber,
-  onBrowseStation,
-  onLoadPhaseGroups,
-  onBrowseAllSets,
-  onRefreshScope,
   onReloadSelectedSet,
+  onPatchBroadcast,
   onCustomScoreboard,
   onMessage,
   moderationRevision,
@@ -163,6 +124,34 @@ export function StartggPanel({
   setSelector,
   children
 }: StartggPanelProps) {
+  const {
+    bracketRefresh,
+    tournamentSlug,
+    tournamentLoaded,
+    recentTournaments,
+    events,
+    selectedEventId,
+    selectionGameId,
+    phases,
+    selectedPhaseId,
+    phaseGroups,
+    selectedPhaseGroupId,
+    phaseGroupPageInfo,
+    stationNumber,
+    setScope
+  } = bracket.state;
+  const [workspace, setWorkspace] = useState('bracket');
+  const stickyHeader = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const header = stickyHeader.current;
+    if (!header) return;
+    const parent = header.closest<HTMLElement>('.operator-workspaces');
+    const measure = () => parent?.style.setProperty('--workspace-header-height', `${header.offsetHeight}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
   const { t, i18n } = useTranslation(['operator', 'common']);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const sortedEvents = useMemo(() => sortByLabel(events, (event) => event.name, locale), [events, locale]);
@@ -170,7 +159,10 @@ export function StartggPanel({
     () => sortByLabel(profiles, (profile) => profile.label, locale),
     [profiles, locale]
   );
-  const sortedPhases = useMemo(() => sortByLabel(phases, (phase) => phase.name, locale), [phases, locale]);
+  const sortedPhases = useMemo(
+    () => sortByLabel(phases, (phase) => displayPhaseName(phase.name), locale),
+    [phases, locale]
+  );
   const sortedPhaseGroups = useMemo(
     () => sortByLabel(phaseGroups, (group) => group.displayIdentifier, locale),
     [phaseGroups, locale]
@@ -178,306 +170,430 @@ export function StartggPanel({
   const selectedEvent = events.find((event) => String(event.id) === selectedEventId);
   const gameContext = generatorGameContext({
     selectedEventId,
+    tournamentLoaded,
     selectedEvent,
     detectedGameId,
     selectionGameId,
     activeSet
   });
   const assetCatalogSlug = gameContext.assetCatalogSlug;
-  const topEight = useTopEightDraft(
-    gameContext.gameId ?? activeSet?.gameId
+  // Keep the English navigation order in every language, with brackets first.
+  const workspaces = [
+    { id: 'bracket', label: t('operator:workspaces.bracket') },
+    { id: 'custom-scoreboard', label: t('operator:workspaces.customScoreboard') },
+    { id: 'overlays', label: t('operator:workspaces.otherOverlays') },
+    { id: 'stingers', label: t('operator:workspaces.stingers') },
+    { id: 'top-eight', label: t('operator:workspaces.topEight') },
+    { id: 'thumbnail', label: t('operator:workspaces.thumbnail') }
+  ];
+  const [topEightGameSelection, setTopEightGameSelection] = useState<GameAssetSelection>();
+  const [thumbnailGameSelection, setThumbnailGameSelection] = useState<GameAssetSelection>();
+  const topEight = useTopEightDraft(gameContext.gameId ?? activeSet?.gameId);
+  const thumbnail = useThumbnailDraft(activeSet, tournamentLoaded && assetCatalogSlug ? gameContext : undefined);
+  const eventVideogameId = selectedEvent?.videogame?.id;
+  const eventGameSelection = { assetCatalogSlug, videogameId: eventVideogameId };
+  const topEightPreparation = useGameAssetPreparation(
+    tournamentLoaded ? assetCatalogSlug : topEight.draft.assetCatalogSlug,
+    tournamentLoaded ? eventGameSelection : topEightGameSelection
   );
-  const thumbnail = useThumbnailDraft(activeSet);
+  const thumbnailPreparation = useGameAssetPreparation(
+    tournamentLoaded ? assetCatalogSlug : thumbnail.draft.assetCatalogSlug,
+    tournamentLoaded ? eventGameSelection : thumbnailGameSelection
+  );
   useEffect(() => {
-    if (!assetCatalogSlug) return;
-    topEight.setAssetCatalogSlug(assetCatalogSlug);
-    thumbnail.setAssetCatalogSlug(assetCatalogSlug);
-  }, [assetCatalogSlug]);
+    let leftApp = false;
+    let timer: number | undefined;
+    const leave = () => {
+      leftApp = true;
+      window.clearTimeout(timer);
+    };
+    const refresh = () => {
+      if (!leftApp) return;
+      leftApp = false;
+      timer = window.setTimeout(() => {
+        void api.reloadAssets().catch(() => invalidateCatalogRasterCache());
+      }, 200);
+    };
+    window.addEventListener('blur', leave);
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('blur', leave);
+      window.removeEventListener('focus', refresh);
+    };
+  }, []);
   useEffect(() => {
-    if (!gameContext.gameId && !gameContext.gameName) return;
-    topEight.setGameContext(gameContext.gameId, gameContext.gameName);
-    thumbnail.setGameContext(gameContext.gameId, gameContext.gameName);
-  }, [gameContext.gameId, gameContext.gameName]);
-  const statusLabel = !tokenConfigured ? t('operator:startgg.publicAccess') : tokenVerified
-    ? t('operator:startgg.verified')
-    : tokenSessionOnly
-      ? t('operator:startgg.session')
-      : t('operator:startgg.stored');
+    if (!tournamentLoaded || !assetCatalogSlug) return;
+    if (eventVideogameId) {
+      const selection = { videogameId: eventVideogameId, assetCatalogSlug };
+      setTopEightGameSelection(selection);
+      setThumbnailGameSelection(selection);
+    }
+    topEight.setGameContext(gameContext.gameId, gameContext.gameName, assetCatalogSlug);
+    thumbnail.setGameContext(gameContext.gameId, gameContext.gameName, assetCatalogSlug);
+  }, [tournamentLoaded, gameContext.gameId, gameContext.gameName, assetCatalogSlug, eventVideogameId]);
+  const statusLabel = !tokenConfigured
+    ? t('operator:startgg.publicAccess')
+    : tokenVerified
+      ? t('operator:startgg.verified')
+      : tokenSessionOnly
+        ? t('operator:startgg.session')
+        : t('operator:startgg.stored');
 
   return (
     <>
-    <Paper className="panel startgg-panel" p="md" radius="lg" withBorder>
-      <Group justify="space-between" align="flex-start">
-        <div>
-          <Title order={2} size="h4">{t('operator:startgg.title')}</Title>
-          <Text c="dimmed" size="sm">{t('operator:startgg.description')}</Text>
-        </div>
-        <Group gap="sm" wrap="wrap">
-          <BracketRefreshStatus refresh={bracketRefresh} />
-          <Badge color={!tokenConfigured ? 'gray' : tokenVerified ? 'green' : tokenSessionOnly ? 'yellow' : 'blue'}>
-            {statusLabel}
-          </Badge>
-        </Group>
-      </Group>
-
-      <SimpleGrid type="container" cols={{ base: 1, '48rem': 2 }} mt="md">
-        <Stack gap="sm" className="startgg-entry-block">
-          <div>
-            <Text fw={700}>{t('operator:startgg.apiAccess')}</Text>
-          </div>
-          <PasswordInput
-            ref={tokenInputRef}
-            autoComplete="off"
-            placeholder={t('operator:startgg.tokenPlaceholder')}
-            disabled={loading}
-            onChange={(event) => onTokenInputReady(Boolean(event.currentTarget.value.trim()))}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && tokenInputReady) onSaveToken();
-            }}
-          />
-          <Group>
-            <Button disabled={loading || !tokenInputReady} onClick={onSaveToken}>
-              {tokenStorageAvailable ? t('operator:startgg.saveToken') : t('operator:startgg.useForSession')}
-            </Button>
-            {tokenConfigured && (
-              <Button variant="default" disabled={loading} onClick={onRemoveToken}>
-                {t('operator:startgg.removeToken')}
-              </Button>
-            )}
+      <Paper className="panel startgg-panel" p="md" radius="lg" withBorder>
+        <PanelHeader title={t('operator:startgg.title')} description={t('operator:startgg.description')}>
+          <Group gap="sm" justify="flex-end">
+            <BracketRefreshStatus refresh={bracketRefresh} />
+            <Badge color={!tokenConfigured ? 'gray' : tokenVerified ? 'green' : tokenSessionOnly ? 'yellow' : 'blue'}>
+              {statusLabel}
+            </Badge>
           </Group>
-          <div>
-            <Text size="xs" c="dimmed">{t('operator:startgg.tokenLocal')}</Text>
-            <Text size="xs" c="dimmed">{t('operator:startgg.publicHelp')}</Text>
-            {!tokenStorageAvailable && (
-              <Text size="sm" c="dimmed">{t('operator:startgg.sessionStorage')}</Text>
-            )}
-          </div>
-        </Stack>
+        </PanelHeader>
 
-        <Stack gap="sm" className="startgg-entry-block">
-          <div>
-            <Text fw={700}>{t('operator:startgg.tournament')}</Text>
-          </div>
-          <Group align="flex-end" wrap="wrap" className="tournament-lookup-row">
-            <TextInput
-              data-testid="tournament-input"
-              value={tournamentSlug}
-              placeholder={t('operator:startgg.tournamentPlaceholder')}
-              onChange={(event) => onTournamentSlug(event.currentTarget.value)}
-              style={{ flex: 1 }}
-            />
-            <Button data-testid="load-events" disabled={loading || !tournamentSlug} onClick={() => onLoadEvents()}>
-              {t('operator:startgg.loadEvents')}
-            </Button>
-          </Group>
-          <Text size="xs" c="dimmed">{t('operator:startgg.tournamentHint')}</Text>
-          {recentTournaments.length > 0 && (
-            <Group gap="xs" aria-label={t('operator:startgg.recentAria')}>
-              <Text size="xs" c="dimmed">{t('operator:startgg.recent')}</Text>
-              {recentTournaments.map((tournament) => (
-                <Button key={tournament.slug} variant="subtle" size="compact-xs" disabled={loading} onClick={() => onLoadEvents(tournament.slug)}>
-                  {tournament.slug}
-                </Button>
-              ))}
-            </Group>
-          )}
-        </Stack>
-      </SimpleGrid>
-    </Paper>
-
-    <Tabs className="operator-workspaces" defaultValue="bracket" keepMounted={false} mt="md">
-      <div className="workspace-sticky-header">
-        <Tabs.List aria-label={t('operator:workspaces.aria')}>
-          <Tabs.Tab value="bracket">{t('operator:workspaces.bracket')}</Tabs.Tab>
-          <Tabs.Tab value="custom-scoreboard">{t('operator:workspaces.customScoreboard')}</Tabs.Tab>
-          <Tabs.Tab value="overlays">{t('operator:workspaces.otherOverlays')}</Tabs.Tab>
-          <Tabs.Tab value="top-eight">{t('operator:workspaces.topEight')}</Tabs.Tab>
-          <Tabs.Tab value="thumbnail">{t('operator:workspaces.thumbnail')}</Tabs.Tab>
-        </Tabs.List>
-        <WorkspaceMaintenanceBar
-          keyboardShortcuts={keyboardShortcuts} reloadWarning={reloadWarning}
-          loading={loading}
-          reloadingAssets={reloadingAssets}
-          reloadSelectedSetDisabled={reloadSelectedSetDisabled}
-          unloadTournamentDisabled={unloadTournamentDisabled}
-          tournamentLoaded={events.length > 0}
-          setScope={setScope}
-          localBaseUrl={localBaseUrl}
-          copiedHandoff={copiedHandoff}
-          onReloadAssets={onReloadAssets}
-          onReloadBracketData={onRefreshScope}
-          onReloadSelectedSet={onReloadSelectedSet}
-          onUnloadTournament={onUnloadTournament}
-          onClearCache={onClearCache}
-          onModerationApplied={onModerationApplied}
-          onCopy={onCopy}
-        />
-      </div>
-
-      <Tabs.Panel value="bracket" pt="md">
-        <div className="bracket-overview-grid">
-          <Paper className="panel bracket-workspace" p="md" radius="lg" withBorder>
-
-            {detectedProfile && (
-              <Group mt="md" gap="xs">
-                <Text size="sm">{t('operator:startgg.detectedProfile')}</Text>
-                <Badge variant="light">{detectedProfile.shortLabel}</Badge>
-              </Group>
-            )}
-
-            <Select
-              data-testid="event-select"
-              mt="md"
-              label={t('operator:startgg.selectEvent')}
-              value={selectedEventId || null}
+        <SimpleGrid type="container" cols={{ base: 1, '48rem': 2 }} mt="md">
+          <Stack gap="sm" className="startgg-entry-block operator-inset" data-tutorial="api-access">
+            <div>
+              <Text fw={700}>{t('operator:startgg.apiAccess')}</Text>
+            </div>
+            <PasswordInput
+              ref={tokenInputRef}
+              autoComplete="off"
+              placeholder={t('operator:startgg.tokenPlaceholder')}
               disabled={loading}
-              aria-label={t('operator:startgg.eventAria')}
-              placeholder={t('operator:startgg.selectEvent')}
-              searchable
-              clearable
-              data={sortedEvents.map((event) => ({ value: String(event.id), label: event.name }))}
-              onChange={(value) => onSelectEvent(value ?? '')}
+              onChange={(event) => onTokenInputReady(Boolean(event.currentTarget.value.trim()))}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && tokenInputReady) onSaveToken();
+              }}
             />
+            <Group>
+              <Button disabled={loading || !tokenInputReady} onClick={onSaveToken}>
+                {tokenStorageAvailable ? t('operator:startgg.saveToken') : t('operator:startgg.useForSession')}
+              </Button>
+              {tokenConfigured && (
+                <DestructiveButton disabled={loading} onClick={onRemoveToken}>
+                  {t('operator:startgg.removeToken')}
+                </DestructiveButton>
+              )}
+            </Group>
+            <div>
+              <Text size="xs" c="dimmed">
+                {t('operator:startgg.tokenLocal')}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {t('operator:startgg.publicHelp')}
+              </Text>
+              {!tokenStorageAvailable && (
+                <Text size="sm" c="dimmed">
+                  {t('operator:startgg.sessionStorage')}
+                </Text>
+              )}
+            </div>
+          </Stack>
 
-            {assetCatalogSlug && (
-              <Group mt="md" justify="space-between" align="center" wrap="wrap">
-                <MediaFolderControls
-                  kind="game-assets"
-                  label={t('operator:browser.assetSlug')}
-                  subpath={`${assetCatalogSlug}/characters`}
-                />
+          <Stack gap="sm" className="startgg-entry-block operator-inset">
+            <div>
+              <Text fw={700}>{t('operator:startgg.tournament')}</Text>
+            </div>
+            <Group align="flex-end" wrap="wrap" className="tournament-lookup-row">
+              <TextInput
+                data-testid="tournament-input"
+                value={tournamentSlug}
+                placeholder={t('operator:startgg.tournamentPlaceholder')}
+                onChange={(event) => bracket.actions.setTournamentSlug(event.currentTarget.value)}
+                style={{ flex: 1 }}
+              />
+              <Button
+                data-testid="load-events"
+                disabled={loading || !tournamentSlug}
+                onClick={() => bracket.actions.loadEvents()}
+              >
+                {t('operator:startgg.loadEvents')}
+              </Button>
+            </Group>
+            {recentTournaments.length > 0 && (
+              <Group gap="xs" aria-label={t('operator:startgg.recentAria')}>
+                <Text size="xs" c="dimmed">
+                  {t('operator:startgg.recent')}
+                </Text>
+                {recentTournaments.map((tournament) => (
+                  <Button
+                    key={tournament.slug}
+                    variant="subtle"
+                    size="compact-xs"
+                    disabled={loading}
+                    onClick={() => bracket.actions.loadEvents(tournament.slug)}
+                  >
+                    {tournament.slug}
+                  </Button>
+                ))}
               </Group>
             )}
+          </Stack>
+        </SimpleGrid>
+      </Paper>
 
-            {selectedEventId && (
-              <div className="bracket-browser">
-                <div className="bracket-filter-row">
-                  <Select
-                    data-testid="selection-game-profile"
-                    label={t('operator:browser.gameProfile')}
-                    value={(detectedGameId ?? selectionGameId) || null}
-                    disabled={loading || Boolean(detectedGameId)}
-                    placeholder={t('operator:browser.chooseProfile')}
-                    searchable
-                    clearable
-                    description={detectedProfile
-                      ? t('operator:browser.detectedFromEvent', { profile: detectedProfile.label })
-                      : t('operator:browser.unknownGame')}
-                    inputWrapperOrder={['label', 'input', 'description', 'error']}
-                    data={sortedGameProfiles.map((profile) => ({ value: profile.id, label: profile.label }))}
-                    onChange={(value) => onSelectionGame((value ?? '') as GameId | '')}
+      <Tabs
+        className="operator-workspaces"
+        value={workspace}
+        onChange={(value) => value && setWorkspace(value)}
+        keepMounted={false}
+        mt="md"
+      >
+        <div ref={stickyHeader} className="workspace-sticky-header">
+          <Tabs.List aria-label={t('operator:workspaces.aria')}>
+            {workspaces.map((item) => (
+              <Tabs.Tab key={item.id} value={item.id}>
+                {item.label}
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+          <WorkspaceMaintenanceBar
+            activeSet={activeSet}
+            assetCatalogSlug={
+              workspace === 'top-eight'
+                ? topEight.draft.assetCatalogSlug
+                : workspace === 'thumbnail'
+                  ? thumbnail.draft.assetCatalogSlug
+                  : assetCatalogSlug
+            }
+            keyboardShortcuts={keyboardShortcuts}
+            reloadWarning={reloadWarning}
+            loading={loading}
+            reloadingAssets={reloadingAssets}
+            reloadSelectedSetDisabled={reloadSelectedSetDisabled}
+            unloadTournamentDisabled={unloadTournamentDisabled}
+            tournamentLoaded={tournamentLoaded}
+            setScope={setScope}
+            localBaseUrl={localBaseUrl}
+            copiedHandoff={copiedHandoff}
+            onReloadAssets={onReloadAssets}
+            onReloadBracketData={bracket.actions.loadSets}
+            onReloadSelectedSet={onReloadSelectedSet}
+            onUnloadTournament={bracket.actions.unloadTournament}
+            onClearCache={bracket.actions.clearCachedBracketData}
+            onModerationApplied={onModerationApplied}
+            onCopy={onCopy}
+            onConfigureStingers={() => setWorkspace('stingers')}
+            onTutorialWorkspace={setWorkspace}
+          />
+        </div>
+
+        <Tabs.Panel value="bracket" pt="md">
+          <div className="bracket-overview-grid">
+            <Paper className="panel bracket-workspace" p="md" radius="lg" withBorder>
+              {detectedProfile && (
+                <Group mt="md" gap="xs">
+                  <Text size="sm">{t('operator:startgg.detectedProfile')}</Text>
+                  <Badge variant="light">{detectedProfile.shortLabel}</Badge>
+                </Group>
+              )}
+
+              <Group mt="md" align="flex-end" gap="md">
+                <Select
+                  data-testid="event-select"
+                  data-tutorial="event"
+                  style={{ flex: '1 1 260px' }}
+                  label={t('operator:startgg.selectEvent')}
+                  value={selectedEventId || null}
+                  disabled={loading}
+                  aria-label={t('operator:startgg.eventAria')}
+                  placeholder={t('operator:startgg.selectEvent')}
+                  searchable
+                  clearable
+                  data={sortedEvents.map((event) => ({ value: String(event.id), label: event.name }))}
+                  onChange={(value) => bracket.actions.selectEvent(value ?? '')}
+                />
+
+                {selectedEventId && <ImportEventPlayers eventId={selectedEventId} />}
+              </Group>
+
+              {assetCatalogSlug && (
+                <Group mt="md" justify="space-between" align="center" wrap="wrap">
+                  <MediaFolderControls
+                    kind="game-assets"
+                    label={t('operator:browser.assetSlug')}
+                    subpath={`${assetCatalogSlug}/characters`}
                   />
-                  <Select
-                    label={t('operator:browser.phase')}
-                    value={selectedPhaseId || null}
-                    disabled={loading || phases.length === 0}
-                    placeholder={t('operator:browser.allPhases')}
-                    searchable
-                    clearable
-                    data={sortedPhases.map((phase) => ({ value: String(phase.id), label: phase.name }))}
-                    onChange={(value) => onSelectPhase(value ?? '')}
-                  />
-                </div>
-                <div className="bracket-filter-row">
-                  <Select
-                    label={t('operator:browser.pool')}
-                    value={selectedPhaseGroupId || null}
-                    disabled={loading || !selectedPhaseId || phaseGroups.length === 0}
-                    placeholder={t('operator:browser.allPools')}
-                    searchable
-                    clearable
-                    data={sortedPhaseGroups.map((group) => ({ value: String(group.id), label: group.displayIdentifier }))}
-                    onChange={(value) => onSelectPhaseGroup(value ?? '')}
-                  />
-                  <Group align="flex-end" wrap="nowrap">
-                    <NumberInput
-                      label={t('operator:browser.stationNumber')}
-                      min={1}
-                      step={1}
-                      value={stationNumber}
-                      placeholder={t('operator:browser.stationPlaceholder')}
-                      disabled={loading}
-                      allowDecimal={false}
-                      onChange={(value) => onStationNumber(String(value))}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') onBrowseStation();
-                      }}
-                      style={{ flex: 1 }}
+                </Group>
+              )}
+
+              {selectedEventId && (
+                <div className="bracket-browser">
+                  <div className="bracket-filter-row">
+                    <Select
+                      data-testid="selection-game-profile"
+                      label={t('operator:browser.gameProfile')}
+                      value={resolveStartggGameProfileId(selectedEvent?.videogame, selectionGameId)}
+                      disabled={loading || Boolean(detectedGameId)}
+                      placeholder={t('operator:browser.chooseProfile')}
+                      searchable
+                      clearable
+                      description={
+                        detectedProfile
+                          ? t('operator:browser.detectedFromEvent', { profile: detectedProfile.label })
+                          : t('operator:browser.unknownGame')
+                      }
+                      inputWrapperOrder={['label', 'input', 'description', 'error']}
+                      data={sortedGameProfiles.map((profile) => ({ value: profile.id, label: profile.label }))}
+                      onChange={(value) => bracket.actions.setSelectionGameId((value ?? '') as GameId | '')}
                     />
-                    <Button disabled={loading || !stationNumber} onClick={onBrowseStation}>
-                      {t('operator:browser.browse')}
+                    <Select
+                      label={t('operator:browser.phase')}
+                      value={selectedPhaseId || null}
+                      disabled={loading || phases.length === 0}
+                      placeholder={t('operator:browser.allPhases')}
+                      searchable
+                      clearable
+                      data={sortedPhases.map((phase) => ({
+                        value: String(phase.id),
+                        label: displayPhaseName(phase.name)
+                      }))}
+                      onChange={(value) => bracket.actions.selectPhase(value ?? '')}
+                    />
+                  </div>
+                  <div className="bracket-filter-row">
+                    <Select
+                      label={t('operator:browser.pool')}
+                      value={selectedPhaseGroupId || null}
+                      disabled={loading || !selectedPhaseId || phaseGroups.length === 0}
+                      placeholder={t('operator:browser.allPools')}
+                      searchable
+                      clearable
+                      data={sortedPhaseGroups.map((group) => ({
+                        value: String(group.id),
+                        label: group.displayIdentifier
+                      }))}
+                      onChange={(value) => bracket.actions.selectPhaseGroup(value ?? '')}
+                    />
+                    <Group align="flex-end" wrap="nowrap">
+                      <NumberInput
+                        label={t('operator:browser.stationNumber')}
+                        min={1}
+                        step={1}
+                        value={stationNumber}
+                        placeholder={t('operator:browser.stationPlaceholder')}
+                        disabled={loading}
+                        allowDecimal={false}
+                        onChange={(value) => bracket.actions.setStationNumber(String(value))}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') bracket.actions.browseStation();
+                        }}
+                        style={{ flex: 1 }}
+                      />
+                      <Button disabled={loading || !stationNumber} onClick={bracket.actions.browseStation}>
+                        {t('operator:browser.browse')}
+                      </Button>
+                    </Group>
+                  </div>
+
+                  {phaseGroupPageInfo && phaseGroupPageInfo.totalPages > 1 && (
+                    <PaginationControls
+                      label={t('operator:browser.poolPages')}
+                      pageInfo={phaseGroupPageInfo}
+                      disabled={loading}
+                      onPage={bracket.actions.loadPhaseGroups}
+                    />
+                  )}
+                  <Group>
+                    <Button variant="default" disabled={loading} onClick={bracket.actions.browseAllEventSets}>
+                      {t('operator:browser.allEventSets')}
                     </Button>
                   </Group>
                 </div>
+              )}
+            </Paper>
+            {setSelector}
+          </div>
+          {children}
+        </Tabs.Panel>
 
-                {phaseGroupPageInfo && phaseGroupPageInfo.totalPages > 1 && (
-                  <PaginationControls
-                    label={t('operator:browser.poolPages')}
-                    pageInfo={phaseGroupPageInfo}
-                    disabled={loading}
-                    onPage={onLoadPhaseGroups}
-                  />
-                )}
-                <Group>
-                  <Button variant="default" disabled={loading} onClick={onBrowseAllSets}>
-                    {t('operator:browser.allEventSets')}
-                  </Button>
-                </Group>
-              </div>
-            )}
-          </Paper>
-          {setSelector}
-        </div>
-        {children}
-      </Tabs.Panel>
+        <Tabs.Panel value="custom-scoreboard" pt="md" keepMounted>
+          <CustomScoreboardPanel
+            activeSet={streamDraft ?? activeSet}
+            activeScoreboardId={(streamDraft ?? activeSet)?.customScoreboardId}
+            onPatchBroadcast={onPatchBroadcast}
+            onSelect={onCustomScoreboard}
+            onMessage={onMessage}
+          />
+        </Tabs.Panel>
 
-      <Tabs.Panel value="custom-scoreboard" pt="md">
-        <CustomScoreboardPanel
-          activeSet={activeSet}
-          activeScoreboardId={activeSet?.customScoreboardId}
-          onSelect={onCustomScoreboard}
-          onMessage={onMessage}
-        />
-      </Tabs.Panel>
+        <Tabs.Panel value="overlays" pt="md">
+          <OtherOverlaysPanel
+            streamDraft={streamDraft}
+            characterCatalog={streamCharacterCatalog}
+            streamPending={streamPending}
+            onPatchStream={onPatchStream}
+            assetCatalogRevision={assetCatalogRevision}
+            localBaseUrl={localBaseUrl}
+            logos={logos}
+            activeSet={activeSet}
+            profiles={profiles}
+            assetCatalogSlug={assetCatalogSlug}
+            selectedEventId={selectedEventId}
+            selectedEventName={selectedEvent?.name}
+            phases={phases}
+          />
+        </Tabs.Panel>
 
-      <Tabs.Panel value="overlays" pt="md">
-        <OtherOverlaysPanel
-          assetCatalogRevision={assetCatalogRevision}
-          localBaseUrl={localBaseUrl}
-          logos={logos}
-          activeSet={activeSet}
-          profiles={profiles}
-          assetCatalogSlug={assetCatalogSlug}
-          selectedEventId={selectedEventId}
-          selectedEventName={selectedEvent?.name}
-          phases={phases}
-        />
-      </Tabs.Panel>
+        <Tabs.Panel value="stingers" pt="md">
+          <StingersPanel activeSet={activeSet} localBaseUrl={localBaseUrl} />
+        </Tabs.Panel>
 
-      <Tabs.Panel value="top-eight" pt="md">
-        <TopEightGenerator
-          controller={topEight}
-          profiles={profiles}
-          selectedEventId={selectedEventId}
-          moderationRevision={moderationRevision}
-          logos={logos}
-          assetCatalogRevision={assetCatalogRevision}
-          countries={countries}
-        />
-      </Tabs.Panel>
+        <Tabs.Panel value="top-eight" pt="md">
+          <TopEightGenerator
+            gameContextReady={!tournamentLoaded || Boolean(selectedEvent?.videogame)}
+            gameSelector={
+              <GameSelect
+                tournamentLoaded={tournamentLoaded}
+                eventGameName={selectedEvent?.videogame?.name}
+                gameName={topEight.draft.gameName}
+                preparation={topEightPreparation}
+                onChange={(game) => {
+                  const context = standaloneGameContext(game);
+                  setTopEightGameSelection({ videogameId: game.id, assetCatalogSlug: context.assetCatalogSlug });
+                  topEight.setGameContext(context.gameId, context.gameName, context.assetCatalogSlug);
+                }}
+              />
+            }
+            controller={topEight}
+            profiles={profiles}
+            selectedEventId={selectedEventId}
+            moderationRevision={moderationRevision}
+            logos={logos}
+            assetCatalogRevision={assetCatalogRevision}
+            countries={countries}
+          />
+        </Tabs.Panel>
 
-      <Tabs.Panel value="thumbnail" pt="md">
-        <ThumbnailGenerator
-          controller={thumbnail}
-          profiles={profiles}
-          activeSet={activeSet}
-          moderationRevision={moderationRevision}
-          logos={logos}
-          assetCatalogRevision={assetCatalogRevision}
-          countries={countries}
-        />
-      </Tabs.Panel>
-    </Tabs>
+        <Tabs.Panel value="thumbnail" pt="md">
+          <ThumbnailGenerator
+            gameContextReady={!tournamentLoaded || Boolean(selectedEvent?.videogame)}
+            gameSelector={
+              <GameSelect
+                tournamentLoaded={tournamentLoaded}
+                eventGameName={selectedEvent?.videogame?.name}
+                gameName={thumbnail.draft.gameName}
+                preparation={thumbnailPreparation}
+                onChange={(game) => {
+                  const context = standaloneGameContext(game);
+                  setThumbnailGameSelection({ videogameId: game.id, assetCatalogSlug: context.assetCatalogSlug });
+                  thumbnail.setGameContext(context.gameId, context.gameName, context.assetCatalogSlug);
+                }}
+              />
+            }
+            controller={thumbnail}
+            selectedEventId={selectedEventId}
+            profiles={profiles}
+            activeSet={activeSet}
+            moderationRevision={moderationRevision}
+            logos={logos}
+            assetCatalogRevision={assetCatalogRevision}
+            countries={countries}
+          />
+        </Tabs.Panel>
+      </Tabs>
     </>
   );
 }

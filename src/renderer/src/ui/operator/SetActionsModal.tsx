@@ -1,9 +1,9 @@
+import { CharacterSelect } from './CharacterSelect';
 import {
   Alert,
   Button,
   Group,
   Modal,
-  MultiSelect,
   Paper,
   Select,
   SimpleGrid,
@@ -30,7 +30,6 @@ type SetActionsModalProps = {
   quickReadinessReason: string;
   loading: boolean;
   quickScoreLoading: boolean;
-  gameProfileAvailable: boolean;
   characterOptions: readonly string[];
   showSendToStream?: boolean;
   renderCharacterSelect?(props: CharacterSelectRenderProps): ReactNode;
@@ -53,7 +52,6 @@ export function SetActionsModal({
   quickReadinessReason,
   loading,
   quickScoreLoading,
-  gameProfileAvailable,
   characterOptions,
   showSendToStream = true,
   renderCharacterSelect,
@@ -119,7 +117,7 @@ export function SetActionsModal({
                 size="lg"
                 h="auto"
                 py="md"
-                disabled={loading || quickScoreLoading || !gameProfileAvailable}
+                disabled={loading || quickScoreLoading}
                 onClick={() => onSendToStream(target.id)}
               >
                 <Stack gap={4} align="flex-start">
@@ -137,7 +135,7 @@ export function SetActionsModal({
               size="lg"
               h="auto"
               py="md"
-              disabled={!reportingEnabled || quickScoreLoading || !gameProfileAvailable || target.state === '3'}
+              disabled={!reportingEnabled || quickScoreLoading || target.state === '3'}
               loading={quickScoreLoading}
               onClick={onBeginQuickScore}
             >
@@ -215,11 +213,11 @@ export function SetActionsModal({
                     description: t('operator:setActions.characterHelp'),
                     options: [...unavailable, ...characterData],
                     value: selectedCharacters,
-                    maxValues: maxCharactersForGame(quickScore.gameId),
+                    maxValues: maxCharactersForGame(quickScore.assetCatalogSlug ?? quickScore.gameId),
                     disabled: quickScoreLoading,
                     onChange: (characters) => onChangeCharacters(side, characters)
                   }) : (
-                    <MultiSelect
+                    <CharacterSelect
                       searchable
                       clearable
                       label={t('operator:setActions.charactersFor', { player: player.name })}
@@ -227,7 +225,7 @@ export function SetActionsModal({
                       inputWrapperOrder={['label', 'input', 'description', 'error']}
                       data={[...unavailable, ...characterData]}
                       value={selectedCharacters}
-                      maxValues={maxCharactersForGame(quickScore.gameId)}
+                      maxValues={maxCharactersForGame(quickScore.assetCatalogSlug ?? quickScore.gameId)}
                       disabled={quickScoreLoading}
                       onChange={(characters) => onChangeCharacters(side, characters)}
                     />
@@ -237,7 +235,7 @@ export function SetActionsModal({
             })}
           </SimpleGrid>
 
-          <Paper withBorder p="md" w="100%" miw={0} style={{ overflowWrap: 'anywhere' }}>
+          <Paper className="operator-inset" withBorder p="md" w="100%" miw={0} style={{ overflowWrap: 'anywhere' }}>
             <Text size="xs" c="dimmed">{t('operator:setActions.resultCheck')}</Text>
             <Text fw={700}>
               {quickReadiness.ready

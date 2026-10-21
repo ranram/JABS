@@ -16,8 +16,10 @@ const gameIds = [
   "melty-blood-type-lumina",
   "mortal-kombat-1",
   "ultimate-marvel-vs-capcom-3",
+  "super-smash-bros-melee",
   "super-smash-bros-ultimate",
-  "under-night-in-birth-ii-sys-celes"
+  "under-night-in-birth-ii-sys-celes",
+  "rivals-of-aether-ii"
 ];
 const root = process.cwd();
 const rosters = {};

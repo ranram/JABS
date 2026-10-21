@@ -135,6 +135,16 @@
     {
       "name": "Ryu",
       "aliases": []
+    },
+    {
+      "name": "Tifa",
+      "aliases": [
+        "Tifa Lockhart"
+      ]
+    },
+    {
+      "name": "Bosch",
+      "aliases": []
     }
   ]
 }

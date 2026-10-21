@@ -2,11 +2,8 @@ aalio
 aasit
 abortin kannattaja
 abortit
-abortti
 akrotomofilia
 alfred nussi
-ambiseksuaali
-ambiseksuaalisuus
 amboseksuaali
 anaali-
 ass-kusipää
@@ -38,7 +35,6 @@ hevonpaska
 hevonperse
 hevonvittu
 hevonvitunperse
-hidas
 himo
 hinttari
 hitosti
@@ -75,11 +71,9 @@ kilinä
 kives
 kivespussi
 klitoris
-kohtu
 koira-kusipää
 koiranpaska
 kuin esterin perseestä
-kukko
 kukko-tikkari
 kukot
 kulli
@@ -98,7 +92,6 @@ kyrpiä
 kyrpä
 kyrpänaama
 kyrvitys
-kännissä
 lahtari
 laippa
 lutka
@@ -136,7 +129,6 @@ nuole mutsis likaista pillua.
 nuolla persettä
 nuolla pillua puhdistaa
 nupit
-nuppi
 nussi mutsias
 nussia
 nussii
@@ -210,7 +202,6 @@ prostituoitu
 pusku
 pylly
 pyllyvako
-pystyssä
 pääskynen
 raakuus
 raiskaaja
@@ -224,8 +215,6 @@ rinnat
 ripsipiirakka
 ripuli
 risukimppuina
-rohkeus
-rotta
 rumpu
 runkata
 runkkari
@@ -258,7 +247,6 @@ soppi
 suihin
 suklaaosasto
 suksi vittuun
-sukupuoli
 sukurutsainen
 tavara
 tirkistelijä
@@ -306,7 +294,6 @@ voi paska
 voi perkele
 voi turku
 voi vittu
-väsyttää
 vääristellä
 x mitoitettu
 yebo tim

@@ -184,10 +184,7 @@
 
 .startgg-entry-block {
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 11px;
-  background: rgba(0, 0, 0, 0.16);
-  padding: 13px;
+  padding: var(--mantine-spacing-sm);
 }
 
 .startgg-entry-heading {
@@ -278,19 +275,11 @@
 }
 
 .brand-mark {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 2px solid var(--deck-lime);
-  border-radius: 8px 13px 8px 13px;
-  background: var(--deck-lime);
-  box-shadow: 4px 4px 0 rgba(105, 231, 255, 0.55);
-  color: #11120a;
-  font-family: Impact, "Arial Black", sans-serif;
-  font-size: 22px;
-  font-style: italic;
-  transform: rotate(-4deg);
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .operator-shell .eyebrow {

@@ -3,6 +3,7 @@ import { scoreLimitForBestOf } from '@shared/gameProfiles';
 import { recordedCharacterSelections, updateRecordedGameHistory } from '@shared/gameHistory';
 import type { SelectedSetState, SetSummary, StartggSetScope } from '@shared/models';
 import { i18n } from '../../i18n';
+import { displayPhaseName } from '@shared/matchContext';
 
 export function setQuickScoreValue(
   selectedSet: SelectedSetState,
@@ -28,11 +29,11 @@ export function setQuickScoreValue(
 }
 
 export function setPhaseContext(set: SetSummary): string {
-  return [set.phase, set.phaseGroup].filter(Boolean).join(' · ');
+  return [displayPhaseName(set.phase), set.phaseGroup].filter(Boolean).join(' · ');
 }
 
 export function phaseContext(set: SelectedSetState): string {
-  return [set.phase, set.phaseGroup].filter(Boolean).join(' · ');
+  return [displayPhaseName(set.phase), set.phaseGroup].filter(Boolean).join(' · ');
 }
 
 export function setStatusTone(set: SetSummary, activeSetId?: string): 'stream' | 'completed' | 'pending' {
@@ -45,9 +46,8 @@ export function emptyToUndefined(value: string): string | undefined {
 }
 
 export function sortByLabel<T>(items: readonly T[], label: (item: T) => string, locale?: string): T[] {
-  return [...items].sort((left, right) =>
-    label(left).localeCompare(label(right), locale, { numeric: true, sensitivity: 'base' })
-  );
+  const collator = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' });
+  return [...items].sort((left, right) => collator.compare(label(left), label(right)));
 }
 
 export function localizedScopeLabel(scope: StartggSetScope): string {
@@ -88,6 +88,8 @@ export function localizedReadinessReason(readiness: StartggReportReadiness): str
       return i18n.t('operator:readiness.alreadyComplete');
     case 'set-missing':
       return i18n.t('operator:readiness.setMissing');
+    case 'exhibition-local-only':
+      return i18n.t('operator:readiness.exhibitionLocalOnly');
     case 'entrants-missing':
       return i18n.t('operator:readiness.entrantsMissing');
     case 'score-incomplete':

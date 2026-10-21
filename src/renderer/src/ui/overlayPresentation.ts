@@ -20,8 +20,16 @@ export function isVersusOverlayPath(pathname: string): boolean {
   return versusPathPattern.test(pathname);
 }
 
+export function isPlayerStatsOverlayPath(pathname: string): boolean {
+  return /^\/overlay\/active\/stats\/?$/.test(pathname);
+}
+
 export function isTopEightMatchupsOverlayPath(pathname: string): boolean {
   return topEightMatchupsPathPattern.test(pathname);
+}
+
+export function isBracketOverlayPath(pathname: string): boolean {
+  return /^\/overlay\/active\/bracket\/?$/.test(pathname);
 }
 
 export function gameIdFromOverlayPath(pathname: string): GameId | undefined {

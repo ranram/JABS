@@ -1,0 +1,79 @@
+@font-face {
+  font-family: 'JABS Archivo Black';
+  src: url('../../assets/fonts/ArchivoBlack-Regular.ttf') format('truetype');
+  font-display: block;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'JABS Barlow Condensed';
+  src: url('../../assets/fonts/BarlowCondensed-Regular.ttf') format('truetype');
+  font-display: block;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'JABS Barlow Condensed';
+  src: url('../../assets/fonts/BarlowCondensed-Bold.ttf') format('truetype');
+  font-display: block;
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'JABS Inter';
+  src: url('../../assets/fonts/Inter-Variable.ttf') format('truetype');
+  font-display: block;
+  font-style: normal;
+  font-weight: 100 900;
+}
+
+@font-face {
+  font-family: 'JABS Lato';
+  src: url('../../assets/fonts/Lato-Regular.ttf') format('truetype');
+  font-display: block;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'JABS Lato';
+  src: url('../../assets/fonts/Lato-Bold.ttf') format('truetype');
+  font-display: block;
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'JABS Montserrat';
+  src: url('../../assets/fonts/Montserrat-Variable.ttf') format('truetype');
+  font-display: block;
+  font-style: normal;
+  font-weight: 100 900;
+}
+
+@font-face {
+  font-family: 'JABS Oswald';
+  src: url('../../assets/fonts/Oswald-Variable.ttf') format('truetype');
+  font-display: block;
+  font-style: normal;
+  font-weight: 200 700;
+}
+
+@font-face {
+  font-family: 'JABS Oxanium';
+  src: url('../../assets/fonts/Oxanium-Variable.ttf') format('truetype');
+  font-display: block;
+  font-style: normal;
+  font-weight: 200 800;
+}
+
+@font-face {
+  font-family: 'JABS Titan One';
+  src: url('../../assets/fonts/TitanOne-Regular.ttf') format('truetype');
+  font-display: block;
+  font-style: normal;
+  font-weight: 400;
+}

@@ -1,0 +1,102 @@
+.stinger-stage {
+  --stinger-primary: var(--appearance-primary, var(--game-accent, #f7b733));
+  --stinger-secondary: var(--appearance-secondary, var(--broadcast-right, #ff554d));
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  container-type: inline-size;
+}
+.stinger-stage > video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 0;
+}
+.stinger-stage.stinger-video-foreground > video {
+  z-index: 2;
+}
+.stinger-winner {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.stinger-photo,
+.stinger-character,
+.stinger-name {
+  position: absolute;
+  z-index: 1;
+}
+.stinger-photo,
+.stinger-character {
+  object-fit: contain;
+  object-position: center bottom;
+  transform-origin: center bottom;
+}
+.stinger-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  padding: 0.416667cqw 1.25cqw;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--stinger-primary) 30%, #080d17) 0%,
+    color-mix(in srgb, var(--stinger-secondary) 28%, #080d17) 100%
+  );
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font:
+    italic 400 calc(3.75cqw * var(--appearance-text-scale, 1)) / 1.1 'JABS Anton',
+    Impact,
+    sans-serif;
+  color: #fff;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow:
+    0 2px 5px #000,
+    0 0 12px #000;
+  overflow: hidden;
+}
+.stinger-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  font: inherit;
+  overflow: hidden;
+}
+.stinger-name-text {
+  display: block;
+  flex: 0 0 auto;
+  width: max-content;
+  padding-inline: 0.18em;
+}
+.stinger-name-prefix {
+  color: var(--stinger-primary);
+}
+.stinger-guide {
+  position: absolute;
+  z-index: 3;
+  border: 1px dashed #45e8ff;
+  color: #fff;
+  font: 600 1cqw / 1.2 sans-serif;
+  pointer-events: none;
+}
+.stinger-guide > span {
+  background: #12202ee6;
+  padding: 0.3em;
+}
+.stinger-obs {
+  width: 1920px;
+  height: 1080px;
+  background: transparent;
+}

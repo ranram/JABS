@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { commentatorStateSchema } from './commentators';
 import { topEightMatchupsStateSchema } from './topEightMatchups';
+import { setVersusStatRow, versusScreenStateSchema, versusStatTypes } from './versusScreen';
 
 const topEightSettings = {
   stylingGameId: 'street-fighter-6',
@@ -14,32 +14,46 @@ const topEightSettings = {
 };
 
 describe('broadcast composition contracts', () => {
-  it('preserves logo visibility when migrating and saving overlay settings', () => {
-    const common = {
-      stylingGameId: 'street-fighter-6',
-      tournamentName: 'Tournament',
-      logoAssetId: 'logo.png',
-      updatedAt: '2026-09-08T00:00:00Z'
+  it('migrates Versus row settings and rejects duplicate, unknown, or excessive stats', () => {
+    const legacy = {
+      stylingGameId: 'tekken-8',
+      showTournamentLogo: true,
+      showSponsorLogos: true,
+      mediaMode: 'character',
+      updatedAt: '2026-10-15T00:00:00Z'
     };
-    const snapshots = [
-      commentatorStateSchema.parse({
-        ...common,
-        presentation: 'hidden',
-        commentators: [
-          { name: 'One', handle: '' },
-          { name: 'Two', handle: '' }
-        ]
-      }),
-      topEightMatchupsStateSchema.parse({ ...topEightSettings, ...common })
-    ];
-    for (const [index, schema] of [commentatorStateSchema, topEightMatchupsStateSchema].entries()) {
-      expect(snapshots[index]?.showTournamentLogo).toBe(true);
-      const restored = schema.parse(JSON.parse(JSON.stringify({ ...snapshots[index], showTournamentLogo: false })));
-      expect(restored.showTournamentLogo).toBe(false);
-      expect(restored.logoAssetId).toBe('logo.png');
-    }
+    const settings = versusScreenStateSchema.parse(legacy);
+    expect(settings.statRows).toEqual(versusStatTypes);
+    expect(settings.showHeadToHead).toBe(true);
+    expect(settings.showMatchBackdrop).toBe(true);
+    expect(versusScreenStateSchema.parse({ ...legacy, showMatchBackdrop: false }).showMatchBackdrop).toBe(false);
+    for (const statRows of [['age', 'age'], ['unknown'], [...versusStatTypes, 'age']])
+      expect(versusScreenStateSchema.safeParse({ ...legacy, statRows }).success).toBe(false);
+    expect(versusScreenStateSchema.parse({ ...legacy, statRows: [], showHeadToHead: false }).statRows).toEqual([]);
+    expect(setVersusStatRow([...versusStatTypes], 0, 'nickname')).toEqual(['nickname', 'sponsor', 'seed', 'age']);
+    expect(setVersusStatRow([...versusStatTypes], 1)).toEqual(['age', 'seed', 'nickname']);
+    expect(setVersusStatRow(['sponsor'], 1, 'age')).toEqual(['sponsor', 'age']);
+    expect(setVersusStatRow(['age', 'seed'], 3, 'age')).toEqual(['seed', 'age']);
+    const match = {
+      tournamentName: 'Major',
+      eventName: 'Singles',
+      phase: 'Top 8',
+      round: 'Grand Final',
+      playerOneScore: 3,
+      playerTwoScore: 1
+    };
+    const history = {
+      tournamentName: 'Current Major',
+      playerOnePlacements: [],
+      playerTwoPlacements: [],
+      headToHead: Array(4).fill(match)
+    };
+    expect(versusScreenStateSchema.parse({ ...legacy, history }).history?.headToHead).toHaveLength(4);
+    expect(
+      versusScreenStateSchema.safeParse({ ...legacy, history: { ...history, headToHead: Array(5).fill(match) } })
+        .success
+    ).toBe(false);
   });
-
   it('rejects unreadable Top 8 settings and normalizes names before checking limits', () => {
     // These bounds also apply to native saves. Names count UTF-16 units, so each emoji uses two.
     for (const [name, valid] of [

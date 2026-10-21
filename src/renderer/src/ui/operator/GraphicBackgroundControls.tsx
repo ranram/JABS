@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
-import { Button, FileButton, Group, Paper, SimpleGrid, Text } from '@mantine/core';
+import { Button, FileButton, Group, Paper, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import type { GraphicBackground } from '@shared/models';
 import { readGraphicBackground } from './graphicBackground';
+import { DestructiveButton } from '../DestructiveButton';
 
 export function GraphicBackgroundControls({
   value,
@@ -26,7 +27,6 @@ export function GraphicBackgroundControls({
         title: t('notices.actionFailed'),
         message: t('graphicBackground.failed'),
         color: 'red',
-        autoClose: false,
         withCloseButton: true
       });
     } finally {
@@ -36,42 +36,39 @@ export function GraphicBackgroundControls({
   }
 
   return (
-    <Paper mt="md" p="sm" radius="md" withBorder>
+    <Paper className="operator-inset" p="md" radius="md" withBorder>
       <Text fw={700} size="sm">
         {t('graphicBackground.title')}
       </Text>
       <Text c="dimmed" size="xs" mb="sm">
         {t('graphicBackground.hint')}
       </Text>
-      <SimpleGrid type="container" cols={{ base: 1, '38rem': 2 }}>
-        <Group align="flex-end">
-          <FileButton
-            resetRef={resetRef}
-            disabled={loading}
-            onChange={(file) => void chooseImage(file)}
-            accept="image/png,image/jpeg,image/webp"
-          >
-            {(props) => (
-              <Button {...props} loading={loading} variant="default">
-                {t('graphicBackground.choose')}
-              </Button>
-            )}
-          </FileButton>
-          <Button
-            variant="subtle"
-            disabled={!value || loading}
-            onClick={() => {
-              onChange(undefined);
-              resetRef.current?.();
-            }}
-          >
-            {t('graphicBackground.remove')}
-          </Button>
-        </Group>
-        <Text size="sm" c={value ? undefined : 'dimmed'}>
+      <Group gap="xs" align="center">
+        <FileButton
+          resetRef={resetRef}
+          disabled={loading}
+          onChange={(file) => void chooseImage(file)}
+          accept="image/png,image/jpeg,image/webp"
+        >
+          {(props) => (
+            <Button {...props} loading={loading} variant="default">
+              {t('graphicBackground.choose')}
+            </Button>
+          )}
+        </FileButton>
+        <DestructiveButton
+          disabled={!value || loading}
+          onClick={() => {
+            onChange(undefined);
+            resetRef.current?.();
+          }}
+        >
+          {t('graphicBackground.remove')}
+        </DestructiveButton>
+        <Text size="xs" c={value ? undefined : 'dimmed'} flex={1} miw={0} style={{ overflowWrap: 'anywhere' }}>
           {value?.name ?? t('graphicBackground.none')}
         </Text>
-      </SimpleGrid>
+      </Group>
     </Paper>
   );
 }

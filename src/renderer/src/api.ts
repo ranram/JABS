@@ -1,7 +1,16 @@
+import { recordDiagnostic, setOverlayDiagnosticTransport, type DiagnosticEvent } from './diagnostics';
+import { libraryLookupSchema, libraryImportSchema, libraryPlayerSchema, librarySaveSchema, librarySearchSchema, libraryResolveSchema, playerImportPageSchema, type LibraryPlayer, type LibraryIdentity } from '@shared/playerLibrary';
+import { appearancePreferencesSchema, type AppearancePreferences } from '@shared/appearancePreferences';
+import { gameCharacterPreparationSchema, startggVideogamesSchema, type GameCharacterPreparation } from '@shared/startggVideogames';
 import { invalidateCatalogConsumers } from './hooks/useCatalogRevision';
+import { stingerStateSchema, stingerClaimSchema, type StingerSettings, type StingerKind } from '@shared/stingers';
+import { assetCatalogMessageSchema, assetCatalogRevisionSchema } from '@shared/assetCatalog';
+import { bracketScreenStateSchema, type BracketSettings } from '@shared/bracketScreen';
+import { parseRealtimeJson } from './hooks/realtime';
 import { beginPendingWrite } from './pendingWrites';
 import type {
   AppHealth,
+  ExhibitionGameSelection,
   AssetCatalogSummary,
   CountryOption,
   GameCharacterAsset,
@@ -31,6 +40,8 @@ import type { StartggQuickReportInput } from '@shared/startggGateway';
 import { commentatorStateSchema, type CommentatorState } from '@shared/commentators';
 import { resultScreenStateSchema, type ResultScreenState } from '@shared/resultScreen';
 import { versusScreenStateSchema, type VersusScreenState } from '@shared/versusScreen';
+import { playerStatsSchema, type StatsPlayer } from '@shared/playerStats';
+import { playerStatsSettingsSchema, type PlayerStatsSettings } from '@shared/playerStatsSettings';
 import { topEightMatchupsStateSchema, type TopEightMatchupsState } from '@shared/topEightMatchups';
 import { overlayStateSchema } from '@shared/overlayState';
 import {
@@ -41,18 +52,19 @@ import {
 import { gameProfiles as gameProfileCatalog } from '@shared/gameProfiles';
 import { withJsonBodyHeaders } from './requestInit';
 import { BoundedPromiseCache } from './boundedPromiseCache';
+import { trimTransparentPadding } from './trimTransparentPadding';
+import { blobDataUrl } from './blobDataUrl';
 import { decodeResponse, type ResponseDecoder } from './responseDecoder';
 import { i18n } from './i18n';
+import { scoreboardPhotoSettingsSchema, resolvedScoreboardPhotosSchema, type ScoreboardPhotoSettings, type ScoreboardPhotoIdentity } from '@shared/scoreboardPhotos';
 import { localizedStartggError } from './i18n/startggErrors';
+import { localizedNativeError } from './i18n/nativeErrors';
 import {
   clearNativeStartggToken,
   copyOverlayUrl,
   getDesktopApiPort,
   getNativeTokenStatus,
-  isTauriRuntime,
-  reportNativeRendererDiagnostic,
   type LocalHandoffUrl,
-  type RendererDiagnosticEvent,
   setNativeStartggToken
 } from './desktopRuntime';
 
@@ -82,44 +94,65 @@ async function resolveApiBase(): Promise<string> {
 }
 
 const apiBasePromise = resolveApiBase();
+if (window.location.pathname.startsWith('/overlay')) {
+  setOverlayDiagnosticTransport(async (event, context) => {
+    const base = await apiBasePromise;
+    await fetch(`${base}/api/diagnostics/renderer`, withJsonBodyHeaders({
+      method: 'POST', body: JSON.stringify({ event, context })
+    }));
+  });
+}
 const catalogRasterUrls = new BoundedPromiseCache<string>(96);
+const gamePreparationRequests = new Map<string, Promise<GameCharacterPreparation>>();
 const customScoreboardFrameUrls = new BoundedPromiseCache<string>(4);
+let nativeCatalogRevision: number | undefined;
 
-export function invalidateCatalogRasterCache(): void {
-  catalogRasterUrls.clear();
-  customScoreboardFrameUrls.clear();
-  invalidateCatalogConsumers();
+function applyCatalogRevision(revision: number): void {
+  // Several state hooks share this stream. Refresh each page only once per reload.
+  if (nativeCatalogRevision === revision) return;
+  nativeCatalogRevision = revision;
+  invalidateCatalogRasterCache();
 }
 
-async function cachedRasterUrl(cache: BoundedPromiseCache<string>, path: string): Promise<string> {
+export function acceptCatalogMessage(value: unknown): boolean {
+  const message = parseRealtimeJson(value, (payload) => {
+    const result = assetCatalogMessageSchema.safeParse(payload);
+    return result.success ? result.data : undefined;
+  });
+  if (!message) return false;
+  applyCatalogRevision(message.revision);
+  return true;
+}
+
+export function invalidateCatalogRasterCache({ recheckGameFolders = true } = {}): void {
+  catalogRasterUrls.clear();
+  customScoreboardFrameUrls.clear();
+  invalidateCatalogConsumers(recheckGameFolders);
+}
+
+async function cachedRasterUrl(cache: BoundedPromiseCache<string>, path: string, trimPadding = false): Promise<string> {
   return cache.getOrCreate(path, async () => {
     const apiBase = await apiBasePromise;
     const response = await fetch(`${apiBase}${path}`);
     if (!response.ok) {
+      recordDiagnostic('image-failed', { area: 'assets', status: response.status });
       throw new Error(`Local image request failed (${response.status}).`);
     }
     const contentType = response.headers.get('content-type')?.split(';', 1)[0];
     if (!contentType || !['image/png', 'image/jpeg', 'image/webp'].includes(contentType)) {
+      recordDiagnostic('image-failed', { area: 'assets', reason: 'invalid-response' });
       throw new Error('The local image response had an invalid content type.');
     }
-    return blobDataUrl(await response.blob());
+    const source = await blobDataUrl(await response.blob());
+    return trimPadding ? trimTransparentPadding(source) : source;
   });
 }
 
-async function catalogRasterUrl(path: string): Promise<string> {
-  return cachedRasterUrl(catalogRasterUrls, path);
+async function catalogRasterUrl(path: string, trimPadding = false): Promise<string> {
+  return cachedRasterUrl(catalogRasterUrls, path, trimPadding);
 }
 
-window.addEventListener('pagehide', invalidateCatalogRasterCache, { once: true });
-
-function blobDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('The local image could not be prepared for display.'));
-    reader.readAsDataURL(blob);
-  });
-}
+window.addEventListener('pagehide', () => invalidateCatalogRasterCache(), { once: true });
 
 type RequestOptions<T> = {
   retryNetworkFailure?: boolean;
@@ -137,10 +170,8 @@ export class LocalApiError extends Error {
   }
 }
 
-function reportRendererDiagnostic(event: RendererDiagnosticEvent): void {
-  if (isTauriRuntime()) {
-    void reportNativeRendererDiagnostic(event).catch(() => undefined);
-  }
+function reportRendererDiagnostic(event: DiagnosticEvent): void {
+  recordDiagnostic(event, { area: event.startsWith('stream-save:') ? 'stream' : 'app' });
 }
 
 async function request<T>(path: string, init?: RequestInit, options: RequestOptions<T> = {}): Promise<T> {
@@ -207,11 +238,61 @@ export async function websocketUrl(): Promise<string> {
   return url.toString();
 }
 
+// OBS may embed an older browser without AbortSignal.timeout.
+async function stingerRequest(path: string, init?: RequestInit, timeoutMs = 4000) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await request(path, { ...init, signal: controller.signal }, { decoder: stingerStateSchema });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 export const api = {
-  health: () => request<AppHealth>('/api/health'),
+  scoreboardPhotoSettings: () => request('/api/scoreboard-photos', undefined, { decoder: scoreboardPhotoSettingsSchema }),
+  updateScoreboardPhotoSettings: (settings: ScoreboardPhotoSettings) => request('/api/scoreboard-photos', { method: 'PUT', body: JSON.stringify(settings) }, { decoder: scoreboardPhotoSettingsSchema }),
+  resolveScoreboardPhotos: (players: ScoreboardPhotoIdentity[]) => request('/api/scoreboard-photos/resolve', { method: 'POST', body: JSON.stringify({ players }) }, { decoder: resolvedScoreboardPhotosSchema }),
+  playerHeadshotAssetUrl: (id: string) => catalogRasterUrl(`/assets/player-headshots/${encodeURIComponent(id)}`),
+  stingers: () => stingerRequest('/api/broadcast/stingers'),
+  updateStingers: (settings: StingerSettings) => request('/api/broadcast/stingers', { method: 'PUT', body: JSON.stringify(settings) }, { decoder: stingerStateSchema }),
+  importStinger: (kind: StingerKind, file: File) => request(`/api/broadcast/stingers/video/${kind}?name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file }, { decoder: stingerStateSchema }),
+  removeStinger: (kind: StingerKind) => request(`/api/broadcast/stingers/video/${kind}`, { method: 'DELETE' }, { decoder: stingerStateSchema }),
+  playStinger: (kind: StingerKind) => request('/api/broadcast/stingers/play', { method: 'POST', body: JSON.stringify({ kind }) }, { decoder: stingerStateSchema }),
+  stopStinger: () => request('/api/broadcast/stingers/stop', { method: 'POST' }, { decoder: stingerStateSchema }),
+  reconnectStingers: () => stingerRequest('/api/broadcast/stingers/reconnect', { method: 'POST' }),
+  stingerSource: (clientId: string, active: boolean, program: boolean) => stingerRequest('/api/broadcast/stingers/source', { method: 'POST', body: JSON.stringify({ clientId, active, program }) }, 2000),
+  claimStinger: (clientId: string, cueId: string) => request('/api/broadcast/stingers/claim', { method: 'POST', body: JSON.stringify({ clientId, cueId }) }, { decoder: stingerClaimSchema }),
+  finishStinger: (clientId: string, cueId: string, error?: string) => request('/api/broadcast/stingers/finish', { method: 'POST', body: JSON.stringify({ clientId, cueId, error }) }, { decoder: stingerStateSchema }),
+  stingerVideoUrl: async (id: string) => `${await apiBasePromise}/assets/stingers/${encodeURIComponent(id)}`,
+  lookupLibraryPlayer: (reference: string) => request('/api/players/lookup', { method: 'POST', body: JSON.stringify({ reference }) }, { decoder: libraryLookupSchema }),
+  importPlayerLibrary: (players: LibraryPlayer[]) => request('/api/players/import', { method: 'POST', body: JSON.stringify(players) }, { decoder: libraryImportSchema }),
+  searchPlayers: (q = '', offset = 0) => request(`/api/players?q=${encodeURIComponent(q)}&offset=${offset}`, undefined, { decoder: librarySearchSchema }),
+  libraryPlayer: (id: string) => request(`/api/players/${encodeURIComponent(id)}`, undefined, { decoder: libraryPlayerSchema }),
+  saveLibraryPlayer: (player: LibraryPlayer) => request('/api/players', { method: 'POST', body: JSON.stringify(player) }, { decoder: librarySaveSchema }),
+  deleteLibraryPlayer: (player: LibraryPlayer) => request(`/api/players/${player.localId}`, { method: 'DELETE', body: JSON.stringify({ updatedAt: player.updatedAt }) }),
+  resolvePlayers: (players: LibraryIdentity[], gameKey: string) => request('/api/players/resolve', { method: 'POST', body: JSON.stringify({ players, gameKey }) }, { decoder: libraryResolveSchema }),
+  importEventPlayers: (eventId: string, page: number) => request('/api/players/import-event', { method: 'POST', body: JSON.stringify({ eventId, page }) }, { decoder: playerImportPageSchema }),
+  health: async () => {
+    const health = await request<AppHealth>('/api/health');
+    return { ...health, recoveryNotices: health.recoveryNotices.map((notice) => localizedNativeError(notice)) };
+  },
   gameProfiles: (): Promise<{ profiles: GameProfile[] }> =>
     Promise.resolve({ profiles: Object.values(gameProfileCatalog) }),
   logos: () => request<{ logos: LogoAsset[] }>('/api/assets/logos'),
+  playerStats: (player: StatsPlayer) => request(`/api/broadcast/player-stats?player=${player}`, undefined, { decoder: playerStatsSchema }),
+  playerStatsSettings: () => request('/api/broadcast/player-stats/settings', undefined, { decoder: playerStatsSettingsSchema }),
+  updatePlayerStatsSettings: (settings: PlayerStatsSettings) => request('/api/broadcast/player-stats/settings', { method: 'PUT', body: JSON.stringify(settings) }, { decoder: playerStatsSettingsSchema }),
+  statsTournamentLogoAssetUrl: (id: string) => catalogRasterUrl(`/assets/startgg-tournament-logos/${encodeURIComponent(id)}`, true),
+  appearancePreferences: () => request('/api/settings/appearance', undefined, { decoder: appearancePreferencesSchema }),
+  updateAppearancePreferences: (settings: AppearancePreferences) => request('/api/settings/appearance', { method: 'PUT', body: JSON.stringify(settings) }, { decoder: appearancePreferencesSchema }),
+  bracketScreenState: () => request('/api/broadcast/bracket-screen', undefined, { decoder: bracketScreenStateSchema }),
+  updateBracketScreenSettings: (settings: BracketSettings) => request('/api/broadcast/bracket-screen', { method: 'PUT', body: JSON.stringify(settings) }, { decoder: bracketScreenStateSchema }),
+  refreshBracketScreen: () => request('/api/broadcast/bracket-screen/refresh', { method: 'POST' }, { decoder: bracketScreenStateSchema }),
+  reloadAssets: async () => {
+    const result = await request('/api/assets/reload', { method: 'POST' }, { decoder: assetCatalogRevisionSchema });
+    applyCatalogRevision(result.revision);
+  },
   commentatorState: () => request<CommentatorState>(
     '/api/broadcast/commentators', undefined, { decoder: commentatorStateSchema }
   ),
@@ -248,7 +329,7 @@ export const api = {
     method: 'POST'
   }, { decoder: versusScreenStateSchema }),
   logoAssetUrl: (assetId: string) =>
-    catalogRasterUrl(`/assets/tournament-logos/${encodeURIComponent(assetId)}`),
+    catalogRasterUrl(`/assets/tournament-logos/${encodeURIComponent(assetId)}`, true),
   assetCatalogSummary: (gameId: string) =>
     request<AssetCatalogSummary>(
       `/api/assets/catalog-summary?gameId=${encodeURIComponent(gameId)}`
@@ -263,7 +344,7 @@ export const api = {
       body: JSON.stringify({ identities, ...context })
     }),
   sponsorLogoAssetUrl: (assetId: string) =>
-    catalogRasterUrl(`/assets/sponsor-logos/${encodeURIComponent(assetId)}`),
+    catalogRasterUrl(`/assets/sponsor-logos/${encodeURIComponent(assetId)}`, true),
   playerPhotoAssetUrl: (assetId: string) =>
     catalogRasterUrl(`/assets/player-photos/${encodeURIComponent(assetId)}`),
   gameCharacterAssets: (gameId: string) =>
@@ -311,22 +392,45 @@ export const api = {
     const apiBase = await apiBasePromise;
     await copyOverlayUrl(apiBase, kind);
   },
+  prepareGameCharacters: (assetCatalogSlug: string, videogameId?: string) => {
+    const key = JSON.stringify([assetCatalogSlug, videogameId]);
+    const existing = gamePreparationRequests.get(key);
+    if (existing) return existing;
+    // Share concurrent setup across panels, but check the files again on later visits.
+    const pending = request(
+      '/api/assets/game-characters/prepare',
+      { method: 'POST', body: JSON.stringify({ gameId: assetCatalogSlug, videogameId }) },
+      { decoder: gameCharacterPreparationSchema }
+    ).then((result) => {
+      if (result.created > 0) invalidateCatalogRasterCache({ recheckGameFolders: false });
+      return result;
+    }).finally(() => {
+      if (gamePreparationRequests.get(key) === pending) gamePreparationRequests.delete(key);
+    });
+    gamePreparationRequests.set(key, pending);
+    return pending;
+  },
+  videogames: () => request('/api/startgg/videogames', undefined, { decoder: startggVideogamesSchema }),
   recentTournaments: () =>
     request<{ tournaments: RecentTournament[] }>('/api/startgg/recent-tournaments'),
-  clearStartggCache: () =>
-    request<{ cleared: true }>('/api/startgg/cache', { method: 'DELETE' }),
+  clearStartggCache: async () => {
+    const result = await request<{ cleared: true }>('/api/startgg/cache', { method: 'DELETE' });
+    gamePreparationRequests.clear();
+    invalidateCatalogRasterCache();
+    return result;
+  },
   events: (tournamentSlug: string) =>
     request<StartggEventsResult>(`/api/startgg/events?tournamentSlug=${encodeURIComponent(tournamentSlug)}`),
   eventStandings: (eventId: string) => {
     const query = new URLSearchParams({ eventId });
     return request<StartggEventStandingsResult>(
-      `/api/startgg/event-standings?${query.toString()}`
+      `/api/startgg/event-standings?${query.toString()}`, { method: 'POST' }
     );
   },
   eventStandingsBySlug: (eventSlug: string) => {
     const query = new URLSearchParams({ eventSlug });
     return request<StartggEventStandingsResult>(
-      `/api/startgg/event-standings?${query.toString()}`
+      `/api/startgg/event-standings?${query.toString()}`, { method: 'POST' }
     );
   },
   streamQueue: (tournamentSlug: string) =>
@@ -406,6 +510,11 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(selectedSet)
     }, { retryNetworkFailure: true, decoder: overlayStateSchema }),
+  selectExhibitionGame: (selection: ExhibitionGameSelection) => request<OverlayState>(
+    '/api/state/exhibition-game',
+    { method: 'POST', body: JSON.stringify(selection) },
+    { decoder: overlayStateSchema }
+  ),
   clearSelectedSet: () =>
     request<OverlayState>('/api/state/selected-set', {
       method: 'DELETE'

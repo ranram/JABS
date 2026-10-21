@@ -1,12 +1,11 @@
-import { useTournamentLogo } from '../../hooks/useTournamentLogo';
+import { useLogoAssetUrl } from '../../hooks/useLogoAssetUrl';
 import { useEffect, useRef, useState } from 'react';
 import type { MediaLayerKind, MediaTransform } from '@shared/mediaPlacement';
 import type { SelectedSetState } from '@shared/models';
-import type { VersusScreenState } from '@shared/versusScreen';
-import {
-  VersusPresentation,
-  useVersusMedia
-} from '../VersusOverlay';
+import { versusPresentationMode, type VersusScreenState } from '@shared/versusScreen';
+import { VersusPresentation } from '../VersusOverlay';
+import { useVersusMedia } from '../useVersusMedia';
+import './versusPreview.css';
 
 type VersusPreviewProps = {
   activeSet: SelectedSetState;
@@ -25,8 +24,10 @@ export function VersusPreview({
 }: VersusPreviewProps) {
   const shellRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
-  const media = useVersusMedia(activeSet);
-  const logoUrl = useTournamentLogo(activeSet?.broadcast?.logoAssetId, settings.showTournamentLogo);
+  const { media } = useVersusMedia(activeSet);
+  const mode = versusPresentationMode(activeSet);
+  const logoAssetId = settings.logoAssetId ?? activeSet.broadcast?.logoAssetId;
+  const logoUrl = useLogoAssetUrl(mode !== 'waiting' && settings.showTournamentLogo ? logoAssetId : undefined);
 
   useEffect(() => {
     const shell = shellRef.current;

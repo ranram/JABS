@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { isCharacterForGame, matchCharacterName } from '@shared/characterRosters';
+import { mergeSavedPlayerDefaults, useSavedPlayerDefaults } from '../players/useSavedPlayerDefaults';
+import { useEffect, useState } from 'react';
+import { matchCharacterName } from '@shared/characterRosters';
 import { gameProfiles, type GameId } from '@shared/gameProfiles';
 import type { StartggEventStandingsResult } from '@shared/models';
 import {
@@ -16,12 +17,14 @@ import {
   type TopEightMediaMode,
   type TopEightStyleId
 } from '@shared/topEight';
-import { characterTeamSelection, playerCharacters } from '@shared/characterTeams';
+import { generatorCharacterSelection } from './generatorGameContext';
 
 export type TopEightDraftController = {
   draft: TopEightDraft;
   mediaPlacements: PlayerMediaPlacement[];
-  setGameContext(gameId: GameId | undefined, gameName: string | undefined): void;
+  selectedLayer?: { entrant: number; layer: MediaLayerKind };
+  setSelectedLayer(value: { entrant: number; layer: MediaLayerKind } | undefined): void;
+  setGameContext(gameId: GameId | undefined, gameName: string | undefined, assetCatalogSlug?: string): void;
   setStyling(stylingGameId: GameId): void;
   setAssetCatalogSlug(assetCatalogSlug: string): void;
   setStyle(style: TopEightStyleId): void;
@@ -41,21 +44,44 @@ export type TopEightDraftController = {
 
 export function useTopEightDraft(initialGameId?: GameId): TopEightDraftController {
   const [draft, setDraft] = useState(() => createTopEightDraft(initialGameId));
+  useSavedPlayerDefaults(
+    draft.entrants,
+    draft.assetCatalogSlug,
+    (original, saved) => {
+      setDraft((current) => ({
+        ...current,
+        entrants: current.entrants.map((entrant, index) =>
+          mergeSavedPlayerDefaults(entrant, original[index], saved[index])
+        )
+      }));
+    },
+    draft.eventUrl
+  );
+  const [selectedLayer, setSelectedLayer] = useState<{ entrant: number; layer: MediaLayerKind }>();
+  useEffect(
+    () => setSelectedLayer(undefined),
+    [draft.gameId, draft.stylingGameId, draft.style, draft.mediaMode, ...draft.entrants.map((player) => player.name)]
+  );
   const [mediaPlacements, setMediaPlacements] = useState<PlayerMediaPlacement[]>(createMediaPlacements);
   return {
     draft,
     mediaPlacements,
-    setGameContext(gameId, gameName) {
+    selectedLayer,
+    setSelectedLayer,
+    setGameContext(gameId, gameName, assetCatalogSlug) {
       setDraft((current) => ({
         ...current,
         gameId,
+        assetCatalogSlug: assetCatalogSlug ?? current.assetCatalogSlug,
         gameName: gameName?.trim() || (gameId ? gameProfiles[gameId].label : current.gameName),
-        entrants: current.entrants.map((entrant) => {
-          const characters = playerCharacters(entrant).filter(
-            (character) => gameId && isCharacterForGame(gameId, character)
-          );
-          return { ...entrant, ...characterTeamSelection(characters) };
-        })
+        entrants: current.entrants.map((entrant) => ({
+          ...entrant,
+          ...generatorCharacterSelection(
+            entrant,
+            current.assetCatalogSlug,
+            assetCatalogSlug ?? current.assetCatalogSlug
+          )
+        }))
       }));
       setMediaPlacements(createMediaPlacements());
     },
@@ -73,20 +99,26 @@ export function useTopEightDraft(initialGameId?: GameId): TopEightDraftControlle
     setEntrant(index, patch) {
       setDraft((current) => ({
         ...current,
-        entrants: current.entrants.map((entrant, entrantIndex) => (
+        entrants: current.entrants.map((entrant, entrantIndex) =>
           entrantIndex === index ? { ...entrant, ...patch } : entrant
-        ))
+        )
       }));
     },
     setMediaTransform(index, layer, transform) {
-      setMediaPlacements((current) => current.map((placement, placementIndex) => placementIndex === index
-        ? { ...placement, [layer]: clampMediaTransform(transform) }
-        : placement));
+      if (draft.mediaMode !== 'combined' && layer !== (draft.mediaMode === 'photo' ? 'photo' : 'character')) return;
+      setMediaPlacements((current) =>
+        current.map((placement, placementIndex) =>
+          placementIndex === index ? { ...placement, [layer]: clampMediaTransform(transform) } : placement
+        )
+      );
     },
     resetMediaTransform(index, layer) {
-      setMediaPlacements((current) => current.map((placement, placementIndex) => placementIndex === index
-        ? { ...placement, [layer]: defaultPlayerMediaPlacement()[layer] }
-        : placement));
+      if (draft.mediaMode !== 'combined' && layer !== (draft.mediaMode === 'photo' ? 'photo' : 'character')) return;
+      setMediaPlacements((current) =>
+        current.map((placement, placementIndex) =>
+          placementIndex === index ? { ...placement, [layer]: defaultPlayerMediaPlacement()[layer] } : placement
+        )
+      );
     },
     useFinalStandings(result) {
       setDraft((current) => ({
@@ -95,20 +127,21 @@ export function useTopEightDraft(initialGameId?: GameId): TopEightDraftControlle
         eventUrl: result.eventUrl,
         participantCount: result.numEntrants,
         entrants: result.standings.map((standing) => {
-          const existing = current.entrants.find((entrant) => entrant.name === standing.name);
-          const importedCharacter = current.gameId
-            ? matchCharacterName(current.gameId, standing.character)
-            : undefined;
+          const existing = current.entrants.find(
+            (entrant) => Boolean(standing.playerId) && entrant.playerId === standing.playerId
+          );
+          const importedCharacter = current.gameId ? matchCharacterName(current.gameId, standing.character) : undefined;
+          const characterChanged = Boolean(importedCharacter && importedCharacter !== existing?.character);
           return {
+            playerId: standing.playerId ?? undefined,
+            localPlayerId: existing?.localPlayerId,
+            playerPhotoAssetId: existing?.playerPhotoAssetId,
+            portraitAssetId: characterChanged ? undefined : existing?.portraitAssetId,
             placement: standing.placement,
             name: standing.name,
             character: importedCharacter ?? existing?.character,
-            characters: importedCharacter
-              ? [importedCharacter]
-              : existing?.characters,
-            characterAssetId: importedCharacter === existing?.character
-              ? existing?.characterAssetId
-              : undefined,
+            characters: importedCharacter ? [importedCharacter] : existing?.characters,
+            characterAssetId: characterChanged ? undefined : existing?.characterAssetId,
             sponsor: standing.prefix ?? existing?.sponsor,
             xHandle: standing.xHandle ?? existing?.xHandle,
             country: standing.country ?? existing?.country,

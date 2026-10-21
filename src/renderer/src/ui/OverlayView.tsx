@@ -1,48 +1,46 @@
-import { useTournamentLogo } from '../hooks/useTournamentLogo';
-import { useEffect, useState, type ComponentType, type CSSProperties } from 'react';
+import { useAppearance, useAppearanceStyle } from './appearance/AppearanceProvider';
+import { DisplayText } from './DisplayText';
+import { BracketScreen } from './BracketScreen';
+import { isBracketOverlayPath } from './overlayPresentation';
+import { useScoreboardTextFit } from './useScoreboardTextFit';
+import type { ComponentType, CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  resolveGameProfile,
-  type GameProfile,
-  type OverlayTemplateId
-} from '@shared/gameProfiles';
+import { resolveGameProfile, type GameProfile, type OverlayTemplateId } from '@shared/gameProfiles';
 import type { PlayerState, SelectedSetState } from '@shared/models';
 import { useOverlayState } from '../hooks/useOverlayState';
 import { useCommentatorState } from '../hooks/useCommentatorState';
 import { useBroadcastLogo } from '../hooks/useBroadcastLogo';
-import { useResultScreenState } from '../hooks/useResultScreenState';
-import type { ResultScreenState } from '@shared/resultScreen';
-import { announcementSurfaceFromOverlayPath, isCommentatorOverlayPath, isTopEightMatchupsOverlayPath, isVersusOverlayPath, resolveOverlayPresentation } from './overlayPresentation';
+import {
+  announcementSurfaceFromOverlayPath,
+  isCommentatorOverlayPath,
+  isTopEightMatchupsOverlayPath,
+  isVersusOverlayPath,
+  resolveOverlayPresentation
+} from './overlayPresentation';
 import { VersusOverlay } from './VersusOverlay';
+import { PlayerStatsOverlay } from './playerStats/PlayerStatsOverlay';
+import { isPlayerStatsOverlayPath } from './overlayPresentation';
 import { TopEightMatchupsOverlay } from './TopEightMatchupsOverlay';
-import { announcementPresentation } from './announcementPresentation';
-import { displayFlagLabel, displayFlagUrl } from './overlayPlayerPresentation';
-import { api } from '../api';
+import { displayFlagLabel, displayFlagUrl, sponsorLine } from './overlayPlayerPresentation';
+import { ScoreboardPlayerName } from './ScoreboardPlayerName';
 import { useLogoAssetUrl } from '../hooks/useLogoAssetUrl';
-import { useCatalogRevision } from '../hooks/useCatalogRevision';
-import { playerCharacters, playerPortraitCharacters } from '@shared/characterTeams';
-import { selectedCharacterAssetId } from '@shared/characterAssets';
-import { loadCharacterPortraits, type CharacterPortrait } from '../characterPortraits';
-import { CharacterPortraitStrip } from './CharacterPortraitStrip';
 import { BroadcastLayer, MatchChip } from './ScoreOverlayContext';
 import { CustomScoreboardCanvas } from './CustomScoreboardCanvas';
 import { useCustomScoreboard } from '../hooks/useCustomScoreboard';
 import './commentatorOverlay.css';
 import './operator/generatorFonts.css';
+import { useOverlayEntrance } from './useOverlayEntrance';
+import { scoreboardEntrance } from './scoreboardEntrance';
+import { AnnouncementOverlay } from './AnnouncementOverlay';
+import { CatalogImage } from './CatalogImage';
+import { StingersOverlay } from './stingers/StingersOverlay';
+import { ScoreboardPlayerPhotos } from './scoreboardPhotos/ScoreboardPlayerPhotos';
+import { bundledFonts } from './fonts/bundledFonts';
+import './fonts/scoreboardFontOverride.css';
 
 type OverlayTemplateProps = {
   profile: GameProfile;
   selectedSet: SelectedSetState;
-};
-
-type PlayerMediaUrls = {
-  sponsorLogoUrl?: string;
-  playerPhotoUrl?: string;
-};
-
-type OverlayMediaUrls = {
-  playerOne: PlayerMediaUrls;
-  playerTwo: PlayerMediaUrls;
 };
 
 const overlayTemplates: Record<OverlayTemplateId, ComponentType<OverlayTemplateProps>> = {
@@ -64,17 +62,28 @@ const overlayTemplates: Record<OverlayTemplateId, ComponentType<OverlayTemplateP
 };
 
 export function OverlayView() {
+  if (window.location.pathname === '/overlay/stingers') return <StingersOverlay />;
+  if (isBracketOverlayPath(window.location.pathname)) return <BracketScreen />;
   if (isCommentatorOverlayPath(window.location.pathname)) return <CommentatorOverlay />;
   if (isVersusOverlayPath(window.location.pathname)) return <VersusOverlay />;
+  if (isPlayerStatsOverlayPath(window.location.pathname)) return <PlayerStatsOverlay />;
   if (isTopEightMatchupsOverlayPath(window.location.pathname)) return <TopEightMatchupsOverlay />;
   return <MatchOverlayView />;
 }
 
 function MatchOverlayView() {
+  const appearanceStyle = useAppearanceStyle();
+  const {
+    state: { scoreboardFont }
+  } = useAppearance();
   const { t } = useTranslation(['overlay', 'common']);
   const { state, error } = useOverlayState();
   const selectedSet = state?.selectedSet;
   const announcementSurface = announcementSurfaceFromOverlayPath(window.location.pathname);
+  const entranceRef = useOverlayEntrance(
+    scoreboardEntrance,
+    Boolean(selectedSet && !announcementSurface && !selectedSet.customScoreboardId)
+  );
   const presentation = resolveOverlayPresentation(
     announcementSurface ? '/overlay/active/main' : window.location.pathname,
     selectedSet?.stylingGameId ?? selectedSet?.gameId
@@ -92,11 +101,7 @@ function MatchOverlayView() {
   const profile = resolveGameProfile(presentation.gameId);
   const Template = overlayTemplates[presentation.template];
   const logoUrl = useLogoAssetUrl(selectedSet?.broadcast?.logoAssetId);
-  const customScoreboard = useCustomScoreboard(
-    selectedSet?.customScoreboardId,
-    selectedSet?.customScoreboardRevision
-  );
-  const playerMedia = usePlayerMediaUrls(selectedSet, Boolean(announcementSurface));
+  const customScoreboard = useCustomScoreboard(selectedSet?.customScoreboardId, selectedSet?.customScoreboardRevision);
 
   if (!selectedSet) {
     return (
@@ -111,7 +116,6 @@ function MatchOverlayView() {
       <AnnouncementOverlay
         profile={profile}
         selectedSet={selectedSet}
-        playerMedia={playerMedia}
         reconnecting={Boolean(error)}
       />
     );
@@ -121,6 +125,7 @@ function MatchOverlayView() {
     return (
       <main className="overlay" data-custom-scoreboard-id={customScoreboard.scoreboard.id}>
         <CustomScoreboardCanvas
+          animateEntrance
           scoreboard={customScoreboard.scoreboard}
           frameUrl={customScoreboard.frameUrl}
           selectedSet={selectedSet}
@@ -137,10 +142,19 @@ function MatchOverlayView() {
 
   return (
     <main
+      ref={entranceRef}
       className={`overlay ${profile.overlay.themeClass}`}
+      style={
+        {
+          ...appearanceStyle,
+          ...(scoreboardFont ? { '--scoreboard-font-family': bundledFonts[scoreboardFont].family } : {})
+        } as CSSProperties
+      }
+      data-scoreboard-font={scoreboardFont}
       data-game-id={profile.id}
       data-overlay-template={profile.overlay.template}
     >
+      <ScoreboardPlayerPhotos selectedSet={selectedSet} stylingGameId={profile.id} logoUrl={logoUrl} />
       <Template profile={profile} selectedSet={selectedSet} />
       <BroadcastLayer profile={profile} selectedSet={selectedSet} logoUrl={logoUrl} />
       {error && (
@@ -153,13 +167,14 @@ function MatchOverlayView() {
 }
 
 function CommentatorOverlay() {
+  const appearanceStyle = useAppearanceStyle();
   const { state, error } = useCommentatorState();
   const logoAssetId = useBroadcastLogo(state?.logoAssetId, state?.showTournamentLogo ?? true);
   const logoUrl = useLogoAssetUrl(logoAssetId);
   if (!state || state.presentation === 'hidden') return <main className="overlay commentator-overlay" />;
   const stylingProfile = resolveGameProfile(state.stylingGameId);
   return (
-    <main className={`overlay commentator-overlay ${stylingProfile.overlay.themeClass}`}>
+    <main className={`overlay commentator-overlay ${stylingProfile.overlay.themeClass}`} style={appearanceStyle}>
       <section
         key={state.updatedAt}
         className={`commentator-lower-third is-${state.presentation}`}
@@ -168,235 +183,33 @@ function CommentatorOverlay() {
         <CommentatorIdentity side="left" {...state.commentators[0]} />
         <div className="commentator-event-mark">
           {state.showTournamentLogo && logoUrl && <CatalogImage className="commentator-event-logo" src={logoUrl} />}
-          <span>{state.tournamentName}</span>
+          <span>
+            <DisplayText text={state.tournamentName} />
+          </span>
         </div>
         <CommentatorIdentity side="right" {...state.commentators[1]} />
       </section>
-      {error && <div className="overlay-connection-status" role="status">{error}</div>}
+      {error && (
+        <div className="overlay-connection-status" role="status">
+          {error}
+        </div>
+      )}
     </main>
   );
 }
 
-function CommentatorIdentity({
-  side,
-  name,
-  handle
-}: {
-  side: 'left' | 'right';
-  name: string;
-  handle: string;
-}) {
+function CommentatorIdentity({ side, name, handle }: { side: 'left' | 'right'; name: string; handle: string }) {
   return (
     <div className={`commentator-identity commentator-identity-${side}`}>
-      <strong>{name}</strong>
-      {handle && <span>{handle}</span>}
-    </div>
-  );
-}
-
-function AnnouncementOverlay({
-  profile,
-  selectedSet,
-  playerMedia,
-  reconnecting
-}: OverlayTemplateProps & {
-  playerMedia: OverlayMediaUrls;
-  reconnecting: boolean;
-}) {
-  const { t } = useTranslation(['overlay', 'common']);
-  const presentation = announcementPresentation(selectedSet);
-  const winner = presentation?.winner;
-  const winnerMedia = winner === selectedSet.playerOne ? playerMedia.playerOne : playerMedia.playerTwo;
-  const winnerCharacters = winner ? playerCharacters(winner) : [];
-  const { state: savedSettings } = useResultScreenState();
-  const settings = savedSettings ?? defaultResultScreenSettings;
-  const stylingProfile = resolveGameProfile(savedSettings?.stylingGameId ?? profile.id);
-  const characterMedia = useAnnouncementCharacterMedia(
-    selectedSet.assetCatalogSlug ?? selectedSet.gameId,
-    settings.showCharacter ? winnerCharacters[0] : undefined,
-    settings.showCharacter ? winner?.characterAssetId : undefined,
-    settings.showCharacter && winner ? playerPortraitCharacters(winner) : []
-  );
-  const { characterUrl, characterPortraits } = characterMedia;
-  const photoUrl = settings.showPlayerPhoto ? winnerMedia.playerPhotoUrl : undefined;
-  const sponsorLogoUrl = settings.showSponsorLogo ? winnerMedia.sponsorLogoUrl : undefined;
-  const resultLogoUrl = useTournamentLogo(
-    selectedSet.broadcast?.logoAssetId,
-    settings.showTournamentLogo
-  );
-  if (!savedSettings) return <main className="overlay" />;
-  const mediaClass = [
-    photoUrl && 'has-photo',
-    characterUrl && 'has-character',
-    sponsorLogoUrl && 'has-sponsor'
-  ].filter(Boolean).join(' ');
-
-  return (
-    <main
-      className={`overlay overlay-announcement overlay-announcement-${presentation?.kind ?? 'winner'} ${stylingProfile.overlay.themeClass}${settings.showBackground ? '' : ' is-transparent-background'}`}
-      data-game-id={profile.id}
-      data-announcement-surface="result"
-      data-announcement-kind={presentation?.kind}
-    >
-      {winner && (
-        <section className="announcement-composition">
-          <div className={`announcement-subject ${mediaClass}`} aria-hidden="true">
-            {sponsorLogoUrl && (
-              <CatalogImage
-                className="announcement-sponsor-watermark"
-                src={sponsorLogoUrl}
-              />
-            )}
-            <span className="announcement-subject-placeholder">{winner.name.slice(0, 1)}</span>
-            {characterUrl && (
-              <CatalogImage
-                className="announcement-character-art"
-                src={characterUrl}
-              />
-            )}
-            {photoUrl && (
-              <CatalogImage
-                className="announcement-player-photo"
-                src={photoUrl}
-              />
-            )}
-            <CharacterPortraitStrip
-              portraits={characterPortraits}
-              className="announcement-character-portraits"
-              side="right"
-            />
-          </div>
-          <div className="announcement-copy">
-            <span className="announcement-kicker">
-              {presentation?.kind === 'champion' ? t('championAnnouncement') : t('winnerAnnouncement')}
-            </span>
-            <strong>{winner.name}</strong>
-            {settings.showCharacter && !characterMedia.hasCatalogMedia && winnerCharacters.length > 0 && (
-              <span className="announcement-character">{winnerCharacters.join(' / ')}</span>
-            )}
-            <small>{[selectedSet.phase?.trim(), selectedSet.round?.trim()].filter(Boolean).join(' · ')}</small>
-          </div>
-          {resultLogoUrl && <CatalogImage className="announcement-tournament-logo" src={resultLogoUrl} />}
-        </section>
+      <strong>
+        <DisplayText text={name} />
+      </strong>
+      {handle && (
+        <span>
+          <DisplayText text={handle} />
+        </span>
       )}
-      {reconnecting && <div className="overlay-connection-status" role="status">{t('common:status.reconnecting')}</div>}
-    </main>
-  );
-}
-
-const defaultResultScreenSettings: ResultScreenState = {
-  stylingGameId: 'street-fighter-6',
-  showBackground: true,
-  showTournamentLogo: true,
-  showPlayerPhoto: true,
-  showSponsorLogo: true,
-  showCharacter: true,
-  updatedAt: '1970-01-01T00:00:00.000Z'
-};
-function useAnnouncementCharacterMedia(
-  gameId: string,
-  leadCharacter: string | undefined,
-  characterAssetId: string | undefined,
-  portraitCharacters: string[]
-): {
-  characterUrl?: string;
-  characterPortraits: CharacterPortrait[];
-  hasCatalogMedia: boolean;
-} {
-  const [media, setMedia] = useState<{
-    characterUrl?: string;
-    characterPortraits: CharacterPortrait[];
-    hasCatalogMedia: boolean;
-  }>({ characterPortraits: [], hasCatalogMedia: false });
-  const revision = useCatalogRevision();
-  const portraitKey = portraitCharacters.join('\u0000');
-  useEffect(() => {
-    let active = true;
-    if (!leadCharacter && !portraitKey) {
-      setMedia({ characterPortraits: [], hasCatalogMedia: false });
-      return () => { active = false; };
-    }
-    void api.gameCharacterAssets(gameId)
-      .then(async ({ assets }) => {
-        const selectedAssetId = selectedCharacterAssetId({
-          character: leadCharacter,
-          characterAssetId
-        }, assets);
-        const hasCatalogMedia = assets.some((asset) => Boolean(asset.assetId || asset.portraitAssetId));
-        const selectedPortraits = portraitKey ? portraitKey.split('\u0000') : [];
-        const [characterUrl, characterPortraits] = await Promise.all([
-          selectedAssetId ? api.gameCharacterAssetUrl(gameId, selectedAssetId) : undefined,
-          loadCharacterPortraits(gameId, selectedPortraits, assets)
-        ]);
-        if (active) setMedia({ characterUrl, characterPortraits, hasCatalogMedia });
-      })
-      .catch(() => {
-        if (active) setMedia({ characterPortraits: [], hasCatalogMedia: false });
-      });
-    return () => { active = false; };
-  }, [characterAssetId, gameId, leadCharacter, portraitKey, revision]);
-  return media;
-}
-
-function usePlayerMediaUrls(
-  selectedSet: SelectedSetState | undefined,
-  enabled: boolean
-): OverlayMediaUrls {
-  const revision = useCatalogRevision();
-  const [media, setMedia] = useState<OverlayMediaUrls>({ playerOne: {}, playerTwo: {} });
-  useEffect(() => {
-    let active = true;
-    if (!selectedSet || !enabled) {
-      setMedia({ playerOne: {}, playerTwo: {} });
-      return () => {
-        active = false;
-      };
-    }
-
-    void api.playerMedia()
-      .then(async (matches) => {
-        const resolvePlayerMedia = async (match: typeof matches.playerOne): Promise<PlayerMediaUrls> => {
-          const [sponsorLogoUrl, playerPhotoUrl] = await Promise.all([
-            match.sponsorLogoAssetId ? api.sponsorLogoAssetUrl(match.sponsorLogoAssetId) : undefined,
-            match.playerPhotoAssetId ? api.playerPhotoAssetUrl(match.playerPhotoAssetId) : undefined
-          ]);
-          return { sponsorLogoUrl, playerPhotoUrl };
-        };
-        const [playerOne, playerTwo] = await Promise.all([
-          resolvePlayerMedia(matches.playerOne),
-          resolvePlayerMedia(matches.playerTwo)
-        ]);
-        if (active) setMedia({ playerOne, playerTwo });
-      })
-      .catch(() => {
-        if (active) setMedia({ playerOne: {}, playerTwo: {} });
-      });
-    return () => {
-      active = false;
-    };
-  }, [
-    enabled,
-    revision,
-    selectedSet?.playerOne.name,
-    selectedSet?.playerOne.prefix,
-    selectedSet?.playerOne.sponsor,
-    selectedSet?.playerTwo.name,
-    selectedSet?.playerTwo.prefix,
-    selectedSet?.playerTwo.sponsor
-  ]);
-  return media;
-}
-
-function CatalogImage({ src, className }: { src: string; className?: string }) {
-  return (
-    <img
-      className={[className, 'is-loaded'].filter(Boolean).join(' ')}
-      src={src}
-      alt=""
-      aria-hidden="true"
-      onLoad={(event) => { event.currentTarget.style.removeProperty('display'); }}
-      onError={(event) => { event.currentTarget.style.display = 'none'; }}
-    />
+    </div>
   );
 }
 
@@ -410,10 +223,13 @@ const frameClasses: Partial<Record<OverlayTemplateId, string>> = {
 
 function TopHudOverlay({ profile, selectedSet }: OverlayTemplateProps) {
   return (
-    <section className={`overlay-frame top-hud-frame ${frameClasses[profile.overlay.template]}`} style={topHudStyle(profile)}>
-      <PlayerPlate player={selectedSet.playerOne} side="left" />
+    <section
+      className={`overlay-frame top-hud-frame ${frameClasses[profile.overlay.template]}`}
+      style={topHudStyle(profile)}
+    >
+      <PlayerPlate player={selectedSet.playerOne} side="left" profile={profile} />
       <MatchChip profile={profile} selectedSet={selectedSet} />
-      <PlayerPlate player={selectedSet.playerTwo} side="right" />
+      <PlayerPlate player={selectedSet.playerTwo} side="right" profile={profile} />
     </section>
   );
 }
@@ -424,13 +240,13 @@ function TournamentRibbonOverlay({ profile, selectedSet }: OverlayTemplateProps)
       className={`overlay-frame top-hud-frame tournament-ribbon-frame ${profile.overlay.template}-frame`}
       style={topHudStyle(profile)}
     >
-      <PlayerPlate player={selectedSet.playerOne} side="left" />
+      <PlayerPlate player={selectedSet.playerOne} side="left" profile={profile} />
       {profile.overlay.showMatchChip === false ? (
         <div className="overlay-hud-clear" aria-hidden="true" />
       ) : (
         <MatchChip profile={profile} selectedSet={selectedSet} />
       )}
-      <PlayerPlate player={selectedSet.playerTwo} side="right" />
+      <PlayerPlate player={selectedSet.playerTwo} side="right" profile={profile} />
     </section>
   );
 }
@@ -438,20 +254,29 @@ function TournamentRibbonOverlay({ profile, selectedSet }: OverlayTemplateProps)
 type PlayerPlateProps = {
   player: PlayerState;
   side: 'left' | 'right';
+  profile: GameProfile;
 };
 
-function PlayerPlate({ player, side }: PlayerPlateProps) {
+function PlayerPlate({ player, side, profile }: PlayerPlateProps) {
   const { t } = useTranslation(['overlay', 'common']);
   const sponsor = sponsorLine(player);
-  const details =
-    player.seed === undefined
-      ? undefined
-      : t('common:match.seed', { seed: player.seed });
+  const details = player.seed === undefined ? undefined : t('common:match.seed', { seed: player.seed });
   const flagUrl = displayFlagUrl(player.country, player.displayFlag);
   const xHandle = player.xHandle ? `@${player.xHandle}` : undefined;
+  const copyRef = useScoreboardTextFit({
+    name: player.name,
+    sponsor,
+    details,
+    pronouns: player.pronouns,
+    xHandle,
+    themeId: profile.id
+  });
 
   return (
-    <article className={`overlay-player overlay-player-${side}${flagUrl ? ' has-country-flag' : ''}`}>
+    <article
+      data-entrance={`player-${side}`}
+      className={`overlay-player overlay-player-${side}${flagUrl ? ' has-country-flag' : ''}`}
+    >
       {flagUrl && (
         <span
           className="overlay-player-flag"
@@ -461,20 +286,35 @@ function PlayerPlate({ player, side }: PlayerPlateProps) {
           <img src={flagUrl} alt="" aria-hidden="true" />
         </span>
       )}
-      <div className="overlay-player-copy">
-        {sponsor && (
-          <span className="overlay-player-team">
-            {sponsor}
-          </span>
-        )}
+      <div className="overlay-player-copy" ref={copyRef}>
         <span className="overlay-player-identity">
-          <strong className="overlay-player-name">{player.name}</strong>
+          <strong className="overlay-player-name">
+            <ScoreboardPlayerName
+              name={player.name}
+              sponsor={sponsor}
+              side={side}
+              prefixClassName="overlay-player-prefix"
+              nameClassName="overlay-player-name-text"
+            />
+          </strong>
         </span>
         {(xHandle || player.pronouns || details) && (
           <span className="overlay-player-meta">
-            {xHandle && <span className="overlay-player-x-handle">{xHandle}</span>}
-            {player.pronouns && <span className="overlay-player-pronouns">{player.pronouns}</span>}
-            {details && <span className="overlay-player-details">{details}</span>}
+            {xHandle && (
+              <span className="overlay-player-x-handle">
+                <DisplayText text={xHandle} />
+              </span>
+            )}
+            {player.pronouns && (
+              <span className="overlay-player-pronouns">
+                <DisplayText text={player.pronouns} />
+              </span>
+            )}
+            {details && (
+              <span className="overlay-player-details">
+                <DisplayText text={details} />
+              </span>
+            )}
           </span>
         )}
       </div>
@@ -482,15 +322,10 @@ function PlayerPlate({ player, side }: PlayerPlateProps) {
         className="overlay-player-score"
         aria-label={t('overlay:playerScore', { player: player.name, score: player.score })}
       >
-        {player.score}
+        <span className="overlay-player-score-text">{player.score}</span>
       </span>
     </article>
   );
-}
-
-function sponsorLine(player: PlayerState): string {
-  return [...new Set([player.prefix, player.sponsor].filter((value): value is string => Boolean(value)))]
-    .join(' · ');
 }
 
 type TopHudStyle = CSSProperties & {
