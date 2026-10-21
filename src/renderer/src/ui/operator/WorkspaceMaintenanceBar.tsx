@@ -34,6 +34,8 @@ type WorkspaceMaintenanceBarProps = {
   onCopy(kind: LocalHandoffUrl): void;
   onConfigureStingers(): void;
   onTutorialWorkspace(workspace: TutorialWorkspace): void;
+  onOpenSetSelector(): void;
+  setSelectorDisabled: boolean;
 };
 
 export function WorkspaceMaintenanceBar({
@@ -57,7 +59,9 @@ export function WorkspaceMaintenanceBar({
   onModerationApplied,
   onCopy,
   onConfigureStingers,
-  onTutorialWorkspace
+  onTutorialWorkspace,
+  onOpenSetSelector,
+  setSelectorDisabled
 }: WorkspaceMaintenanceBarProps) {
   const { t } = useTranslation('operator');
   // Navigation keeps the English order in every language.
@@ -102,6 +106,14 @@ export function WorkspaceMaintenanceBar({
   const tools = [
     { id: 'help', content: <HelpMenu navigate={onTutorialWorkspace} /> },
     { id: 'players', content: <PlayerLibraryButton selectedSet={activeSet} compact /> },
+    {
+      id: 'set-selector',
+      content: (
+        <Button size="compact-xs" variant="default" disabled={setSelectorDisabled} onClick={onOpenSetSelector}>
+          {t('selector.open')}
+        </Button>
+      )
+    },
     { id: 'settings', content: <SettingsButton compact /> }
   ];
   const groups: Array<{ id: string; label: string; tutorial?: string; content: ReactNode }> = [

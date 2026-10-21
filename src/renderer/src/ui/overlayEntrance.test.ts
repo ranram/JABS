@@ -123,9 +123,10 @@ it('cancels the previous animation when OBS activation changes rapidly', async (
 
 it('enters after a cold load and again when Preview first becomes Program', async () => {
   const beforeColdLoad = animate.mock.calls.length;
+  let ready = false;
 
   const cold = await mountHook(
-    () => useOverlayEntrance(scoreboardEntrance, true, false),
+    () => useOverlayEntrance(scoreboardEntrance, true, ready),
     true,
     (ref) => h('main', { ref }, h('div', { 'data-entrance': 'player-left' }))
   );
@@ -134,6 +135,15 @@ it('enters after a cold load and again when Preview first becomes Program', asyn
   });
   expect(animate).toHaveBeenCalledTimes(beforeColdLoad + 1);
   expect(cold.container.querySelector('[data-entrance-pending]')).toBeNull();
+  const entrance = animate.mock.results.at(-1)!.value;
+  ready = true;
+  await cold.rerender();
+  expect(entrance.revert).not.toHaveBeenCalled();
+  expect(animate).toHaveBeenCalledTimes(beforeColdLoad + 1);
+  Object.defineProperty(motion, 'matches', { configurable: true, value: true });
+  await act(async () => motion.dispatchEvent(new Event('change')));
+  expect(entrance.revert).toHaveBeenCalledOnce();
+  Object.defineProperty(motion, 'matches', { configurable: true, value: false });
   // A page first loaded in Preview must still enter when its first Program event arrives.
   await activate(true);
   await act(async () => {

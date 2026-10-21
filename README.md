@@ -67,12 +67,18 @@ Choose **Help** for in-app tutorials. The [User Manual](USER_MANUAL.md) covers a
 
 ## Develop
 
-Requires Node.js `24.15.0` or newer, pnpm `11.18.0`, Rust `1.97.1` or newer, and the [Tauri 2 platform prerequisites](https://v2.tauri.app/start/prerequisites/). Linux also requires WebKitGTK `2.52.3` or newer.
+For source builds, install:
+
+- Node.js `24.22.1` to match CI. Later 24.x releases and versions `26.12.1` or newer are also supported.
+- pnpm `11.18.0` and Rust `1.97.1` or newer.
+- The [Tauri 2 platform prerequisites](https://v2.tauri.app/start/prerequisites/). Linux also requires WebKitGTK `2.52.3` or newer.
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm run dev
 ```
+
+The release packages run without Node.js, pnpm, or Rust installed.
 
 See the [Technical Manual](TECH_MANUAL.md) for architecture, contributor checks, and source builds.
 

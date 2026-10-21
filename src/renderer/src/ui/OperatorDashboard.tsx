@@ -586,8 +586,9 @@ export function OperatorDashboard() {
         onMessage={setMessage}
         onModerationApplied={() => void moderation.refreshAfterModeration()}
         onCopy={(kind) => void copyHandoffUrl(kind)}
-        setSelector={
+        setSelector={({ inDialog, onClose }) => (
           <SetSelectorPanel
+            inDialog={inDialog}
             sets={sets}
             visibleSets={visibleSets}
             assignments={streamAssignments}
@@ -608,10 +609,13 @@ export function OperatorDashboard() {
             onSearchFocus={focusSetSearch}
             onSearchChange={changeSetSearch}
             onCancelSearch={cancelSetSearch}
-            onOpenSet={openSetFromSelector}
+            onOpenSet={(set) => {
+              onClose();
+              openSetFromSelector(set);
+            }}
             onLoadMore={loadMoreSetsFromSelector}
           />
-        }
+        )}
       >
         {selectedSet && draft && (
           <section className="grid-layout wide">

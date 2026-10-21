@@ -32,6 +32,12 @@ CREATE TABLE IF NOT EXISTS player_games (
  game_key TEXT NOT NULL,
  preferences TEXT NOT NULL,
  PRIMARY KEY(player_id, game_key)
+);
+CREATE TABLE IF NOT EXISTS player_versus_media (
+ player_id TEXT NOT NULL REFERENCES players(local_id) ON DELETE CASCADE,
+ context TEXT NOT NULL,
+ placement TEXT NOT NULL,
+ PRIMARY KEY(player_id, context)
 );";
 
 #[cfg(test)]

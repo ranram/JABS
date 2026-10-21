@@ -37,57 +37,69 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
-it('does not reapply an old game’s queued placement after a failed save reloads the new match', async () => {
-  await initializeI18n();
-  vi.useFakeTimers();
-  let activeSet = createTestOverlayState('street-fighter-6').selectedSet;
-  activeSet.setId = undefined;
-  activeSet.eventId = undefined;
-  activeSet.assetCatalogSlug = 'vampire-savior-the-lord-of-vampire';
-  activeSet.videogameId = '582';
-  transport.settings = versusScreenStateSchema.parse({
-    stylingGameId: 'street-fighter-6',
-    mediaMode: 'combined',
-    showTournamentLogo: false,
-    showSponsorLogos: false,
-    updatedAt: activeSet.updatedAt
-  });
-  const firstSave = deferred<VersusScreenState>();
-  transport.save.mockImplementationOnce(() => firstSave.promise);
-  const view = await mountView(() =>
-    h(
-      MantineProvider,
-      null,
-      h(VersusScreenControls, { activeSet, profiles: [gameProfiles['street-fighter-6']], logos: [] })
-    )
-  );
-  await act(async () =>
-    transport.preview!.onPlacementChange(0, 'character', { ...defaultMediaTransform(), scale: 1.4 })
-  );
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(1000);
-  });
-  expect(transport.save).toHaveBeenCalledOnce();
-  await act(async () => transport.preview!.onPlacementChange(0, 'character', { ...defaultMediaTransform(), scale: 2 }));
+it.each(['game', 'player', 'artwork', 'composition'] as const)(
+  'does not reapply queued placements after a %s change and a failed save',
+  async (change) => {
+    await initializeI18n();
+    vi.useFakeTimers();
+    let activeSet = createTestOverlayState('street-fighter-6').selectedSet;
+    activeSet.setId = undefined;
+    activeSet.eventId = undefined;
+    activeSet.assetCatalogSlug = 'vampire-savior-the-lord-of-vampire';
+    activeSet.videogameId = '582';
+    transport.settings = versusScreenStateSchema.parse({
+      stylingGameId: 'street-fighter-6',
+      mediaMode: 'combined',
+      showTournamentLogo: false,
+      showSponsorLogos: false,
+      updatedAt: activeSet.updatedAt
+    });
+    const firstSave = deferred<VersusScreenState>();
+    transport.save.mockImplementationOnce(() => firstSave.promise);
+    const view = await mountView(() =>
+      h(
+        MantineProvider,
+        null,
+        h(VersusScreenControls, { activeSet, profiles: [gameProfiles['street-fighter-6']], logos: [] })
+      )
+    );
+    await act(async () =>
+      transport.preview!.onPlacementChange(0, 'character', { ...defaultMediaTransform(), scale: 1.4 })
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(transport.save).toHaveBeenCalledOnce();
+    await act(async () =>
+      transport.preview!.onPlacementChange(0, 'character', { ...defaultMediaTransform(), scale: 2 })
+    );
 
-  activeSet = {
-    ...activeSet,
-    setId: 'new-match',
-    eventId: 'event',
-    assetCatalogSlug: 'street-fighter-6',
-    videogameId: '43868'
-  };
-  transport.settings = versusScreenStateSchema.parse({
-    ...transport.settings,
-    mediaPlacements: undefined,
-    updatedAt: '2026-10-21T12:00:00Z'
-  });
-  transport.save.mockResolvedValue(transport.settings);
-  await view.rerender();
-  await act(async () => {
-    firstSave.reject(new Error('Settings changed.'));
-  });
-  expect(transport.save).toHaveBeenCalledTimes(2);
-  expect(transport.save.mock.calls[1][0].mediaPlacements[0].character).toEqual(defaultMediaTransform());
-  expect(transport.preview!.settings.mediaPlacements[0].character).toEqual(defaultMediaTransform());
-});
+    if (change === 'game') {
+      activeSet = {
+        ...activeSet,
+        setId: 'new-match',
+        eventId: 'event',
+        assetCatalogSlug: 'street-fighter-6',
+        videogameId: '43868'
+      };
+    } else if (change === 'player') {
+      activeSet = { ...activeSet, playerOne: { ...activeSet.playerOne, localPlayerId: 'a'.repeat(32) } };
+    } else if (change === 'artwork') {
+      activeSet = { ...activeSet, playerOne: { ...activeSet.playerOne, characterAssetId: 'alternate.png' } };
+    }
+    transport.settings = versusScreenStateSchema.parse({
+      ...transport.settings,
+      mediaMode: change === 'composition' ? 'character' : 'combined',
+      mediaPlacements: undefined,
+      updatedAt: '2026-10-21T12:00:00Z'
+    });
+    transport.save.mockResolvedValue(transport.settings);
+    await view.rerender();
+    await act(async () => {
+      firstSave.reject(new Error('Settings changed.'));
+    });
+    expect(transport.save).toHaveBeenCalledTimes(2);
+    expect(transport.save.mock.calls[1][0].mediaPlacements[0].character).toEqual(defaultMediaTransform());
+    expect(transport.preview!.settings.mediaPlacements[0].character).toEqual(defaultMediaTransform());
+  }
+);

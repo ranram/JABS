@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   Group,
+  Modal,
   NumberInput,
   Paper,
   PasswordInput,
@@ -79,7 +80,7 @@ type StartggPanelProps = {
   onMessage: NoticeSink;
   onModerationApplied(): void;
   onCopy(kind: LocalHandoffUrl): void;
-  setSelector?: ReactNode;
+  setSelector?: ReactNode | ((options: { inDialog: boolean; onClose(): void }) => ReactNode);
   children?: ReactNode;
 };
 
@@ -153,6 +154,24 @@ export function StartggPanel({
     return () => observer.disconnect();
   }, []);
   const { t, i18n } = useTranslation(['operator', 'common']);
+  const [setSelectorOpen, setSetSelectorOpen] = useState(false);
+  useEffect(() => {
+    if (workspace === 'bracket' || !selectedEventId) setSetSelectorOpen(false);
+  }, [workspace, selectedEventId]);
+  const closeSetSelector = () => setSetSelectorOpen(false);
+  const selectorContent = typeof setSelector === 'function'
+    ? setSelector({ inDialog: setSelectorOpen, onClose: closeSetSelector })
+    : setSelector;
+  const selectorUsesPhase = setScope?.type === 'phase' || setScope?.type === 'phaseGroup';
+  const selectorPhaseId = setScope?.type === 'phase' ? setScope.phaseId : selectedPhaseId;
+  const selectorPhase = selectorUsesPhase
+    ? phases.find((phase) => String(phase.id) === selectorPhaseId)
+    : undefined;
+  const selectedEvent = events.find((event) => String(event.id) === selectedEventId);
+  const selectorContextName = displayPhaseName(selectorPhase?.name) || selectedEvent?.name.trim();
+  const selectorTitle = [t('operator:selector.title'), selectorContextName]
+    .filter(Boolean)
+    .join(' · ');
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const sortedEvents = useMemo(() => sortByLabel(events, (event) => event.name, locale), [events, locale]);
   const sortedGameProfiles = useMemo(
@@ -167,7 +186,6 @@ export function StartggPanel({
     () => sortByLabel(phaseGroups, (group) => group.displayIdentifier, locale),
     [phaseGroups, locale]
   );
-  const selectedEvent = events.find((event) => String(event.id) === selectedEventId);
   const gameContext = generatorGameContext({
     selectedEventId,
     tournamentLoaded,
@@ -377,6 +395,8 @@ export function StartggPanel({
             onCopy={onCopy}
             onConfigureStingers={() => setWorkspace('stingers')}
             onTutorialWorkspace={setWorkspace}
+            onOpenSetSelector={() => setSetSelectorOpen(true)}
+            setSelectorDisabled={workspace === 'bracket' || !selectedEventId || !setSelector}
           />
         </div>
 
@@ -504,7 +524,7 @@ export function StartggPanel({
                 </div>
               )}
             </Paper>
-            {setSelector}
+            {!setSelectorOpen && selectorContent}
           </div>
           {children}
         </Tabs.Panel>
@@ -594,6 +614,11 @@ export function StartggPanel({
           />
         </Tabs.Panel>
       </Tabs>
+      {setSelectorOpen && (
+        <Modal opened onClose={closeSetSelector} title={selectorTitle} size="xl">
+          {selectorContent}
+        </Modal>
+      )}
     </>
   );
 }

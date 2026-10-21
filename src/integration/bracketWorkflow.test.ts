@@ -10,6 +10,7 @@ import { initializeI18n, i18n } from '../renderer/src/i18n';
 import { StartggPanel } from '../renderer/src/ui/operator/StartggPanel';
 import { SetSelectorPanel } from '../renderer/src/ui/operator/SetSelectorPanel';
 import { useBracketBrowser } from '../renderer/src/ui/operator/useBracketBrowser';
+import { beginPendingWrite } from '../renderer/src/pendingWrites';
 
 vi.mock('@mantine/notifications', () => ({ notifications: { show: vi.fn(), hide: vi.fn() } }));
 vi.mock('../renderer/src/api', async (original) => {
@@ -34,7 +35,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it('loads event, phase, and pool matches through the real workspace and keeps them when switching tabs', async () => {
+it('loads pool matches and reuses the selector across workspaces without bypassing pending saves', async () => {
   await initializeI18n();
   await i18n.changeLanguage('en');
   const pageInfo = { page: 1, perPage: 20, total: 10, totalPages: 1 };
@@ -59,6 +60,7 @@ it('loads event, phase, and pool matches through the real workspace and keeps th
     sets: vi.fn(async () => ({ source: 'live', sets, pageInfo })),
     streamQueue: vi.fn(async () => ({ source: 'live', assignments: [] }))
   };
+  const openSet = vi.fn();
   function Workspace() {
     const [loading, setLoading] = useState(false);
     const browser = useBracketBrowser({
@@ -99,7 +101,8 @@ it('loads event, phase, and pool matches through the real workspace and keeps th
       onMessage() {},
       onModerationApplied() {},
       onCopy() {},
-      setSelector: h(SetSelectorPanel, {
+      setSelector: ({ inDialog, onClose }) => h(SetSelectorPanel, {
+        inDialog,
         sets: browser.state.sets,
         visibleSets: browser.state.sets,
         assignments: [],
@@ -117,7 +120,7 @@ it('loads event, phase, and pool matches through the real workspace and keeps th
         onSearchFocus() {},
         onSearchChange() {},
         onCancelSearch() {},
-        onOpenSet() {},
+        onOpenSet(set) { onClose(); openSet(set); },
         onLoadMore() {}
       })
     });
@@ -142,10 +145,57 @@ it('loads event, phase, and pool matches through the real workspace and keeps th
     1
   );
   expect(view.container.querySelectorAll('.set-row')).toHaveLength(10);
-  for (const label of ['YouTube Thumbnail Generator', 'Bracket Management']) {
-    const tab = [...view.container.querySelectorAll('[role=tab]')].find((node) => node.textContent === label)!;
-    await act(async () => (tab as HTMLElement).click());
+  const selectorButton = () => [...view.container.querySelectorAll('button')].find(
+    (button) => button.textContent === i18n.t('operator:selector.open')
+  )!;
+  expect(selectorButton().disabled).toBe(true);
+  const thumbnailTab = [...view.container.querySelectorAll('[role=tab]')].find(
+    (node) => node.textContent === 'YouTube Thumbnail Generator'
+  )!;
+  await act(async () => (thumbnailTab as HTMLElement).click());
+  expect(selectorButton().disabled).toBe(false);
+  const requestsBeforeOpening = gateway.sets.mock.calls.length;
+  await act(async () => selectorButton().click());
+  const dialog = [...document.querySelectorAll('[role=dialog]')].find((node) => node.querySelector('.set-list'))!;
+  const title = document.getElementById(dialog.getAttribute('aria-labelledby')!);
+  expect(title?.textContent).toBe('Select set · Top 8');
+  expect(dialog.querySelectorAll('.set-row')).toHaveLength(10);
+  expect(document.querySelectorAll('.set-row')).toHaveLength(10);
+  expect(gateway.sets).toHaveBeenCalledTimes(requestsBeforeOpening);
+  let finishSave!: () => void;
+  await act(async () => { finishSave = beginPendingWrite(); });
+  expect((dialog.querySelector('.set-row') as HTMLButtonElement).disabled).toBe(true);
+  await act(async () => finishSave());
+  await act(async () => (dialog.querySelector('.set-row') as HTMLElement).click());
+  expect(openSet).toHaveBeenCalledWith(sets[0]);
+  expect(document.querySelector('[role=dialog] .set-list')).toBeNull();
+  expect(thumbnailTab.getAttribute('aria-selected')).toBe('true');
+  for (const language of ['en', 'es-419']) {
+    await act(async () => { await i18n.changeLanguage(language); });
+    const tools = [...view.container.querySelectorAll('.workspace-maintenance-group')].find(
+      (group) => group.querySelector('.workspace-maintenance-label')?.textContent === i18n.t('operator:quickTools.tools')
+    )!;
+    const labels = [...tools.querySelectorAll('button')]
+      .filter((button) => !button.closest('[role=dialog]'))
+      .map((button) => button.textContent);
+    expect(labels.slice(-2)).toEqual([i18n.t('operator:selector.open'), i18n.t('operator:appearance.settings')]);
   }
+  await act(async () => { await i18n.changeLanguage('en'); });
+  const bracketTab = [...view.container.querySelectorAll('[role=tab]')].find(
+    (node) => node.textContent === 'Bracket Management'
+  )!;
+  await act(async () => (bracketTab as HTMLElement).click());
+  expect(selectorButton().disabled).toBe(true);
   expect(view.container.querySelectorAll('.set-row')).toHaveLength(10);
+  expect(view.container.querySelector('.set-list h2')?.textContent).toBe('Select set');
+  const allEventSets = [...view.container.querySelectorAll('button')].find(
+    (button) => button.textContent === i18n.t('operator:browser.allEventSets')
+  )!;
+  await act(async () => allEventSets.click());
+  await act(async () => (thumbnailTab as HTMLElement).click());
+  await act(async () => selectorButton().click());
+  const eventDialog = [...document.querySelectorAll('[role=dialog]')].find((node) => node.querySelector('.set-list'))!;
+  const eventTitle = document.getElementById(eventDialog.getAttribute('aria-labelledby')!);
+  expect(eventTitle?.textContent).toBe('Select set · Funda Series');
   expect(gateway.events).toHaveBeenCalledOnce();
 }, 15000);

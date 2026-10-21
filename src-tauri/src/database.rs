@@ -1,4 +1,4 @@
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::Serialize;
 use std::{path::Path, sync::Mutex};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
@@ -30,7 +30,8 @@ impl Database {
              CREATE TABLE IF NOT EXISTS set_overrides (
                set_id TEXT PRIMARY KEY NOT NULL,
                payload TEXT NOT NULL,
-               updated_at TEXT NOT NULL
+               updated_at TEXT NOT NULL,
+               versus_media TEXT
              );
              CREATE TABLE IF NOT EXISTS startgg_cache (
                cache_key TEXT PRIMARY KEY NOT NULL,
@@ -53,6 +54,14 @@ impl Database {
                UNIQUE(surface_id, payload)
              );"
         ).map_err(|_| "Unable to initialize JABS's local database.".to_owned())?;
+        let has_versus_media: bool = connection.query_row(
+            "SELECT EXISTS(SELECT 1 FROM pragma_table_info('set_overrides') WHERE name = 'versus_media')",
+            [], |row| row.get(0),
+        ).map_err(|_| "Unable to read saved match settings.".to_owned())?;
+        if !has_versus_media {
+            connection.execute("ALTER TABLE set_overrides ADD COLUMN versus_media TEXT", [])
+                .map_err(|_| "Unable to prepare saved match artwork settings.".to_owned())?;
+        }
         connection.execute_batch(crate::player_library::SCHEMA)
             .map_err(|_| "Unable to initialize the player library.".to_owned())?;
         prune_expired_set_overrides(&connection)?;
@@ -156,9 +165,22 @@ impl Database {
         payload: &str,
         updated_at: &str,
     ) -> Result<(), String> {
-        let connection = self.connection.lock()
+        self.save_broadcast_surface_with_media(surface_id, payload, updated_at, None, &[])
+    }
+
+    pub fn save_broadcast_surface_with_media(
+        &self,
+        surface_id: &str,
+        payload: &str,
+        updated_at: &str,
+        set_media: Option<(&str, &str)>,
+        player_defaults: &[crate::versus_screen::PlayerMediaDefault],
+    ) -> Result<(), String> {
+        let mut connection = self.connection.lock()
             .map_err(|_| "Local database is unavailable.".to_owned())?;
-        connection.execute(
+        let transaction = connection.transaction()
+            .map_err(|_| "Unable to begin saving overlay settings.".to_owned())?;
+        transaction.execute(
             "INSERT INTO broadcast_surfaces (surface_id, payload, updated_at)
              VALUES (?1, ?2, ?3)
              ON CONFLICT(surface_id) DO UPDATE SET
@@ -166,7 +188,41 @@ impl Database {
                updated_at = excluded.updated_at",
             params![surface_id, payload, updated_at],
         ).map_err(|_| "Unable to save the broadcast surface.".to_owned())?;
-        Ok(())
+        if let Some((set_id, media)) = set_media {
+            let saved = transaction.execute(
+                "UPDATE set_overrides SET versus_media = ?1, updated_at = ?2 WHERE set_id = ?3",
+                params![media, updated_at, set_id],
+            ).map_err(|_| "Unable to save match artwork settings.".to_owned())?;
+            if saved != 1 { return Err("The match is no longer available for saving artwork settings.".to_owned()); }
+        }
+        for default in player_defaults {
+            transaction.execute(
+                "INSERT INTO player_versus_media (player_id, context, placement)
+                 SELECT ?1, ?2, ?3 WHERE EXISTS(SELECT 1 FROM players WHERE local_id = ?1)
+                 ON CONFLICT(player_id, context) DO UPDATE SET placement = excluded.placement",
+                params![default.player_id, default.context, default.payload],
+            ).map_err(|_| "Unable to save match artwork settings.".to_owned())?;
+        }
+        transaction.commit().map_err(|_| "Unable to finish saving overlay settings.".to_owned())
+    }
+
+    pub fn load_player_versus_media(&self, player_id: &str, context: &str) -> Result<Option<String>, String> {
+        self.connection.lock().map_err(|_| "Local database is unavailable.".to_owned())?
+            .query_row(
+                "SELECT placement FROM player_versus_media WHERE player_id = ?1 AND context = ?2",
+                params![player_id, context], |row| row.get(0),
+            ).optional().map_err(|_| "Unable to read saved match artwork settings.".to_owned())
+    }
+
+    pub fn load_set_versus_media(&self, set_id: &str) -> Result<Option<String>, String> {
+        let connection = self.connection.lock()
+            .map_err(|_| "Local database is unavailable.".to_owned())?;
+        prune_expired_set_overrides(&connection)?;
+        connection.query_row(
+            "SELECT versus_media FROM set_overrides WHERE set_id = ?1", [set_id],
+            |row| row.get::<_, Option<String>>(0),
+        ).optional().map(Option::flatten)
+            .map_err(|_| "Unable to read saved match artwork settings.".to_owned())
     }
 
     pub fn load_set_override(&self, set_id: &str) -> Result<Option<String>, String> {
@@ -310,10 +366,10 @@ mod tests {
         {
             let connection = database.connection.lock().unwrap();
             connection.execute_batch(
-                "INSERT INTO set_overrides VALUES ('expired', 'old', datetime('now', '-7 days'));
-                 INSERT INTO set_overrides VALUES ('recent', 'kept', datetime('now', '-6 days'));
-                 INSERT INTO set_overrides VALUES ('active', 'live', datetime('now', '-30 days'));
-                 INSERT INTO set_overrides VALUES ('invalid-date', 'old', 'broken');"
+                "INSERT INTO set_overrides (set_id, payload, updated_at) VALUES ('expired', 'old', datetime('now', '-7 days'));
+                 INSERT INTO set_overrides (set_id, payload, updated_at) VALUES ('recent', 'kept', datetime('now', '-6 days'));
+                 INSERT INTO set_overrides (set_id, payload, updated_at) VALUES ('active', 'live', datetime('now', '-30 days'));
+                 INSERT INTO set_overrides (set_id, payload, updated_at) VALUES ('invalid-date', 'old', 'broken');"
             ).unwrap();
         }
         assert_eq!(database.load_set_override("expired").unwrap(), None);

@@ -13,9 +13,29 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
   const { appearance } = useAppearance();
   const animationsEnabled = enabled && appearance.entranceAnimations;
   const rootRef = useRef<T>(null);
+  const runningAnimation = useRef<(() => void) | undefined>(undefined);
   const played = useRef<{ activation: number; presentationKey?: string } | undefined>(undefined);
   const { active, activation } = useSyncExternalStore(subscribeObsSourceActivity, getObsSourceActivity);
   const inactive = active === false;
+
+  function stopAnimation() {
+    runningAnimation.current?.();
+    runningAnimation.current = undefined;
+  }
+
+  // Loading updates must not interrupt an entrance that is already playing.
+  useLayoutEffect(() => {
+    if (!animationsEnabled || inactive) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const stopForReducedMotion = () => {
+      if (reducedMotion.matches) stopAnimation();
+    };
+    reducedMotion.addEventListener('change', stopForReducedMotion);
+    return () => {
+      stopAnimation();
+      reducedMotion.removeEventListener('change', stopForReducedMotion);
+    };
+  }, [activation, inactive, cues, animationsEnabled, presentationKey]);
 
   useLayoutEffect(() => {
     const element = rootRef.current;
@@ -36,14 +56,12 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
       return;
     }
     let cancelled = false;
-    let revert: (() => void) | undefined;
     let timer: ReturnType<typeof setTimeout>;
     root.dataset.entrancePending = '';
 
     function cancel() {
       cancelled = true;
       clearTimeout(timer);
-      revert?.();
       delete root.dataset.entrancePending;
     }
     function onReducedMotion() {
@@ -69,7 +87,7 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
       if (cancelled) return;
       played.current = { activation, presentationKey };
       try {
-        revert = playOverlayEntrance(root, cues);
+        runningAnimation.current = playOverlayEntrance(root, cues);
       } catch {
         // Keep the static layout readable if the browser cannot animate it.
       } finally {

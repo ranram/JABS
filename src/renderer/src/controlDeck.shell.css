@@ -211,6 +211,11 @@
   scroll-snap-align: start;
 }
 
+.set-selector-dialog .set-results-scroll {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  max-height: min(55vh, 34rem);
+}
+
 .set-results-scroll > .mantine-Text-root,
 .set-load-more-sentinel {
   grid-column: 1 / -1;

@@ -16,10 +16,10 @@ type ImageLayer = {
   opacity: number;
   filter: string;
   mirrorX: boolean;
-  clip?: {
+  clips: {
     rect: DOMRect;
     style: CSSStyleDeclaration;
-  };
+  }[];
 };
 
 type ShapeLayer = {
@@ -162,9 +162,9 @@ async function visibleImageLayers(source: HTMLElement): Promise<ImageLayer[]> {
       opacity: finiteOpacity(style.opacity),
       filter: style.filter,
       mirrorX: image.dataset.exportMirrorX === 'true',
-      clip: kind === 'background'
-        ? { rect: source.getBoundingClientRect(), style: getComputedStyle(source) }
-        : clippedAncestor(image)
+      clips: kind === 'background'
+        ? [{ rect: source.getBoundingClientRect(), style: getComputedStyle(source) }]
+        : clippedAncestors(image)
     };
   });
 }
@@ -225,9 +225,14 @@ function textLayer(element: HTMLElement): TextLayer {
   };
 }
 
-function clippedAncestor(image: HTMLImageElement): ImageLayer['clip'] {
-  const element = image.closest<HTMLElement>('[data-export-clip]');
-  return element ? { rect: element.getBoundingClientRect(), style: getComputedStyle(element) } : undefined;
+function clippedAncestors(image: HTMLImageElement): ImageLayer['clips'] {
+  const clips: ImageLayer['clips'] = [];
+  let element = image.closest<HTMLElement>('[data-export-clip]');
+  while (element) {
+    clips.push({ rect: element.getBoundingClientRect(), style: getComputedStyle(element) });
+    element = element.parentElement?.closest<HTMLElement>('[data-export-clip]') ?? null;
+  }
+  return clips;
 }
 
 async function composeRasterLayers(
@@ -375,8 +380,10 @@ function drawImageLayer(
     style.objectPosition
   );
   context.save();
-  const ancestorClip = imageClipBox(layer, sourceRect, scaleX, scaleY);
-  if (ancestorClip) roundedClip(context, ancestorClip.box, ancestorClip.radius);
+  for (const clip of layer.clips) {
+    const ancestorClip = imageClipBox(clip, sourceRect, scaleX, scaleY);
+    roundedClip(context, ancestorClip.box, ancestorClip.radius);
+  }
   roundedClip(context, box, number(style.borderRadius) * Math.min(scaleX, scaleY));
   context.globalAlpha = layer.opacity;
   if (layer.kind !== 'background' && layer.filter && layer.filter !== 'none') {
@@ -433,13 +440,12 @@ function finiteOpacity(value: string): number {
 }
 
 function imageClipBox(
-  layer: ImageLayer,
+  clip: ImageLayer['clips'][number],
   sourceRect: DOMRect,
   scaleX: number,
   scaleY: number
-): { box: { x: number; y: number; width: number; height: number }; radius: number } | undefined {
-  if (!layer.clip) return undefined;
-  const { rect, style } = layer.clip;
+): { box: { x: number; y: number; width: number; height: number }; radius: number } {
+  const { rect, style } = clip;
   return {
     box: {
       x: (rect.left - sourceRect.left) * scaleX,

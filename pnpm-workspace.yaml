@@ -5,6 +5,16 @@ packages:
 minimumReleaseAge: 10080
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
+# Install the reviewed security patch without waiting for the release-age window.
+minimumReleaseAgeExclude:
+  - "vitest@4.1.12"
+  - "@vitest/expect@4.1.12"
+  - "@vitest/mocker@4.1.12"
+  - "@vitest/pretty-format@4.1.12"
+  - "@vitest/runner@4.1.12"
+  - "@vitest/snapshot@4.1.12"
+  - "@vitest/spy@4.1.12"
+  - "@vitest/utils@4.1.12"
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 525600
 trustLockfile: false

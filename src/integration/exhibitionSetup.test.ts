@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, createElement as h, type ReactNode } from 'react';
+import { act, createElement as h, type ComponentProps } from 'react';
 import { MantineProvider } from '@mantine/core';
 import { afterEach, expect, it, vi } from 'vitest';
 import { gameProfiles } from '@shared/gameProfiles';
@@ -9,7 +9,6 @@ import { createTestOverlayState } from '@shared/testFixtures';
 import { mountView } from '../renderer/src/hooks/hookTestHarness';
 import { initializeI18n, i18n } from '../renderer/src/i18n';
 import { OperatorDashboard } from '../renderer/src/ui/OperatorDashboard';
-import type { BracketController } from '../renderer/src/ui/operator/bracketController';
 import { invalidateCatalogConsumers } from '../renderer/src/hooks/useCatalogRevision';
 
 const transport = vi.hoisted(() => ({
@@ -31,18 +30,14 @@ vi.mock('../renderer/src/ui/operator/StartggPanel', () => ({
     bracket,
     children,
     setSelector
-  }: {
-    bracket: BracketController;
-    children?: ReactNode;
-    setSelector?: ReactNode;
-  }) =>
+  }: ComponentProps<typeof import('../renderer/src/ui/operator/StartggPanel').StartggPanel>) =>
     h(
       'div',
       null,
       h('button', { onClick: () => void bracket.actions.loadEvents('autumn-finals') }, 'Load tournament'),
       h('button', { onClick: () => void bracket.actions.unloadTournament() }, 'Unload tournament'),
       children,
-      setSelector
+      typeof setSelector === 'function' ? setSelector({ inDialog: false, onClose() {} }) : setSelector
     )
 }));
 vi.mock('../renderer/src/api', async (importOriginal) => {

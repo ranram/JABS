@@ -190,8 +190,9 @@ async fn update_selected_set(
     ) {
         Ok(state) => {
             if let (Some(previous), Ok(next)) = (previous, serde_json::from_value::<crate::state::OverlayState>(state.clone())) {
-                let _ = runtime.versus_screen.reset_media_for_match_change(
+                let _ = runtime.versus_screen.restore_media_for_match_change(
                     &runtime.database, &previous, &next.selected_set,
+                    &runtime.game_asset_directory, &runtime.player_photo_directory,
                 );
                 runtime.stingers.score_updated(&previous, &next.selected_set);
             }
@@ -223,8 +224,9 @@ async fn select_exhibition_game(
     {
         Ok(state) => {
             if let (Some(previous), Ok(next)) = (previous, serde_json::from_value::<crate::state::OverlayState>(state.clone())) {
-                let _ = runtime.versus_screen.reset_media_for_match_change(
+                let _ = runtime.versus_screen.restore_media_for_match_change(
                     &runtime.database, &previous, &next.selected_set,
+                    &runtime.game_asset_directory, &runtime.player_photo_directory,
                 );
             }
             secure_json(Json(state))
@@ -303,7 +305,17 @@ async fn swap_players(
     if let Some(response) = reject_untrusted_mutation(&headers) {
         return response;
     }
-    state_result(runtime.overlay.swap_players(&runtime.database))
+    let previous = runtime.overlay.selected_set().ok();
+    let result = runtime.overlay.swap_players(&runtime.database);
+    if let (Some(previous), Ok(state)) = (previous, &result) {
+        if let Ok(next) = serde_json::from_value::<crate::state::OverlayState>(state.clone()) {
+            let _ = runtime.versus_screen.restore_media_for_match_change(
+                &runtime.database, &previous, &next.selected_set,
+                &runtime.game_asset_directory, &runtime.player_photo_directory,
+            );
+        }
+    }
+    state_result(result)
 }
 
 // Broadcast settings and match history
@@ -964,8 +976,9 @@ async fn select_startgg_set(
     ) {
         Ok(state) => {
             if let (Some(previous), Ok(next)) = (previous, serde_json::from_value::<crate::state::OverlayState>(state.clone())) {
-                let _ = runtime.versus_screen.reset_media_for_match_change(
+                let _ = runtime.versus_screen.restore_media_for_match_change(
                     &runtime.database, &previous, &next.selected_set,
+                    &runtime.game_asset_directory, &runtime.player_photo_directory,
                 );
             }
             // Sending the same set again can refresh an expired history entry too.

@@ -1180,14 +1180,10 @@ mod tests {
         is_initial_grand_final, is_winners_final, node_list, player_from_slot, set_summary,
         validate_event_slug, map_event_standings,
     };
-    use jabs_startgg_client::classify_message;
     use serde_json::json;
 
     #[test]
-    fn classifies_failures_and_rejects_malformed_collections() {
-        assert_eq!(classify_message("rate limit exceeded").code, "rate-limit");
-        assert_eq!(classify_message("invalid token").code, "authentication");
-        assert_eq!(classify_message("permission denied").code, "permission");
+    fn rejects_malformed_collections_and_invalid_event_slugs() {
         assert!(node_list(Some(&json!({})), "set nodes").is_err());
         assert_eq!(node_list(Some(&json!([null, { "id": "1" }])), "set nodes").unwrap().len(), 1);
         assert!(validate_event_slug("tournament/ceo-2026/event/street-fighter-6").is_ok());

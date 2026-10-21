@@ -62,7 +62,17 @@ export function VersusScreenControls({
     activeSet?.setId,
     activeSet?.eventId,
     activeSet?.assetCatalogSlug ?? activeSet?.gameId,
-    activeSet?.videogameId
+    activeSet?.videogameId,
+    state?.mediaMode,
+    [activeSet?.playerOne, activeSet?.playerTwo].map((player) => [
+      player?.localPlayerId,
+      player?.playerId,
+      player?.name,
+      player?.characters,
+      player?.character,
+      player?.characterAssetId,
+      player?.playerPhotoAssetId
+    ])
   ]);
   const latestPlacementContext = useRef(placementContext);
   latestPlacementContext.current = placementContext;
@@ -76,7 +86,7 @@ export function VersusScreenControls({
       return;
     void update(
       (current) =>
-        latestPlacementContext.current !== placementContext
+        latestPlacementContext.current !== placementContext || current.mediaMode !== state?.mediaMode
           ? current
           : {
               ...current,

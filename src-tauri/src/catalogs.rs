@@ -15,6 +15,7 @@ pub use character_assets::{
     resolve_game_character_portrait, valid_game_asset_catalog_slug,
 };
 use character_assets::{character_asset_directory, character_portrait_directory};
+pub(crate) use character_assets::selected_character_artwork;
 
 const LOCATION_JSON: &str = include_str!("../resources/location_catalog.json");
 const PRIDE_FLAGS_JSON: &str = include_str!("../../src/shared/prideFlags.json");

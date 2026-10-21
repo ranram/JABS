@@ -35,6 +35,21 @@ pub struct GameCharacterAssetVariant {
     portrait_asset_id: Option<String>,
 }
 
+pub(crate) fn selected_character_artwork(
+    assets: &[GameCharacterAsset],
+    player: &crate::state::Player,
+) -> Option<String> {
+    let lead = player.characters.first().or(player.character.as_ref())?;
+    let asset = assets.iter().find(|asset| &asset.character == lead)?;
+    let variant = player.character_asset_id.as_ref().and_then(|selected| {
+        asset.variants.iter().find(|variant| {
+            variant.asset_id.as_ref() == Some(selected)
+                || variant.portrait_asset_id.as_ref() == Some(selected)
+        })
+    });
+    variant.and_then(|variant| variant.asset_id.clone()).or_else(|| asset.asset_id.clone())
+}
+
 pub(super) fn rosters() -> &'static HashMap<String, Vec<String>> {
     static ROSTERS: OnceLock<HashMap<String, Vec<String>>> = OnceLock::new();
     ROSTERS.get_or_init(|| {

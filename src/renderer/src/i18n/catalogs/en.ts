@@ -152,7 +152,7 @@ export const en = {
         },
         obs: {
           title: 'Connect OBS',
-          body: 'Copy a URL from this menu into an OBS Browser Source at 1920×1080. Keep JABS running while broadcasting.'
+          body: 'Copy a URL from this menu into an OBS Browser Source at 1920×1080. Keep JABS running while broadcasting. For overlays that should replay their entrance when you return to a scene, enable “Shutdown source when not visible” and “Refresh browser when scene becomes active”. Leave both off for Stingers.'
         },
         exhibition: {
           title: 'Start without a tournament',
@@ -276,7 +276,7 @@ export const en = {
         },
         stingerObs: {
           title: 'Add the source to OBS',
-          body: 'Copy the Stingers URL into a 1920×1080 Browser Source above your other sources. Reuse that source across scenes and check that it shows as active in JABS.'
+          body: 'Copy the Stingers URL into a 1920×1080 Browser Source above your other sources. Reuse it across scenes and check that it shows as active in JABS. Leave “Shutdown source when not visible” and “Refresh browser when scene becomes active” unchecked so switching scenes won’t interrupt playback.'
         },
         stingerPlay: {
           title: 'Play clips from any tab',
@@ -777,6 +777,7 @@ export const en = {
 
     // Set selection and filters
     selector: {
+      open: 'Set Selector',
       pillFilters: 'Filter By:',
       pillFiltersHelp: 'Filters apply to loaded sets. Scroll to load more, or search to load every page.',
       statusFilter: 'Status',

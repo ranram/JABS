@@ -185,7 +185,7 @@ function TopEightCard({
   const prideFlag = isPrideDisplayFlag(entrant.displayFlag);
   return (
     <article className={`top8-card placement-${entrant.placement}`} data-export-clip>
-      <div className="top8-card-art">
+      <div className="top8-card-art" data-export-clip>
         {/* Subject images also draw in DOM order during PNG export. */}
         {media?.sponsorLogoUrl && (
           <LoadedImage src={media.sponsorLogoUrl} className="top8-sponsor-logo" layer="subject" />

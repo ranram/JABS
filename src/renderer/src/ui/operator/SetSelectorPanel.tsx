@@ -8,6 +8,7 @@ import type {
   StartggStreamAssignment
 } from '@shared/models';
 import { SetResultRow } from './SetResultRow';
+import { usePendingWrites } from '../../pendingWrites';
 import {
   matchesSetPills,
   streamAssignmentFilterValue,
@@ -34,6 +35,7 @@ type SetSelectorPanelProps = {
   loading: boolean;
   loadingMore: boolean;
   headerAction?: ReactNode;
+  inDialog?: boolean;
   onSearchFocus(): void;
   onSearchChange(search: string): void;
   onCancelSearch(): void;
@@ -61,6 +63,7 @@ function SetSelectorPanelComponent({
   loading,
   loadingMore,
   headerAction,
+  inDialog = false,
   onSearchFocus,
   onSearchChange,
   onCancelSearch,
@@ -68,6 +71,7 @@ function SetSelectorPanelComponent({
   onLoadMore
 }: SetSelectorPanelProps) {
   const { t } = useTranslation(['operator', 'common']);
+  const pendingWrites = usePendingWrites();
   const resultsRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [pillFilters, setPillFilters] = useState<string[]>([]);
@@ -124,10 +128,10 @@ function SetSelectorPanelComponent({
   }, [hasMore, loadingMore, onLoadMore, pageInfo?.page]);
 
   return (
-    <Paper className="panel set-list" p="md" radius="lg" withBorder>
+    <Paper className={inDialog ? 'set-list set-selector-dialog' : 'panel set-list'} p={inDialog ? 0 : 'md'} radius="lg" withBorder={!inDialog}>
       <Group justify="space-between" align="flex-start">
         <Box style={{ flexShrink: 0 }}>
-          <Text component="h2" fw={800} size="lg">{t('operator:selector.title')}</Text>
+          {!inDialog && <Text component="h2" fw={800} size="lg">{t('operator:selector.title')}</Text>}
           {scope && (
             <Text c="dimmed" size="sm">
               {t('operator:selector.view', { scope: scopeLabel })}
@@ -152,7 +156,7 @@ function SetSelectorPanelComponent({
         </Group>
       </Group>
 
-      {draftDirty && <Text c="dimmed" size="sm">{t('operator:selector.dirtyWarning')}</Text>}
+      {(draftDirty || pendingWrites) && <Text c="dimmed" size="sm">{t('operator:selector.dirtyWarning')}</Text>}
 
       {selectedEvent && (
         <Stack gap={6}>
@@ -214,7 +218,7 @@ function SetSelectorPanelComponent({
             set={set}
             assignment={assignmentBySetId.get(set.id)}
             activeSetId={activeSetId}
-            disabled={loading || draftDirty}
+            disabled={loading || draftDirty || pendingWrites}
             onOpenSet={onOpenSet}
           />
         ))}

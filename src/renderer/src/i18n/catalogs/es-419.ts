@@ -150,7 +150,7 @@ export const es419 = {
         },
         obs: {
           title: 'Conecta OBS',
-          body: 'Copia una URL de este menú y agrégala como Fuente de navegador de 1920×1080 en OBS. Mantén JABS abierto durante la transmisión.'
+          body: 'Copia una URL de este menú y agrégala como Fuente de navegador de 1920×1080 en OBS. Mantén JABS abierto durante la transmisión. Para repetir la animación de entrada al volver a la escena, marca “Apagar fuente cuando no sea visible” y “Actualizar el navegador cuando la escena se active”. Deja ambas opciones sin marcar para Stingers.'
         },
         exhibition: {
           title: 'Empieza sin un torneo',
@@ -274,7 +274,7 @@ export const es419 = {
         },
         stingerObs: {
           title: 'Agrega la fuente en OBS',
-          body: 'Copia la URL de Stingers y agrégala como Fuente de navegador de 1920×1080 sobre las demás fuentes. Reutilízala entre escenas y comprueba que aparezca activa en JABS.'
+          body: 'Copia la URL de Stingers y agrégala como Fuente de navegador de 1920×1080 sobre las demás fuentes. Reutilízala entre escenas y comprueba que aparezca activa en JABS. Deja sin marcar “Apagar fuente cuando no sea visible” y “Actualizar el navegador cuando la escena se active” para que cambiar de escena no interrumpa la reproducción.'
         },
         stingerPlay: {
           title: 'Reproduce clips desde cualquier pestaña',
@@ -786,6 +786,7 @@ export const es419 = {
 
     // Set selection and filters
     selector: {
+      open: 'Seleccionar set',
       pillFilters: 'Filtrar por:',
       pillFiltersHelp:
         'Los filtros se aplican a los sets cargados. Desplázate para cargar más o busca para cargar todas las páginas.',

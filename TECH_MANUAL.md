@@ -2,6 +2,18 @@
 
 Development setup is in the [README](README.md). Broadcast operation and media setup are in the [User Manual](USER_MANUAL.md).
 
+## Development tools
+
+CI uses Node.js `24.22.1`, pnpm `11.18.0`, and Rust `1.97.1`. The [README](README.md#develop) lists supported versions and platform dependencies. After switching Node versions, check `node --version` and `pnpm --version` in the terminal you use to build JABS.
+
+Run `pnpm install --frozen-lockfile` from the repository root. This installs the project's Tauri CLI, Vite, TypeScript, and Vitest versions; global copies are unnecessary.
+
+| Command | Use |
+| --- | --- |
+| `pnpm run dev` | Run the desktop app with the Rust core and Vite development server. |
+| `pnpm run dev:web` | Run only the renderer at `http://127.0.0.1:5173`; live data requires the JABS local service. |
+| `pnpm run build:web` | Build renderer assets without creating an installer. |
+
 ## Architecture
 
 JABS uses Tauri 2 with a Rust core and a React/Vite renderer. Mantine supplies operator controls. OBS pages use separate styling and a fixed `1920×1080` canvas.
@@ -71,6 +83,8 @@ The Player Library stores profiles and local overrides in `players`, searchable 
 
 `set_overrides` stores each match's progress as JSON, keyed by its start.gg set ID. Returning to a match restores that progress and applies current Player Library defaults. Images remain in the media folders; the saved match contains their filenames.
 
+Versus placements are handled in `versus_screen.rs` and `versus_screen/media.rs`. Set adjustments are stored in `set_overrides.versus_media`, with separate layouts for character art, player photos, and their combined composition. Player defaults are stored in `player_versus_media` for each game, artwork, side, and composition. Saved set adjustments take priority over player defaults, followed by automatic positioning. Player defaults survive restarts and are not included in Player Library JSON exports.
+
 Saved matches expire seven days after their last edit. JABS removes expired records at startup and when selecting a match, while retaining the match currently on stream. Player profiles and overlay settings do not expire.
 
 Top 8 and thumbnail PNG exports are handled by `ui/operator/exportGraphic.ts`. The exporter identifies image layers through `data-export-image-layer`, clipping regions through `data-export-clip`, and permitted labels through `trustedText`.
@@ -99,6 +113,14 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
 
 While developing, use `pnpm test` or focused native tests. `pnpm run typecheck` also checks generated catalogs and source-size limits.
+
+Release CI also checks both dependency lockfiles for security advisories. To run the same audits locally:
+
+```sh
+pnpm audit
+cargo install cargo-audit --version 0.22.2 --locked
+cargo audit --file src-tauri/Cargo.lock
+```
 
 Unit tests sit beside the feature they cover; workflow tests live in `src/integration/`. Useful regressions check saved data, validation, responses arriving out of order, and user actions. Shared controls need thorough coverage once, followed by short integration checks in the screens that use them. `createTestCustomScoreboard` provides a standard layout fixture; migration tests use explicit older inputs. Database paging tests need only enough records to cross a page boundary.
 

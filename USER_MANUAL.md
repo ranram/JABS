@@ -6,6 +6,8 @@ For downloads and installation, see the [README](README.md). For a guided introd
 
 Load a start.gg tournament link and select an event. Find a match by player, round, station, score, or set ID, then choose **Send to Stream** to show it in your overlays.
 
+With an event loaded, use **Tools → Set Selector** to switch matches on the fly from another tab. In **Bracket Management**, use the selector already shown there.
+
 Use **Edit stream state** to adjust players, scores, and match details. Changes save automatically. **Game** sets the rules and character choices; **Scoreboard styling** chooses the look. For games outside the built-in lineup, **Game profile for set** lets you change the rules profile if needed.
 
 For an exhibition, choose a game and enter the players without loading a tournament. Select saved players from the library to reuse their game preferences. If both have start.gg profiles, the Versus Screen can also show their head-to-head history. First-to formats and Topanga Rules are available for exhibitions.
@@ -53,7 +55,7 @@ In **Edit stream state**, **Scoreboard font** changes the scoreboard and its inf
 
 To use your own OBS background, enable **Transparent background** for the overlay. In Versus Screen, turn off **Match information backdrop** to remove the center panel's background while keeping the comparison rows visible.
 
-For entrance animations when changing scenes, leave **Refresh browser when scene becomes active** and **Shutdown source when not visible** unchecked.
+For animated overlays that should start fresh when you return to their scene, enable **Shutdown source when not visible** and **Refresh browser when scene becomes active** in OBS's Browser Source properties. These settings unload the hidden page and reload it when activated. Leave them off for sources you want to keep running between scenes, including Stingers.
 
 ### Stingers
 
@@ -73,7 +75,7 @@ When you select a saved player, changes to their flag, pronouns, social handle, 
 
 In **Players**, choose **Use imported value** to show the imported start.gg value again. Clearing a field hides its value.
 
-Use **Export library** to back up player records, and back up your image folders separately. **Import library** adds new players and keeps existing local records.
+Use **Export library** to back up player records, and back up your image folders separately. Versus placements stay in JABS's local database and are not included in the library export. **Import library** adds new players and keeps existing local records.
 
 ### Scoreboard photos and logos
 
@@ -106,6 +108,8 @@ Selecting a game may create empty character files. Replace these with your artwo
 In Versus Screen, Top 8 Generator, and YouTube Thumbnail Generator, drag either the photo or character art to move it. Click a visible part of the image to select it, or use `Alt+click` when images overlap. **Reset position** restores the selected image's position and size.
 
 With an image selected, arrow keys move it, `Shift` + arrows moves it farther, `+` / `-` resizes it, and `F` flips it.
+
+Versus Screen saves position, size, and flips for each set. When you adjust saved players, JABS also remembers those placements for future matches and exhibitions using the same game, artwork, side, and photo/character layout. Returning to a set uses its own saved placements first.
 
 ## Custom scoreboards
 
