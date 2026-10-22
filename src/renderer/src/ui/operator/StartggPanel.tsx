@@ -21,7 +21,6 @@ import { useTranslation } from 'react-i18next';
 import { resolveStartggGameProfileId, type GameId, type GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, LogoAsset, SelectedSetState } from '@shared/models';
 import { PaginationControls } from './ScoreControls';
-import { MediaFolderControls } from './MediaFolderControls';
 import { sortByLabel } from './operatorUtils';
 import { OtherOverlaysPanel } from './WorkspacePanels';
 import { StingersPanel } from '../stingers/StingersPanel';
@@ -49,8 +48,6 @@ type StartggPanelProps = {
   tokenInputRef: RefObject<HTMLInputElement | null>;
   tokenConfigured: boolean;
   tokenStorageAvailable: boolean;
-  tokenSessionOnly: boolean;
-  tokenVerified: boolean;
   tokenInputReady: boolean;
   detectedGameId?: GameId;
   detectedProfile?: GameProfile;
@@ -91,8 +88,6 @@ export function StartggPanel({
   tokenInputRef,
   tokenConfigured,
   tokenStorageAvailable,
-  tokenSessionOnly,
-  tokenVerified,
   tokenInputReady,
   detectedGameId,
   detectedProfile,
@@ -250,24 +245,11 @@ export function StartggPanel({
     topEight.setGameContext(gameContext.gameId, gameContext.gameName, assetCatalogSlug);
     thumbnail.setGameContext(gameContext.gameId, gameContext.gameName, assetCatalogSlug);
   }, [tournamentLoaded, gameContext.gameId, gameContext.gameName, assetCatalogSlug, eventVideogameId]);
-  const statusLabel = !tokenConfigured
-    ? t('operator:startgg.publicAccess')
-    : tokenVerified
-      ? t('operator:startgg.verified')
-      : tokenSessionOnly
-        ? t('operator:startgg.session')
-        : t('operator:startgg.stored');
-
   return (
     <>
       <Paper className="panel startgg-panel" p="md" radius="lg" withBorder>
         <PanelHeader title={t('operator:startgg.title')} description={t('operator:startgg.description')}>
-          <Group gap="sm" justify="flex-end">
-            <BracketRefreshStatus refresh={bracketRefresh} />
-            <Badge color={!tokenConfigured ? 'gray' : tokenVerified ? 'green' : tokenSessionOnly ? 'yellow' : 'blue'}>
-              {statusLabel}
-            </Badge>
-          </Group>
+          <BracketRefreshStatus refresh={bracketRefresh} />
         </PanelHeader>
 
         <SimpleGrid type="container" cols={{ base: 1, '48rem': 2 }} mt="md">
@@ -285,7 +267,7 @@ export function StartggPanel({
                 if (event.key === 'Enter' && tokenInputReady) onSaveToken();
               }}
             />
-            <Group>
+            <Group grow preventGrowOverflow={false}>
               <Button disabled={loading || !tokenInputReady} onClick={onSaveToken}>
                 {tokenStorageAvailable ? t('operator:startgg.saveToken') : t('operator:startgg.useForSession')}
               </Button>
@@ -360,13 +342,6 @@ export function StartggPanel({
         mt="md"
       >
         <div ref={stickyHeader} className="workspace-sticky-header">
-          <Tabs.List aria-label={t('operator:workspaces.aria')}>
-            {workspaces.map((item) => (
-              <Tabs.Tab key={item.id} value={item.id}>
-                {item.label}
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
           <WorkspaceMaintenanceBar
             activeSet={activeSet}
             assetCatalogSlug={
@@ -398,134 +373,132 @@ export function StartggPanel({
             onOpenSetSelector={() => setSetSelectorOpen(true)}
             setSelectorDisabled={workspace === 'bracket' || !selectedEventId || !setSelector}
           />
+          <Tabs.List aria-label={t('operator:workspaces.aria')}>
+            {workspaces.map((item) => (
+              <Tabs.Tab key={item.id} value={item.id}>
+                {item.label}
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
         </div>
 
         <Tabs.Panel value="bracket" pt="md">
-          <div className="bracket-overview-grid">
-            <Paper className="panel bracket-workspace" p="md" radius="lg" withBorder>
-              {detectedProfile && (
-                <Group mt="md" gap="xs">
-                  <Text size="sm">{t('operator:startgg.detectedProfile')}</Text>
-                  <Badge variant="light">{detectedProfile.shortLabel}</Badge>
-                </Group>
-              )}
+          {tournamentLoaded && (
+            <div className="bracket-overview-grid">
+              <Paper className="panel bracket-workspace" p="md" radius="lg" withBorder>
+                {detectedProfile && (
+                  <Group gap="xs">
+                    <Text size="sm">{t('operator:startgg.detectedProfile')}</Text>
+                    <Badge variant="light" h="auto" maw="100%" styles={{ label: { whiteSpace: 'normal' } }}>
+                      {detectedProfile.label}
+                    </Badge>
+                  </Group>
+                )}
 
-              <Group mt="md" align="flex-end" gap="md">
-                <Select
-                  data-testid="event-select"
-                  data-tutorial="event"
-                  style={{ flex: '1 1 260px' }}
-                  label={t('operator:startgg.selectEvent')}
-                  value={selectedEventId || null}
-                  disabled={loading}
-                  aria-label={t('operator:startgg.eventAria')}
-                  placeholder={t('operator:startgg.selectEvent')}
-                  searchable
-                  clearable
-                  data={sortedEvents.map((event) => ({ value: String(event.id), label: event.name }))}
-                  onChange={(value) => bracket.actions.selectEvent(value ?? '')}
-                />
-
-                {selectedEventId && <ImportEventPlayers eventId={selectedEventId} />}
-              </Group>
-
-              {assetCatalogSlug && (
-                <Group mt="md" justify="space-between" align="center" wrap="wrap">
-                  <MediaFolderControls
-                    kind="game-assets"
-                    label={t('operator:browser.assetSlug')}
-                    subpath={`${assetCatalogSlug}/characters`}
+                <Group mt="md" align="flex-end" gap="md">
+                  <Select
+                    data-testid="event-select"
+                    data-tutorial="event"
+                    style={{ flex: '1 1 260px' }}
+                    label={t('operator:startgg.selectEvent')}
+                    value={selectedEventId || null}
+                    disabled={loading}
+                    aria-label={t('operator:startgg.eventAria')}
+                    placeholder={t('operator:startgg.selectEvent')}
+                    searchable
+                    clearable
+                    data={sortedEvents.map((event) => ({ value: String(event.id), label: event.name }))}
+                    onChange={(value) => bracket.actions.selectEvent(value ?? '')}
                   />
+
+                  {selectedEventId && <ImportEventPlayers eventId={selectedEventId} />}
                 </Group>
-              )}
 
-              {selectedEventId && (
-                <div className="bracket-browser">
-                  <div className="bracket-filter-row">
-                    <Select
-                      data-testid="selection-game-profile"
-                      label={t('operator:browser.gameProfile')}
-                      value={resolveStartggGameProfileId(selectedEvent?.videogame, selectionGameId)}
-                      disabled={loading || Boolean(detectedGameId)}
-                      placeholder={t('operator:browser.chooseProfile')}
-                      searchable
-                      clearable
-                      description={
-                        detectedProfile
-                          ? t('operator:browser.detectedFromEvent', { profile: detectedProfile.label })
-                          : t('operator:browser.unknownGame')
-                      }
-                      inputWrapperOrder={['label', 'input', 'description', 'error']}
-                      data={sortedGameProfiles.map((profile) => ({ value: profile.id, label: profile.label }))}
-                      onChange={(value) => bracket.actions.setSelectionGameId((value ?? '') as GameId | '')}
-                    />
-                    <Select
-                      label={t('operator:browser.phase')}
-                      value={selectedPhaseId || null}
-                      disabled={loading || phases.length === 0}
-                      placeholder={t('operator:browser.allPhases')}
-                      searchable
-                      clearable
-                      data={sortedPhases.map((phase) => ({
-                        value: String(phase.id),
-                        label: displayPhaseName(phase.name)
-                      }))}
-                      onChange={(value) => bracket.actions.selectPhase(value ?? '')}
-                    />
-                  </div>
-                  <div className="bracket-filter-row">
-                    <Select
-                      label={t('operator:browser.pool')}
-                      value={selectedPhaseGroupId || null}
-                      disabled={loading || !selectedPhaseId || phaseGroups.length === 0}
-                      placeholder={t('operator:browser.allPools')}
-                      searchable
-                      clearable
-                      data={sortedPhaseGroups.map((group) => ({
-                        value: String(group.id),
-                        label: group.displayIdentifier
-                      }))}
-                      onChange={(value) => bracket.actions.selectPhaseGroup(value ?? '')}
-                    />
-                    <Group align="flex-end" wrap="nowrap">
-                      <NumberInput
-                        label={t('operator:browser.stationNumber')}
-                        min={1}
-                        step={1}
-                        value={stationNumber}
-                        placeholder={t('operator:browser.stationPlaceholder')}
-                        disabled={loading}
-                        allowDecimal={false}
-                        onChange={(value) => bracket.actions.setStationNumber(String(value))}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') bracket.actions.browseStation();
-                        }}
-                        style={{ flex: 1 }}
+                {selectedEventId && (
+                  <div className="bracket-browser">
+                    <div className="bracket-filter-row">
+                      {!detectedGameId && (
+                        <Select
+                          data-testid="selection-game-profile"
+                          label={t('operator:browser.gameProfile')}
+                          value={resolveStartggGameProfileId(selectedEvent?.videogame, selectionGameId)}
+                          disabled={loading}
+                          placeholder={t('operator:browser.chooseProfile')}
+                          searchable
+                          clearable
+                          description={t('operator:browser.unknownGame')}
+                          inputWrapperOrder={['label', 'input', 'description', 'error']}
+                          data={sortedGameProfiles.map((profile) => ({ value: profile.id, label: profile.label }))}
+                          onChange={(value) => bracket.actions.setSelectionGameId((value ?? '') as GameId | '')}
+                        />
+                      )}
+                      <Select
+                        label={t('operator:browser.phase')}
+                        style={{ gridColumn: detectedGameId ? '1 / -1' : undefined }}
+                        value={selectedPhaseId || null}
+                        disabled={loading || phases.length === 0}
+                        placeholder={t('operator:browser.allPhases')}
+                        searchable
+                        clearable
+                        data={sortedPhases.map((phase) => ({
+                          value: String(phase.id),
+                          label: displayPhaseName(phase.name)
+                        }))}
+                        onChange={(value) => bracket.actions.selectPhase(value ?? '')}
                       />
-                      <Button disabled={loading || !stationNumber} onClick={bracket.actions.browseStation}>
-                        {t('operator:browser.browse')}
-                      </Button>
-                    </Group>
-                  </div>
+                    </div>
+                    <div className="bracket-filter-row">
+                      <Select
+                        label={t('operator:browser.pool')}
+                        value={selectedPhaseGroupId || null}
+                        disabled={loading || !selectedPhaseId || phaseGroups.length === 0}
+                        placeholder={t('operator:browser.allPools')}
+                        searchable
+                        clearable
+                        data={sortedPhaseGroups.map((group) => ({
+                          value: String(group.id),
+                          label: group.displayIdentifier
+                        }))}
+                        onChange={(value) => bracket.actions.selectPhaseGroup(value ?? '')}
+                      />
+                      <Group align="flex-end" wrap="nowrap">
+                        <NumberInput
+                          label={t('operator:browser.stationNumber')}
+                          min={1}
+                          step={1}
+                          value={stationNumber}
+                          placeholder={t('operator:browser.stationPlaceholder')}
+                          disabled={loading}
+                          allowDecimal={false}
+                          onChange={(value) => bracket.actions.setStationNumber(String(value))}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') bracket.actions.browseStation();
+                          }}
+                          style={{ flex: 1 }}
+                        />
+                        <Button disabled={loading || !stationNumber} onClick={bracket.actions.browseStation}>
+                          {t('operator:browser.browse')}
+                        </Button>
+                      </Group>
+                    </div>
 
-                  {phaseGroupPageInfo && phaseGroupPageInfo.totalPages > 1 && (
-                    <PaginationControls
-                      label={t('operator:browser.poolPages')}
-                      pageInfo={phaseGroupPageInfo}
-                      disabled={loading}
-                      onPage={bracket.actions.loadPhaseGroups}
-                    />
-                  )}
-                  <Group>
-                    <Button variant="default" disabled={loading} onClick={bracket.actions.browseAllEventSets}>
+                    {phaseGroupPageInfo && phaseGroupPageInfo.totalPages > 1 && (
+                      <PaginationControls
+                        label={t('operator:browser.poolPages')}
+                        pageInfo={phaseGroupPageInfo}
+                        disabled={loading}
+                        onPage={bracket.actions.loadPhaseGroups}
+                      />
+                    )}
+                    <Button fullWidth variant="default" disabled={loading} onClick={bracket.actions.browseAllEventSets}>
                       {t('operator:browser.allEventSets')}
                     </Button>
-                  </Group>
-                </div>
-              )}
-            </Paper>
-            {!setSelectorOpen && selectorContent}
-          </div>
+                  </div>
+                )}
+              </Paper>
+              {!setSelectorOpen && selectorContent}
+            </div>
+          )}
           {children}
         </Tabs.Panel>
 

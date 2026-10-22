@@ -144,6 +144,17 @@ it('selects either stream slot, shows five placing logos and the run, and never 
   state.selectedSet.playerOne.score = 1;
   await view.rerender();
   expect(transport.stats.mock.calls.length).toBe(calls);
+  state.selectedSet.round = 'Grand Final';
+  state.selectedSet.winnersSideEntrantId = state.selectedSet.playerTwo.entrantId;
+  await view.rerender();
+  expect(view.container.querySelector('.victory-name')?.textContent).toBe('WBG MENARD [L]');
+  state.selectedSet.round = 'Grand Final Reset';
+  await view.rerender();
+  expect(view.container.querySelector('.victory-name')?.textContent).toBe('WBG MENARD');
+  expect(state.selectedSet.playerOne.name).toBe('MENARD');
+  expect(transport.stats.mock.calls.length).toBe(calls);
+  state.selectedSet.round = 'Losers Final';
+  state.selectedSet.winnersSideEntrantId = undefined;
 
   state.selectedSet.playerOne.displayFlag = 'pride:transgender';
   await view.rerender();
@@ -198,11 +209,24 @@ it('selects either stream slot, shows five placing logos and the run, and never 
   expect(view.container.querySelector('.victory-logo')?.getAttribute('src')).toBe('logo-new-rails.png');
   expect(view.container.querySelector('main')?.classList.contains('theme-t8')).toBe(true);
   await settings({ showTournamentLogo: false });
-  expect(view.container.querySelector('.victory-logo.is-placeholder')?.getAttribute('src')).toBe(questionMark);
+  expect(view.container.querySelector('.victory-logo')).toBeNull();
   expect(view.container.querySelectorAll('.stats-placement-logo')).toHaveLength(5);
+  state.selectedSet.broadcast!.logoAssetId = undefined;
+  await settings({ showTournamentLogo: true, logoAssetId: undefined });
+  expect(view.container.querySelector('.victory-logo')).toBeNull();
   transport.logo.mockRejectedValueOnce(new Error('Logo unavailable'));
-  await settings({ showTournamentLogo: true, logoAssetId: 'missing.png' });
-  expect(view.container.querySelector('.victory-logo.is-placeholder')?.getAttribute('src')).toBe(questionMark);
+  await settings({ logoAssetId: 'missing.png' });
+  expect(view.container.querySelector('.victory-logo')).toBeNull();
+  const pendingLogo = deferred<string>();
+  transport.logo.mockReturnValueOnce(pendingLogo.promise);
+  await settings({ logoAssetId: 'next.png' });
+  expect(view.container.querySelector('.victory-logo')).toBeNull();
+  await act(async () => pendingLogo.resolve('logo-next.png'));
+  const tournamentLogo = view.container.querySelector<HTMLImageElement>('.victory-logo')!;
+  expect(tournamentLogo.getAttribute('src')).toBe('logo-next.png');
+  await act(async () => tournamentLogo.dispatchEvent(new Event('error')));
+  expect(tournamentLogo.style.display).toBe('none');
+  expect(view.container.querySelector('.victory-logo.is-placeholder')).toBeNull();
   await act(async () => {
     await i18n.changeLanguage('es-419');
   });
@@ -225,9 +249,23 @@ it('selects either stream slot, shows five placing logos and the run, and never 
   expect(view.container.querySelectorAll('.stats-placement-list li')).toHaveLength(0);
   expect(view.container.textContent).toContain('Loading tournament results');
   await act(async () => {
-    second.resolve(stats(2));
+    const nextStats = stats(2);
+    nextStats.placements[4].logoAssetId = undefined;
+    second.resolve(nextStats);
   });
   expect(view.container.querySelectorAll('.stats-placement-list li')).toHaveLength(5);
+  expect(view.container.querySelectorAll('.stats-placement-logo')).toHaveLength(5);
+  expect(
+    view.container.querySelector('.stats-placement-list li:last-child .stats-placement-logo')?.getAttribute('src')
+  ).toBe(questionMark);
+  state.selectedSet.round = 'Grand Finals';
+  state.selectedSet.winnersSideEntrantId = state.selectedSet.playerOne.entrantId;
+  await view.rerender();
+  expect(view.container.querySelector('.victory-name')?.textContent).toBe('DRX [L] KNEE');
+  state.selectedSet.round = 'Grand Finals Reset';
+  await view.rerender();
+  expect(view.container.querySelector('.victory-name')?.textContent).toBe('DRX KNEE');
+  expect(state.selectedSet.playerTwo.name).toBe('KNEE');
   await settings({ showPlayerPhoto: true });
   expect(view.container.querySelector('.victory-player-photo.is-placeholder')?.getAttribute('src')).toBe(
     playerPlaceholder

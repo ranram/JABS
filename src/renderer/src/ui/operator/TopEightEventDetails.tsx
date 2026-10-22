@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Accordion, Button, NumberInput, Stack, Text, TextInput } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { TopEightDraftController } from './useTopEightDraft';
@@ -8,6 +9,7 @@ type TopEightEventDetailsProps = {
   onLoadUrlChange: (value: string) => void;
   onLoad: () => void;
   loading: boolean;
+  importRevision: number;
 };
 
 export function TopEightEventDetails({
@@ -15,13 +17,18 @@ export function TopEightEventDetails({
   loadUrl,
   onLoadUrlChange,
   onLoad,
-  loading
+  loading,
+  importRevision
 }: TopEightEventDetailsProps) {
   const { t } = useTranslation(['operator']);
   const { draft } = controller;
+  const [opened, setOpened] = useState<string | null>('startgg');
+  useEffect(() => {
+    if (importRevision > 0) setOpened(null);
+  }, [importRevision]);
 
   return (
-    <Accordion variant="separated" radius="md" defaultValue="startgg">
+    <Accordion variant="separated" radius="md" value={opened} onChange={setOpened}>
       <Accordion.Item className="operator-inset" value="startgg">
         <Accordion.Control>
           <Text fw={700} size="sm">

@@ -104,7 +104,6 @@ export function WorkspaceMaintenanceBar({
       onClick: onUnloadTournament
     });
   const tools = [
-    { id: 'help', content: <HelpMenu navigate={onTutorialWorkspace} /> },
     { id: 'players', content: <PlayerLibraryButton selectedSet={activeSet} compact /> },
     {
       id: 'set-selector',
@@ -114,7 +113,11 @@ export function WorkspaceMaintenanceBar({
         </Button>
       )
     },
-    { id: 'settings', content: <SettingsButton compact /> }
+    { id: 'settings', content: <SettingsButton compact /> },
+    {
+      id: 'help',
+      content: <HelpMenu navigate={onTutorialWorkspace} />
+    }
   ];
   const groups: Array<{ id: string; label: string; tutorial?: string; content: ReactNode }> = [
     {
@@ -159,7 +162,7 @@ export function WorkspaceMaintenanceBar({
           <AssetsMenu game={assetCatalogSlug} />
           <Tooltip label={t('browser.reloadAssetsHint')} openDelay={350}>
             <Box component="span" display="flex">
-              <Button size="compact-xs" variant="default" loading={reloadingAssets} onClick={onReloadAssets}>
+              <Button data-tutorial="reload-assets" size="compact-xs" variant="default" loading={reloadingAssets} onClick={onReloadAssets}>
                 {t('browser.reloadAssets')}
               </Button>
             </Box>

@@ -84,7 +84,7 @@
   z-index: 1;
   width: 50%;
   height: 23.148%;
-  border: max(1px, 0.08cqw) dashed rgb(217 255 67 / 55%);
+  border: max(1px, 0.08cqw) dashed rgb(105 231 255 / 75%);
   pointer-events: none;
 }
 

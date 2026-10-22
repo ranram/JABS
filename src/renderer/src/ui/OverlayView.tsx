@@ -7,6 +7,7 @@ import type { ComponentType, CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { resolveGameProfile, type GameProfile, type OverlayTemplateId } from '@shared/gameProfiles';
 import type { PlayerState, SelectedSetState } from '@shared/models';
+import { matchPlayerName } from '@shared/matchContext';
 import { useOverlayState } from '../hooks/useOverlayState';
 import { useCommentatorState } from '../hooks/useCommentatorState';
 import { useBroadcastLogo } from '../hooks/useBroadcastLogo';
@@ -112,13 +113,7 @@ function MatchOverlayView() {
   }
 
   if (announcementSurface) {
-    return (
-      <AnnouncementOverlay
-        profile={profile}
-        selectedSet={selectedSet}
-        reconnecting={Boolean(error)}
-      />
-    );
+    return <AnnouncementOverlay profile={profile} selectedSet={selectedSet} reconnecting={Boolean(error)} />;
   }
 
   if (customScoreboard.scoreboard && customScoreboard.frameUrl) {
@@ -169,7 +164,7 @@ function MatchOverlayView() {
 function CommentatorOverlay() {
   const appearanceStyle = useAppearanceStyle();
   const { state, error } = useCommentatorState();
-  const logoAssetId = useBroadcastLogo(state?.logoAssetId, state?.showTournamentLogo ?? true);
+  const logoAssetId = useBroadcastLogo(state?.logoAssetId);
   const logoUrl = useLogoAssetUrl(logoAssetId);
   if (!state || state.presentation === 'hidden') return <main className="overlay commentator-overlay" />;
   const stylingProfile = resolveGameProfile(state.stylingGameId);
@@ -182,7 +177,7 @@ function CommentatorOverlay() {
       >
         <CommentatorIdentity side="left" {...state.commentators[0]} />
         <div className="commentator-event-mark">
-          {state.showTournamentLogo && logoUrl && <CatalogImage className="commentator-event-logo" src={logoUrl} />}
+          {logoUrl && <CatalogImage className="commentator-event-logo" src={logoUrl} />}
           <span>
             <DisplayText text={state.tournamentName} />
           </span>
@@ -227,9 +222,9 @@ function TopHudOverlay({ profile, selectedSet }: OverlayTemplateProps) {
       className={`overlay-frame top-hud-frame ${frameClasses[profile.overlay.template]}`}
       style={topHudStyle(profile)}
     >
-      <PlayerPlate player={selectedSet.playerOne} side="left" profile={profile} />
+      <PlayerPlate player={selectedSet.playerOne} selectedSet={selectedSet} side="left" profile={profile} />
       <MatchChip profile={profile} selectedSet={selectedSet} />
-      <PlayerPlate player={selectedSet.playerTwo} side="right" profile={profile} />
+      <PlayerPlate player={selectedSet.playerTwo} selectedSet={selectedSet} side="right" profile={profile} />
     </section>
   );
 }
@@ -240,31 +235,33 @@ function TournamentRibbonOverlay({ profile, selectedSet }: OverlayTemplateProps)
       className={`overlay-frame top-hud-frame tournament-ribbon-frame ${profile.overlay.template}-frame`}
       style={topHudStyle(profile)}
     >
-      <PlayerPlate player={selectedSet.playerOne} side="left" profile={profile} />
+      <PlayerPlate player={selectedSet.playerOne} selectedSet={selectedSet} side="left" profile={profile} />
       {profile.overlay.showMatchChip === false ? (
         <div className="overlay-hud-clear" aria-hidden="true" />
       ) : (
         <MatchChip profile={profile} selectedSet={selectedSet} />
       )}
-      <PlayerPlate player={selectedSet.playerTwo} side="right" profile={profile} />
+      <PlayerPlate player={selectedSet.playerTwo} selectedSet={selectedSet} side="right" profile={profile} />
     </section>
   );
 }
 
 type PlayerPlateProps = {
   player: PlayerState;
+  selectedSet: SelectedSetState;
   side: 'left' | 'right';
   profile: GameProfile;
 };
 
-function PlayerPlate({ player, side, profile }: PlayerPlateProps) {
+function PlayerPlate({ player, selectedSet, side, profile }: PlayerPlateProps) {
   const { t } = useTranslation(['overlay', 'common']);
+  const name = matchPlayerName(player, selectedSet);
   const sponsor = sponsorLine(player);
   const details = player.seed === undefined ? undefined : t('common:match.seed', { seed: player.seed });
   const flagUrl = displayFlagUrl(player.country, player.displayFlag);
   const xHandle = player.xHandle ? `@${player.xHandle}` : undefined;
   const copyRef = useScoreboardTextFit({
-    name: player.name,
+    name,
     sponsor,
     details,
     pronouns: player.pronouns,
@@ -290,7 +287,7 @@ function PlayerPlate({ player, side, profile }: PlayerPlateProps) {
         <span className="overlay-player-identity">
           <strong className="overlay-player-name">
             <ScoreboardPlayerName
-              name={player.name}
+              name={name}
               sponsor={sponsor}
               side={side}
               prefixClassName="overlay-player-prefix"

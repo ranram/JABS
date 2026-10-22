@@ -145,29 +145,6 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
   ] as const;
   return (
     <Stack gap="md" w="100%">
-      <Group justify="space-between" align="center" wrap="wrap">
-        <Text fw={800} flex={1} miw={0}>
-          {t('workspaces.resultScreen.currentWinner')}
-        </Text>
-        {currentResult ? (
-          <Group gap="xs" wrap="nowrap" align="flex-start">
-            <Text fw={900} miw={0} style={{ overflowWrap: 'anywhere' }}>
-              {currentResult.winner.name}
-            </Text>
-            <Badge
-              color={currentResult.kind === 'champion' ? 'yellow' : 'green'}
-              variant="light"
-              style={{ flexShrink: 0 }}
-            >
-              {t(`workspaces.resultScreen.${currentResult.kind}`)}
-            </Badge>
-          </Group>
-        ) : (
-          <Badge color="gray" variant="light" style={{ flexShrink: 0 }}>
-            {t('workspaces.resultScreen.noWinner')}
-          </Badge>
-        )}
-      </Group>
       <SimpleGrid type="container" cols={{ base: 1, '42rem': 3 }}>
         <Select
           label={t('workspaces.resultScreen.composition')}
@@ -233,6 +210,28 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
         )}
       </SimpleGrid>
     </Stack>
+  );
+}
+
+export function ResultScreenStatus({ activeSet }: { activeSet?: SelectedSetState }) {
+  const { t } = useTranslation('operator');
+  const result = activeSet ? announcementPresentation(activeSet) : undefined;
+  if (!result) {
+    return (
+      <Badge color="gray" variant="light" maw="100%" h="auto" styles={{ label: { whiteSpace: 'normal' } }}>
+        {t('workspaces.resultScreen.noWinner')}
+      </Badge>
+    );
+  }
+  return (
+    <Group gap="xs" wrap="nowrap">
+      <Text fw={900} miw={0} style={{ overflowWrap: 'anywhere' }}>
+        {result.winner.name}
+      </Text>
+      <Badge color={result.kind === 'champion' ? 'yellow' : 'green'} variant="light" style={{ flexShrink: 0 }}>
+        {t(`workspaces.resultScreen.${result.kind}`)}
+      </Badge>
+    </Group>
   );
 }
 

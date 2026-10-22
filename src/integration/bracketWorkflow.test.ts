@@ -61,8 +61,10 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
     streamQueue: vi.fn(async () => ({ source: 'live', assignments: [] }))
   };
   const openSet = vi.fn();
+  let setBusy!: (value: boolean) => void;
   function Workspace() {
     const [loading, setLoading] = useState(false);
+    setBusy = setLoading;
     const browser = useBracketBrowser({
       startgg: gateway as unknown as StartggGateway,
       setLoading,
@@ -79,8 +81,6 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
       tokenInputRef,
       tokenConfigured: true,
       tokenStorageAvailable: true,
-      tokenSessionOnly: false,
-      tokenVerified: true,
       tokenInputReady: false,
       profiles: Object.values(gameProfiles),
       activeSet: createTestOverlayState().selectedSet,
@@ -126,10 +126,12 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
     });
   }
   const view = await mountView(() => h(MantineProvider, { env: 'test' }, h(Workspace)));
+  expect(view.container.querySelector('.bracket-overview-grid')).toBeNull();
   const recent = [...view.container.querySelectorAll('button')].find(
     (button) => button.textContent === 'funda-series-27'
   )!;
   await act(async () => recent.click());
+  expect(view.container.querySelector('.bracket-overview-grid')).not.toBeNull();
   expect(view.container.querySelectorAll('.set-row')).toHaveLength(10);
   async function choose(label: string, option: string) {
     const node = [...view.container.querySelectorAll('label')].find((node) => node.textContent === label)!;
@@ -165,7 +167,15 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
   let finishSave!: () => void;
   await act(async () => { finishSave = beginPendingWrite(); });
   expect((dialog.querySelector('.set-row') as HTMLButtonElement).disabled).toBe(true);
+  expect(dialog.querySelectorAll('.mantine-Loader-root')).toHaveLength(1);
+  await act(async () => setBusy(true));
+  expect(dialog.querySelectorAll('.mantine-Loader-root')).toHaveLength(1);
+  expect(dialog.querySelector('[role=status]')?.getAttribute('aria-label')).toBe(i18n.t('common:status.loading'));
+  await act(async () => setBusy(false));
+  expect(dialog.querySelectorAll('.mantine-Loader-root')).toHaveLength(1);
+  expect(dialog.querySelector('[role=status]')?.getAttribute('aria-label')).toBe(i18n.t('operator:selector.dirtyWarning'));
   await act(async () => finishSave());
+  expect(dialog.querySelectorAll('.mantine-Loader-root')).toHaveLength(0);
   await act(async () => (dialog.querySelector('.set-row') as HTMLElement).click());
   expect(openSet).toHaveBeenCalledWith(sets[0]);
   expect(document.querySelector('[role=dialog] .set-list')).toBeNull();
@@ -178,7 +188,11 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
     const labels = [...tools.querySelectorAll('button')]
       .filter((button) => !button.closest('[role=dialog]'))
       .map((button) => button.textContent);
-    expect(labels.slice(-2)).toEqual([i18n.t('operator:selector.open'), i18n.t('operator:appearance.settings')]);
+    expect(labels.slice(-3)).toEqual([
+      i18n.t('operator:selector.open'),
+      i18n.t('operator:appearance.settings'),
+      `${i18n.t('operator:help.title')}▾`
+    ]);
   }
   await act(async () => { await i18n.changeLanguage('en'); });
   const bracketTab = [...view.container.querySelectorAll('[role=tab]')].find(
@@ -198,4 +212,12 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
   const eventTitle = document.getElementById(eventDialog.getAttribute('aria-labelledby')!);
   expect(eventTitle?.textContent).toBe('Select set · Funda Series');
   expect(gateway.events).toHaveBeenCalledOnce();
+  await act(async () => (eventDialog.querySelector('.mantine-Modal-close') as HTMLButtonElement).click());
+  await act(async () => (bracketTab as HTMLElement).click());
+  const bracketOptions = [...view.container.querySelectorAll('button')].find(
+    (button) => button.textContent === i18n.t('operator:quickTools.bracketOptions') + '▾'
+  )!;
+  await act(async () => bracketOptions.click());
+  await act(async () => (document.querySelector('[data-testid="unload-tournament"]') as HTMLButtonElement).click());
+  expect(view.container.querySelector('.bracket-overview-grid')).toBeNull();
 }, 15000);

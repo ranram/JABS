@@ -7,7 +7,6 @@ import {
   Divider,
   Drawer,
   FileButton,
-  Group,
   Select,
   SimpleGrid,
   Stack,
@@ -168,25 +167,27 @@ export function SettingsPanel() {
       <Text size="sm" c="dimmed">
         {t('appearance.colorHelp')}
       </Text>
-      <Select
-        label={t('appearance.textSize')}
-        value={appearance.textSize}
-        data={[
-          { value: 'default', label: t('appearance.defaultText') },
-          { value: 'large', label: t('appearance.largeText') }
-        ]}
-        onChange={(value) => value && change({ textSize: value as Appearance['textSize'] })}
-      />
-      <Select
-        label={t('appearance.broadcastLanguage')}
-        value={appearance.broadcastLanguage}
-        data={[
-          { value: 'follow', label: t('appearance.followLanguage') },
-          { value: 'en', label: t('common:languages.en') },
-          { value: 'es-419', label: t('common:languages.es419') }
-        ]}
-        onChange={(value) => value && change({ broadcastLanguage: value as Appearance['broadcastLanguage'] })}
-      />
+      <SimpleGrid type="container" cols={{ base: 1, '28rem': 2 }}>
+        <Select
+          label={t('appearance.textSize')}
+          value={appearance.textSize}
+          data={[
+            { value: 'default', label: t('appearance.defaultText') },
+            { value: 'large', label: t('appearance.largeText') }
+          ]}
+          onChange={(value) => value && change({ textSize: value as Appearance['textSize'] })}
+        />
+        <Select
+          label={t('appearance.broadcastLanguage')}
+          value={appearance.broadcastLanguage}
+          data={[
+            { value: 'follow', label: t('appearance.followLanguage') },
+            { value: 'en', label: t('common:languages.en') },
+            { value: 'es-419', label: t('common:languages.es419') }
+          ]}
+          onChange={(value) => value && change({ broadcastLanguage: value as Appearance['broadcastLanguage'] })}
+        />
+      </SimpleGrid>
       <Switch
         label={t('appearance.animations')}
         checked={appearance.entranceAnimations}
@@ -213,7 +214,7 @@ export function SettingsPanel() {
         value={name}
         onChange={(event) => setName(event.currentTarget.value)}
       />
-      <Group>
+      <SimpleGrid type="container" cols={{ base: 1, '28rem': 2 }}>
         <Button
           disabled={saving || !name.trim() || (!selected && state.presets.length >= 20)}
           onClick={async () => {
@@ -243,8 +244,6 @@ export function SettingsPanel() {
         >
           {t('appearance.deletePreset')}
         </DestructiveButton>
-      </Group>
-      <Group>
         <FileButton accept="application/json,.json" onChange={(file) => void importPreset(file)}>
           {(props) => (
             <Button {...props} variant="default" disabled={transferring || saving || state.presets.length >= 20}>
@@ -255,7 +254,7 @@ export function SettingsPanel() {
         <Button variant="default" disabled={transferring} onClick={() => void exportPreset()}>
           {t('appearance.exportPreset')}
         </Button>
-      </Group>
+      </SimpleGrid>
       <Text size="sm" c="dimmed">
         {t('appearance.presetHelp')}
       </Text>

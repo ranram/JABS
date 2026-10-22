@@ -13,7 +13,6 @@
   inset: 140px 56% 160px -30px;
 }
 
-.player-stats .victory-logo.is-placeholder,
 .stats-placement-logo.is-placeholder {
   filter: brightness(0) invert(0.65);
 }

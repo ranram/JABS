@@ -5,7 +5,7 @@ import { useOverlayState } from '../../hooks/useOverlayState';
 import { useLogoAsset } from '../../hooks/useLogoAssetUrl';
 import { usePlayerStatsSettings } from '../../hooks/usePlayerStatsSettings';
 import { useBroadcastLogo } from '../../hooks/useBroadcastLogo';
-import { phaseAndRound } from '@shared/matchContext';
+import { matchPlayerName, phaseAndRound } from '@shared/matchContext';
 import { CatalogImage } from '../CatalogImage';
 import { DisplayText } from '../DisplayText';
 import { displayFlagLabel, displayFlagUrl } from '../overlayPlayerPresentation';
@@ -17,7 +17,6 @@ import { usePlayerStats } from './usePlayerStats';
 import { StatsResults } from './StatsResults';
 import { statsEntrance } from './statsEntrance';
 import { useAppearanceStyle } from '../appearance/AppearanceProvider';
-import questionMark from '../../assets/question-mark.svg';
 import playerPlaceholder from '../../assets/player_placeholder.svg';
 import '../resultScreen/victory.css';
 import '../resultScreen/spotlight.css';
@@ -52,11 +51,12 @@ function PlayerStatsScreen({ slot }: { slot: StatsPlayer }) {
     ? (artwork.photoUrl ?? (ready ? playerPlaceholder : undefined))
     : undefined;
   const stats = usePlayerStats(selected, slot);
+  const name = player ? matchPlayerName(player, selected) : '';
   const sponsor = player?.prefix?.trim() || player?.sponsor?.trim();
   const flagUrl = displayFlagUrl(player?.country, player?.displayFlag);
   const hasArtwork = Boolean(characterUrl || photoUrl);
   const nameRef = useVictoryTextFit(
-    settings ? JSON.stringify([sponsor, player?.name, Boolean(flagUrl)]) : '',
+    settings ? JSON.stringify([sponsor, name, Boolean(flagUrl)]) : '',
     hasArtwork
   );
   // Scores and network refreshes update the content without replaying the entrance.
@@ -73,12 +73,7 @@ function PlayerStatsScreen({ slot }: { slot: StatsPlayer }) {
         <span className="stats-waiting">{t('waiting')}</span>
       ) : (
         <section className={`victory-composition${hasArtwork ? '' : ' stats-type-led'}`} aria-label={t('stats.title')}>
-          <CatalogImage
-            className="victory-logo"
-            src={logo.url ?? questionMark}
-            fallbackSrc={questionMark}
-            entrance="stats-logo"
-          />
+          {logo.url && <CatalogImage className="victory-logo" src={logo.url} entrance="stats-logo" />}
           <ResultArtwork characterUrl={characterUrl} photoUrl={photoUrl} photoFallbackUrl={playerPlaceholder} />
           <header className={`stats-identity${flagUrl ? ' has-flag' : ''}`} data-entrance="stats-identity">
             <span className="stats-eyebrow">{t('stats.title')}</span>
@@ -97,7 +92,7 @@ function PlayerStatsScreen({ slot }: { slot: StatsPlayer }) {
                   </span>{' '}
                 </>
               )}
-              <DisplayText text={player.name} />
+              <DisplayText text={name} />
             </strong>
             <div className="stats-player-context">
               {settings.showSponsorLogo && artwork.sponsorUrl && (

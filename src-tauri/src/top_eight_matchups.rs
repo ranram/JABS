@@ -292,23 +292,5 @@ mod tests {
         let restored = TopEightMatchupsStore::load(&database).unwrap().current().unwrap();
         assert_eq!(restored["showTournamentLogo"], false);
         assert_eq!(restored["logoAssetId"], "tournament.png");
-
-        let legacy = serde_json::json!({
-            "tournamentName": "Tournament",
-            "commentators": [{ "name": "One", "handle": "" }, { "name": "Two", "handle": "" }],
-            "presentation": "hidden", "updatedAt": "2026-09-08T00:00:00Z"
-        });
-        database.save_broadcast_surface("commentators", &legacy.to_string(), "2026-09-08T00:00:00Z").unwrap();
-        let logos = std::path::Path::new("unused");
-        let store = crate::commentators::CommentatorStore::load(&database, logos).unwrap();
-        let current = store.current().unwrap();
-        assert_eq!(current["showTournamentLogo"], true);
-        let mut submitted: crate::commentators::CommentatorState = serde_json::from_value(current).unwrap();
-        submitted.show_tournament_logo = false;
-        store.replace(&database, logos, submitted).unwrap();
-        let restored = crate::commentators::CommentatorStore::load(&database, logos).unwrap().current().unwrap();
-        assert_eq!(restored["showTournamentLogo"], false);
-        assert_eq!(restored["commentators"], legacy["commentators"]);
     }
-
 }

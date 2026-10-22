@@ -3,7 +3,7 @@ import { act, createElement as h } from 'react';
 import { readFileSync } from 'node:fs';
 import { MantineProvider } from '@mantine/core';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { mountView } from '../../hooks/hookTestHarness';
+import { mountHook } from '../../hooks/hookTestHarness';
 import { initializeI18n, i18n } from '../../i18n';
 import { HelpMenu } from './HelpMenu';
 import { runTutorial, type TutorialPopover } from './runTutorial';
@@ -32,6 +32,7 @@ beforeEach(async () => {
   );
 });
 afterEach(async () => {
+  window.localStorage.removeItem('jabs.quick-start.dismissed');
   await act(async () => stop?.());
   stop = undefined;
   fixtures.splice(0).forEach((element) => element.remove());
@@ -56,14 +57,35 @@ function button(label: string, root: ParentNode = document) {
 }
 
 it('advances Help guides with a real Next click without touching token fields', async () => {
-  const fields = fixture('<div data-tutorial="api-access"><input type="password" value="not-a-real-token"></div>');
+  const fields = fixture(`
+    <div class="workspace-sticky-header"></div>
+    <div data-tutorial="api-access"><input type="password" value="not-a-real-token"></div>
+    <div class="tournament-lookup-row"></div><div class="startgg-panel"></div>
+    <div data-tutorial="bracket-options"></div><div data-tutorial="obs"></div>
+    <button data-tutorial="players">Players</button>
+    <div data-tutorial="assets"><button data-tutorial="reload-assets">Reload assets</button></div>
+  `);
   const secret = fields.querySelector('input')!;
   const change = vi.fn();
   secret.addEventListener('input', change);
   const navigate = vi.fn();
-  const view = await mountView(() => h(MantineProvider, { env: 'test' }, h(HelpMenu, { navigate })));
+  const help = () => h(MantineProvider, { env: 'test' }, h(HelpMenu, { navigate }));
+  const mountHelp = () => mountHook(help, true, (view) => view);
+  window.localStorage.removeItem('jabs.quick-start.dismissed');
+  let view = await mountHelp();
+  expect(document.querySelector('.jabs-tutorial .driver-popover-title')?.textContent).toBe('Welcome to JABS!');
+  await act(async () => document.querySelector<HTMLButtonElement>('[aria-label="Close guide"]')!.click());
+  expect(window.localStorage.getItem('jabs.quick-start.dismissed')).toBe('true');
+  await view.unmount();
+  view = await mountHelp();
   expect(isTutorialActive()).toBe(false);
+  navigate.mockClear();
   await act(async () => button('Help', view.container).click());
+  const guides = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+    .map((item) => item.textContent);
+  expect(guides.slice(1, 6)).toEqual([
+    'Quick Start', 'Connect a start.gg token', 'Run a tournament', 'Run an exhibition', 'Use the Player Library'
+  ]);
   await act(async () => {
     [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
       .find((item) => item.textContent === 'Connect a start.gg token')!
@@ -83,6 +105,36 @@ it('advances Help guides with a real Next click without touching token fields', 
   expect(secret.value).toBe('not-a-real-token');
   expect(change).not.toHaveBeenCalled();
   expect(navigate).not.toHaveBeenCalled();
+  await act(async () => button('Help', view.container).click());
+  await act(async () => {
+    [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+      .find((item) => item.textContent === 'Quick Start')!.click();
+  });
+  const titles = [
+    'Welcome to JABS!', 'When you need a token', 'Organize a tournament stream',
+    'Or run an exhibition', 'Add your media assets', 'Prepare the match and keep score', 'Send results to start.gg',
+    'Connect OBS', 'Reuse player details', 'Ready when you are'
+  ];
+  for (const [index, title] of titles.entries()) {
+    expect(document.querySelector('.jabs-tutorial .driver-popover-title')?.textContent).toBe(title);
+    expect(document.querySelector('.jabs-tutorial')?.textContent).not.toContain(i18n.t('operator:help.missing'));
+    await act(async () => button(index === titles.length - 1 ? 'Done' : 'Next').click());
+  }
+  expect(document.querySelector('.jabs-tutorial')).toBeNull();
+  expect(secret.value).toBe('not-a-real-token');
+  expect(change).not.toHaveBeenCalled();
+  const openFolder = vi.fn();
+  fields.querySelector('[data-tutorial="assets"]')!.addEventListener('click', openFolder);
+  await act(async () => button('Help', view.container).click());
+  await act(async () => {
+    [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+      .find((item) => item.textContent === 'Media assets and folders')!.click();
+  });
+  for (let step = 0; step < 5; step++) {
+    expect(document.querySelector('.jabs-tutorial')?.textContent).not.toContain(i18n.t('operator:help.missing'));
+    await act(async () => button(step === 4 ? 'Done' : 'Next').click());
+  }
+  expect(openFolder).not.toHaveBeenCalled();
   await view.unmount();
 });
 

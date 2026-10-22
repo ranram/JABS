@@ -194,14 +194,6 @@ export function TopEightMatchupsControls({
     );
   return (
     <Stack gap="md">
-      <Button loading={loading} disabled={!selectedEventId} onClick={() => void detect()}>
-        {t('operator:topEightMatchups.detect')}
-      </Button>
-      {progress && (
-        <Text role="status" c="dimmed" size="sm">
-          {progress}
-        </Text>
-      )}
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <Select
           label={t('operator:workspaces.styling')}
@@ -250,6 +242,14 @@ export function TopEightMatchupsControls({
           onChange={(event) => void update({ flipPlayerTwoPortraits: event.currentTarget.checked })}
         />
       </SimpleGrid>
+      <Button loading={loading} disabled={!selectedEventId} onClick={() => void detect()}>
+        {t('operator:topEightMatchups.detect')}
+      </Button>
+      {progress && (
+        <Text role="status" c="dimmed" size="sm">
+          {progress}
+        </Text>
+      )}
       <TopEightMatchupsPreview state={state} />
       <SimpleGrid type="container" cols={{ base: 1, '40rem': 2, '72rem': 4 }}>
         {state.matchups.flatMap((matchup, matchupIndex) =>

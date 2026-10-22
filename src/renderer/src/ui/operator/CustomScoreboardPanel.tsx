@@ -235,35 +235,35 @@ export function CustomScoreboardPanel({
           </div>
           {draft && frameUrl && (
             <>
-              <Group>
-                {status === 'error' && (
-                  <Button variant="light" onClick={retry}>
-                    {t('customScoreboard.retry')}
-                  </Button>
-                )}
-                <Button
-                  variant={activeScoreboardId === draft.id ? 'light' : 'filled'}
-                  color={activeScoreboardId === draft.id ? 'green' : undefined}
-                  onClick={() => onSelect(draft.id, draft.frameRevision)}
-                >
-                  {activeScoreboardId === draft.id ? t('customScoreboard.active') : t('customScoreboard.useInObs')}
-                </Button>
-                <Button variant="default" onClick={() => onSelect(undefined)}>
-                  {t('customScoreboard.useAutomatic')}
-                </Button>
-                <DestructiveButton
-                  disabled={saving}
-                  loading={working}
-                  onClick={() => void removeScoreboard()}
-                >
-                  {t('customScoreboard.delete')}
-                </DestructiveButton>
-              </Group>
-              <Text size="xs" c="dimmed">
-                {t('customScoreboard.autosaveHelp')}
-              </Text>
               <div className="custom-scoreboard-editor-layout">
                 <div className="custom-scoreboard-field-controls">
+                  <Stack gap="xs">
+                    <Group grow preventGrowOverflow={false}>
+                      {status === 'error' && (
+                        <Button variant="light" onClick={retry}>
+                          {t('customScoreboard.retry')}
+                        </Button>
+                      )}
+                      <Button
+                        variant={activeScoreboardId === draft.id ? 'light' : 'filled'}
+                        color={activeScoreboardId === draft.id ? 'green' : undefined}
+                        onClick={() => onSelect(draft.id, draft.frameRevision)}
+                      >
+                        {activeScoreboardId === draft.id
+                          ? t('customScoreboard.active')
+                          : t('customScoreboard.useInObs')}
+                      </Button>
+                      <Button variant="default" onClick={() => onSelect(undefined)}>
+                        {t('customScoreboard.useAutomatic')}
+                      </Button>
+                      <DestructiveButton disabled={saving} loading={working} onClick={() => void removeScoreboard()}>
+                        {t('customScoreboard.delete')}
+                      </DestructiveButton>
+                    </Group>
+                    <Text size="xs" c="dimmed">
+                      {t('customScoreboard.autosaveHelp')}
+                    </Text>
+                  </Stack>
                   <SimpleGrid cols={{ base: 1, md: 2 }}>
                     <TextInput
                       label={t('customScoreboard.savedName')}

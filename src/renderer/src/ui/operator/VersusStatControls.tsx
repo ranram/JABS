@@ -1,4 +1,4 @@
-import { Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
+import { Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { setVersusStatRow, versusStatTypes, type VersusScreenState, type VersusStat } from '@shared/versusScreen';
 
@@ -51,12 +51,6 @@ export function VersusStatControls({
           />
         ))}
       </SimpleGrid>
-      <Switch
-        label={t('workspaces.versusScreen.showHeadToHead')}
-        checked={settings.showHeadToHead}
-        disabled={disabled}
-        onChange={(event) => onChange({ showHeadToHead: event.currentTarget.checked })}
-      />
     </Stack>
   );
 }

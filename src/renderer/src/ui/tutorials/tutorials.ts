@@ -4,6 +4,7 @@ export type TutorialWorkspace = 'bracket' | 'custom-scoreboard' | 'overlays' | '
 export type TutorialStep = {
   id: keyof typeof en.operator.help.steps;
   target: string;
+  fallbackTarget?: string;
   workspace?: TutorialWorkspace;
   openLibrary?: boolean;
   link?: string;
@@ -14,6 +15,18 @@ const obs: TutorialStep = { id: 'obs', target: target('obs') };
 const assets: TutorialStep = { id: 'assets', target: target('assets') };
 
 export const tutorials = {
+  quickStart: [
+    { id: 'quickWelcome', target: '.workspace-sticky-header', workspace: 'bracket' },
+    { id: 'tokenPurpose', target: target('api-access'), link: 'https://developer.start.gg/docs/authentication/' },
+    { id: 'quickTournament', target: '.tournament-lookup-row' },
+    { id: 'quickExhibition', target: target('bracket-options') },
+    { id: 'quickAssets', target: target('assets') },
+    { id: 'quickStream', target: '.editor-panel', fallbackTarget: '.startgg-panel' },
+    { id: 'quickReporting', target: target('report-result'), fallbackTarget: target('api-access') },
+    obs,
+    { id: 'quickLibrary', target: target('players') },
+    { id: 'quickFinish', target: target('help') }
+  ],
   tournament: [
     { id: 'tournament', target: '.tournament-lookup-row', workspace: 'bracket' },
     { id: 'event', target: target('event') },
@@ -59,6 +72,13 @@ export const tutorials = {
     { id: 'mediaMove', target: '.thumbnail-generator .generator-preview-panel' },
     { id: 'mediaReset', target: '.thumbnail-generator .generator-preview-panel' }
   ],
+  folders: [
+    { id: 'assetFolders', target: target('assets') },
+    { id: 'assetCharacters', target: target('assets') },
+    { id: 'assetPhotos', target: target('assets') },
+    { id: 'assetLogos', target: target('assets') },
+    { id: 'assetReload', target: target('reload-assets') }
+  ],
   scoreboard: [
     { id: 'scoreboard', target: '.custom-scoreboard-library-controls', workspace: 'custom-scoreboard' },
     { id: 'scoreboardLayout', target: '.custom-scoreboard-workspace' },
@@ -75,4 +95,7 @@ export const tutorials = {
 } as const satisfies Record<string, readonly TutorialStep[]>;
 
 export type TutorialId = keyof typeof tutorials;
-export const tutorialIds = Object.keys(tutorials) as TutorialId[];
+export const tutorialIds = [
+  'quickStart', 'tokens', 'tournament', 'exhibition', 'library', 'folders', 'media',
+  'scoreboard', 'stingers', 'topEight', 'thumbnail'
+] as const satisfies readonly TutorialId[];

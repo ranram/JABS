@@ -254,8 +254,7 @@ it('plays best-of, first-to and Topanga exhibitions and clears the game after un
     const callsAtLimit = transport.score.mock.calls.length;
     await act(async () => increase.click());
     expect(transport.score).toHaveBeenCalledTimes(callsAtLimit);
-    if (matchFormat === 'first-to')
-      expect(view.container.querySelector('[data-testid="report-startgg-result"]')).toBeNull();
+    expect(view.container.querySelector<HTMLButtonElement>('[data-testid="report-startgg-result"]')?.disabled).toBe(true);
     await click('Reset scores');
     expect(live.selectedSet.playerOne.score).toBe(0);
     expect(increase.disabled).toBe(false);
@@ -273,7 +272,14 @@ it('plays best-of, first-to and Topanga exhibitions and clears the game after un
   });
   expect(live.selectedSet).toMatchObject({ matchFormat: 'topanga', bestOf: 13 });
   expect(view.container.querySelector('.preview-panel')?.textContent).toContain('Topanga Rules');
-  expect(view.container.querySelector('[data-testid="report-startgg-result"]')).toBeNull();
+  const reportButton = view.container.querySelector<HTMLButtonElement>('[data-testid="report-startgg-result"]')!;
+  expect(reportButton.disabled).toBe(true);
+  await act(async () => {
+    reportButton.parentElement!.focus();
+    await vi.advanceTimersByTimeAsync(500);
+  });
+  expect(document.querySelector('[role="tooltip"]')?.textContent).toBe(i18n.t('operator:readiness.setMissing'));
+  await act(async () => reportButton.parentElement!.blur());
   const increaseOne = view.container.querySelector<HTMLButtonElement>('[aria-label="Increase Player 1 score"]')!;
   const increaseTwo = view.container.querySelector<HTMLButtonElement>('[aria-label="Increase Player 2 score"]')!;
   for (let score = 1; score <= 5; score += 1) {

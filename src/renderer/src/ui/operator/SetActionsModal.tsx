@@ -19,6 +19,7 @@ import type { SelectedSetState, SetSummary } from '@shared/models';
 import type { StartggReportReadiness } from '@shared/startggReporting';
 import { QuickScore } from './ScoreControls';
 import { ControlWarning } from './ControlWarning';
+import { DestructiveButton } from '../DestructiveButton';
 import { phaseContext, setPhaseContext } from './operatorUtils';
 
 type SetActionsModalProps = {
@@ -249,10 +250,10 @@ export function SetActionsModal({
             <ControlWarning message={!reportingEnabled ? t('operator:startgg.reportToken') : undefined} />
           </Paper>
 
-          <Group justify="space-between">
-            <Button variant="default" disabled={quickScoreLoading} onClick={onResetScores}>
+          <Group grow preventGrowOverflow={false}>
+            <DestructiveButton disabled={quickScoreLoading} onClick={onResetScores}>
               {t('common:actions.resetScores')}
-            </Button>
+            </DestructiveButton>
             <Button
               data-testid="quick-report-startgg-result"
               loading={quickScoreLoading}

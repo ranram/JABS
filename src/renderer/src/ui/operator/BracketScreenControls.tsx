@@ -204,18 +204,6 @@ export function BracketScreenControls({
         />
       </SimpleGrid>
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
-        <Switch
-          label={t('workspaces.transparentBackground')}
-          checked={!state.showBackground}
-          onChange={(event) => void settings.update({ showBackground: !event.currentTarget.checked })}
-        />
-        <Switch
-          label={t('workspaces.resultScreen.showTournamentLogo')}
-          checked={state.showTournamentLogo}
-          onChange={(event) => void settings.update({ showTournamentLogo: event.currentTarget.checked })}
-        />
-      </SimpleGrid>
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <Select
           label={t('appearance.startingRound', { bracket: winnersLabel })}
           placeholder={t('bracketScreen.autoRounds')}
@@ -240,6 +228,18 @@ export function BracketScreenControls({
         />
       </SimpleGrid>
 
+      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+        <Switch
+          label={t('workspaces.transparentBackground')}
+          checked={!state.showBackground}
+          onChange={(event) => void settings.update({ showBackground: !event.currentTarget.checked })}
+        />
+        <Switch
+          label={t('workspaces.resultScreen.showTournamentLogo')}
+          checked={state.showTournamentLogo}
+          onChange={(event) => void settings.update({ showTournamentLogo: event.currentTarget.checked })}
+        />
+      </SimpleGrid>
       <Button
         variant="default"
         loading={refreshing}
@@ -260,7 +260,7 @@ export function BracketScreenControls({
           </div>
         </div>
       )}
-      <Text size="sm" c="dimmed">
+      <Text size="sm" c="dimmed" ta="center">
         {t('bracketScreen.refreshHelp')}
       </Text>
     </Stack>

@@ -20,12 +20,14 @@ export function runTutorial({
   id,
   t,
   navigate,
-  render
+  render,
+  onClosed
 }: {
   id: TutorialId;
   t: TFunction<'operator'>;
   navigate(workspace: TutorialWorkspace): void;
   render(popover?: TutorialPopover): void;
+  onClosed?(): void;
 }): () => void {
   const steps: readonly TutorialStep[] = tutorials[id];
   let index = 0;
@@ -78,6 +80,7 @@ export function runTutorial({
     document.removeEventListener('scroll', instance.refresh, true);
     setTutorialActive(false);
     render(undefined);
+    onClosed?.();
   }
   function close() {
     finish();
@@ -99,7 +102,7 @@ export function runTutorial({
     if (step.openLibrary && !document.querySelector('.player-library-panel')) {
       document.querySelector<HTMLButtonElement>('[data-tutorial="players"]')?.click();
     }
-    const element = await waitForTarget(step.target, request.signal);
+    const element = await waitForTarget(step.target, request.signal, step.fallbackTarget);
     if (disposed || request.signal.aborted) return;
     target = element;
     index = nextIndex;
@@ -135,12 +138,13 @@ function escapeText(value: string): string {
   return text.innerHTML;
 }
 
-function waitForTarget(selector: string, signal: AbortSignal): Promise<HTMLElement | undefined> {
+function waitForTarget(selector: string, signal: AbortSignal, fallback?: string): Promise<HTMLElement | undefined> {
   return new Promise((resolve) => {
-    const visible = () =>
-      [...document.querySelectorAll<HTMLElement>(selector)].find(
+    const findVisible = (query: string) =>
+      [...document.querySelectorAll<HTMLElement>(query)].find(
         (element) => !element.closest('[hidden], [aria-hidden="true"]') && element.getClientRects().length > 0
       );
+    const visible = () => findVisible(selector) ?? (fallback ? findVisible(fallback) : undefined);
     if (signal.aborted) return resolve(undefined);
     const existing = visible();
     if (existing) return resolve(existing);

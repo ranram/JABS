@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Badge, Button, Group, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
@@ -31,6 +31,7 @@ type VersusScreenControlsProps = {
   characterCatalog?: CharacterCatalogOptions;
   pendingChanges?: boolean;
   onPatch?(patch: Partial<SelectedSetState>): void;
+  sourceLinks?: ReactNode;
 };
 
 export function VersusScreenControls({
@@ -39,7 +40,8 @@ export function VersusScreenControls({
   logos,
   characterCatalog,
   pendingChanges,
-  onPatch
+  onPatch,
+  sourceLinks
 }: VersusScreenControlsProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
   const { state, saving, update, reload } = useSettingsDraft({
@@ -143,21 +145,26 @@ export function VersusScreenControls({
   const historyCount = history?.headToHead.length ?? 0;
   const canLoadHistory = Boolean(versusHistoryMatch(activeSet));
   const mode = versusPresentationMode(activeSet);
+  const historyControls = mode !== 'waiting' && (
+    <Stack gap="xs">
+      <Text fw={800}>{t('workspaces.versusScreen.startgg')}</Text>
+      <Button fullWidth loading={refreshing} disabled={!canLoadHistory || saving} onClick={() => void refreshHistory()}>
+        {t('workspaces.versusScreen.refreshHistory')}
+      </Button>
+      <Text c="dimmed" size="sm">
+        {!canLoadHistory
+          ? t('workspaces.versusScreen.startggProfileError')
+          : historyState.historyLoading
+            ? t('workspaces.versusScreen.historyLoading')
+            : historyState.historyError
+              ? t('workspaces.versusScreen.historyFailed')
+              : `${historyCount} ${t('workspaces.versusScreen.historyEntries')}`}
+      </Text>
+    </Stack>
+  );
   return (
     <Stack gap="md">
-      <Group justify="space-between" align="center" wrap="wrap">
-        {activeSet && mode !== 'waiting' ? (
-          <Text fw={900}>
-            {activeSet.playerOne.name}
-            <Text component="span" c="dimmed">
-              vs
-            </Text>
-            {activeSet.playerTwo.name}
-          </Text>
-        ) : (
-          <Badge color="gray">{t('workspaces.versusScreen.noSet')}</Badge>
-        )}
-      </Group>
+      {sourceLinks}
       <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
         <Select
           label={t('workspaces.styling')}
@@ -194,11 +201,6 @@ export function VersusScreenControls({
           disabled={saving || refreshing}
           onChange={(mediaMode) => void update({ mediaMode: mediaMode as PlayerMediaMode })}
         />
-        {state.mediaMode === 'combined' && (
-          <Text c="dimmed" size="sm" mt="xs">
-            {t('mediaControls.combinedEditingHelp')}
-          </Text>
-        )}
       </div>
       <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
         <Switch
@@ -208,13 +210,6 @@ export function VersusScreenControls({
           onChange={(event) => void update({ showBackground: !event.currentTarget.checked })}
         />
         <Switch
-          label={t('workspaces.versusScreen.showMatchBackdrop')}
-          description={t('workspaces.versusScreen.matchBackdropHelp')}
-          checked={state.showMatchBackdrop}
-          disabled={saving || refreshing}
-          onChange={(event) => void update({ showMatchBackdrop: event.currentTarget.checked })}
-        />
-        <Switch
           label={t('thumbnail.showTournamentLogo')}
           description={t('broadcast.sharedLogoHelp')}
           checked={state.showTournamentLogo}
@@ -222,11 +217,24 @@ export function VersusScreenControls({
           onChange={(event) => void update({ showTournamentLogo: event.currentTarget.checked })}
         />
         <Switch
+          label={t('workspaces.versusScreen.showMatchBackdrop')}
+          description={t('workspaces.versusScreen.matchBackdropHelp')}
+          checked={state.showMatchBackdrop}
+          disabled={saving || refreshing}
+          onChange={(event) => void update({ showMatchBackdrop: event.currentTarget.checked })}
+        />
+        <Switch
           label={t('thumbnail.showSponsorLogo')}
           description={t('broadcast.sponsorLogoHelp')}
           checked={state.showSponsorLogos}
           disabled={saving || refreshing}
           onChange={(event) => void update({ showSponsorLogos: event.currentTarget.checked })}
+        />
+        <Switch
+          label={t('workspaces.versusScreen.showHeadToHead')}
+          checked={state.showHeadToHead}
+          disabled={saving || refreshing}
+          onChange={(event) => void update({ showHeadToHead: event.currentTarget.checked })}
         />
       </SimpleGrid>
       {activeSet && mode !== 'waiting' && (
@@ -270,7 +278,7 @@ export function VersusScreenControls({
                   </Button>
                 </Group>
               </SimpleGrid>
-              <MediaControlHint />
+              <MediaControlHint showOverlapSelection />
             </>
           )}
           <VersusPreview
@@ -288,26 +296,28 @@ export function VersusScreenControls({
         disabled={saving || refreshing}
         onChange={(patch) => void update(patch)}
       />
-      {mode !== 'waiting' && (
-        <Group justify="space-between" align="center" wrap="wrap">
-          <div>
-            <Text fw={800}>{t('workspaces.versusScreen.startgg')}</Text>
-            <Button loading={refreshing} disabled={!canLoadHistory || saving} onClick={() => void refreshHistory()}>
-              {t('workspaces.versusScreen.refreshHistory')}
-            </Button>
-            <Text c="dimmed" size="sm" mt="xs">
-              {!canLoadHistory
-                ? t('workspaces.versusScreen.startggProfileError')
-                : historyState.historyLoading
-                  ? t('workspaces.versusScreen.historyLoading')
-                  : historyState.historyError
-                    ? t('workspaces.versusScreen.historyFailed')
-                    : `${historyCount} ${t('workspaces.versusScreen.historyEntries')}`}
-            </Text>
-          </div>
-        </Group>
-      )}
+      {historyControls}
     </Stack>
+  );
+}
+
+export function VersusScreenStatus({ activeSet }: { activeSet?: SelectedSetState }) {
+  const { t } = useTranslation('operator');
+  if (!activeSet || versusPresentationMode(activeSet) === 'waiting') {
+    return (
+      <Badge color="gray" maw="100%" h="auto" styles={{ label: { whiteSpace: 'normal' } }}>
+        {t('workspaces.versusScreen.noSet')}
+      </Badge>
+    );
+  }
+  return (
+    <Text fw={900} miw={0} style={{ overflowWrap: 'anywhere' }}>
+      {activeSet.playerOne.name}{' '}
+      <Text component="span" c="dimmed">
+        vs
+      </Text>{' '}
+      {activeSet.playerTwo.name}
+    </Text>
   );
 }
 

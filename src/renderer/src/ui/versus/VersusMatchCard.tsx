@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { PlayerState, SelectedSetState } from '@shared/models';
 import { resolveGameProfile } from '@shared/gameProfiles';
-import { phaseAndRound } from '@shared/matchContext';
+import { matchPlayerName, phaseAndRound } from '@shared/matchContext';
 import { versusHistoryMatch, type VersusHistory, type VersusScreenState } from '@shared/versusScreen';
 import { CatalogImage } from '../CatalogImage';
 import { DisplayText } from '../DisplayText';
@@ -52,7 +52,7 @@ export function VersusMatchCard({
         </header>
         <div className="versus-names">
           {players.map((player, index) => (
-            <PlayerName key={index} player={player} index={index} />
+            <PlayerName key={index} player={player} name={matchPlayerName(player, set)} index={index} />
           ))}
         </div>
         <div className="versus-stat-list" data-entrance="stats">
@@ -95,8 +95,8 @@ export function VersusMatchCard({
   );
 }
 
-function PlayerName({ player, index }: { player: PlayerState; index: number }) {
-  const ref = useVersusNameFit(player.name);
+function PlayerName({ player, name, index }: { player: PlayerState; name: string; index: number }) {
+  const ref = useVersusNameFit(name);
   const flagUrl = displayFlagUrl(player.country, player.displayFlag);
   return (
     <div
@@ -115,7 +115,7 @@ function PlayerName({ player, index }: { player: PlayerState; index: number }) {
       <strong ref={ref} className="versus-name-row">
         <span className="versus-name-text">
           <span className="versus-player-tag">
-            <DisplayText text={player.name} />
+            <DisplayText text={name} />
           </span>
         </span>
       </strong>

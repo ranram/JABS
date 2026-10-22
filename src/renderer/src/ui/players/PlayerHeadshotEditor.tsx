@@ -15,7 +15,6 @@ import { PlayerHeadshotPreview } from './PlayerHeadshotPreview';
 import { MediaControlHint } from '../operator/MediaControlHint';
 import { api } from '../../api';
 import { useCatalogRevision } from '../../hooks/useCatalogRevision';
-import { MediaFolderControls } from '../operator/MediaFolderControls';
 import { loadScoreboardPhoto, type LoadedScoreboardPhoto } from '../scoreboardPhotos/useScoreboardPhotoMedia';
 import './playerHeadshotEditor.css';
 
@@ -89,7 +88,6 @@ export function PlayerHeadshotEditor({ player, selectedSet, gameKey, onChange }:
         <Text size="xs" c="dimmed">
           {t('scoreboardPhotos.recommendedSize')}
         </Text>
-        <MediaFolderControls kind="player_headshots" label={t('scoreboardPhotos.headshotsFolder')} />
         <Group>
           <Button
             size="compact-sm"

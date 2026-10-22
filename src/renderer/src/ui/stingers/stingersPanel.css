@@ -1,3 +1,48 @@
+.stingers-panel {
+  container-type: inline-size;
+}
+
+.stingers-workspace,
+.stinger-clip-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--mantine-spacing-md);
+}
+
+.stinger-controls,
+.stinger-preview-controls {
+  min-width: 0;
+}
+
+.stinger-winner-status {
+  height: auto;
+  max-width: 100%;
+  padding-block: 4px;
+}
+
+.stinger-winner-status .mantine-Badge-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+@container (min-width: 50rem) {
+  .stinger-clip-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 80rem) {
+  .stingers-workspace {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+  }
+
+  .stinger-clip-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .stinger-panel-preview {
   width: min(100%, 960px, calc(50dvh * 16 / 9));
   aspect-ratio: 16 / 9;

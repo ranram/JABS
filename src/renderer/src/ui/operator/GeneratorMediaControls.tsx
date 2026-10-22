@@ -52,7 +52,7 @@ export function GeneratorMediaControls({
           </Button>
         </Group>
       </SimpleGrid>
-      <MediaControlHint />
+      <MediaControlHint showOverlapSelection />
     </Stack>
   );
 }

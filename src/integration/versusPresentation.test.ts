@@ -97,6 +97,25 @@ it('keeps optional comparisons paired, shows unknown values honestly, and keeps 
   expect(view.container.querySelectorAll('.versus-player-sponsor-logo')).toHaveLength(0);
   expect(view.container.querySelector('.versus-identity-left')?.textContent).toBe(set.playerOne.name);
   expect(view.container.querySelector('.versus-identity-right')?.textContent).toBe(set.playerTwo.name);
+  for (const [round, winnersSide, markedSide] of [
+    ['Grand Final', set.playerOne.entrantId, 'right'],
+    ['Grand Finals', set.playerTwo.entrantId, 'left'],
+    ['Grand Final Reset', set.playerOne.entrantId, undefined]
+  ] as const) {
+    set.round = round;
+    set.winnersSideEntrantId = winnersSide;
+    await view.rerender();
+    for (const [side, player] of [
+      ['left', set.playerOne],
+      ['right', set.playerTwo]
+    ] as const) {
+      expect(view.container.querySelector(`.versus-identity-${side} .versus-player-tag`)?.textContent).toBe(
+        `${side === 'right' && side === markedSide ? '[L] ' : ''}${player.name}${side === 'left' && side === markedSide ? ' [L]' : ''}`
+      );
+    }
+  }
+  set.round = undefined;
+  set.winnersSideEntrantId = undefined;
   expect(view.container.querySelector('.versus-stat-sponsor')?.textContent).toBe('ONESponsorTWO');
   const ticker = (side: string) =>
     view.container.querySelector(`.versus-rail-${side} .versus-ticker`)?.getAttribute('aria-label');

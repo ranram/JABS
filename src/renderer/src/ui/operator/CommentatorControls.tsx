@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Button, Group, Kbd, Select, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { Button, Group, Kbd, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { sortByLabel } from './operatorUtils';
-import { MediaFolderControls } from './MediaFolderControls';
 import { withCommentatorsSwapped, type CommentatorPresentation, type CommentatorState } from '@shared/commentators';
 import type { LogoAsset } from '@shared/models';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
 import { api } from '../../api';
 import { COMMENTATORS_SWAPPED_EVENT, saveSwappedCommentators } from './swapCommentators';
+import { OverlayLogoSelect } from './OverlayLogoSelect';
+import { DestructiveButton } from '../DestructiveButton';
 
 type CommentatorControlsProps = { logos: LogoAsset[]; profiles: GameProfile[]; sourceLinks?: ReactNode };
 
@@ -20,13 +21,6 @@ export function CommentatorControls({ logos, profiles, sourceLinks }: Commentato
   const sortedProfiles = useMemo(
     () => sortByLabel(profiles, (profile) => profile.styleName, locale),
     [profiles, locale]
-  );
-  const logoOptions = useMemo(
-    () =>
-      logos
-        .map((logo) => ({ value: logo.id, label: logo.label }))
-        .sort((one, two) => one.label.localeCompare(two.label)),
-    [logos]
   );
   useEffect(() => {
     void api
@@ -63,7 +57,7 @@ export function CommentatorControls({ logos, profiles, sourceLinks }: Commentato
     }
   }
 
-  async function updateSettings(patch: Partial<Pick<CommentatorState, 'stylingGameId' | 'showTournamentLogo'>>) {
+  async function updateSettings(patch: Partial<Pick<CommentatorState, 'stylingGameId'>>) {
     if (!draft) return;
     setSaving(true);
     try {
@@ -155,37 +149,23 @@ export function CommentatorControls({ logos, profiles, sourceLinks }: Commentato
           data={sortedProfiles.map((profile) => ({ value: profile.id, label: profile.styleName }))}
           onChange={(value) => value && void updateSettings({ stylingGameId: value as GameId })}
         />
-      </SimpleGrid>
-      <Group align="flex-end" wrap="wrap">
-        <Select
-          style={{ flex: '1 1 320px' }}
-          label={t('workspaces.commentator.logo')}
-          placeholder={t('broadcast.useRailsLogo')}
-          searchable
-          clearable
-          value={draft.logoAssetId ?? null}
-          data={logoOptions}
-          onChange={(value) => setDraft({ ...draft, logoAssetId: value ?? undefined })}
+        <OverlayLogoSelect
+          logos={logos}
+          assetId={draft.logoAssetId}
+          disabled={saving}
+          onChange={(logoAssetId) => setDraft({ ...draft, logoAssetId })}
         />
-      </Group>
-      <MediaFolderControls kind="tourney-logos" label={t('broadcast.tournamentLogosFolder')} />
-      <Switch
-        label={t('thumbnail.showTournamentLogo')}
-        description={t('broadcast.sharedLogoHelp')}
-        checked={draft.showTournamentLogo}
-        disabled={saving}
-        onChange={(event) => void updateSettings({ showTournamentLogo: event.currentTarget.checked })}
-      />
-      <Group>
+      </SimpleGrid>
+      <Group grow preventGrowOverflow={false}>
         <Button loading={saving} onClick={() => void present('timed')}>
           {t('workspaces.commentator.presentTimed')}
         </Button>
         <Button variant="default" loading={saving} onClick={() => void present('persistent')}>
           {t('workspaces.commentator.showPersistent')}
         </Button>
-        <Button variant="subtle" color="gray" loading={saving} onClick={() => void present('hidden')}>
+        <DestructiveButton loading={saving} onClick={() => void present('hidden')}>
           {t('workspaces.commentator.hide')}
-        </Button>
+        </DestructiveButton>
       </Group>
     </Stack>
   );

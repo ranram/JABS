@@ -348,6 +348,28 @@ it('fits long mixed-script names after font, size, and region changes', async ()
   }
   expectNamesToFit();
   expect(rows.every((row) => fontSize(row) < 96)).toBe(true);
+  const names = [editor.selectedSet.playerOne.name, editor.selectedSet.playerTwo.name];
+  editor.selectedSet.round = 'Grand Final';
+  editor.selectedSet.winnersSideEntrantId = editor.selectedSet.playerOne.entrantId;
+  await editor.view.rerender();
+  expect(
+    editor.view.container.querySelector('[data-custom-scoreboard-region=playerTwoName] .custom-scoreboard-name-text')
+      ?.textContent
+  ).toBe(`[L] ${names[1]}`);
+  expectNamesToFit();
+  editor.selectedSet.winnersSideEntrantId = editor.selectedSet.playerTwo.entrantId;
+  await editor.view.rerender();
+  expect(
+    editor.view.container.querySelector('[data-custom-scoreboard-region=playerOneName] .custom-scoreboard-name-text')
+      ?.textContent
+  ).toBe(`${names[0]} [L]`);
+  expectNamesToFit();
+  editor.selectedSet.round = 'Grand Final Reset';
+  await editor.view.rerender();
+  expect(
+    [...editor.view.container.querySelectorAll('.custom-scoreboard-name-text')].map((node) => node.textContent)
+  ).toEqual(names);
+  expect([editor.selectedSet.playerOne.name, editor.selectedSet.playerTwo.name]).toEqual(names);
   for (const font of ['bebas-neue', 'bungee-shade'] as const) {
     editor.scoreboard.typography.font = font;
     editor.scoreboard = customScoreboardSchema.parse(JSON.parse(JSON.stringify(editor.scoreboard)));

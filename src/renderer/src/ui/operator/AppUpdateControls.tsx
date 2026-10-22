@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Group, Modal, Progress, ScrollArea, Stack, Text, Tooltip } from '@mantine/core';
+import { Alert, Button, Group, Modal, Progress, Stack, Text, Tooltip } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useAppUpdates } from './useAppUpdates';
 import { usePendingWrites } from '../../pendingWrites';
@@ -84,16 +84,10 @@ export function AppUpdateControls({ blocked }: { blocked: boolean }) {
                   next: release?.version ?? ''
                 })}
           </Text>
+          {release && !installed && <Text size="sm">{t('operator:updates.description')}</Text>}
           <Text size="sm" c="dimmed">
             {t('operator:updates.restartNotice')}
           </Text>
-          {release?.notes && (
-            <ScrollArea.Autosize mah={220}>
-              <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-                {release.notes}
-              </Text>
-            </ScrollArea.Autosize>
-          )}
           {phase === 'downloading' && (
             <>
               <Text size="sm" role="status">

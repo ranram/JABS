@@ -223,13 +223,6 @@
   border-top: 1px dashed rgba(255, 255, 255, 0.12);
 }
 
-.report-result-card {
-  width: 100%;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  padding: 12px;
-}
-
 .handoff-url {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -290,44 +283,6 @@
   line-height: 1 !important;
   padding: 0 !important;
   transform: none !important;
-}
-
-.mini-preview {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(217, 255, 67, 0.25);
-  border-radius: 12px 12px 24px 12px;
-  background:
-    linear-gradient(105deg, rgba(217, 255, 67, 0.08), transparent 45%),
-    #09080d;
-  color: var(--deck-ink);
-  padding: 15px;
-}
-
-.mini-preview::after {
-  content: "LIVE";
-  position: absolute;
-  right: 7px;
-  bottom: 4px;
-  color: rgba(255, 102, 90, 0.55);
-  font-size: 7px;
-  font-weight: 950;
-  letter-spacing: 0.12em;
-}
-
-.mini-preview span {
-  overflow: hidden;
-  font-size: 10px;
-  font-weight: 850;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mini-preview strong {
-  color: var(--deck-lime);
-  font-family: Impact, "Arial Black", sans-serif;
-  font-size: 19px;
-  font-style: italic;
 }
 
 .pagination-controls {

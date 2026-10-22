@@ -45,11 +45,6 @@ export const en = {
       finalScore: 'Final Score: {{one}} - {{two}}'
     },
     // Media folders
-    mediaFolder: {
-      open: 'Open folder',
-      openHint: 'Open this media folder in your file manager.',
-      openFailed: 'JABS could not open the media folder.'
-    },
     pagination: 'Page {{page}} of {{totalPages}}'
   },
   // OBS overlays
@@ -123,17 +118,71 @@ export const en = {
       failed: 'Could not open this guide. Try again from Help.',
       tokenLink: 'Open start.gg token instructions',
       guides: {
+        quickStart: 'Quick Start',
         tournament: 'Run a tournament',
         exhibition: 'Run an exhibition',
         topEight: 'Create a Top 8 graphic',
         thumbnail: 'Create a YouTube thumbnail',
         tokens: 'Connect a start.gg token',
         library: 'Use the Player Library',
+        folders: 'Media assets and folders',
         media: 'Move and resize images',
         scoreboard: 'Create a custom scoreboard',
         stingers: 'Set up stingers'
       },
       steps: {
+        assetFolders: {
+          title: 'Find your media folders',
+          body: 'Use Open assets folder in Media, or its dropdown for a specific folder. Character folders follow the selected game. Images can be PNG, JPEG, or WebP.'
+        },
+        assetCharacters: {
+          title: 'Add character artwork',
+          body: 'Character art holds large artwork; Character portraits holds square icons. Keep each game’s files in its own folders. Replace empty character files with your artwork, keeping their names. Numbered filenames add outfits.'
+        },
+        assetPhotos: {
+          title: 'Add player photos',
+          body: 'Name photos after the player’s tag. Use Player photos for transparent cutouts and Player headshots for square scoreboard photos. Headshots take priority on scoreboards. Check each player’s photo in Players.'
+        },
+        assetLogos: {
+          title: 'Add sponsor and tournament logos',
+          body: 'Name sponsor logos after the player’s sponsor or prefix. Tournament logos can have any name; choose the logo you want in the overlay settings.'
+        },
+        assetReload: {
+          title: 'Refresh your images',
+          body: 'Choose Reload assets after adding or replacing files. Then select your artwork in JABS and adjust its framing in the preview.'
+        },
+        quickWelcome: {
+          title: 'Welcome to JABS!',
+          body: 'You can close this tour at any time and reopen Quick Start from Help. Let’s walk you through setting up a stream. This bar holds actions you can use across tabs; the tabs below organize your overlays and graphics.'
+        },
+        quickTournament: {
+          title: 'Organize a tournament stream',
+          body: 'Paste your start.gg tournament link and choose Load events. Select an event, narrow the list by phase or pool, then open a match and choose Send to Stream.'
+        },
+        quickExhibition: {
+          title: 'Or run an exhibition',
+          body: 'Without a tournament loaded, use Edit stream state to choose a game and players. If you already loaded a tournament, choose Bracket → Options → Unload tournament first.'
+        },
+        quickStream: {
+          title: 'Prepare the match and keep score',
+          body: 'Choose players, characters, and styling in Edit stream state. Changes save automatically. Use the live controls to keep score.'
+        },
+        quickAssets: {
+          title: 'Add your media assets',
+          body: 'Use Media to open the folders for character art, player photos, and logos. Add your images, then choose Reload assets to use them in overlays and graphics.'
+        },
+        quickReporting: {
+          title: 'Send results to start.gg',
+          body: 'You must have reporting permission for the currently loaded tournament. Report result updates the final score on start.gg, ends the set, and advances the bracket.'
+        },
+        quickLibrary: {
+          title: 'Reuse player details',
+          body: 'Open Players to save profiles, photos, and character choices for each game. Choose saved players when setting up matches to fill in their details. You can add these later.'
+        },
+        quickFinish: {
+          title: 'Ready when you are',
+          body: 'Start with a tournament link or prepare an exhibition in Edit stream state. Help has detailed guides for each task, including artwork, custom scoreboards, and stingers. Quick Start is here whenever you want another look.'
+        },
         tournament: {
           title: 'Load your tournament',
           body: 'Paste the start.gg tournament link, then choose Load events. Public tournaments work without a token.'
@@ -152,7 +201,7 @@ export const en = {
         },
         obs: {
           title: 'Connect OBS',
-          body: 'Copy a URL from this menu into an OBS Browser Source at 1920×1080. Keep JABS running while broadcasting. For overlays that should replay their entrance when you return to a scene, enable “Shutdown source when not visible” and “Refresh browser when scene becomes active”. Leave both off for Stingers.'
+          body: 'Copy a URL from this menu into an OBS Browser Source at 1920×1080. Keep JABS running while broadcasting. For overlays that should replay their animation when you return to a scene, enable “Shutdown source when not visible” and “Refresh browser when scene becomes active”. Leave both off for Stingers.'
         },
         exhibition: {
           title: 'Start without a tournament',
@@ -318,10 +367,9 @@ export const en = {
       enabled: 'Player photos in scoreboards',
       logoBackdrop: 'Tournament logo behind players',
       sponsorBackdrop: 'Sponsor logos behind players',
-      chooseLogo: 'Choose a tournament logo in Broadcast extras.',
-      help: 'Prepare photos in <players>Players</players>. Placement follows the selected game. Works with custom scoreboards as well.',
+      chooseLogo: 'Choose a tournament logo in <extras>Broadcast extras</extras>.',
+      help: 'Prepare scoreboard photos in <players>Players</players>.',
       preparation: 'Scoreboard photo',
-      headshotsFolder: 'Player headshots',
       reload: 'Reload images',
       imageFailed: 'Unable to load this image. Check the file and reload.',
       changed: 'This image changed. Check its framing before confirming.',
@@ -442,7 +490,7 @@ export const en = {
       largeText: 'Larger',
       broadcastLanguage: 'OBS language',
       followLanguage: 'Same as JABS',
-      animations: 'Play entrance animations',
+      animations: 'Play overlay animations',
       presets: 'Appearance presets',
       savedPreset: 'Saved preset',
       choosePreset: 'Choose a preset',
@@ -507,6 +555,7 @@ export const en = {
       current: 'JABS is up to date.',
       available: 'Version {{version}} is available.',
       confirm: 'Update JABS from {{current}} to {{next}}?',
+      description: 'Update JABS to get the latest features, improvements, and fixes for your streams.',
       installRestart: 'Install and restart',
       restartNotice:
         'JABS will restart. OBS sources will briefly disconnect. Export any unfinished graphics before updating.',
@@ -538,7 +587,7 @@ export const en = {
       video: 'Video',
       chooseVideo: 'Choose a WebM video',
       webmOnly: 'Choose a WebM video. Convert other formats before importing.',
-      audioHelp: 'Manage sound with Control audio via OBS in the browser source properties.',
+      audioHelp: 'Enable “Control audio via OBS” in its properties to adjust sound in the OBS mixer.',
       formats: 'WebM · VP8/VP9 video, optional Opus/Vorbis audio · Up to 256 MB.',
       useDuration: 'Limit playback duration',
       duration: 'Duration (seconds)',
@@ -555,15 +604,17 @@ export const en = {
       stopPreview: 'Stop preview',
       readySources_one: '{{count}} active OBS source',
       readySources_other: '{{count}} active OBS sources',
-      sourceHelp: 'Place this 1920×1080 browser source above your other sources. Reuse the same source across scenes.',
+      sourceHelp: 'Add this 1920×1080 browser source above your other sources and reuse it across scenes.',
       automaticWinner: 'Play Winner automatically when the score completes the set',
       automaticHelp: 'Score corrections and reconnects do not replay the celebration.',
       currentWinner: 'Current winner: {{name}}',
       noWinner: 'Complete the set score to play Winner.',
       mediaDelay: 'Show winner assets after (seconds)',
       layer: 'Video position',
-      behind: 'Behind winner assets',
-      inFront: 'In front of winner assets (transparent video)',
+      behind: 'Behind',
+      inFront: 'In front',
+      layerHelp: 'Place the video in front of or behind the winner assets. Use a transparent video in front.',
+      playbackSettings: 'Winner playback settings',
       framing: 'Winner framing · 1920×1080',
       framingHelp: 'Prepare your animation around these fixed regions. This preview never triggers OBS.',
       previewPlayer: 'Preview player',
@@ -586,7 +637,6 @@ export const en = {
       otherOverlaysTitle: 'OBS Overlays',
       obsSource: 'OBS Browser Source',
       resolvingObs: 'Loading the OBS URL…',
-      winnerAutomatic: 'One OBS source automatically shows the set winner or tournament champion.',
       styling: 'Style',
       transparentBackground: 'Transparent background',
       playerStats: {
@@ -630,7 +680,6 @@ export const en = {
         swap: 'Swap commentators',
         loading: 'Loading commentator presentation…',
         tournament: 'Tournament name',
-        logo: 'Centered tournament logo',
         person: 'Commentator {{count}}',
         name: 'On-air name',
         handle: 'Social handle',
@@ -752,7 +801,6 @@ export const en = {
       selectEvent: 'Select an event to reload bracket data.',
       updatedAt: 'Bracket Updated {{time}}',
       gameProfile: 'Game profile for set',
-      assetSlug: 'Character asset folder:',
       reloadAssets: 'Reload assets',
       reloadAssetsHint: 'Rescan local artwork, photos, and logos.',
       assetsReloaded:
@@ -760,7 +808,6 @@ export const en = {
       logosReloaded: '{{count}} tournament logo(s) found.',
       assetsReloadFailed: 'Unable to reload the local media catalogs.',
       chooseProfile: 'Choose game profile',
-      detectedFromEvent: 'Detected from event: {{profile}}',
       unknownGame: 'This game uses an existing overlay profile. You can change it here; the game name and artwork stay the same.',
       phase: 'Phase',
       allPhases: 'All phases',
@@ -790,7 +837,7 @@ export const en = {
       view: '{{scope}} view',
       total: '{{count}} total',
       bracketOrder: 'start.gg bracket order',
-      dirtyWarning: 'Stream changes are being saved automatically.',
+      dirtyWarning: 'Waiting for changes to finish saving.',
       search: 'Search sets',
       searchPlaceholder: 'Player, round, station, or set ID',
       loadingAll: 'Loading every bracket page for search…',
@@ -888,20 +935,13 @@ export const en = {
       chooseLogo: 'Choose logo',
       logoHint: 'Add PNG, JPEG, or WebP files to Tournament logos, then choose Reload assets.',
       reloadLogos: 'Reload logos',
-      playerPhotosFolder: 'Player photos:',
-      sponsorLogosFolder: 'Sponsor logos:',
-      tournamentLogosFolder: 'Tournament logos:'
     },
 
     // Live match controls
     live: {
       title: 'Live Controls',
       dirtyWarning: 'Waiting for stream changes to finish autosaving.',
-      startggResult: 'start.gg result',
       report: 'Report result',
-      winner: '{{winner}} wins {{winnerScore}}–{{loserScore}}.',
-      historyReady: 'Score history ready.',
-      winnerOnly: 'Winner only; game order is unknown.',
       obsTitle: 'OBS URLs',
       obsHelp:
         'Keep JABS running while using its OBS sources. If a source stays blank, open its OBS properties and choose Refresh cache of current page.',
@@ -1123,7 +1163,8 @@ export const en = {
 
     // Artwork positioning
     mediaControls: {
-      combinedEditingHelp: 'Alt+click selects the image behind.',
+      click: 'Click',
+      combinedEditingHelp: 'Select image behind',
       pointer: 'Drag an image, or use:',
       move: 'move',
       moveFarther: 'move farther',

@@ -12,7 +12,7 @@ import {
 import type { PlayerState, SelectedSetState } from '@shared/models';
 import { displayFlagLabel, displayFlagUrl, sponsorLine } from './overlayPlayerPresentation';
 import { useMatchFormatLabel } from './useMatchFormatLabel';
-import { displayPhaseName } from '@shared/matchContext';
+import { displayPhaseName, matchPlayerName } from '@shared/matchContext';
 import { customScoreboardEntrance } from './customScoreboardEntrance';
 import { useOverlayEntrance } from './useOverlayEntrance';
 import './customScoreboard.css';
@@ -109,7 +109,11 @@ function CustomScoreboardCanvasContent({
     const xHandle = player?.xHandle ? `@${player.xHandle}` : '';
     const values = [
       { id: ids.xHandle, value: scoreboard.visibility.xHandles ? xHandle : '', className: ' is-meta is-x-handle' },
-      { id: ids.name, value: player?.name || `PLAYER ${side === 'one' ? '1' : '2'}`, className: ' is-name' },
+      {
+        id: ids.name,
+        value: player?.name ? matchPlayerName(player, selectedSet) : `PLAYER ${side === 'one' ? '1' : '2'}`,
+        className: ' is-name'
+      },
       {
         id: ids.pronouns,
         value: scoreboard.visibility.pronouns ? player?.pronouns || 'PRONOUNS' : '',

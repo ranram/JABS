@@ -8,10 +8,12 @@ import { emptyToUndefined, sortByLabel } from './operatorUtils';
 type Broadcast = NonNullable<SelectedSetState['broadcast']>;
 
 export function StreamBroadcastControls({
+  id,
   broadcast,
   logos,
   onChange
 }: {
+  id?: string;
   broadcast?: Broadcast;
   logos: LogoAsset[];
   onChange(patch: Partial<Broadcast>): void;
@@ -24,7 +26,16 @@ export function StreamBroadcastControls({
   );
 
   return (
-    <Paper className="operator-inset" p="sm" withBorder radius="md" data-testid="broadcast-extras">
+    <Paper
+      id={id}
+      tabIndex={-1}
+      className="operator-inset"
+      p="sm"
+      withBorder
+      radius="md"
+      data-testid="broadcast-extras"
+      style={{ scrollMarginTop: 'calc(var(--workspace-header-height, 100px) + 16px)' }}
+    >
       <Stack gap="sm">
         <Text fw={700}>{t('broadcast.title')}</Text>
         <Group gap="lg">

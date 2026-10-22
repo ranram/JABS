@@ -143,8 +143,9 @@ export function TopEightGenerator({
   const [manualStandingsLoading, setManualStandingsLoading] = useState(false);
   const standingsLoading = automaticStandingsLoading || manualStandingsLoading;
   const manualStandingsRequest = useRef(0);
-  const [standingsMessage, setStandingsMessage] = useState<string>();
+  const [standingsNotice, setStandingsNotice] = useState<{ text: string; imported?: boolean }>();
   const [loadUrl, setLoadUrl] = useState('');
+  const [importRevision, setImportRevision] = useState(0);
   useEffect(() => {
     manualStandingsRequest.current += 1;
     setManualStandingsLoading(false);
@@ -206,14 +207,14 @@ export function TopEightGenerator({
     }
     let active = true;
     setAutomaticStandingsLoading(true);
-    setStandingsMessage(undefined);
+    setStandingsNotice(undefined);
     void automaticStandingsRequest.current.promise
       .then((result) => {
         if (active) importFinalStandings(result);
       })
       .catch((error) => {
         if (active)
-          setStandingsMessage(error instanceof Error ? error.message : t('operator:topEight.standingsFailed'));
+          setStandingsNotice({ text: error instanceof Error ? error.message : t('operator:topEight.standingsFailed') });
       })
       .finally(() => {
         if (active) setAutomaticStandingsLoading(false);
@@ -236,13 +237,13 @@ export function TopEightGenerator({
   async function loadFinalStandingsUrl() {
     const request = ++manualStandingsRequest.current;
     setManualStandingsLoading(true);
-    setStandingsMessage(undefined);
+    setStandingsNotice(undefined);
     try {
       const result = await api.eventStandingsBySlug(normalizeEventSlug(loadUrl));
       if (request === manualStandingsRequest.current) importFinalStandings(result);
     } catch (error) {
       if (request === manualStandingsRequest.current)
-        setStandingsMessage(error instanceof Error ? error.message : t('operator:topEight.standingsFailed'));
+        setStandingsNotice({ text: error instanceof Error ? error.message : t('operator:topEight.standingsFailed') });
     } finally {
       if (request === manualStandingsRequest.current) setManualStandingsLoading(false);
     }
@@ -250,11 +251,11 @@ export function TopEightGenerator({
 
   function importFinalStandings(result: Awaited<ReturnType<typeof api.eventStandings>>) {
     if (!result.finalized || result.standings.length !== 8) {
-      setStandingsMessage(t('operator:topEight.standingsNotFinal'));
+      setStandingsNotice({ text: t('operator:topEight.standingsNotFinal') });
       return;
     }
     if (!hasConventionalTopEightPlacements(result.standings)) {
-      setStandingsMessage(t('operator:topEight.standingsNotConventional'));
+      setStandingsNotice({ text: t('operator:topEight.standingsNotConventional') });
       return;
     }
     const detectedGame = result.eventGameName
@@ -265,8 +266,9 @@ export function TopEightGenerator({
       controller.setGameContext(detectedGame, result.eventGameName, detectedAssetSlug);
     }
     controller.useFinalStandings(result);
+    setImportRevision((revision) => revision + 1);
     setSelectedLayer(undefined);
-    setStandingsMessage(t('operator:topEight.standingsLoaded', { event: result.eventName }));
+    setStandingsNotice({ text: t('operator:topEight.standingsLoaded', { event: result.eventName }), imported: true });
   }
 
   async function downloadPng() {
@@ -331,6 +333,7 @@ export function TopEightGenerator({
             <Stack gap="md">
               {gameSelector}
               <TopEightEventDetails
+                importRevision={importRevision}
                 controller={controller}
                 loadUrl={loadUrl}
                 onLoadUrlChange={setLoadUrl}
@@ -349,7 +352,7 @@ export function TopEightGenerator({
                   onCommit={controller.setHeadline}
                 />
               </SimpleGrid>
-              {standingsMessage && <Text size="sm">{standingsMessage}</Text>}
+              {standingsNotice && !standingsNotice.imported && <Text size="sm">{standingsNotice.text}</Text>}
               {!gameContextReady && (
                 <Text c="yellow" size="sm">
                   {t('operator:generators.selectEvent')}
@@ -403,11 +406,6 @@ export function TopEightGenerator({
                       setSelectedLayer(undefined);
                     }}
                   />
-                  {draft.mediaMode === 'combined' && (
-                    <Text c="dimmed" size="sm" mt="xs">
-                      {t('operator:mediaControls.combinedEditingHelp')}
-                    </Text>
-                  )}
                 </div>
                 <div>
                   <Text fw={700} size="sm" mb={4}>
@@ -491,6 +489,11 @@ export function TopEightGenerator({
               controller.setMediaTransform(index, layer, transform)
             }
           />
+          {standingsNotice?.imported && (
+            <Text size="sm" ta="center" mt="sm">
+              {standingsNotice.text}
+            </Text>
+          )}
         </Paper>
         <Paper
           id={`${sectionId}-details`}

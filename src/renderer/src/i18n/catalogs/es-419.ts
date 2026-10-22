@@ -43,11 +43,6 @@ export const es419 = {
       finalScore: 'Marcador final: {{one}} - {{two}}'
     },
     // Media folders
-    mediaFolder: {
-      open: 'Abrir carpeta',
-      openHint: 'Abre esta carpeta de medios en el explorador de archivos.',
-      openFailed: 'JABS no pudo abrir la carpeta de medios.'
-    },
     pagination: 'Página {{page}} de {{totalPages}}'
   },
   // OBS overlays
@@ -121,17 +116,71 @@ export const es419 = {
       failed: 'No se pudo abrir esta guía. Inténtalo de nuevo desde Ayuda.',
       tokenLink: 'Abrir las instrucciones de tokens de start.gg',
       guides: {
+        quickStart: 'Primeros pasos',
         tournament: 'Organizar un torneo',
         exhibition: 'Preparar una exhibición',
         topEight: 'Crear una imagen de Top 8',
         thumbnail: 'Crear una miniatura de YouTube',
         tokens: 'Conectar un token de start.gg',
         library: 'Usar la biblioteca de jugadores',
+        folders: 'Recursos y carpetas de imágenes',
         media: 'Mover y ajustar imágenes',
         scoreboard: 'Crear un marcador personalizado',
         stingers: 'Configurar stingers'
       },
       steps: {
+        assetFolders: {
+          title: 'Encuentra tus carpetas de imágenes',
+          body: 'Usa Abrir carpeta de recursos en Recursos, o el desplegable para abrir una carpeta específica. Las carpetas de personajes corresponden al juego seleccionado. Puedes usar PNG, JPEG o WebP.'
+        },
+        assetCharacters: {
+          title: 'Agrega arte de personajes',
+          body: 'Arte de personajes contiene las imágenes grandes; Retratos de personajes, los iconos cuadrados. Mantén los archivos de cada juego en sus carpetas. Reemplaza los archivos vacíos sin cambiar sus nombres. Los nombres numerados agregan atuendos.'
+        },
+        assetPhotos: {
+          title: 'Agrega fotos de jugadores',
+          body: 'Nombra las fotos con el tag del jugador. Usa Fotos de jugadores para recortes transparentes y Retratos de jugadores para fotos cuadradas de marcador. Los retratos tienen prioridad en los marcadores. Revisa la foto de cada jugador desde Jugadores.'
+        },
+        assetLogos: {
+          title: 'Agrega logos de patrocinadores y torneos',
+          body: 'Nombra los logos de patrocinadores con el patrocinador o prefijo del jugador. Los logos de torneos pueden tener cualquier nombre; elige el que quieras en las opciones del overlay.'
+        },
+        assetReload: {
+          title: 'Actualiza las imágenes',
+          body: 'Elige Recargar recursos después de agregar o reemplazar archivos. Luego selecciona tus imágenes en JABS y ajusta su encuadre en la vista previa.'
+        },
+        quickWelcome: {
+          title: '¡Bienvenido a JABS!',
+          body: 'Puedes cerrar la guía cuando quieras y volver a abrir Primeros pasos desde Ayuda. Vamos a guiarte para preparar una transmisión. Esta barra reúne acciones disponibles desde cualquier pestaña; las pestañas de abajo organizan los overlays y las imágenes.'
+        },
+        quickTournament: {
+          title: 'Prepara la transmisión de un torneo',
+          body: 'Pega el enlace del torneo de start.gg y elige Cargar eventos. Selecciona un evento, filtra por fase o grupo, abre una partida y elige Enviar a transmisión.'
+        },
+        quickExhibition: {
+          title: 'O prepara una exhibición',
+          body: 'Sin un torneo cargado, elige el juego y los jugadores en Editar estado de transmisión. Si ya cargaste un torneo, usa Bracket → Opciones → Cerrar torneo primero.'
+        },
+        quickStream: {
+          title: 'Prepara la partida y lleva el marcador',
+          body: 'Elige jugadores, personajes y estilo en Editar estado de transmisión. Los cambios se guardan automáticamente. Usa los controles en vivo para llevar el marcador.'
+        },
+        quickAssets: {
+          title: 'Agrega tus recursos multimedia',
+          body: 'Usa Recursos para abrir las carpetas de imágenes de personajes, fotos de jugadores y logos. Agrega tus imágenes y elige Recargar recursos para usarlas en los overlays y gráficos.'
+        },
+        quickReporting: {
+          title: 'Envía resultados a start.gg',
+          body: 'Debes tener permiso para reportar resultados en el torneo cargado. Reportar resultado actualiza el marcador final en start.gg, termina la partida y actualiza la progresión del bracket.'
+        },
+        quickLibrary: {
+          title: 'Reutiliza los datos de jugadores',
+          body: 'Abre Jugadores para guardar perfiles, fotos y personajes de cada juego. Al elegir jugadores guardados para una partida, se completan sus datos. Puedes agregarlos más adelante.'
+        },
+        quickFinish: {
+          title: 'Todo listo para empezar',
+          body: 'Empieza con el enlace de un torneo o prepara una exhibición en Editar estado de transmisión. En Ayuda encontrarás guías para cada tarea, incluidas imágenes, marcadores personalizados y stingers. Primeros pasos seguirá aquí para cuando quieras repasarlo.'
+        },
         tournament: {
           title: 'Carga tu torneo',
           body: 'Pega el enlace del torneo de start.gg y elige Cargar eventos. Los torneos públicos funcionan sin token.'
@@ -150,7 +199,7 @@ export const es419 = {
         },
         obs: {
           title: 'Conecta OBS',
-          body: 'Copia una URL de este menú y agrégala como Fuente de navegador de 1920×1080 en OBS. Mantén JABS abierto durante la transmisión. Para repetir la animación de entrada al volver a la escena, marca “Apagar fuente cuando no sea visible” y “Actualizar el navegador cuando la escena se active”. Deja ambas opciones sin marcar para Stingers.'
+          body: 'Copia una URL de este menú y agrégala como Fuente de navegador de 1920×1080 en OBS. Mantén JABS abierto durante la transmisión. Para repetir la animación del overlay al volver a la escena, marca “Apagar fuente cuando no sea visible” y “Actualizar el navegador cuando la escena se active”. Deja ambas opciones sin marcar para Stingers.'
         },
         exhibition: {
           title: 'Empieza sin un torneo',
@@ -316,10 +365,9 @@ export const es419 = {
       enabled: 'Fotos de jugadores en marcadores',
       logoBackdrop: 'Logo del torneo detrás de los jugadores',
       sponsorBackdrop: 'Logos de patrocinadores detrás de los jugadores',
-      chooseLogo: 'Elige un logo de torneo en Extras de transmisión.',
-      help: 'Prepara las fotos en <players>Jugadores</players>. Su ubicación depende del juego seleccionado. También funciona con marcadores personalizados.',
+      chooseLogo: 'Elige un logo de torneo en <extras>Extras de transmisión</extras>.',
+      help: 'Prepara las fotos para los marcadores en <players>Jugadores</players>.',
       preparation: 'Foto para el marcador',
-      headshotsFolder: 'Retratos de jugadores',
       reload: 'Recargar imágenes',
       imageFailed: 'No se pudo cargar esta imagen. Revisa el archivo y recarga.',
       changed: 'Esta imagen cambió. Revisa el encuadre antes de confirmar.',
@@ -443,7 +491,7 @@ export const es419 = {
       largeText: 'Más grande',
       broadcastLanguage: 'Idioma de OBS',
       followLanguage: 'El mismo que JABS',
-      animations: 'Animar la entrada de los overlays',
+      animations: 'Reproducir animaciones de overlays',
       presets: 'Apariencias guardadas',
       savedPreset: 'Apariencia guardada',
       choosePreset: 'Elige una apariencia',
@@ -509,6 +557,7 @@ export const es419 = {
       current: 'JABS está actualizado.',
       available: 'La versión {{version}} está disponible.',
       confirm: '¿Actualizar JABS de {{current}} a {{next}}?',
+      description: 'Actualiza JABS para obtener nuevas funciones, mejoras y correcciones para tus transmisiones.',
       installRestart: 'Instalar y reiniciar',
       restartNotice:
         'JABS se reiniciará. Las fuentes de OBS se desconectarán por un momento. Exporta cualquier gráfico pendiente antes de actualizar.',
@@ -542,7 +591,7 @@ export const es419 = {
       video: 'Video',
       chooseVideo: 'Elegir un video WebM',
       webmOnly: 'Elige un video WebM. Convierte otros formatos antes de importarlos.',
-      audioHelp: 'Administra el sonido con Controlar audio vía OBS en las propiedades de la fuente de navegador.',
+      audioHelp: 'Activa “Controlar audio vía OBS” en sus propiedades para ajustar el sonido en el mezclador de OBS.',
       formats: 'WebM · Video VP8/VP9, audio Opus/Vorbis opcional · Hasta 256 MB.',
       useDuration: 'Limitar la duración',
       duration: 'Duración (segundos)',
@@ -560,15 +609,17 @@ export const es419 = {
       readySources_one: '{{count}} fuente activa en OBS',
       readySources_other: '{{count}} fuentes activas en OBS',
       sourceHelp:
-        'Coloca esta fuente de navegador de 1920×1080 sobre las demás. Reutiliza la misma fuente en tus escenas.',
+        'Agrega esta fuente de navegador de 1920×1080 sobre las demás y reutilízala en tus escenas.',
       automaticWinner: 'Reproducir Ganador al completar el marcador del set',
       automaticHelp: 'Las correcciones del marcador y las reconexiones no repiten la celebración.',
       currentWinner: 'Ganador actual: {{name}}',
       noWinner: 'Completa el marcador del set para reproducir Ganador.',
-      mediaDelay: 'Mostrar los recursos del ganador después de (segundos)',
+      mediaDelay: 'Mostrar recursos tras (s)',
       layer: 'Posición del video',
-      behind: 'Detrás de los recursos del ganador',
-      inFront: 'Delante de los recursos del ganador (video transparente)',
+      behind: 'Detrás',
+      inFront: 'Delante',
+      layerHelp: 'Usa un video transparente si va delante.',
+      playbackSettings: 'Ajustes de reproducción del ganador',
       framing: 'Encuadre del ganador · 1920×1080',
       framingHelp: 'Prepara tu animación alrededor de estas regiones fijas. Esta vista previa no activa OBS.',
       previewPlayer: 'Jugador de vista previa',
@@ -591,7 +642,6 @@ export const es419 = {
       otherOverlaysTitle: 'Overlays para OBS',
       obsSource: 'Fuente de navegador de OBS',
       resolvingObs: 'Cargando la URL de OBS…',
-      winnerAutomatic: 'Una sola fuente de OBS muestra automáticamente al ganador del set o al campeón del torneo.',
       styling: 'Estilo',
       transparentBackground: 'Fondo transparente',
       playerStats: {
@@ -611,7 +661,6 @@ export const es419 = {
         swap: 'Intercambiar comentaristas',
         loading: 'Cargando presentación de comentaristas…',
         tournament: 'Nombre del torneo',
-        logo: 'Logo del torneo centrado',
         person: 'Comentarista {{count}}',
         name: 'Nombre al aire',
         handle: 'Red social',
@@ -761,7 +810,6 @@ export const es419 = {
       selectEvent: 'Selecciona un evento para recargar el bracket.',
       updatedAt: 'Bracket actualizado: {{time}}',
       gameProfile: 'Perfil de juego para el set',
-      assetSlug: 'Carpeta de recursos de personajes:',
       reloadAssets: 'Recargar recursos',
       reloadAssetsHint: 'Busca de nuevo ilustraciones, fotos y logos locales.',
       assetsReloaded:
@@ -769,7 +817,6 @@ export const es419 = {
       logosReloaded: 'Se encontraron {{count}} logo(s) de torneo.',
       assetsReloadFailed: 'No se pudieron recargar los catálogos locales de recursos.',
       chooseProfile: 'Elige un perfil de juego',
-      detectedFromEvent: 'Detectado del evento: {{profile}}',
       unknownGame: 'Este juego usa un perfil de overlay existente. Puedes cambiarlo aquí; el nombre del juego y sus imágenes se conservan.',
       phase: 'Fase',
       allPhases: 'Todas las fases',
@@ -801,7 +848,7 @@ export const es419 = {
       view: 'Vista de {{scope}}',
       total: '{{count}} en total',
       bracketOrder: 'orden del bracket de start.gg',
-      dirtyWarning: 'Los cambios del estado de transmisión se están guardando automáticamente.',
+      dirtyWarning: 'Esperando a que terminen de guardarse los cambios.',
       search: 'Buscar sets',
       searchPlaceholder: 'Jugador, ronda, estación o ID del set',
       loadingAll: 'Cargando todas las páginas del bracket para buscar…',
@@ -906,20 +953,13 @@ export const es419 = {
       chooseLogo: 'Elige un logo',
       logoHint: 'Agrega archivos PNG, JPEG o WebP a Logos de torneos y elige Recargar recursos.',
       reloadLogos: 'Actualizar logos',
-      playerPhotosFolder: 'Fotos de jugadores:',
-      sponsorLogosFolder: 'Logos de patrocinadores:',
-      tournamentLogosFolder: 'Logos de torneos:'
     },
 
     // Live match controls
     live: {
       title: 'Controles en vivo',
       dirtyWarning: 'Esperando a que terminen de guardarse los cambios de transmisión.',
-      startggResult: 'Resultado de start.gg',
       report: 'Reportar resultado',
-      winner: '{{winner}} gana {{winnerScore}}–{{loserScore}}.',
-      historyReady: 'Historial de marcadores listo.',
-      winnerOnly: 'Solo el ganador; se desconoce el orden de los juegos.',
       obsTitle: 'URLs de OBS',
       obsHelp:
         'Mantén JABS abierto mientras usas sus fuentes en OBS. Si una fuente queda en blanco, abre sus propiedades en OBS y elige Actualizar caché de la página actual.',
@@ -1146,7 +1186,8 @@ export const es419 = {
 
     // Artwork positioning
     mediaControls: {
-      combinedEditingHelp: 'Alt+clic selecciona la imagen de atrás.',
+      click: 'Clic',
+      combinedEditingHelp: 'Seleccionar imagen de atrás',
       pointer: 'Arrastra una imagen o usa:',
       move: 'mover',
       moveFarther: 'mover más',

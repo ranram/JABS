@@ -122,10 +122,29 @@ it('imports final standings automatically and refreshes preview media without re
   let thumbnail!: ReturnType<typeof useThumbnailDraft>;
   let reload!: () => Promise<void>;
   let obsFrame: string | undefined;
+  let thumbnailSource = { ...activeSet, broadcast: { ...activeSet.broadcast! } };
+  const common = { profiles, logos, countries: [], moderationRevision: 0 };
+  // Keep independent editors from rerendering each other's full forms on every draft change.
+  function TopEightPreview({ revision }: { revision: number }) {
+    top = useTopEightDraft();
+    return h(TopEightGenerator, {
+      ...common,
+      controller: top,
+      selectedEventId: '1724571',
+      assetCatalogRevision: revision
+    });
+  }
+  function ThumbnailPreview({ revision }: { revision: number }) {
+    thumbnail = useThumbnailDraft();
+    return h(ThumbnailGenerator, {
+      ...common,
+      controller: thumbnail,
+      activeSet: thumbnailSource,
+      assetCatalogRevision: revision
+    });
+  }
   function Workspace() {
     obsFrame = useCustomScoreboard('test').frameUrl;
-    top = useTopEightDraft();
-    thumbnail = useThumbnailDraft();
     const [revision, setRevision] = useState(0);
     const [, setLogos] = useState(logos);
     reload = useAssetCatalogReload({
@@ -133,12 +152,11 @@ it('imports final standings automatically and refreshes preview media without re
       setLogos,
       setAssetCatalogRevision: setRevision
     }).reloadAssets;
-    const common = { profiles, logos, countries: [], moderationRevision: 0, assetCatalogRevision: revision };
     return h(
       MantineProvider,
       { env: 'test' },
-      h(TopEightGenerator, { ...common, controller: top, selectedEventId: '1724571' }),
-      h(ThumbnailGenerator, { ...common, controller: thumbnail }),
+      h(TopEightPreview, { revision }),
+      h(ThumbnailPreview, { revision }),
       h(CustomScoreboardPanel, { activeSet, onSelect: vi.fn(), onMessage: vi.fn() })
     );
   }
@@ -148,6 +166,12 @@ it('imports final standings automatically and refreshes preview media without re
   expect(top.draft.entrants.map(({ name }) => name)).toEqual(
     Array.from({ length: 8 }, (_, index) => `Finalist ${index + 1}`)
   );
+  const importAccordion = [...view.container.querySelectorAll<HTMLButtonElement>('button')].find(
+    (button) => button.textContent === i18n.t('operator:topEight.loadFromStartgg')
+  )!;
+  expect(importAccordion.getAttribute('aria-expanded')).toBe('false');
+  await act(async () => importAccordion.click());
+  expect(importAccordion.getAttribute('aria-expanded')).toBe('true');
   await act(async () => {
     top.setMediaMode('photo');
     top.setLogo('logo.png');
@@ -158,6 +182,7 @@ it('imports final standings automatically and refreshes preview media without re
     await vi.advanceTimersByTimeAsync(300);
   });
   function assertImages(revision: number) {
+    assertShortcutHints();
     for (const selector of ['.top8-canvas', '.thumbnail-canvas']) {
       const preview = view.container.querySelector(selector);
       expect(preview, selector).not.toBeNull();
@@ -174,6 +199,30 @@ it('imports final standings automatically and refreshes preview media without re
     expect(view.container.querySelectorAll('.thumbnail-identity > .thumbnail-country-flag')).toHaveLength(2);
   }
   assertImages(1);
+  transport.logo.mockImplementation(async (id: string) =>
+    id === 'rails.png' ? 'data:image/png;base64,rails' : `data:image/png;base64,logo${transport.revision}`
+  );
+  await act(async () => thumbnail.setText({ logoAssetId: undefined }));
+  thumbnailSource = { ...thumbnailSource, broadcast: { ...thumbnailSource.broadcast, logoAssetId: 'rails.png' } };
+  await view.rerender();
+  expect(view.container.querySelector('.thumbnail-event-logo')?.getAttribute('src')).toBe(
+    'data:image/png;base64,rails'
+  );
+  await act(async () => thumbnail.setText({ logoAssetId: 'logo.png' }));
+  expect(view.container.querySelector('.thumbnail-event-logo')?.getAttribute('src')).toBe(
+    'data:image/png;base64,logo1'
+  );
+  await act(async () => thumbnail.setVisibility('showTournamentLogo', false));
+  expect(view.container.querySelector('.thumbnail-event-logo')).toBeNull();
+  thumbnailSource = { ...thumbnailSource, broadcast: { ...activeSet.broadcast! } };
+  await act(async () => thumbnail.setVisibility('showTournamentLogo', true));
+  function assertShortcutHints() {
+    for (const selector of ['.top8-canvas', '.thumbnail-canvas']) {
+      const panel = view.container.querySelector(selector)!.closest('.generator-preview-panel')!;
+      const keys = [...panel.querySelectorAll('kbd.mantine-Kbd-root')].map((key) => key.textContent);
+      expect(keys, selector).toEqual(expect.arrayContaining(['Alt', 'Click']));
+    }
+  }
   // A single nudge checks each screen's binding; shared media tests own the drag mechanics.
   for (const selector of ['.top8-canvas', '.thumbnail-canvas']) {
     await act(async () => {
@@ -211,6 +260,7 @@ it('imports final standings automatically and refreshes preview media without re
     thumbnail.setMediaMode('character');
   });
   const assertArtwork = (revision: number) => {
+    assertShortcutHints();
     for (const selector of ['.top8-canvas', '.thumbnail-canvas']) {
       expect(
         view.container.querySelector(`${selector} img[src="data:image/png;base64,artwork${revision}"]`)
@@ -292,7 +342,7 @@ it('imports final standings automatically and refreshes preview media without re
   expect(view.container.querySelector('.top8-canvas img[src="data:image/png;base64,artwork3"]')).toBeNull();
   transport.characters.mockResolvedValue({ assets: [] });
   await view.unmount();
-}, 20_000);
+}, 30_000);
 
 it('explains unavailable public bracket reads without exposing server details', async () => {
   await i18n.changeLanguage('en');
@@ -376,8 +426,6 @@ it('keeps standalone games independent, follows loaded events in both generators
         tokenInputRef: { current: null },
         tokenConfigured: false,
         tokenStorageAvailable: false,
-        tokenSessionOnly: false,
-        tokenVerified: false,
         tokenInputReady: false,
         bracket: browser,
         profiles,

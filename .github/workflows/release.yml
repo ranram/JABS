@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Release tag matching the committed application version
         required: true
-        default: v1.5.0
+        default: v1.5.1
   push:
     tags:
       - "v*"
@@ -182,11 +182,7 @@ jobs:
           tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
           releaseName: JABS ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
           releaseBody: |
-            JABS packages with signed updater artifacts, built from ${{ github.sha }}.
-
-            Updater signatures verify downloads; these packages do not have platform code-signing certificates.
-
-            Review and test every native package before publishing this draft.
+            Update JABS to get the latest features, improvements, and fixes for your streams.
           releaseDraft: true
           prerelease: false
           generateReleaseNotes: true

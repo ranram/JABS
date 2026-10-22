@@ -46,14 +46,21 @@ function match(id = 'first') {
 
 it('keeps outfits within the same game and resolves defaults again for a new match with the same players', async () => {
   resolvePlayers.mockResolvedValue([savedPlayer()]);
-  const hook = await mountHook(() => useThumbnailDraft(match()));
+  const activeMatch = match();
+  activeMatch.broadcast = { ...activeMatch.broadcast!, logoEnabled: true, logoAssetId: 'rails.png' };
+  const hook = await mountHook(() => useThumbnailDraft(activeMatch));
+  expect(hook.current.draft.logoAssetId).toBeUndefined();
   expect(hook.current.draft.players[0].characterAssetId).toBe('ryu-2.png');
   await act(async () => hook.current.setPlayer(0, { characterAssetId: 'ryu-3.png' }));
   await act(async () => hook.current.setGameContext('street-fighter-6', 'Street Fighter 6', 'street-fighter-6'));
   expect(hook.current.draft.players[0].characterAssetId).toBe('ryu-3.png');
 
   resolvePlayers.mockResolvedValue([savedPlayer('Ryu', 'ryu-4.png')]);
-  await act(async () => hook.current.useActiveSet(match('second')));
+  await act(async () => hook.current.setText({ logoAssetId: 'thumbnail.png' }));
+  const nextMatch = match('second');
+  nextMatch.broadcast = { ...activeMatch.broadcast, logoAssetId: 'other-rails.png' };
+  await act(async () => hook.current.useActiveSet(nextMatch));
+  expect(hook.current.draft.logoAssetId).toBe('thumbnail.png');
   expect(hook.current.draft.players[0].characterAssetId).toBe('ryu-4.png');
   const lookups = resolvePlayers.mock.calls.length;
   await act(async () => {

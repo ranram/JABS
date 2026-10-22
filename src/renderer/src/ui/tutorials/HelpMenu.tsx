@@ -5,14 +5,13 @@ import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { tutorialIds, type TutorialId, type TutorialWorkspace } from './tutorials';
 import type { TutorialPopover } from './runTutorial';
-import { sortByLabel } from '../operator/operatorUtils';
-import { en } from '../../i18n/catalogs/en';
 import { ExternalLink } from '../operator/ExternalLink';
 import { SupportDialog } from '../support/SupportDialog';
 
+const quickStartDismissalKey = 'jabs.quick-start.dismissed';
+
 export function HelpMenu({ navigate }: { navigate(workspace: TutorialWorkspace): void }) {
   const { t, i18n } = useTranslation('operator');
-  const sortedGuides = sortByLabel(tutorialIds, (id) => en.operator.help.guides[id], 'en');
   const [loading, setLoading] = useState(false);
   const [supportOpened, setSupportOpened] = useState(false);
   const [popover, setPopover] = useState<TutorialPopover>();
@@ -40,7 +39,8 @@ export function HelpMenu({ navigate }: { navigate(workspace: TutorialWorkspace):
         navigate,
         render: (next) => {
           if (generation === current.current.generation) setPopover(next);
-        }
+        },
+        onClosed: id === 'quickStart' ? rememberQuickStart : undefined
       });
     } catch {
       if (generation === current.current.generation) notifications.show({ color: 'red', message: t('help.failed') });
@@ -48,6 +48,20 @@ export function HelpMenu({ navigate }: { navigate(workspace: TutorialWorkspace):
       if (generation === current.current.generation) setLoading(false);
     }
   }
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(quickStartDismissalKey) === 'true') return;
+    } catch {
+      // The tour remains available when browser storage is unavailable.
+    }
+    // React remounts effects in development; let that settle before starting the tour.
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void start('quickStart');
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   useLayoutEffect(() => {
     if (!popover) return;
@@ -73,7 +87,7 @@ export function HelpMenu({ navigate }: { navigate(workspace: TutorialWorkspace):
           <Menu.Item onClick={() => setSupportOpened(true)}>{t('support.title')}</Menu.Item>
           <Menu.Divider />
           <Menu.Label>{t('help.tutorials')}</Menu.Label>
-          {sortedGuides.map((id) => (
+          {tutorialIds.map((id) => (
             <Menu.Item key={id} onClick={() => void start(id)}>
               {t(`help.guides.${id}`)}
             </Menu.Item>
@@ -120,4 +134,12 @@ export function HelpMenu({ navigate }: { navigate(workspace: TutorialWorkspace):
         )}
     </>
   );
+}
+
+function rememberQuickStart() {
+  try {
+    window.localStorage.setItem(quickStartDismissalKey, 'true');
+  } catch {
+    // Dismissing the tour must still work if the preference cannot be saved.
+  }
 }

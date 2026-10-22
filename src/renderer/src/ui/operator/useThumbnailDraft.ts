@@ -63,7 +63,6 @@ export function useThumbnailDraft(activeSet?: SelectedSetState, eventContext?: G
         selectedSet.tournamentSlug?.replaceAll('-', ' ') ||
         current.tournamentName,
       headline: thumbnailMatchHeadline(selectedSet),
-      logoAssetId: selectedSet.broadcast?.logoEnabled ? selectedSet.broadcast.logoAssetId : current.logoAssetId,
       players: [playerFromSet(selectedSet.playerOne, gameId), playerFromSet(selectedSet.playerTwo, gameId)]
     }));
     setMediaPlacements([defaultPlayerMediaPlacement(), defaultPlayerMediaPlacement()]);

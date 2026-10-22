@@ -83,6 +83,10 @@
   }
 }
 
+.thumbnail-generator .generator-settings-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @container generator (max-width: 48rem) {
   .generator-page .generator-section,
   .generator-navigation {
@@ -97,8 +101,12 @@
 }
 
 @media (min-width: 1500px) {
+  .thumbnail-generator .generator-settings-row,
   .generator-workspace {
     grid-template-columns: minmax(360px, 0.85fr) minmax(620px, 1.4fr);
+  }
+
+  .generator-workspace {
     align-items: start;
   }
 

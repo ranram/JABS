@@ -12,7 +12,6 @@ export const commentatorStateSchema = z.object({
   stylingGameId: stylingGameIdSchema,
   tournamentName: z.string().trim().min(1).max(80),
   logoAssetId: z.string().trim().min(1).optional(),
-  showTournamentLogo: z.boolean().default(true),
   commentators: z.tuple([
     z.object({ name: z.string().trim().min(1).max(48), handle: z.string().trim().max(64) }),
     z.object({ name: z.string().trim().min(1).max(48), handle: z.string().trim().max(64) })

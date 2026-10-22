@@ -103,7 +103,10 @@ it('handles checks, failed installations, progress, restart retry and late check
 it('blocks installation for dirty drafts and queued settings writes, and disables unsupported builds', async () => {
   vi.useFakeTimers();
   transport.support.mockResolvedValue({ version: '1.1.1', availability: 'available' });
-  transport.check.mockResolvedValue(release());
+  transport.check.mockResolvedValue({
+    ...release(),
+    body: 'Review and test every native package before publishing this draft.'
+  });
   let blocked = true;
   const save = deferred<{ name: string }>();
   const hook = await mountHook(
@@ -130,6 +133,17 @@ it('blocks installation for dirty drafts and queued settings writes, and disable
   expect(button('Update now').disabled).toBe(true);
   await act(async () => save.resolve({ name: 'Queued' }));
   expect(button('Update now').disabled).toBe(false);
+  await act(async () => button('Update now').click());
+  expect(document.body.textContent).toContain(
+    'Update JABS to get the latest features, improvements, and fixes for your streams.'
+  );
+  expect(document.body.textContent).not.toContain('Review and test every native package');
+  await act(async () => i18n.changeLanguage('es-419'));
+  expect(document.body.textContent).toContain(
+    'Actualiza JABS para obtener nuevas funciones, mejoras y correcciones para tus transmisiones.'
+  );
+  expect(document.body.textContent).not.toContain('Update JABS to get the latest features');
+  await act(async () => i18n.changeLanguage('en'));
   await hook.unmount();
   transport.support.mockResolvedValue({ version: '1.1.1', availability: 'development' });
   const unsupported = await mountHook(

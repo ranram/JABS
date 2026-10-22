@@ -76,7 +76,7 @@ it('uses an overlay logo when selected and falls back to the current rails logo'
     ['/overlay/commentators', '.commentator-event-logo', transport.commentators!],
     ['/overlay/active/top-eight-matchups', '.top8-matchups-logo', transport.matchups!]
   ] as const) {
-    settings.showTournamentLogo = true;
+    if ('showTournamentLogo' in settings) settings.showTournamentLogo = true;
     settings.logoAssetId = undefined;
     overlay.selectedSet.broadcast = { ...overlay.selectedSet.broadcast!, logoAssetId: 'rails.png' };
     window.history.replaceState(null, '', path);
@@ -256,6 +256,41 @@ it('renders bundled flags and falls back safely for invalid country selections',
     overlay.selectedSet.playerOne.name
   );
   expect(view.container.querySelector('.overlay-player-right .overlay-player-name')?.textContent).toBe('Player 2');
+  const originalRound = overlay.selectedSet.round;
+  const originalStyling = overlay.selectedSet.stylingGameId;
+  const originalPlayers = [overlay.selectedSet.playerOne, overlay.selectedSet.playerTwo] as const;
+  const names = () => [...view.container.querySelectorAll('.overlay-player-name-text')].map((node) => node.textContent);
+  for (const style of ['street-fighter-6', 'super-smash-bros-ultimate'] as const) {
+    overlay.selectedSet.stylingGameId = style;
+    for (const [round, winnersSide, loser] of [
+      ['Grand Final', originalPlayers[0].entrantId, 1],
+      ['Grand Finals', originalPlayers[1].entrantId, 0],
+      ['  GRAND-FINALS  ', originalPlayers[0].entrantId, 1],
+      ['Grand Final Reset', originalPlayers[0].entrantId, -1],
+      ['Grand Finals Reset', originalPlayers[1].entrantId, -1],
+      ['Winners Final', originalPlayers[0].entrantId, -1],
+      ['Grand Final', undefined, -1],
+      ['Grand Final', 'unknown-entrant', -1]
+    ] as const) {
+      overlay.selectedSet.round = round;
+      overlay.selectedSet.winnersSideEntrantId = winnersSide;
+      await view.rerender();
+      expect(names()).toEqual([
+        `${originalPlayers[0].name}${loser === 0 ? ' [L]' : ''}`,
+        `${loser === 1 ? '[L] ' : ''}${originalPlayers[1].name}`
+      ]);
+    }
+  }
+  overlay.selectedSet.round = 'Grand Final';
+  overlay.selectedSet.winnersSideEntrantId = originalPlayers[0].entrantId;
+  [overlay.selectedSet.playerOne, overlay.selectedSet.playerTwo] = [originalPlayers[1], originalPlayers[0]];
+  await view.rerender();
+  expect(names()).toEqual([`${originalPlayers[1].name} [L]`, originalPlayers[0].name]);
+  expect(originalPlayers.map((player) => player.name)).toEqual(['Player 1', 'Player 2']);
+  [overlay.selectedSet.playerOne, overlay.selectedSet.playerTwo] = originalPlayers;
+  overlay.selectedSet.round = originalRound;
+  overlay.selectedSet.stylingGameId = originalStyling;
+  overlay.selectedSet.winnersSideEntrantId = undefined;
   overlay.selectedSet.playerOne.displayFlag = 'pride:transgender';
   await view.rerender();
   expect(view.container.querySelector('.overlay-player-left .overlay-player-flag img')?.getAttribute('src')).toBe(

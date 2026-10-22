@@ -1,11 +1,11 @@
-import { Accordion, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Accordion, Box, Group, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LogoAsset, SelectedSetState, StartggPhase } from '@shared/models';
 import type { GameProfile } from '@shared/gameProfiles';
 import { CommentatorControls } from './CommentatorControls';
-import { ResultScreenControls } from './ResultScreenControls';
-import { VersusScreenControls } from './VersusScreenControls';
+import { ResultScreenControls, ResultScreenStatus } from './ResultScreenControls';
+import { VersusScreenControls, VersusScreenStatus } from './VersusScreenControls';
 import { TopEightMatchupsControls } from './TopEightMatchupsControls';
 import { BracketScreenControls } from './BracketScreenControls';
 import { PlayerStatsControls } from './PlayerStatsControls';
@@ -50,7 +50,20 @@ export function OtherOverlaysPanel({ localBaseUrl, ...controls }: OtherOverlaysP
         {sortedTypes.map((overlayType) => (
           <Accordion.Item className="operator-inset" key={overlayType} value={overlayType}>
             <Accordion.Control>
-              <Text fw={800}>{t(`workspaces.tools.${overlayType}.title`)}</Text>
+              <Group justify="space-between" gap="md" wrap="nowrap" pr="sm">
+                <Text fw={800} flex={1} miw={0}>
+                  {t(`workspaces.tools.${overlayType}.title`)}
+                </Text>
+                {(overlayType === 'versus' || overlayType === 'winner') && (
+                  <Box maw="65%" miw={0}>
+                    {overlayType === 'versus' ? (
+                      <VersusScreenStatus activeSet={controls.streamDraft ?? controls.activeSet} />
+                    ) : (
+                      <ResultScreenStatus activeSet={controls.activeSet} />
+                    )}
+                  </Box>
+                )}
+              </Group>
             </Accordion.Control>
             <Accordion.Panel>
               <Stack gap="sm">
@@ -65,8 +78,18 @@ export function OtherOverlaysPanel({ localBaseUrl, ...controls }: OtherOverlaysP
                     <Text c="dimmed" size="sm">
                       {t(`workspaces.tools.${overlayType}.description`)}
                     </Text>
-                    <OverlaySourceDetails overlayType={overlayType} localBaseUrl={localBaseUrl} />
-                    <OverlayControls overlayType={overlayType} {...controls} />
+                    {overlayType !== 'versus' && (
+                      <OverlaySourceDetails overlayType={overlayType} localBaseUrl={localBaseUrl} />
+                    )}
+                    <OverlayControls
+                      overlayType={overlayType}
+                      sourceLinks={
+                        overlayType === 'versus' ? (
+                          <OverlaySourceDetails overlayType={overlayType} localBaseUrl={localBaseUrl} />
+                        ) : undefined
+                      }
+                      {...controls}
+                    />
                   </>
                 )}
               </Stack>
@@ -128,11 +151,12 @@ function OverlayControls({
   selectedEventId,
   selectedEventName,
   phases,
-  assetCatalogRevision
+  assetCatalogRevision,
+  sourceLinks
 }: Omit<OtherOverlaysPanelProps, 'localBaseUrl'> & {
   overlayType: Exclude<OtherOverlayType, 'commentators'>;
+  sourceLinks?: ReactElement;
 }): ReactElement {
-  const { t } = useTranslation('operator');
   switch (overlayType) {
     case 'playerStats':
       return <PlayerStatsControls logos={logos} profiles={profiles} />;
@@ -151,15 +175,11 @@ function OverlayControls({
         />
       );
     case 'winner':
-      return (
-        <>
-          <Text size="sm">{t('workspaces.winnerAutomatic')}</Text>
-          <ResultScreenControls activeSet={activeSet} logos={logos} profiles={profiles} />
-        </>
-      );
+      return <ResultScreenControls activeSet={activeSet} logos={logos} profiles={profiles} />;
     case 'versus':
       return (
         <VersusScreenControls
+          sourceLinks={sourceLinks}
           activeSet={streamDraft ?? activeSet}
           characterCatalog={characterCatalog}
           pendingChanges={streamPending}

@@ -1,9 +1,13 @@
 import { act, createElement, StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 
 const cleanups = new Set<() => Promise<void>>();
 Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', true);
+beforeEach(() => {
+  // Component tests start as returning users; the onboarding test clears this preference.
+  window.localStorage.setItem('jabs.quick-start.dismissed', 'true');
+});
 afterEach(async () => {
   for (const cleanup of cleanups) await cleanup();
 });

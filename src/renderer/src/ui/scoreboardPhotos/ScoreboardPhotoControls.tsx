@@ -1,4 +1,4 @@
-import { Alert, Checkbox, Group, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Checkbox, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { api } from '../../api';
@@ -8,7 +8,13 @@ import type { SelectedSetState } from '@shared/models';
 import { scoreboardPhotoLayout, type ScoreboardPhotoSettings } from '@shared/scoreboardPhotos';
 import { PlayerLibraryButton } from '../players/PlayerLibraryModal';
 
-export function ScoreboardPhotoControls({ selectedSet }: { selectedSet?: SelectedSetState }) {
+export function ScoreboardPhotoControls({
+  selectedSet,
+  broadcastExtrasId
+}: {
+  selectedSet?: SelectedSetState;
+  broadcastExtrasId?: string;
+}) {
   const { t } = useTranslation('operator');
   const { state, setState, error } = useScoreboardPhotos();
   const [saving, setSaving] = useState(false);
@@ -25,10 +31,17 @@ export function ScoreboardPhotoControls({ selectedSet }: { selectedSet?: Selecte
     }
   }
   return (
-    <Stack gap={4}>
-      <Group gap="lg" align="flex-start" wrap="wrap">
+    <Stack gap="xs">
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 3 }}>
         <Checkbox
           label={t('scoreboardPhotos.enabled')}
+          description={
+            <Trans
+              t={t}
+              i18nKey="scoreboardPhotos.help"
+              components={{ players: <PlayerLibraryButton selectedSet={selectedSet} inline /> }}
+            />
+          }
           checked={state?.enabled ?? false}
           disabled={!state || saving}
           onChange={(event) => void save({ enabled: event.currentTarget.checked })}
@@ -37,7 +50,21 @@ export function ScoreboardPhotoControls({ selectedSet }: { selectedSet?: Selecte
           <>
             <Checkbox
               label={t('scoreboardPhotos.logoBackdrop')}
-              description={selectedSet?.broadcast?.logoAssetId ? undefined : t('scoreboardPhotos.chooseLogo')}
+              description={
+                selectedSet?.broadcast?.logoAssetId ? undefined : (
+                  <Trans
+                    t={t}
+                    i18nKey="scoreboardPhotos.chooseLogo"
+                    components={{
+                      extras: broadcastExtrasId ? (
+                        <Anchor href={`#${broadcastExtrasId}`} inherit underline="always" />
+                      ) : (
+                        <span />
+                      )
+                    }}
+                  />
+                )
+              }
               checked={state.logoBackdrop}
               disabled={saving || (!selectedSet?.broadcast?.logoAssetId && !state.logoBackdrop)}
               onChange={(event) => void save({ logoBackdrop: event.currentTarget.checked, sponsorBackdrop: false })}
@@ -50,14 +77,7 @@ export function ScoreboardPhotoControls({ selectedSet }: { selectedSet?: Selecte
             />
           </>
         )}
-      </Group>
-      <Text size="xs" c="dimmed">
-        <Trans
-          t={t}
-          i18nKey="scoreboardPhotos.help"
-          components={{ players: <PlayerLibraryButton selectedSet={selectedSet} inline /> }}
-        />
-      </Text>
+      </SimpleGrid>
       {state?.enabled && selectedSet && !scoreboardPhotoLayout(selectedSet) && (
         <Text size="xs" c="dimmed">
           {t('scoreboardPhotos.unsupported')}

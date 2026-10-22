@@ -543,8 +543,6 @@ export function OperatorDashboard() {
         tokenInputRef={tokenInputRef}
         tokenConfigured={tokenConfigured}
         tokenStorageAvailable={tokenStorageAvailable}
-        tokenSessionOnly={tokenSessionOnly}
-        tokenVerified={tokenVerified}
         tokenInputReady={tokenInputReady}
         detectedGameId={detectedGameId}
         detectedProfile={detectedProfile}

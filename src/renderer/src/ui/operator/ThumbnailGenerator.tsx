@@ -92,7 +92,7 @@ export function ThumbnailGenerator({
     characterAssets,
     logoUrl,
     warning
-  } = useThumbnailMedia(draft, assetCatalogRevision);
+  } = useThumbnailMedia(draft, assetCatalogRevision, activeSet?.broadcast?.logoAssetId);
   useGeneratorWarningToast('jabs-thumbnail-generator-warning', warning, String(t('operator:notices.actionFailed')));
   const characters = useMemo(
     () =>
@@ -242,23 +242,6 @@ export function ThumbnailGenerator({
             </PanelHeader>
             <Stack gap="md">
               {gameSelector}
-              <Stack gap="xs" align="flex-start">
-                <Button
-                  variant="default"
-                  disabled={
-                    !activeSet || !gameContextReady || Boolean(selectedEventId && activeSet.eventId !== selectedEventId)
-                  }
-                  onClick={() => {
-                    if (activeSet) controller.useActiveSet(activeSet);
-                    setSelectedLayer(undefined);
-                  }}
-                >
-                  {t('operator:thumbnail.useStreamMatch')}
-                </Button>
-                <Text c="dimmed" size="xs">
-                  {t('operator:thumbnail.autoStreamMatch')}
-                </Text>
-              </Stack>
               <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '36rem': 2 }}>
                 <BufferedTextInput
                   label={t('operator:thumbnail.tournament')}
@@ -271,22 +254,30 @@ export function ThumbnailGenerator({
                   onCommit={(headline) => controller.setText({ headline })}
                 />
               </SimpleGrid>
+              <Stack gap="xs">
+                <Button
+                  fullWidth
+                  variant="default"
+                  disabled={
+                    !activeSet || !gameContextReady || Boolean(selectedEventId && activeSet.eventId !== selectedEventId)
+                  }
+                  onClick={() => {
+                    if (activeSet) controller.useActiveSet(activeSet);
+                    setSelectedLayer(undefined);
+                  }}
+                >
+                  {t('operator:thumbnail.useStreamMatch')}
+                </Button>
+                <Text c="dimmed" size="xs" w="100%">
+                  {t('operator:thumbnail.autoStreamMatch')}
+                </Text>
+              </Stack>
             </Stack>
           </Paper>
           <Paper className="panel generator-section" p="lg" radius="lg" withBorder>
             <PanelHeader title={t('operator:quickTools.presentation')} mb="md" />
             <Stack gap="md">
-              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '28rem': 2 }}>
-                {(['showTournamentLogo', 'showSponsorLogo'] as const).map((setting) => (
-                  <Switch
-                    key={setting}
-                    checked={draft[setting]}
-                    label={t(`operator:thumbnail.${setting}`)}
-                    onChange={(event) => controller.setVisibility(setting, event.currentTarget.checked)}
-                  />
-                ))}
-              </SimpleGrid>
-              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '36rem': 2 }}>
+              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '42rem': 3 }}>
                 <Select
                   label={t('operator:workspaces.styling')}
                   value={draft.stylingGameId}
@@ -297,10 +288,17 @@ export function ThumbnailGenerator({
                     setSelectedLayer(undefined);
                   }}
                 />
+                <ColorInput
+                  label={t('operator:thumbnail.headlineColor')}
+                  value={draft.headlineColor}
+                  onChange={(headlineColor) => controller.setText({ headlineColor })}
+                  format="hex"
+                />
                 <Select
                   label={t('operator:thumbnail.logo')}
                   value={draft.logoAssetId ?? null}
-                  placeholder={t('operator:thumbnail.noLogo')}
+                  placeholder={t('operator:broadcast.useRailsLogo')}
+                  clearButtonProps={{ 'aria-label': t('operator:broadcast.useRailsLogo') }}
                   searchable
                   clearable
                   data={sortedLogos.map((logo) => ({ value: logo.id, label: logo.label }))}
@@ -324,11 +322,6 @@ export function ThumbnailGenerator({
                       setSelectedLayer(undefined);
                     }}
                   />
-                  {draft.mediaMode === 'combined' && (
-                    <Text c="dimmed" size="sm" mt="xs">
-                      {t('operator:mediaControls.combinedEditingHelp')}
-                    </Text>
-                  )}
                 </div>
                 <div>
                   <Text fw={700} size="sm" mb={4}>
@@ -348,13 +341,17 @@ export function ThumbnailGenerator({
                   />
                 </div>
               </SimpleGrid>
-              <ColorInput
-                label={t('operator:thumbnail.headlineColor')}
-                value={draft.headlineColor}
-                onChange={(headlineColor) => controller.setText({ headlineColor })}
-                format="hex"
-              />
               <GraphicBackgroundControls value={draft.background} onChange={controller.setBackground} />
+              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '28rem': 2 }}>
+                {(['showTournamentLogo', 'showSponsorLogo'] as const).map((setting) => (
+                  <Switch
+                    key={setting}
+                    checked={draft[setting]}
+                    label={t(`operator:thumbnail.${setting}`)}
+                    onChange={(event) => controller.setVisibility(setting, event.currentTarget.checked)}
+                  />
+                ))}
+              </SimpleGrid>
             </Stack>
           </Paper>
         </div>
@@ -456,7 +453,7 @@ export function ThumbnailGenerator({
   );
 }
 
-function useThumbnailMedia(draft: ThumbnailDraft, assetCatalogRevision: number) {
+function useThumbnailMedia(draft: ThumbnailDraft, assetCatalogRevision: number, railsLogoAssetId?: string) {
   const resolved = useGeneratorMedia({
     draft,
     subjects: draft.players,
@@ -464,7 +461,7 @@ function useThumbnailMedia(draft: ThumbnailDraft, assetCatalogRevision: number) 
     assetCatalogRevision,
     context: { tournamentName: draft.tournamentName, headline: draft.headline }
   });
-  const logoUrl = useLogoAssetUrl(draft.logoAssetId);
+  const logoUrl = useLogoAssetUrl(draft.logoAssetId ?? railsLogoAssetId);
   return {
     ...resolved,
     media: resolved.media as [ThumbnailMedia, ThumbnailMedia],

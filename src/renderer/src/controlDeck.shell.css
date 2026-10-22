@@ -33,7 +33,7 @@
 .bracket-overview-grid .set-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   /* Let the adjacent filters determine the shared row height. */
   contain: size;
   container-name: set-selector;
@@ -236,6 +236,13 @@
 .set-results-scroll.is-modal-open::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+.set-search-label-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .set-search-label {

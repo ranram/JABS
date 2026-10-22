@@ -1,7 +1,7 @@
 import { Badge, Paper, Select, SimpleGrid, Stack } from '@mantine/core';
 import { PanelHeader } from '../PanelHeader';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useMemo, useRef, type ReactNode } from 'react';
+import { useCallback, useId, useMemo, useRef, type ReactNode } from 'react';
 import { type GameId, type GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, GameCharacterAsset, LogoAsset, SelectedSetState } from '@shared/models';
 import { PlayerEditor } from './PlayerEditor';
@@ -51,6 +51,7 @@ export function StreamEditorPanel({
   onPatchBroadcast
 }: StreamEditorPanelProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
+  const broadcastExtrasId = useId();
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const customScoreboard = useCustomScoreboardManifest(draft.customScoreboardId, draft.customScoreboardRevision);
   const customStyleValue = draft.customScoreboardId ? `custom-scoreboard:${draft.customScoreboardId}` : undefined;
@@ -130,7 +131,7 @@ export function StreamEditorPanel({
             customFont={customScoreboard?.typography.font}
           />
         </SimpleGrid>
-        <ScoreboardPhotoControls selectedSet={draft} />
+        <ScoreboardPhotoControls selectedSet={draft} broadcastExtrasId={broadcastExtrasId} />
         <SimpleGrid type="container" cols={{ base: 1, '28rem': 2 }}>
           <Select
             data-testid="editor-best-of"
@@ -203,7 +204,12 @@ export function StreamEditorPanel({
             onChange={changePlayerTwo}
           />
         </div>
-        <StreamBroadcastControls broadcast={draft.broadcast} logos={logos} onChange={onPatchBroadcast} />
+        <StreamBroadcastControls
+          id={broadcastExtrasId}
+          broadcast={draft.broadcast}
+          logos={logos}
+          onChange={onPatchBroadcast}
+        />
       </Stack>
     </Paper>
   );
