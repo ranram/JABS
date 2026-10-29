@@ -334,7 +334,7 @@ impl StingerStore {
         if inner.settings.clip(kind).video.is_none() {
             return Err("Select a video for this stinger first.".into());
         }
-        if kind == Kind::Winner && winner(&selected).is_none() {
+        if kind == Kind::Winner && selected.winner().is_none() {
             return Err("Complete the score before playing the winner stinger.".into());
         }
         let created = timestamp();
@@ -433,6 +433,7 @@ impl StingerStore {
         }
     }
     pub fn score_updated(&self, previous: &SelectedSet, next: &SelectedSet) {
+        if next.reported_outcome.is_some() { return; }
         let key = |s: &SelectedSet| {
             serde_json::json!([
                 s.set_id,
@@ -451,11 +452,19 @@ impl StingerStore {
         };
         let score_changed = previous.player_one.score != next.player_one.score
             || previous.player_two.score != next.player_two.score;
-        if !score_changed
-            || key(previous) != key(next)
-            || winner(previous).is_some()
-            || winner(next).is_none()
-        {
+        if !score_changed {
+            return;
+        }
+        let next_key = key(next);
+        if key(previous) != next_key {
+            return;
+        }
+        if previous.upstream_reset == Some(true) && next.upstream_reset == Some(false) {
+            if let Some(set_id) = next.set_id.as_deref() {
+                self.reset_set_completion(set_id);
+            }
+        }
+        if previous.winner().is_some() || next.winner().is_none() {
             return;
         }
         let Ok(mut inner) = self.inner.lock() else {
@@ -464,7 +473,7 @@ impl StingerStore {
         let completion = if let Some(set_id) = &next.set_id {
             format!("startgg-{set_id}")
         } else {
-            key(next)
+            next_key
         };
         if !inner.settings.automatic_winner || inner.automatic_completions.contains(&completion) {
             return;
@@ -485,21 +494,10 @@ impl StingerStore {
             inner.automatic_completions.clear();
         }
     }
-}
-
-fn winner(s: &SelectedSet) -> Option<&'static str> {
-    let one = s.player_one.score;
-    let two = s.player_two.score;
-    if one == two {
-        return None;
+    pub fn reset_set_completion(&self, set_id: &str) {
+        if let Ok(mut inner) = self.inner.lock() {
+            let completion = format!("startgg-{set_id}");
+            inner.automatic_completions.retain(|entry| entry != &completion);
+        }
     }
-    let (high, low) = (one.max(two), one.min(two));
-    let complete = if s.match_format.as_deref() == Some("topanga") {
-        high >= 7 && (high - low >= 2 || high == 10)
-    } else {
-        high > s.best_of / 2
-    };
-    let imported_result =
-        s.match_format.as_deref() != Some("topanga") && s.state.as_deref() == Some("3");
-    (complete || imported_result).then_some(if one > two { "one" } else { "two" })
 }

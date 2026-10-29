@@ -200,6 +200,8 @@ export function useBracketBrowser({
     } catch (error) {
       if (setSearchRequestRef.current !== requestId) return;
       recordFailure();
+      // Clearing the catalog key lets the next search or Queued filter retry failed pages.
+      setSetSearchCatalogKey(undefined);
       setMessage(errorMessage(error, t('messages.loadSearch')), 'error');
     } finally {
       if (setSearchRequestRef.current === requestId) {
@@ -214,7 +216,6 @@ export function useBracketBrowser({
     if (!window.confirm(t('messages.clearCacheConfirm'))) return;
 
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       await startgg.clearStartggCache();
       setSearchRequestRef.current += 1;
@@ -277,7 +278,6 @@ export function useBracketBrowser({
     }
 
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const response = await startgg.events(normalizedSlug);
       recordResult(response);
@@ -374,7 +374,6 @@ export function useBracketBrowser({
     const scope: StartggSetScope = { type: 'event', eventId };
     replaceSetScope(scope);
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const [phaseResult, setResult] = await Promise.allSettled([startgg.phases(eventId), startgg.sets(scope)]);
       if (setScopeKey(setScopeRef.current) !== setScopeKey(scope)) return;
@@ -434,7 +433,6 @@ export function useBracketBrowser({
     const scope: StartggSetScope = { type: 'phase', eventId: selectedEventId, phaseId };
     replaceSetScope(scope);
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const [groupResult, setResult] = await Promise.allSettled([loadAllPhaseGroups(phaseId), startgg.sets(scope)]);
       if (setScopeKey(setScopeRef.current) !== setScopeKey(scope)) return;
@@ -481,7 +479,6 @@ export function useBracketBrowser({
   async function loadPhaseGroups(_page: number): Promise<void> {
     if (!selectedPhaseId) return;
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const response = await loadAllPhaseGroups(selectedPhaseId);
       setPhaseGroups(response.phaseGroups);
@@ -552,7 +549,6 @@ export function useBracketBrowser({
     setPageLoadingRef.current = false;
     setSetPageLoading(false);
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const [setsResult, queueResult] = await Promise.allSettled([
         startgg.sets(scope, page),

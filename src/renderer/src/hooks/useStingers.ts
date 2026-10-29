@@ -10,6 +10,7 @@ export function useStingers() {
   const { t } = useTranslation('operator');
   const live = useRealtimeState({
     load: api.stingers,
+    diagnosticOperation: 'stingers',
     parseMessage,
     loadError: t('stingers.loadFailed'),
     refreshIntervalMs: 2000

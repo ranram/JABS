@@ -7,8 +7,12 @@ let activity = initialActivity;
 const subscribers = new Set<() => void>();
 let listening = false;
 
-function onActiveChanged(event: Event) {
-  const next = (event as CustomEvent<{ active?: unknown }>).detail?.active;
+type ObsActivityCallbacks = {
+  onActiveChange?(active: boolean): void;
+  onVisibilityChange?(visible: boolean): void;
+};
+
+function setActive(next: unknown) {
   if (typeof next !== 'boolean' || next === activity.active) return;
   activity = {
     ...activity,
@@ -19,23 +23,48 @@ function onActiveChanged(event: Event) {
   for (const notify of subscribers) notify();
 }
 
-function onVisibleChanged(event: Event) {
-  const visible = (event as CustomEvent<{ visible?: unknown }>).detail?.visible;
+function setVisible(visible: unknown) {
   if (typeof visible !== 'boolean' || visible === activity.visible) return;
   activity = { ...activity, visible };
   for (const notify of subscribers) notify();
 }
 
-// Start before React loads so an OBS activation during startup is not lost.
+function onActiveChanged(event: Event) {
+  setActive((event as CustomEvent<{ active?: unknown }>).detail?.active);
+}
+
+function onVisibleChanged(event: Event) {
+  setVisible((event as CustomEvent<{ visible?: unknown }>).detail?.visible);
+}
+
+// Track activity before React mounts so its subscribers receive startup changes.
 export function trackObsSourceActivity() {
+  const obs = (window as Window & { obsstudio?: ObsActivityCallbacks }).obsstudio;
+  const previousActive = obs?.onActiveChange;
+  const previousVisible = obs?.onVisibilityChange;
+  const activeCallback = (active: boolean) => {
+    setActive(active);
+    previousActive?.call(obs, active);
+  };
+  const visibleCallback = (visible: boolean) => {
+    setVisible(visible);
+    previousVisible?.call(obs, visible);
+  };
   if (!listening) {
     window.addEventListener('obsSourceActiveChanged', onActiveChanged);
     window.addEventListener('obsSourceVisibleChanged', onVisibleChanged);
+    // Keep direct OBS callbacks as a fallback for missing custom events.
+    if (obs) {
+      obs.onActiveChange = activeCallback;
+      obs.onVisibilityChange = visibleCallback;
+    }
     listening = true;
   }
   return () => {
     window.removeEventListener('obsSourceActiveChanged', onActiveChanged);
     window.removeEventListener('obsSourceVisibleChanged', onVisibleChanged);
+    if (obs?.onActiveChange === activeCallback) obs.onActiveChange = previousActive;
+    if (obs?.onVisibilityChange === visibleCallback) obs.onVisibilityChange = previousVisible;
     listening = false;
     activity = initialActivity;
   };

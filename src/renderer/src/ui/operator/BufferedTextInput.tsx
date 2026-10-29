@@ -4,15 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 type BufferedTextInputProps = Omit<TextInputProps, 'defaultValue' | 'onChange' | 'value'> & {
   value: string;
   onCommit?(value: string): void;
-  /** Commit after typing stops; blur always commits immediately. */
   idleCommitMs?: number;
 };
 
-/**
- * Keeps unfinished typing local to one input. Stream drafts are intentionally
- * committed only after a quiet typing window or blur, so a keystroke does not
- * re-render the dashboard/generator or start native moderation work.
- */
+/** Keep typing local; commit after an idle pause or immediately on blur. */
 export function BufferedTextInput({
   value,
   onCommit,
@@ -42,6 +37,7 @@ export function BufferedTextInput({
     <TextInput
       {...props}
       value={buffer}
+      data-buffered-pending={buffer !== value && !props.readOnly}
       onChange={(event) => setBuffer(event.currentTarget.value)}
       onFocus={(event) => {
         focusedRef.current = true;

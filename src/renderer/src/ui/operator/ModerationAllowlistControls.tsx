@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Group, Modal, Stack, Text, Textarea, Tooltip } from '@mantine/core';
+import { Button, Group, Menu, Modal, Stack, Text, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import {
@@ -8,6 +8,7 @@ import {
   saveNativeModerationAllowlist,
   reloadNativeModerationAllowlist
 } from '../../desktopRuntime';
+import { OperatorIcon, ShieldCheckIcon, PencilSimpleIcon, ArrowsClockwiseIcon } from '../icons';
 
 function failureMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message;
@@ -89,18 +90,34 @@ export function ModerationAllowlistControls({ onApplied }: ModerationAllowlistCo
 
   return (
     <>
-      <Group className="workspace-maintenance-actions" gap="xs" wrap="nowrap">
-        <Tooltip label={t('moderation.openHint')} openDelay={350}>
-          <Button size="compact-xs" variant="default" loading={opening} onClick={() => void openAllowlist()}>
+      <Menu position="bottom-start" shadow="md" width={280}>
+        <Menu.Target>
+          <Button
+            size="compact-xs"
+            variant="default"
+            leftSection={<OperatorIcon icon={ShieldCheckIcon} size={14} />}
+            rightSection={<span aria-hidden="true">▾</span>}
+          >
+            {t('utilityGroups.moderation')}
+          </Button>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Item
+            disabled={opening || saving || reloading}
+            onClick={() => void openAllowlist()}
+            leftSection={<OperatorIcon icon={PencilSimpleIcon} />}
+          >
             {t('moderation.open')}
-          </Button>
-        </Tooltip>
-        <Tooltip label={t('moderation.reloadHint')} openDelay={350}>
-          <Button size="compact-xs" variant="default" loading={reloading} onClick={() => void reloadAllowlist()}>
+          </Menu.Item>
+          <Menu.Item
+            disabled={opening || saving || reloading}
+            onClick={() => void reloadAllowlist()}
+            leftSection={<OperatorIcon icon={ArrowsClockwiseIcon} />}
+          >
             {t('moderation.reload')}
-          </Button>
-        </Tooltip>
-      </Group>
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
       <Modal
         opened={opened}
         onClose={() => !saving && setOpened(false)}

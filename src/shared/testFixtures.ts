@@ -1,5 +1,5 @@
 import type { GameId } from './gameProfiles';
-import type { OverlayState } from './models';
+import type { OverlayState, SetSummary } from './models';
 import type { CustomScoreboard } from './customScoreboards';
 
 export function createTestOverlayState(gameId: GameId = 'street-fighter-6'): OverlayState {
@@ -60,4 +60,25 @@ export function createTestCustomScoreboard(overrides: Partial<CustomScoreboard> 
     typography: { textColor: '#ffffff', outline: 'none', nameSize: 20, metaSize: 20, scoreSize: 30, contextSize: 20 },
     ...overrides
   };
+}
+
+export function createTestTopEightSets(): SetSummary[] {
+  const set = (id: string, roundNumber: number, sources: Array<[string, number]> = []): SetSummary => ({
+    id, roundNumber, round: id, phaseGroupId: 'finals', phaseOrder: 2, state: '1',
+    prerequisites: sources.map(([setId, placement]) => ({ setId, placement }))
+  });
+  const opening = ['ws1', 'ws2', 'lo1', 'lo2'].map((id, index) => ({
+    ...set(id, index < 2 ? 1 : -1),
+    entrantOne: { id: `${index * 2 + 1}`, name: `Player ${index * 2 + 1}` },
+    entrantTwo: { id: `${index * 2 + 2}`, name: `Player ${index * 2 + 2}` }
+  }));
+  return [...opening,
+    set('q1', -2, [['ws1', 2], ['lo1', 1]]),
+    set('q2', -2, [['ws2', 2], ['lo2', 1]]),
+    set('wf', 2, [['ws1', 1], ['ws2', 1]]),
+    set('ls', -3, [['q1', 1], ['q2', 1]]),
+    set('lf', -4, [['wf', 2], ['ls', 1]]),
+    set('gf', 3, [['wf', 1], ['lf', 1]]),
+    set('reset', 4, [['gf', 1], ['gf', 2]])
+  ];
 }

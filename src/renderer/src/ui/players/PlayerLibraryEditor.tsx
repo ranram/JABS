@@ -8,6 +8,7 @@ import { loadGameCatalog } from '../operator/GameSelect';
 import { sortByLabel } from '../operator/operatorUtils';
 import { useOperatorNotifications } from '../operator/useOperatorNotifications';
 import { ExternalLink } from '../operator/ExternalLink';
+import { OperatorIcon, IdentificationCardIcon, ListChecksIcon } from '../icons';
 import {
   Accordion,
   Paper,
@@ -186,8 +187,33 @@ export function PlayerLibraryEditor({ player, selectedSet, onChange }: Props) {
             onChange={(aliases) => onChange({ ...player, aliases })}
           />
           <Accordion variant="contained">
+            <Accordion.Item className="operator-inset" value="personal">
+              <Accordion.Control icon={<OperatorIcon icon={ListChecksIcon} />}>
+                {t('quickTools.moreDetails')}
+              </Accordion.Control>
+              <Accordion.Panel>
+                <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                  <NumberInput
+                    label={t('players.fields.age')}
+                    value={player.overrides.age ? Number(player.overrides.age) : ''}
+                    min={1}
+                    max={120}
+                    allowDecimal={false}
+                    allowNegative={false}
+                    onChange={(age) => onChange({ ...player, overrides: { ...player.overrides, age: String(age) } })}
+                  />
+                  {(['xHandle', 'pronouns', 'nickname', 'playerPhotoAssetId'] as const).map((field) => (
+                    <PlayerLibraryField key={field} field={field} player={player} onChange={onChange} />
+                  ))}
+                </SimpleGrid>
+              </Accordion.Panel>
+            </Accordion.Item>
+          </Accordion>
+          <Accordion variant="contained">
             <Accordion.Item className="operator-inset" value="identity">
-              <Accordion.Control>{t('players.identityHeading')}</Accordion.Control>
+              <Accordion.Control icon={<OperatorIcon icon={IdentificationCardIcon} />}>
+                {t('players.identityHeading')}
+              </Accordion.Control>
               <Accordion.Panel>
                 <Stack gap="md">
                   <Group justify="space-between">
@@ -207,27 +233,6 @@ export function PlayerLibraryEditor({ player, selectedSet, onChange }: Props) {
                     onChange={(event) => onChange({ ...player, playerId: event.currentTarget.value || null })}
                   />
                 </Stack>
-              </Accordion.Panel>
-            </Accordion.Item>
-          </Accordion>
-          <Accordion variant="contained">
-            <Accordion.Item className="operator-inset" value="personal">
-              <Accordion.Control>{t('quickTools.moreDetails')}</Accordion.Control>
-              <Accordion.Panel>
-                <SimpleGrid cols={{ base: 1, sm: 2 }}>
-                  <NumberInput
-                    label={t('players.fields.age')}
-                    value={player.overrides.age ? Number(player.overrides.age) : ''}
-                    min={1}
-                    max={120}
-                    allowDecimal={false}
-                    allowNegative={false}
-                    onChange={(age) => onChange({ ...player, overrides: { ...player.overrides, age: String(age) } })}
-                  />
-                  {(['xHandle', 'pronouns', 'nickname', 'playerPhotoAssetId'] as const).map((field) => (
-                    <PlayerLibraryField key={field} field={field} player={player} onChange={onChange} />
-                  ))}
-                </SimpleGrid>
               </Accordion.Panel>
             </Accordion.Item>
           </Accordion>

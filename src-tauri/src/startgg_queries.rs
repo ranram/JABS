@@ -108,7 +108,7 @@ query SetById($setId: ID!) {
     id
     displayScore
     fullRoundText
-    event { videogame { id name } tournament { name } }
+    event { id videogame { id name } tournament { name } }
     phaseGroup {
       id
       displayIdentifier
@@ -217,8 +217,8 @@ query SetPrerequisiteRounds($firstSetId: ID!, $secondSetId: ID!) {
 "#;
 
 pub const REPORT_SET_WINNER_ONLY: &str = r#"
-mutation ReportBracketSet($setId: ID!, $winnerId: ID!) {
-  reportBracketSet(setId: $setId, winnerId: $winnerId) { id state }
+mutation ReportBracketSet($setId: ID!, $winnerId: ID!, $isDQ: Boolean) {
+  reportBracketSet(setId: $setId, winnerId: $winnerId, isDQ: $isDQ) { id state }
 }
 "#;
 
@@ -248,6 +248,7 @@ const SET_FIELDS: &str = r#"
   pageInfo { total totalPages }
   nodes {
     id
+    winnerId
     round
     displayScore
     fullRoundText

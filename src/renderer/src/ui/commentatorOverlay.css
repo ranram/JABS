@@ -164,7 +164,9 @@
   100% { opacity: 0; transform: translateY(80px) scaleX(0.88); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .commentator-lower-third.is-timed { animation-timing-function: steps(1, end); }
-  .commentator-lower-third.is-persistent { animation: none; }
+.commentator-overlay[data-overlay-animations="false"] .commentator-lower-third.is-timed {
+  animation-timing-function: steps(1, end);
+}
+.commentator-overlay[data-overlay-animations="false"] .commentator-lower-third.is-persistent {
+  animation: none;
 }

@@ -2,7 +2,8 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { gameIdForStartggVideogame, resolveStartggGameProfileId, type GameProfile } from '@shared/gameProfiles';
 import { gameAssetCatalogSlug } from '@shared/gameAssetCatalog';
-import type { CountryOption, LogoAsset, SelectedSetState, StartggResultMeta } from '@shared/models';
+import type { CountryOption, SelectedSetState, StartggResultMeta, ReportOutcome } from '@shared/models';
+import { reportConfirmationText } from './operator/ResultOutcomeControls';
 import { startggReportReadiness } from '@shared/startggReporting';
 import { versusHistoryMatch } from '@shared/versusScreen';
 import { api } from '../api';
@@ -11,7 +12,8 @@ import { useOperatorDraft } from './operator/useOperatorDraft';
 import { useSetSelectorActions } from './operator/useSetSelectorActions';
 import { filterLoadedSets } from '../setSearch';
 import { TournamentBackdrop } from './ControlDeck';
-import { SetActionsModal } from './operator/SetActionsModal';
+import { DashboardSetActions } from './operator/DashboardSetActions';
+import { MatchQueueWorkspace } from './operator/useMatchQueue';
 import { SetSelectorPanel } from './operator/SetSelectorPanel';
 import { StreamEditorPanel } from './operator/StreamEditorPanel';
 import { LiveControlsPanel } from './operator/LiveControlsPanel';
@@ -26,7 +28,7 @@ import { errorMessage, localizedReadinessReason } from './operator/operatorUtils
 import { useStreamDraftAutosave } from './operator/useStreamDraftAutosave';
 import { useAssetCatalogReload } from './operator/useAssetCatalogReload';
 import { GameSelect } from './operator/GameSelect';
-import { useExhibitionGameSelection } from './operator/useExhibitionGameSelection';
+import { useStreamSetupActions } from './operator/useStreamSetupActions';
 import { useGameAssetPreparation } from './operator/useGameAssetPreparation';
 import { useCharacterCatalogOptions } from './operator/useCharacterCatalogOptions';
 import type { LocalHandoffUrl } from '../desktopRuntime';
@@ -34,12 +36,13 @@ import { useModerationRefresh } from './operator/useModerationRefresh';
 import { useScoreShortcuts } from './operator/useScoreShortcuts';
 import { swapSavedCommentators } from './operator/swapCommentators';
 import { usePlayerDefaultsAutosave } from './operator/usePlayerDefaultsAutosave';
+import { useLogoCatalog } from '../hooks/useLogoCatalog';
 export function OperatorDashboard() {
   const { t } = useTranslation(['operator', 'common', 'errors']);
   const { state, setState, error: stateError } = useOverlayState();
   const [profiles, setProfiles] = useState<GameProfile[]>([]);
   const [countries, setCountries] = useState<CountryOption[]>([]);
-  const [logos, setLogos] = useState<LogoAsset[]>([]);
+  const [logos, setLogos] = useLogoCatalog();
   const [assetCatalogRevision, setAssetCatalogRevision] = useState(0);
   const [tokenConfigured, setTokenConfigured] = useState(false);
   const [tokenStorageAvailable, setTokenStorageAvailable] = useState(true);
@@ -87,10 +90,6 @@ export function OperatorDashboard() {
     refreshAfterReport: refreshSetSelectorAfterReport
   } = browser.actions;
   useEffect(() => {
-    void api
-      .logos()
-      .then(({ logos }) => setLogos(logos))
-      .catch(() => undefined);
     void Promise.all([api.gameProfiles(), api.countries(), api.tokenStatus(), api.recentTournaments(), api.health()])
       .then(([profileResponse, countryResponse, tokenStatus, recentResponse, health]) => {
         setProfiles(profileResponse.profiles);
@@ -130,6 +129,8 @@ export function OperatorDashboard() {
   const {
     saving: draftSaving,
     blocked: draftBlocked,
+    error: draftSaveError,
+    retry: retryStreamSave,
     withAutosavePaused
   } = useStreamDraftAutosave({
     draft,
@@ -138,7 +139,8 @@ export function OperatorDashboard() {
     setOverlayState: setState,
     setDraftState,
     setMessage,
-    failureMessage: t('operator:messages.saveStreamFailed')
+    failureMessage: t('operator:messages.saveStreamFailed'),
+    requiredNamesMessage: t('operator:ux.requiredNames')
   });
   const deferredSetSearch = useDeferredValue(setSearch);
   const visibleSets = useMemo(
@@ -174,16 +176,18 @@ export function OperatorDashboard() {
     quickScoreOpen: Boolean(quickScore.target),
     refreshQuickScore: quickScore.refreshModerated,
     refreshSets: (scope) => loadSets(scope, 1),
+    retryStreamSave,
     setOverlayState: setState,
     setDraftState
   });
-  const { openSetFromSelector, focusSetSearch, changeSetSearch, loadMoreSetsFromSelector } = useSetSelectorActions({
-    open: quickScore.open,
-    completeSearch: ensureCompleteSetSearchCatalog,
-    loadMore: loadMoreSets,
-    search: setSearch,
-    setSearch: setSetSearch
-  });
+  const { openSetFromSelector, focusSetSearch, changeSetSearch, loadMoreSetsFromSelector, loadSetCatalog } =
+    useSetSelectorActions({
+      open: quickScore.open,
+      completeSearch: ensureCompleteSetSearchCatalog,
+      loadMore: loadMoreSets,
+      search: setSearch,
+      setSearch: setSetSearch
+    });
   function recordStartggResult(result: StartggResultMeta): void {
     setTokenVerified(result.source === 'live');
   }
@@ -198,7 +202,6 @@ export function OperatorDashboard() {
     }
 
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const status = tokenStorageAvailable ? await api.setToken(token) : await api.setSessionToken(token);
       if (tokenInputRef.current) {
@@ -221,7 +224,6 @@ export function OperatorDashboard() {
   }
   async function removeToken() {
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const status = await api.clearToken();
       setTokenConfigured(status.configured);
@@ -236,11 +238,8 @@ export function OperatorDashboard() {
     }
   }
   async function selectSet(setId: string) {
-    if (!selectedSet) {
-      return;
-    }
+    if (!selectedSet) return;
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const response = await api.selectStartggSet(setId, setLoadGameId, {
         eventId: selectedEventId || undefined,
@@ -303,8 +302,10 @@ export function OperatorDashboard() {
     });
   }
 
-  const selectExhibitionGame = useExhibitionGameSelection({
-    disabled: Boolean(selectedEvent?.videogame) || loading || draftDirty || draftSaving,
+  const streamSetupDisabled = loading || draftDirty || draftSaving || Boolean(quickScore.target);
+  const { selectExhibitionGame, clearPlayers } = useStreamSetupActions({
+    disabled: streamSetupDisabled,
+    tournamentLoaded: Boolean(selectedEvent?.videogame),
     withAutosavePaused,
     flushPlayerDefaults,
     onState: (response) => {
@@ -313,7 +314,8 @@ export function OperatorDashboard() {
     },
     setLoading,
     onError: (message) => setMessage(message, 'error'),
-    failureMessage: t('operator:messages.exhibitionGameFailed')
+    gameFailureMessage: t('operator:messages.exhibitionGameFailed'),
+    clearFailureMessage: t('operator:messages.clearPlayersFailed')
   });
 
   async function clearStreamState() {
@@ -326,7 +328,6 @@ export function OperatorDashboard() {
   }
   async function unloadTournament() {
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       await clearStreamState();
       await unloadBracketTournament();
@@ -337,40 +338,27 @@ export function OperatorDashboard() {
     }
   }
 
-  async function reportStartggResult() {
+  async function reportStartggResult(outcome?: ReportOutcome) {
     if (!selectedSet) {
       setMessage(t('operator:messages.reportSetRequired'), 'warning');
       return;
     }
-    if (!reportReadiness.ready) {
-      setMessage(localizedReadinessReason(reportReadiness), 'warning');
+    const readiness = startggReportReadiness(selectedSet, outcome);
+    if (!readiness.ready) {
+      setMessage(localizedReadinessReason(readiness), 'warning');
       return;
     }
-    const result = reportReadiness.result;
-    if (
-      !window.confirm(
-        t('operator:messages.reportConfirm', {
-          winner: result.winnerName,
-          playerOne: selectedSet.playerOne.name,
-          scoreOne: selectedSet.playerOne.score,
-          scoreTwo: selectedSet.playerTwo.score,
-          playerTwo: selectedSet.playerTwo.name,
-          history: result.gameData
-            ? t('operator:messages.reportHistoryExact', { count: result.gameData.length })
-            : t('operator:messages.reportHistoryWinnerOnly'),
-          setId: result.setId
-        })
-      )
-    ) {
+    const result = readiness.result;
+    if (!window.confirm(reportConfirmationText(selectedSet, result, 'live'))) {
       return;
     }
 
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const response = await api.reportStartggSet({
         setId: result.setId,
         winnerId: result.winnerId,
+        outcome,
         updatedAt: selectedSet.updatedAt,
         confirmed: true
       });
@@ -410,15 +398,10 @@ export function OperatorDashboard() {
   }
 
   async function reloadSelectedSetFromStartgg() {
-    if (!selectedSet?.setId) {
-      return;
-    }
-    if (!window.confirm(t('operator:messages.reloadConfirm'))) {
-      return;
-    }
+    if (!selectedSet?.setId) return;
+    if (!window.confirm(t('operator:messages.reloadConfirm'))) return;
 
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const response = await api.selectStartggSet(selectedSet.setId, selectedSet.gameId, {
         eventId: selectedSet.eventId,
@@ -457,7 +440,6 @@ export function OperatorDashboard() {
 
   async function updateScore(side: 'one' | 'two', score: number) {
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const response = await api.setScore(side, score);
       setState(response);
@@ -471,7 +453,6 @@ export function OperatorDashboard() {
 
   async function runStateAction(action: 'reset' | 'swap') {
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const response = action === 'reset' ? await api.resetScores() : await api.swapPlayers();
       setState(response);
@@ -527,166 +508,174 @@ export function OperatorDashboard() {
           : t('operator:selector.scope.station', { number: setScope.stationNumber })
     : '';
   return (
-    <main className="operator-shell">
-      <TournamentBackdrop />
-      <OperatorTopbar
-        tokenVerified={tokenVerified}
-        tokenSessionOnly={tokenSessionOnly}
-        tokenConfigured={tokenConfigured}
-        tokenStorageAvailable={tokenStorageAvailable}
-        loading={loading}
-        updateBlocked={loading || draftDirty || draftSaving || Boolean(quickScore.target)}
-        selectedSet={selectedSet}
-      />
-      <StartggPanel
-        bracket={bracketController}
-        tokenInputRef={tokenInputRef}
-        tokenConfigured={tokenConfigured}
-        tokenStorageAvailable={tokenStorageAvailable}
-        tokenInputReady={tokenInputReady}
-        detectedGameId={detectedGameId}
-        detectedProfile={detectedProfile}
-        profiles={profiles}
-        keyboardShortcuts={keyboardShortcuts}
-        reloadWarning={
-          !selectedSet?.setId
-            ? t('operator:editor.selectMatch')
-            : draftDirty || draftSaving
-              ? t('operator:editor.waitSave')
-              : undefined
-        }
-        localBaseUrl={localBaseUrl}
-        copiedHandoff={copiedHandoff}
-        activeSet={selectedSet}
-        streamDraft={draft}
-        streamCharacterCatalog={characterCatalog}
-        streamPending={draftDirty || draftSaving}
-        onPatchStream={patchStream}
-        logos={logos}
-        loading={loading}
-        reloadingAssets={reloadingAssets}
-        reloadSelectedSetDisabled={!selectedSet?.setId || loading || draftDirty || draftSaving}
-        unloadTournamentDisabled={loading || draftSaving}
-        assetCatalogRevision={assetCatalogRevision}
-        moderationRevision={moderation.moderationRevision}
-        countries={countries}
-        onReloadAssets={() => void reloadAssets()}
-        onTokenInputReady={setTokenInputReady}
-        onSaveToken={() => void saveToken()}
-        onRemoveToken={() => void removeToken()}
-        onReloadSelectedSet={() => void reloadSelectedSetFromStartgg()}
-        onPatchBroadcast={patchBroadcast}
-        onCustomScoreboard={(id, revision) =>
-          draft
-            ? patchDraft(customScoreboardSelection(id, revision))
-            : setMessage(t('operator:customScoreboard.loadSetFirst'), 'warning')
-        }
-        onMessage={setMessage}
-        onModerationApplied={() => void moderation.refreshAfterModeration()}
-        onCopy={(kind) => void copyHandoffUrl(kind)}
-        setSelector={({ inDialog, onClose }) => (
-          <SetSelectorPanel
-            inDialog={inDialog}
-            sets={sets}
-            visibleSets={visibleSets}
-            assignments={streamAssignments}
-            scope={setScope}
-            scopeLabel={localizedScope}
-            pageInfo={setPageInfo}
-            activeSetId={selectedSet?.setId}
-            search={setSearch}
-            searchLoading={setSearchLoading}
-            searchProgress={setSearchProgress}
-            searchCatalogCount={setSearchCatalog?.length}
-            searchCatalogIsCurrent={searchCatalogIsCurrent}
-            selectedEvent={Boolean(selectedEventId)}
-            draftDirty={draftDirty}
-            modalOpen={Boolean(quickScore.target)}
-            loading={loading}
-            loadingMore={setPageLoading}
-            onSearchFocus={focusSetSearch}
-            onSearchChange={changeSetSearch}
-            onCancelSearch={cancelSetSearch}
-            onOpenSet={(set) => {
-              onClose();
-              openSetFromSelector(set);
-            }}
-            onLoadMore={loadMoreSetsFromSelector}
-          />
-        )}
-      >
-        {selectedSet && draft && (
-          <section className="grid-layout wide">
-            <StreamEditorPanel
-              draft={draft}
-              gameSelector={
-                <GameSelect
-                  tournamentLoaded={Boolean(selectedEvent?.videogame)}
-                  eventGameName={selectedEvent?.videogame?.name}
-                  gameName={draft.gameName ?? ''}
-                  label={selectedEvent?.videogame ? t('operator:editor.detectedGame') : t('operator:generators.game')}
-                  preparation={streamGamePreparation}
-                  disabled={loading || draftDirty || draftSaving || Boolean(quickScore.target)}
-                  onChange={(game) => void selectExhibitionGame(game)}
-                />
-              }
-              profiles={profiles}
-              countries={countries}
-              logos={logos}
-              selectedProfile={selectedProfile}
-              characters={characterCatalog.characters}
-              characterAssets={characterCatalog.assets}
-              allowExhibitionFormats={!browser.state.tournamentLoaded}
-              dirty={draftDirty}
-              saving={draftSaving}
-              blocked={draftBlocked}
-              onPatch={patchStream}
-              onChangeStyling={(gameId) => patchDraft(automaticScoreboardSelection(gameId))}
-              onPatchBroadcast={patchBroadcast}
-            />
-
-            <LiveControlsPanel
-              selectedSet={selectedSet}
-              reportingEnabled={tokenConfigured}
-              reportReadiness={reportReadiness}
-              reportReadinessReason={localizedReadinessReason(reportReadiness)}
-              localBaseUrl={localBaseUrl}
-              copiedHandoff={copiedHandoff}
-              loading={loading || draftSaving}
+    <MatchQueueWorkspace
+      context={
+        selectedEventId && selectedEvent
+          ? {
+              eventId: selectedEventId,
+              eventName: selectedEvent.name,
+              tournamentSlug,
+              gameId: setLoadGameId,
+              assetCatalogSlug,
+              preserveStation: persistentSetOverrides.current.station,
+              preserveMatchLength: persistentSetOverrides.current.matchLength
+            }
+          : undefined
+      }
+      liveSetId={selectedSet?.setId}
+      blocked={loading || draftDirty || draftSaving || Boolean(quickScore.target)}
+    >
+      <main className="operator-shell">
+        <TournamentBackdrop />
+        <OperatorTopbar
+          tokenVerified={tokenVerified}
+          tokenSessionOnly={tokenSessionOnly}
+          tokenConfigured={tokenConfigured}
+          tokenStorageAvailable={tokenStorageAvailable}
+          loading={loading}
+          updateBlocked={loading || draftDirty || draftSaving || Boolean(quickScore.target)}
+          selectedSet={selectedSet}
+        />
+        <StartggPanel
+          bracket={bracketController}
+          tokenInputRef={tokenInputRef}
+          tokenConfigured={tokenConfigured}
+          tokenStorageAvailable={tokenStorageAvailable}
+          tokenInputReady={tokenInputReady}
+          detectedGameId={detectedGameId}
+          detectedProfile={detectedProfile}
+          profiles={profiles}
+          keyboardShortcuts={keyboardShortcuts}
+          reloadWarning={
+            !selectedSet?.setId
+              ? t('operator:editor.selectMatch')
+              : draftDirty || draftSaving
+                ? t('operator:editor.waitSave')
+                : undefined
+          }
+          localBaseUrl={localBaseUrl}
+          copiedHandoff={copiedHandoff}
+          activeSet={selectedSet}
+          streamDraft={draft}
+          streamCharacterCatalog={characterCatalog}
+          streamPending={draftDirty || draftSaving}
+          onPatchStream={patchStream}
+          logos={logos}
+          loading={loading}
+          reloadingAssets={reloadingAssets}
+          reloadSelectedSetDisabled={!selectedSet?.setId || loading || draftDirty || draftSaving}
+          unloadTournamentDisabled={loading || draftSaving}
+          assetCatalogRevision={assetCatalogRevision}
+          moderationRevision={moderation.moderationRevision}
+          countries={countries}
+          onReloadAssets={() => void reloadAssets()}
+          onTokenInputReady={setTokenInputReady}
+          onSaveToken={() => void saveToken()}
+          onRemoveToken={() => void removeToken()}
+          onReloadSelectedSet={() => void reloadSelectedSetFromStartgg()}
+          onPatchBroadcast={patchBroadcast}
+          onCustomScoreboard={(id, revision) =>
+            draft
+              ? patchDraft(customScoreboardSelection(id, revision))
+              : setMessage(t('operator:customScoreboard.loadSetFirst'), 'warning')
+          }
+          onMessage={setMessage}
+          onModerationApplied={() => void moderation.refreshAfterModeration()}
+          onCopy={(kind) => void copyHandoffUrl(kind)}
+          setSelector={({ inDialog, onClose }) => (
+            <SetSelectorPanel
+              inDialog={inDialog}
+              sets={sets}
+              visibleSets={visibleSets}
+              catalogSets={searchCatalogIsCurrent ? setSearchCatalog : undefined}
+              onLoadCatalog={loadSetCatalog}
+              assignments={streamAssignments}
+              scope={setScope}
+              scopeLabel={localizedScope}
+              pageInfo={setPageInfo}
+              activeSetId={selectedSet?.setId}
+              search={setSearch}
+              searchLoading={setSearchLoading}
+              searchProgress={setSearchProgress}
+              searchCatalogCount={setSearchCatalog?.length}
+              searchCatalogIsCurrent={searchCatalogIsCurrent}
+              selectedEvent={Boolean(selectedEventId)}
               draftDirty={draftDirty}
-              onScore={(side, score) => void updateScore(side, score)}
-              onReset={() => void runStateAction('reset')}
-              onSwap={() => void runStateAction('swap')}
-              shortcutsEnabled={keyboardShortcuts.enabled}
-              onReport={() => void reportStartggResult()}
-              onCopy={(kind) => void copyHandoffUrl(kind)}
+              modalOpen={Boolean(quickScore.target)}
+              loading={loading}
+              loadingMore={setPageLoading}
+              onSearchFocus={focusSetSearch}
+              onSearchChange={changeSetSearch}
+              onCancelSearch={cancelSetSearch}
+              onOpenSet={(set) => {
+                onClose();
+                openSetFromSelector(set);
+              }}
+              onLoadMore={loadMoreSetsFromSelector}
             />
-          </section>
-        )}
-      </StartggPanel>
+          )}
+        >
+          {selectedSet && draft && (
+            <section className="grid-layout wide stream-workspace">
+              <LiveControlsPanel
+                selectedSet={selectedSet}
+                reportingEnabled={tokenConfigured}
+                reportReadiness={reportReadiness}
+                reportReadinessReason={localizedReadinessReason(reportReadiness)}
+                localBaseUrl={localBaseUrl}
+                copiedHandoff={copiedHandoff}
+                loading={loading || draftSaving}
+                draftDirty={draftDirty}
+                onScore={(side, score) => void updateScore(side, score)}
+                onReset={() => void runStateAction('reset')}
+                onSwap={() => void runStateAction('swap')}
+                shortcutsEnabled={keyboardShortcuts.enabled}
+                onReport={(outcome) => void reportStartggResult(outcome)}
+                onCopy={(kind) => void copyHandoffUrl(kind)}
+              />
+              <StreamEditorPanel
+                draft={draft}
+                clearPlayersDisabled={streamSetupDisabled}
+                onClearPlayers={() => void clearPlayers()}
+                gameSelector={
+                  <GameSelect
+                    tournamentLoaded={Boolean(selectedEvent?.videogame)}
+                    eventGameName={selectedEvent?.videogame?.name}
+                    gameName={draft.gameName ?? ''}
+                    label={selectedEvent?.videogame ? t('operator:editor.detectedGame') : t('operator:generators.game')}
+                    preparation={streamGamePreparation}
+                    disabled={streamSetupDisabled}
+                    onChange={(game) => void selectExhibitionGame(game)}
+                  />
+                }
+                profiles={profiles}
+                countries={countries}
+                logos={logos}
+                selectedProfile={selectedProfile}
+                characters={characterCatalog.characters}
+                characterAssets={characterCatalog.assets}
+                allowExhibitionFormats={!browser.state.tournamentLoaded}
+                dirty={draftDirty}
+                saving={draftSaving}
+                blocked={draftBlocked}
+                saveError={draftSaveError}
+                onRetrySave={retryStreamSave}
+                onPatch={patchStream}
+                onChangeStyling={(gameId) => patchDraft(automaticScoreboardSelection(gameId))}
+                onPatchBroadcast={patchBroadcast}
+              />
+            </section>
+          )}
+        </StartggPanel>
 
-      <SetActionsModal
-        target={quickScore.target}
-        reportingEnabled={tokenConfigured}
-        quickScore={quickScore.scoreState}
-        receipt={quickScore.receipt}
-        quickReadiness={quickScore.readiness}
-        quickReadinessReason={localizedReadinessReason(quickScore.readiness)}
-        loading={loading}
-        quickScoreLoading={quickScore.loading}
-        characterOptions={characterCatalog.characters}
-        onClose={quickScore.close}
-        onSendToStream={(setId) => {
-          quickScore.close();
-          void selectSet(setId);
-        }}
-        onBeginQuickScore={() => void quickScore.begin()}
-        onChangeBestOf={quickScore.changeBestOf}
-        onChangeScore={quickScore.changeScore}
-        onChangeCharacters={quickScore.changeCharacters}
-        onResetScores={quickScore.resetScores}
-        onReport={() => void quickScore.report()}
-      />
-    </main>
+        <DashboardSetActions
+          quickScore={quickScore}
+          reportingEnabled={tokenConfigured}
+          loading={loading}
+          characterOptions={characterCatalog.characters}
+          onSendToStream={(setId) => void selectSet(setId)}
+        />
+      </main>
+    </MatchQueueWorkspace>
   );
 }

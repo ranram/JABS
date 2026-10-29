@@ -1,4 +1,5 @@
 import { useAppearance, useAppearanceStyle } from './appearance/AppearanceProvider';
+import { useScoreboardContrast } from './appearance/useScoreboardContrast';
 import { DisplayText } from './DisplayText';
 import { BracketScreen } from './BracketScreen';
 import { isBracketOverlayPath } from './overlayPresentation';
@@ -75,7 +76,8 @@ export function OverlayView() {
 function MatchOverlayView() {
   const appearanceStyle = useAppearanceStyle();
   const {
-    state: { scoreboardFont }
+    state: { scoreboardFont },
+    appearance
   } = useAppearance();
   const { t } = useTranslation(['overlay', 'common']);
   const { state, error } = useOverlayState();
@@ -103,6 +105,19 @@ function MatchOverlayView() {
   const Template = overlayTemplates[presentation.template];
   const logoUrl = useLogoAssetUrl(selectedSet?.broadcast?.logoAssetId);
   const customScoreboard = useCustomScoreboard(selectedSet?.customScoreboardId, selectedSet?.customScoreboardRevision);
+  useScoreboardContrast(
+    entranceRef,
+    appearance.colorOverride &&
+      Boolean(selectedSet && !announcementSurface && !(customScoreboard.scoreboard && customScoreboard.frameUrl)),
+    JSON.stringify([
+      profile.id,
+      appearance.primaryColor,
+      appearance.secondaryColor,
+      Boolean(selectedSet && sponsorLine(selectedSet.playerOne)),
+      Boolean(selectedSet && sponsorLine(selectedSet.playerTwo)),
+      selectedSet?.broadcast?.infoBarEnabled
+    ])
+  );
 
   if (!selectedSet) {
     return (
@@ -162,6 +177,7 @@ function MatchOverlayView() {
 }
 
 function CommentatorOverlay() {
+  const { appearance } = useAppearance();
   const appearanceStyle = useAppearanceStyle();
   const { state, error } = useCommentatorState();
   const logoAssetId = useBroadcastLogo(state?.logoAssetId);
@@ -169,7 +185,11 @@ function CommentatorOverlay() {
   if (!state || state.presentation === 'hidden') return <main className="overlay commentator-overlay" />;
   const stylingProfile = resolveGameProfile(state.stylingGameId);
   return (
-    <main className={`overlay commentator-overlay ${stylingProfile.overlay.themeClass}`} style={appearanceStyle}>
+    <main
+      className={`overlay commentator-overlay ${stylingProfile.overlay.themeClass}`}
+      style={appearanceStyle}
+      data-overlay-animations={appearance.entranceAnimations}
+    >
       <section
         key={state.updatedAt}
         className={`commentator-lower-third is-${state.presentation}`}
@@ -257,7 +277,8 @@ function PlayerPlate({ player, selectedSet, side, profile }: PlayerPlateProps) {
   const { t } = useTranslation(['overlay', 'common']);
   const name = matchPlayerName(player, selectedSet);
   const sponsor = sponsorLine(player);
-  const details = player.seed === undefined ? undefined : t('common:match.seed', { seed: player.seed });
+  const showSeed = Boolean(selectedSet.setId) && selectedSet.broadcast?.seedsEnabled !== false;
+  const details = showSeed && player.seed !== undefined ? t('common:match.seed', { seed: player.seed }) : undefined;
   const flagUrl = displayFlagUrl(player.country, player.displayFlag);
   const xHandle = player.xHandle ? `@${player.xHandle}` : undefined;
   const copyRef = useScoreboardTextFit({

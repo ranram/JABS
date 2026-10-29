@@ -8,6 +8,7 @@ const parseMessage = (value: unknown) => parseRealtimeJson(value, parseVersusScr
 export function useVersusScreenState() {
   return useRealtimeState({
     load: api.versusScreenState,
+    diagnosticOperation: 'versus-screen',
     parseMessage,
     loadError: 'Unable to load Versus Screen settings.'
   });

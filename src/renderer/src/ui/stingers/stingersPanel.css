@@ -1,4 +1,5 @@
 .stingers-panel {
+  --stinger-header-height: 54px;
   container-type: inline-size;
 }
 
@@ -13,6 +14,28 @@
 .stinger-controls,
 .stinger-preview-controls {
   min-width: 0;
+}
+
+.stinger-preview-controls {
+  padding: var(--mantine-spacing-md);
+  border: 1px solid var(--operator-container-border);
+}
+
+.stinger-section-header {
+  display: grid;
+  align-items: center;
+  min-height: calc(var(--stinger-header-height) - 1px);
+}
+
+.stingers-panel > .mantine-Stack-root > .operator-disclosure .mantine-Button-root {
+  margin-top: var(--mantine-spacing-sm);
+}
+
+@media (max-width: 600px) {
+  .stinger-header-actions {
+    flex-direction: column;
+    align-items: flex-end;
+  }
 }
 
 .stinger-winner-status {
@@ -48,7 +71,7 @@
   aspect-ratio: 16 / 9;
   margin-inline: auto;
   overflow: hidden;
-  border: 1px solid var(--mantine-color-dark-4);
+  border: 1px solid var(--operator-container-border);
   border-radius: var(--mantine-radius-md);
   background-color: #161a22;
   background-image: conic-gradient(#232a34 25%, transparent 0 50%, #232a34 0 75%, transparent 0);

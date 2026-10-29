@@ -84,6 +84,10 @@ export function errorMessage(error: unknown, fallback: string): string {
 export function localizedReadinessReason(readiness: StartggReportReadiness): string {
   if (readiness.ready) return '';
   switch (readiness.reasonCode) {
+    case 'upstream-reset':
+      return i18n.t('operator:readiness.upstreamReset');
+    case 'invalid-winner':
+      return i18n.t('operator:outcomes.chooseWinner');
     case 'already-complete':
       return i18n.t('operator:readiness.alreadyComplete');
     case 'set-missing':

@@ -65,11 +65,14 @@ impl StartggClient {
         query: &str,
         variables: Value,
     ) -> Result<T, ApiError> {
-        let request = self.client
+        self.send(self.authenticated_request(token, query, variables)).await
+    }
+
+    fn authenticated_request(&self, token: &str, query: &str, variables: Value) -> reqwest::RequestBuilder {
+        self.client
             .post(ENDPOINT)
             .bearer_auth(token)
-            .json(&json!({ "query": query, "variables": variables }));
-        self.send(request).await
+            .json(&json!({ "query": query, "variables": variables }))
     }
 
     pub async fn request_anonymous<T: DeserializeOwned>(
@@ -178,6 +181,26 @@ fn http_error(status: StatusCode) -> ApiError {
 #[cfg(test)]
 mod tests {
     use super::classify_message;
+
+    #[test]
+    fn authenticated_tokens_stay_in_the_header_and_inputs_stay_in_variables() {
+        let client = super::StartggClient::default();
+        let token = "disposable-test-token-not-a-real-secret";
+        let query = "query SetById($id: ID!) { set(id: $id) { id } }";
+        let variables = serde_json::json!({ "id": "1) { currentUser { email } } #" });
+        let request = client.authenticated_request(token, query, variables.clone()).build().unwrap();
+        assert_eq!(request.method(), reqwest::Method::POST);
+        assert_eq!(request.url().as_str(), "https://api.start.gg/gql/alpha");
+        assert_eq!(request.headers()[reqwest::header::AUTHORIZATION], format!("Bearer {token}"));
+        assert!(request.headers()[reqwest::header::AUTHORIZATION].is_sensitive());
+        let body = request.body().unwrap().as_bytes().unwrap();
+        let document: serde_json::Value = serde_json::from_slice(body).unwrap();
+        assert_eq!(document["query"], query);
+        assert_eq!(document["variables"], variables);
+        assert!(!String::from_utf8_lossy(body).contains(token));
+        assert!(!request.url().as_str().contains(token));
+        assert!(!request.headers().contains_key(reqwest::header::COOKIE));
+    }
 
     #[test]
     fn classifies_common_startgg_failures() {

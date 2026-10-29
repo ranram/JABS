@@ -29,7 +29,9 @@ jobs:
       - name: Audit JavaScript lockfile, including development dependencies
         run: pnpm audit
       - name: Validate Rust dependency sources and checksums
-        run: node scripts/check-rust-lock.mjs
+        run: |
+          node --test scripts/vendored-glib.test.mjs
+          node scripts/check-rust-lock.mjs
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.97.1

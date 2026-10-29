@@ -5,7 +5,7 @@
   width: min(100%, 1180px);
   margin-inline: auto;
   background: #090b12;
-  border: 1px solid #383e50;
+  border: 1px solid var(--operator-container-border);
 }
 .bracket-preview-shell.is-transparent-preview {
   background: repeating-conic-gradient(#161a25 0 25%, #222736 0 50%) 0 / 20px 20px;

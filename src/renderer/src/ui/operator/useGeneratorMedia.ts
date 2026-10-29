@@ -40,12 +40,15 @@ export function useGeneratorMedia<TDraft>({
   availableCharacterNames: string[];
   warning?: GeneratorWarning;
   ready: boolean;
+  refreshing: boolean;
 } {
   const catalogRevision = useCatalogRevision();
-  const [preview, setPreview] = useState<{ draft: TDraft; media: GeneratorSubjectMedia[] }>(() => ({
-    draft,
-    media: subjects.map(() => ({ characterPortraits: [] }))
-  }));
+  const [preview, setPreview] = useState<{ draft: TDraft; media: GeneratorSubjectMedia[]; contentKey?: string }>(
+    () => ({
+      draft,
+      media: subjects.map(() => ({ characterPortraits: [] }))
+    })
+  );
   const [resolvedIdentityKey, setResolvedIdentityKey] = useState<string>();
   const [identityMedia, setIdentityMedia] = useState<
     Array<Pick<GeneratorSubjectMedia, 'playerPhotoUrl' | 'sponsorLogoUrl'>>
@@ -69,6 +72,7 @@ export function useGeneratorMedia<TDraft>({
   const identityMediaKey = JSON.stringify([identityKey, revisionKey]);
   const catalogKey = JSON.stringify([assetCatalogSlug, revisionKey]);
   const characterKey = generatorCharacterKey(subjects);
+  const contentKey = JSON.stringify([assetCatalogSlug, identityKey, characterKey]);
   const characterMediaKey = JSON.stringify([catalogKey, characterKey]);
   const characterAssets = characterCatalog?.slug === assetCatalogSlug ? characterCatalog.assets : emptyCharacterAssets;
   const currentCharacterMedia = characterMedia?.key === characterMediaKey ? characterMedia : undefined;
@@ -168,6 +172,7 @@ export function useGeneratorMedia<TDraft>({
     // Show the new names and images together once both requests have finished.
     setPreview({
       draft,
+      contentKey,
       media: subjects.map((subject, index) => ({
         ...identityMedia[index],
         characterUrl: currentCharacterMedia.urls[index],
@@ -176,12 +181,15 @@ export function useGeneratorMedia<TDraft>({
         )
       }))
     });
-  }, [draft, identityMediaKey, resolvedIdentityKey, currentCharacterMedia, identityMedia]);
+  }, [draft, identityMediaKey, resolvedIdentityKey, currentCharacterMedia, identityMedia, contentKey]);
+
+  const ready = preview.draft === draft && resolvedIdentityKey === identityMediaKey && Boolean(currentCharacterMedia);
 
   return {
     previewDraft: preview.draft,
     media: preview.media,
-    ready: preview.draft === draft && resolvedIdentityKey === identityMediaKey && Boolean(currentCharacterMedia),
+    ready,
+    refreshing: !ready && preview.contentKey === contentKey,
     characterAssets,
     availableCharacterNames: characterAssets.map((asset) => asset.character),
     warning: warning ?? identityWarning

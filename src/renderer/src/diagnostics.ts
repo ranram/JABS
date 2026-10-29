@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { DiagnosticMethod, DiagnosticOperation } from './diagnosticOperations';
 
 export type DiagnosticArea =
   | 'app'
@@ -16,9 +17,11 @@ export type DiagnosticArea =
 type DiagnosticReason =
   | 'network'
   | 'timeout'
+  | 'cancelled'
   | 'permission'
   | 'rate-limit'
   | 'upstream'
+  | 'server'
   | 'invalid-response'
   | 'validation'
   | 'storage'
@@ -33,6 +36,11 @@ export type DiagnosticContext = {
   status?: number;
   line?: number;
   column?: number;
+  operation?: DiagnosticOperation;
+  method?: DiagnosticMethod;
+  requestId?: number;
+  elapsedMs?: number;
+  attempt?: number;
 };
 export type DiagnosticEvent =
   | 'stream-save:renderer-start'
@@ -40,7 +48,10 @@ export type DiagnosticEvent =
   | 'stream-save:renderer-failed'
   | 'local-request:retry'
   | 'local-request:failed'
+  | 'local-request:cancelled'
+  | 'local-request:recovered'
   | 'renderer-error'
+  | 'queue-context-missing'
   | 'renderer-rejection'
   | 'native-command-failed'
   | 'realtime-disconnected'
@@ -67,7 +78,12 @@ export function recordDiagnostic(event: DiagnosticEvent, context: DiagnosticCont
     reason: context.reason,
     status: context.status,
     line: context.line,
-    column: context.column
+    column: context.column,
+    operation: context.operation,
+    method: context.method,
+    requestId: context.requestId,
+    elapsedMs: context.elapsedMs,
+    attempt: context.attempt
   };
   pending++;
   void Promise.resolve()
@@ -81,6 +97,8 @@ export function recordDiagnostic(event: DiagnosticEvent, context: DiagnosticCont
 }
 
 export function diagnosticArea(operation: string): DiagnosticArea {
+  if (operation.startsWith('queue-') || operation.startsWith('bracket-')) return 'bracket';
+  if (['overlay-state', 'selected-set', 'exhibition-game', 'score', 'scores-reset', 'players-swap', 'players-clear'].includes(operation)) return 'stream';
   if (operation.includes('stinger')) return 'obs';
   if (operation.includes('report')) return 'reporting';
   if (operation.includes('startgg')) return 'startgg';
@@ -88,6 +106,8 @@ export function diagnosticArea(operation: string): DiagnosticArea {
   if (operation.includes('asset') || operation.includes('media')) return 'assets';
   if (operation.includes('update')) return 'updates';
   if (operation.includes('appearance') || operation.includes('settings')) return 'settings';
+  if (operation.includes('commentator') || operation.includes('screen') || operation.includes('matchups') || operation.includes('scoreboard')) return 'stream';
+  if (operation.includes('character') || operation.includes('game-')) return 'assets';
   return 'desktop';
 }
 

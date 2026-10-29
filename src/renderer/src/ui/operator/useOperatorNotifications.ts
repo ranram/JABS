@@ -15,12 +15,12 @@ export function useOperatorNotifications(stateError?: string): NoticeSink {
   // Send feedback before the action closes its modal or switches views.
   const setMessage = useCallback<NoticeSink>(
     (message, tone) => {
-      if (message === undefined) return;
       notifications.show({
         title: t(`notices.${noticeLabels[tone]}`),
         message,
         color: toneColors[tone],
-        withCloseButton: true
+        withCloseButton: true,
+        autoClose: tone === 'error' ? 8000 : tone === 'warning' ? 7000 : 2500
       });
     },
     [t]

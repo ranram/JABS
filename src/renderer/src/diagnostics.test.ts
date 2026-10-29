@@ -29,7 +29,7 @@ it('records useful failure metadata without exporting messages, paths, command a
     await vi.waitFor(() => expect(bridge.invoke).toHaveBeenCalledTimes(4));
     const diagnostics = bridge.invoke.mock.calls.filter(([command]) => command === 'report_renderer_diagnostic');
     expect(diagnostics.map(([, payload]) => payload)).toEqual([
-      { event: 'native-command-failed', context: { area: 'startgg' } },
+      { event: 'native-command-failed', context: { area: 'startgg', operation: 'set-startgg-token' } },
       { event: 'renderer-error', context: { area: 'app', reason: 'type-error', line: 42, column: 7 } },
       { event: 'renderer-rejection', context: { area: 'app', reason: 'unknown' } }
     ]);

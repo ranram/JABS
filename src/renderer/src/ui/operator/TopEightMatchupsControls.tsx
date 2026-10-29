@@ -8,6 +8,7 @@ import { charactersForAssetCatalog } from '@shared/characterRosters';
 import {
   detectExplicitTopEightOpeningSets,
   detectTopEightOpeningSets,
+  isTopEightPhaseName,
   type TopEightMatchupsState
 } from '@shared/topEightMatchups';
 import { api } from '../../api';
@@ -194,7 +195,7 @@ export function TopEightMatchupsControls({
     );
   return (
     <Stack gap="md">
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <Select
           label={t('operator:workspaces.styling')}
           value={state.stylingGameId}
@@ -203,6 +204,15 @@ export function TopEightMatchupsControls({
             label: profile.styleName
           }))}
           onChange={(value) => value && void update({ stylingGameId: value as typeof state.stylingGameId })}
+        />
+        <Select
+          searchable
+          clearable
+          label={t('operator:topEight.tournamentLogo')}
+          placeholder={t('operator:broadcast.useRailsLogo')}
+          value={state.logoAssetId ?? null}
+          data={logos.map((logo) => ({ value: logo.id, label: logo.label }))}
+          onChange={(logoAssetId) => void update({ logoAssetId: logoAssetId || undefined })}
         />
         <BufferedTextInput
           label={t('operator:topEight.tournament')}
@@ -213,15 +223,6 @@ export function TopEightMatchupsControls({
           label={t('operator:topEightMatchups.eventName')}
           value={state.eventName ?? ''}
           onCommit={(eventName) => void update({ eventName: eventName || undefined })}
-        />
-        <Select
-          searchable
-          clearable
-          label={t('operator:topEight.tournamentLogo')}
-          placeholder={t('operator:broadcast.useRailsLogo')}
-          value={state.logoAssetId ?? null}
-          data={logos.map((logo) => ({ value: logo.id, label: logo.label }))}
-          onChange={(logoAssetId) => void update({ logoAssetId: logoAssetId || undefined })}
         />
       </SimpleGrid>
       <SimpleGrid type="container" cols={{ base: 1, '48rem': 3 }} w="100%" maw={1080} spacing="md">
@@ -281,10 +282,6 @@ export function TopEightMatchupsControls({
   function failureText(error: unknown): string {
     return error instanceof Error && error.message ? error.message : t('operator:topEightMatchups.unavailable');
   }
-}
-
-function isTopEightPhaseName(name: string): boolean {
-  return /(^|\s)top\s*8($|\s)/iu.test(name.normalize('NFKC').replace(/[_-]+/gu, ' ').trim());
 }
 
 function importedMatchup(set: SetSummary, index: number): TopEightMatchupsState['matchups'][number] {

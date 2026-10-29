@@ -1,7 +1,10 @@
-import { Badge, Paper, Select, SimpleGrid, Stack } from '@mantine/core';
+import { Button, Group, Paper, Select, SimpleGrid, Stack, Text } from '@mantine/core';
+import { StreamSaveBadge } from './StreamSaveBadge';
+import { DestructiveButton } from '../DestructiveButton';
+import { streamSaveStatus } from './streamStatus';
 import { PanelHeader } from '../PanelHeader';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useId, useMemo, useRef, type ReactNode } from 'react';
+import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { type GameId, type GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, GameCharacterAsset, LogoAsset, SelectedSetState } from '@shared/models';
 import { PlayerEditor } from './PlayerEditor';
@@ -12,11 +15,21 @@ import { maxCharactersForGame } from '@shared/characterTeams';
 import { useCustomScoreboardManifest } from '../../hooks/useCustomScoreboard';
 import { ScoreboardPhotoControls } from '../scoreboardPhotos/ScoreboardPhotoControls';
 import { BroadcastScoreboardFontSelect } from '../fonts/BroadcastScoreboardFontSelect';
+import {
+  IconLabel,
+  OperatorIcon,
+  SlidersHorizontalIcon,
+  ListChecksIcon,
+  PencilSimpleIcon,
+  TrashSimpleIcon
+} from '../icons';
 
 type BroadcastPatch = Partial<NonNullable<SelectedSetState['broadcast']>>;
 
 type StreamEditorPanelProps = {
   draft: SelectedSetState;
+  clearPlayersDisabled: boolean;
+  onClearPlayers(): void;
   gameSelector?: ReactNode;
   profiles: GameProfile[];
   countries: CountryOption[];
@@ -28,6 +41,8 @@ type StreamEditorPanelProps = {
   dirty: boolean;
   saving: boolean;
   blocked: boolean;
+  saveError?: string;
+  onRetrySave?(): void;
   onPatch(patch: Partial<SelectedSetState>): void;
   onChangeStyling(gameId: GameId): void;
   onPatchBroadcast(patch: BroadcastPatch): void;
@@ -35,6 +50,8 @@ type StreamEditorPanelProps = {
 
 export function StreamEditorPanel({
   draft,
+  clearPlayersDisabled,
+  onClearPlayers,
   gameSelector,
   profiles,
   countries,
@@ -46,12 +63,19 @@ export function StreamEditorPanel({
   dirty,
   saving,
   blocked,
+  saveError,
+  onRetrySave,
   onPatch,
   onChangeStyling,
   onPatchBroadcast
 }: StreamEditorPanelProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
-  const broadcastExtrasId = useId();
+  const logoSelectId = useId();
+  const clearPlayersHelpId = useId();
+  const isExhibition = !draft.setId;
+  const playerGameKey = draft.assetCatalogSlug ?? draft.gameId;
+  const maxCharacters = maxCharactersForGame(playerGameKey);
+  const [playerDetailsOpened, setPlayerDetailsOpened] = useState(false);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const customScoreboard = useCustomScoreboardManifest(draft.customScoreboardId, draft.customScoreboardRevision);
   const customStyleValue = draft.customScoreboardId ? `custom-scoreboard:${draft.customScoreboardId}` : undefined;
@@ -100,16 +124,73 @@ export function StreamEditorPanel({
 
   return (
     <Paper className="panel editor-panel" p="md" radius="lg" withBorder>
-      <PanelHeader title={t('operator:editor.title')} description={t('operator:editor.description')}>
-        {(dirty || saving) && (
-          <Badge color={blocked ? 'red' : saving ? 'blue' : 'yellow'}>
-            {t(blocked ? 'operator:editor.notSent' : saving ? 'operator:editor.saving' : 'operator:editor.savePending')}
-          </Badge>
-        )}
+      <PanelHeader title={t('operator:editor.title')} icon={PencilSimpleIcon} inset="md">
+        <Group gap="xs" justify="flex-end" wrap="wrap">
+          <DestructiveButton
+            size="compact-sm"
+            leftSection={<OperatorIcon icon={TrashSimpleIcon} />}
+            disabled={clearPlayersDisabled}
+            aria-describedby={clearPlayersHelpId}
+            onClick={onClearPlayers}
+          >
+            {t('operator:editor.clearPlayers')}
+          </DestructiveButton>
+          <StreamSaveBadge status={streamSaveStatus(dirty, saving, blocked)} />
+        </Group>
       </PanelHeader>
 
       <Stack gap="md" mt="md">
-        <SimpleGrid type="container" cols={{ base: 1, '36rem': 3 }}>
+        <Text id={clearPlayersHelpId} size="xs" c="dimmed">
+          {t('operator:editor.clearPlayersHelp')}
+        </Text>
+        {blocked && dirty && (
+          <div className="stream-save-error" role="status">
+            <Group justify="space-between" align="flex-start">
+              <Text size="sm" c="red" flex={1}>
+                {saveError ?? t('operator:ux.saveError')}
+              </Text>
+              {onRetrySave && (
+                <Button size="compact-sm" variant="default" onClick={onRetrySave}>
+                  {t('operator:ux.retrySave')}
+                </Button>
+              )}
+            </Group>
+          </div>
+        )}
+        <details className="operator-disclosure" data-testid="stream-appearance">
+          <summary>
+            <IconLabel icon={SlidersHorizontalIcon}>{t('operator:ux.scoreboardAppearance')}</IconLabel>
+          </summary>
+          <Stack className="operator-disclosure-content" gap="md">
+            <SimpleGrid type="container" cols={{ base: 1, '28rem': 2 }}>
+              <Select
+                data-testid="editor-game"
+                label={t('operator:editor.styling')}
+                data={profileOptions}
+                value={customStyleValue ?? draft.stylingGameId ?? draft.gameId}
+                searchable
+                allowDeselect={false}
+                onChange={(value) =>
+                  value && !value.startsWith('custom-scoreboard:') && onChangeStyling(value as GameId)
+                }
+              />
+              <BroadcastScoreboardFontSelect
+                customActive={Boolean(draft.customScoreboardId)}
+                customFont={customScoreboard?.typography.font}
+              />
+            </SimpleGrid>
+            <ScoreboardPhotoControls selectedSet={draft} logoSelectId={logoSelectId} isExhibition={isExhibition} />
+
+            <StreamBroadcastControls
+              logoSelectId={logoSelectId}
+              broadcast={draft.broadcast}
+              isExhibition={isExhibition}
+              logos={logos}
+              onChange={onPatchBroadcast}
+            />
+          </Stack>
+        </details>
+        <SimpleGrid type="container" cols={{ base: 1, '42rem': 3 }}>
           {gameSelector ?? (
             <BufferedTextInput
               label={t('operator:editor.detectedGame')}
@@ -117,22 +198,6 @@ export function StreamEditorPanel({
               readOnly
             />
           )}
-          <Select
-            data-testid="editor-game"
-            label={t('operator:editor.styling')}
-            data={profileOptions}
-            value={customStyleValue ?? draft.stylingGameId ?? draft.gameId}
-            searchable
-            allowDeselect={false}
-            onChange={(value) => value && !value.startsWith('custom-scoreboard:') && onChangeStyling(value as GameId)}
-          />
-          <BroadcastScoreboardFontSelect
-            customActive={Boolean(draft.customScoreboardId)}
-            customFont={customScoreboard?.typography.font}
-          />
-        </SimpleGrid>
-        <ScoreboardPhotoControls selectedSet={draft} broadcastExtrasId={broadcastExtrasId} />
-        <SimpleGrid type="container" cols={{ base: 1, '28rem': 2 }}>
           <Select
             data-testid="editor-best-of"
             label={t('operator:editor.matchLength')}
@@ -151,15 +216,7 @@ export function StreamEditorPanel({
               });
             }}
           />
-          <BufferedTextInput
-            data-stream-free-text="displayName"
-            data-testid="editor-display-name"
-            label={t('operator:editor.displayName')}
-            value={draft.displayName}
-            onCommit={(displayName) => onPatch({ displayName })}
-          />
-        </SimpleGrid>
-        <SimpleGrid type="container" cols={{ base: 1, '28rem': 2 }}>
+
           <BufferedTextInput
             data-stream-free-text="round"
             data-testid="editor-round"
@@ -168,48 +225,62 @@ export function StreamEditorPanel({
             placeholder={t('operator:editor.roundPlaceholder')}
             onCommit={(value) => onPatch({ round: emptyToUndefined(value) })}
           />
-          <BufferedTextInput
-            data-stream-free-text="station"
-            data-testid="editor-station"
-            label={t('operator:editor.station')}
-            value={draft.station ?? ''}
-            placeholder={t('operator:editor.stationPlaceholder')}
-            onCommit={(value) => onPatch({ station: emptyToUndefined(value) })}
-          />
         </SimpleGrid>
 
         <div className="player-editor-grid">
           <PlayerEditor
-            libraryGameKey={!draft.setId ? (draft.assetCatalogSlug ?? draft.gameId) : undefined}
+            libraryGameKey={isExhibition ? playerGameKey : undefined}
             side="one"
             title={t('operator:editor.playerOne')}
             player={draft.playerOne}
             countries={countries}
             characters={characters}
             characterAssets={characterAssets}
-            maxCharacters={maxCharactersForGame(draft.assetCatalogSlug ?? draft.gameId)}
+            detailsOpened={playerDetailsOpened}
+            onDetailsChange={setPlayerDetailsOpened}
+            showSeed={!isExhibition}
+            maxCharacters={maxCharacters}
             editableFields={selectedProfile?.editableFields ?? []}
             onChange={changePlayerOne}
           />
           <PlayerEditor
-            libraryGameKey={!draft.setId ? (draft.assetCatalogSlug ?? draft.gameId) : undefined}
+            libraryGameKey={isExhibition ? playerGameKey : undefined}
             side="two"
             title={t('operator:editor.playerTwo')}
             player={draft.playerTwo}
             countries={countries}
             characters={characters}
             characterAssets={characterAssets}
-            maxCharacters={maxCharactersForGame(draft.assetCatalogSlug ?? draft.gameId)}
+            detailsOpened={playerDetailsOpened}
+            onDetailsChange={setPlayerDetailsOpened}
+            showSeed={!isExhibition}
+            maxCharacters={maxCharacters}
             editableFields={selectedProfile?.editableFields ?? []}
             onChange={changePlayerTwo}
           />
         </div>
-        <StreamBroadcastControls
-          id={broadcastExtrasId}
-          broadcast={draft.broadcast}
-          logos={logos}
-          onChange={onPatchBroadcast}
-        />
+        <details className="operator-disclosure">
+          <summary>
+            <IconLabel icon={ListChecksIcon}>{t('operator:ux.matchDetails')}</IconLabel>
+          </summary>
+          <SimpleGrid className="operator-disclosure-content" type="container" cols={{ base: 1, '28rem': 2 }}>
+            <BufferedTextInput
+              data-stream-free-text="displayName"
+              data-testid="editor-display-name"
+              label={t(isExhibition ? 'operator:editor.exhibitionTitle' : 'operator:editor.displayName')}
+              value={draft.displayName}
+              onCommit={(displayName) => onPatch({ displayName })}
+            />
+            <BufferedTextInput
+              data-stream-free-text="station"
+              data-testid="editor-station"
+              label={t('operator:editor.station')}
+              value={draft.station ?? ''}
+              placeholder={t('operator:editor.stationPlaceholder')}
+              onCommit={(value) => onPatch({ station: emptyToUndefined(value) })}
+            />
+          </SimpleGrid>
+        </details>
       </Stack>
     </Paper>
   );

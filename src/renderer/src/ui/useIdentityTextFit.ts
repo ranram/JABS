@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef } from 'react';
 import { useAppearance } from './appearance/AppearanceProvider';
 
-/** Measure the entire centered identity, including overflow on its left edge. */
-export function useCenteredNameFit(identity: string, textSelector: string) {
+/** Fit the full identity within its slot, including text that overflows to the left. */
+export function useIdentityTextFit(identity: string, textSelector: string) {
   const ref = useRef<HTMLElement>(null);
   const { appearance } = useAppearance();
   useLayoutEffect(() => {
@@ -37,6 +37,7 @@ export function useCenteredNameFit(identity: string, textSelector: string) {
       active = false;
       observer.disconnect();
       document.fonts?.removeEventListener('loadingdone', fit);
+      row.style.removeProperty('font-size');
     };
   }, [identity, textSelector, appearance.textSize]);
   return ref;

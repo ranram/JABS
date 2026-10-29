@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { createThumbnailDraft } from '@shared/thumbnail';
 import { deferred, mountHook } from '../../hooks/hookTestHarness';
 import { useGeneratorMedia } from './useGeneratorMedia';
+import { useCharacterCatalogOptions } from './useCharacterCatalogOptions';
 
 const transport = vi.hoisted(() => ({
   catalog: vi.fn(),
@@ -22,6 +23,26 @@ vi.mock('../../api', () => ({
 afterEach(() => {
   vi.resetAllMocks();
   vi.useRealTimers();
+});
+
+it('keeps character choices while checking replacements and hides them when changing games', async () => {
+  const original = [{ character: 'Ryu', assetId: 'ryu.png', variants: [] }];
+  transport.catalog.mockResolvedValue({ assets: original });
+  let revision = 0;
+  let slug = 'street-fighter-6';
+  const view = await mountHook(() => useCharacterCatalogOptions(slug, revision));
+  expect(view.current.assets).toEqual(original);
+  const replacement = deferred<{ assets: typeof original }>();
+  transport.catalog.mockReturnValue(replacement.promise);
+  revision++;
+  await view.rerender();
+  expect(view.current.assets).toEqual(original);
+  await act(async () => replacement.resolve({ assets: [{ ...original[0], assetId: 'ryu-new.png' }] }));
+  expect(view.current.assets[0]?.assetId).toBe('ryu-new.png');
+  slug = 'tekken-8';
+  transport.catalog.mockRejectedValue(new Error('Unavailable'));
+  await view.rerender();
+  expect(view.current.assets).toEqual([]);
 });
 
 it.each([
@@ -51,6 +72,7 @@ it.each([
     })
   );
   expect(hook.current.ready).toBe(false);
+  expect(hook.current.refreshing).toBe(false);
   await act(async () => {
     await vi.advanceTimersByTimeAsync(300);
   });
@@ -72,6 +94,7 @@ it.each([
     (first === 'artwork' ? finishArtwork : finishIdentity)();
   });
   expect(hook.current.ready).toBe(false);
+  expect(hook.current.refreshing).toBe(scenario === 'asset reload');
   expect(hook.current.previewDraft.players[0].name).toBe('First player');
   expect(hook.current.media[0]).toMatchObject({ characterUrl: 'art:ryu', playerPhotoUrl: 'photo:first' });
 

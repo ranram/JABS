@@ -8,6 +8,15 @@ import type { StingerState } from '@shared/stingers';
 import { api } from '../../api';
 import { useStingers } from '../../hooks/useStingers';
 import { announcementPresentation } from '../announcementPresentation';
+import {
+  OperatorIcon,
+  FilmSlateIcon,
+  PlayIcon,
+  SlidersHorizontalIcon,
+  ArrowsClockwiseIcon,
+  StopIcon,
+  type Icon
+} from '../icons';
 
 export function StingerQuickMenu({ activeSet, onConfigure }: { activeSet?: SelectedSetState; onConfigure(): void }) {
   const { t } = useTranslation('operator');
@@ -42,7 +51,7 @@ export function StingerQuickMenu({ activeSet, onConfigure }: { activeSet?: Selec
     onClick(): void;
     color?: string;
     description?: string;
-    play?: boolean;
+    icon: Icon;
   }> = configured.map((kind) => {
     const reason = working
       ? t('editor.waitAction')
@@ -59,16 +68,23 @@ export function StingerQuickMenu({ activeSet, onConfigure }: { activeSet?: Selec
       disabled: Boolean(reason),
       onClick: () => void run(() => api.playStinger(kind)),
       description: reason ?? state?.settings[kind].video?.name,
-      play: true
+      icon: PlayIcon
     };
   });
-  // Keep the English menu order as labels are translated.
-  actions.unshift({ id: 'configure', label: t('stingers.configure'), disabled: false, onClick: onConfigure });
+  // Action order stays the same in every interface language.
+  actions.unshift({
+    id: 'configure',
+    label: t('stingers.configure'),
+    disabled: false,
+    onClick: onConfigure,
+    icon: SlidersHorizontalIcon
+  });
   actions.push(
     {
       id: 'reconnect',
       label: t('stingers.reconnect'),
       disabled: working,
+      icon: ArrowsClockwiseIcon,
       onClick: () => void run(reconnectSources)
     },
     {
@@ -76,18 +92,19 @@ export function StingerQuickMenu({ activeSet, onConfigure }: { activeSet?: Selec
       label: t('stingers.stopBroadcast'),
       disabled: working,
       color: 'red',
+      icon: StopIcon,
       onClick: () => void run(api.stopStinger)
     }
   );
   return (
-    <Menu position="bottom-start" shadow="md" width={300}>
+    <Menu position="bottom-start" shadow="md" width={280}>
       <Menu.Target>
         <Button
           data-tutorial="stinger-menu"
           size="compact-xs"
           variant={state?.cue ? 'light' : 'default'}
           color={state?.cue ? 'green' : undefined}
-          leftSection={state?.cue ? <span aria-hidden="true">▶</span> : undefined}
+          leftSection={<OperatorIcon icon={state?.cue ? PlayIcon : FilmSlateIcon} size={14} />}
           rightSection={<span aria-hidden="true">▾</span>}
         >
           {t('workspaces.stingers')}
@@ -115,7 +132,7 @@ export function StingerQuickMenu({ activeSet, onConfigure }: { activeSet?: Selec
             color={action.color}
             disabled={action.disabled}
             onClick={action.onClick}
-            leftSection={action.play ? <span aria-hidden="true">▶</span> : undefined}
+            leftSection={<OperatorIcon icon={action.icon} />}
           >
             {action.label}
             {action.description && (

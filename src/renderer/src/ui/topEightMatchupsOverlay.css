@@ -20,7 +20,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border: 1px solid var(--mantine-color-dark-4);
+  border: 1px solid var(--operator-container-border);
   border-radius: var(--mantine-radius-md);
   background: #090b12;
 }

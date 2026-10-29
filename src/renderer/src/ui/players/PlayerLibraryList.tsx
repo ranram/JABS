@@ -1,12 +1,26 @@
-import { Badge, Group, Loader, Pagination, ScrollArea, Stack, Text, TextInput, UnstyledButton } from '@mantine/core';
+import {
+  Badge,
+  ActionIcon,
+  Group,
+  Loader,
+  Pagination,
+  ScrollArea,
+  Stack,
+  Text,
+  TextInput,
+  UnstyledButton
+} from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { playerLabel, type LibraryPlayer } from '@shared/playerLibrary';
 import { displayFlagLabel, displayFlagUrl } from '../overlayPlayerPresentation';
+import { PanelHeader } from '../PanelHeader';
+import { OperatorIcon, UsersIcon, MagnifyingGlassIcon, PlusIcon } from '../icons';
 
 type Props = {
   query: string;
   page: number;
   total: number;
+  libraryTotal?: number;
   players: LibraryPlayer[];
   selectedId?: string;
   busy: boolean;
@@ -14,41 +28,54 @@ type Props = {
   onQuery(value: string): void;
   onPage(value: number): void;
   onSelect(player: LibraryPlayer): void;
+  onCreate(): void;
 };
 export function PlayerLibraryList({
   query,
   page,
   total,
+  libraryTotal,
   players,
   selectedId,
   busy,
   loading,
   onQuery,
   onPage,
-  onSelect
+  onSelect,
+  onCreate
 }: Props) {
   const { t } = useTranslation('operator');
   return (
     <aside className="player-library-list operator-inset">
       <Stack gap="xs" p="md">
-        <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Text fw={700} flex={1} miw={0}>
-            {t('players.title')}
-          </Text>
-          {loading ? (
-            <Loader size="xs" />
-          ) : (
-            <Badge variant="light" style={{ flexShrink: 0 }}>
-              {total}
-            </Badge>
-          )}
-        </Group>
+        <PanelHeader title={t('players.title')} icon={UsersIcon} order={3} inset="md">
+          <Group gap="xs" wrap="nowrap">
+            {loading && <Loader size="xs" />}
+            <ActionIcon
+              size={26}
+              variant="default"
+              data-tutorial="player-library-create"
+              aria-label={t('players.add')}
+              title={t('players.add')}
+              disabled={busy}
+              onClick={onCreate}
+            >
+              <OperatorIcon icon={PlusIcon} />
+            </ActionIcon>
+          </Group>
+        </PanelHeader>
         <TextInput
-          label={t('players.search')}
+          aria-label={t('players.search')}
+          leftSection={<OperatorIcon icon={MagnifyingGlassIcon} />}
           placeholder={t('players.searchPlaceholder')}
           value={query}
           onChange={(event) => onQuery(event.currentTarget.value)}
         />
+        {libraryTotal !== undefined && (
+          <Text className="player-library-count" size="xs" c="dimmed" ta="center">
+            {t('players.count', { count: libraryTotal })}
+          </Text>
+        )}
       </Stack>
       <ScrollArea className="player-library-list-scroll" type="auto" offsetScrollbars>
         <Stack gap={4} px="xs" pb="sm">

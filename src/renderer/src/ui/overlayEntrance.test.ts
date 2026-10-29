@@ -1,12 +1,23 @@
 // @vitest-environment happy-dom
 import { act, createElement as h } from 'react';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
+import { initializeI18n } from '../i18n';
+
 import { mountHook, mountView } from '../hooks/hookTestHarness';
 import { createTestOverlayState, createTestCustomScoreboard } from '@shared/testFixtures';
 import { trackObsSourceActivity } from '../hooks/obsSourceActivity';
 import { useOverlayEntrance } from './useOverlayEntrance';
 import { scoreboardEntrance } from './scoreboardEntrance';
 import { CustomScoreboardCanvas } from './CustomScoreboardCanvas';
+import * as appearanceSettings from './appearance/AppearanceProvider';
+
+vi.mock('../hooks/useScoreboardPhotos', () => ({
+  useScoreboardPhotos: () => ({
+    state: { enabled: false, logoBackdrop: false, sponsorBackdrop: false, updatedAt: '1' }
+  })
+}));
+
+beforeAll(initializeI18n);
 
 const animate = vi.hoisted(() =>
   vi.fn(() => ({ revert: vi.fn(), animations: [] as { finished: Promise<unknown> }[] }))
@@ -39,7 +50,14 @@ async function activate(active: boolean) {
   });
 }
 
-it('replays on result or Program activation while respecting reduced motion and operator edits', async () => {
+it('replays on result or Program activation despite OS reduced motion while respecting the app switch and operator edits', async () => {
+  Object.defineProperty(motion, 'matches', { configurable: true, value: true });
+  let playAnimations = true;
+  const useAppearance = appearanceSettings.useAppearance;
+  vi.spyOn(appearanceSettings, 'useAppearance').mockImplementation(() => {
+    const context = useAppearance();
+    return { ...context, appearance: { ...context.appearance, entranceAnimations: playAnimations } };
+  });
   // OBS can become inactive before React has loaded the match.
   await activate(false);
   let ready = false;
@@ -91,16 +109,25 @@ it('replays on result or Program activation while respecting reduced motion and 
   await act(async () => {
     motion.dispatchEvent(new Event('change'));
   });
-  expect(second.revert).toHaveBeenCalledOnce();
+  expect(second.revert).not.toHaveBeenCalled();
   await activate(false);
   await activate(true);
-  expect(animate).toHaveBeenCalledTimes(2);
-  Object.defineProperty(motion, 'matches', { configurable: true, value: false });
+  expect(animate).toHaveBeenCalledTimes(3);
+  const latest = animate.mock.results.at(-1)!.value;
+  playAnimations = false;
+  await view.rerender();
+  expect(latest.revert).toHaveBeenCalledOnce();
+  await activate(false);
+  await activate(true);
+  expect(animate).toHaveBeenCalledTimes(3);
+  playAnimations = true;
+  await view.rerender();
+  expect(animate).toHaveBeenCalledTimes(4);
   enabled = false; // Operator previews keep their editing surface still.
   await view.rerender();
   await activate(false);
   await activate(true);
-  expect(animate).toHaveBeenCalledTimes(2);
+  expect(animate).toHaveBeenCalledTimes(4);
   await view.unmount();
 });
 
@@ -122,6 +149,7 @@ it('cancels the previous animation when OBS activation changes rapidly', async (
 });
 
 it('enters after a cold load and again when Preview first becomes Program', async () => {
+  Object.defineProperty(motion, 'matches', { configurable: true, value: true });
   const beforeColdLoad = animate.mock.calls.length;
   let ready = false;
 
@@ -142,7 +170,7 @@ it('enters after a cold load and again when Preview first becomes Program', asyn
   expect(animate).toHaveBeenCalledTimes(beforeColdLoad + 1);
   Object.defineProperty(motion, 'matches', { configurable: true, value: true });
   await act(async () => motion.dispatchEvent(new Event('change')));
-  expect(entrance.revert).toHaveBeenCalledOnce();
+  expect(entrance.revert).not.toHaveBeenCalled();
   Object.defineProperty(motion, 'matches', { configurable: true, value: false });
   // A page first loaded in Preview must still enter when its first Program event arrives.
   await activate(true);

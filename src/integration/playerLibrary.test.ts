@@ -3,17 +3,24 @@ import { MantineProvider } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { I18nextProvider } from 'react-i18next';
 import { initializeI18n, i18n } from '../renderer/src/i18n';
-import { PlayerLibraryButton } from '../renderer/src/ui/players/PlayerLibraryModal';
+import { MatchesMenu } from '../renderer/src/ui/operator/MatchesMenu';
 import { act, createElement as h } from 'react';
 import { expect, it, vi } from 'vitest';
 import type { StartggEventStandingsResult } from '@shared/models';
 import { libraryPresentationSchema, librarySaveSchema } from '@shared/playerLibrary';
+import { createTestOverlayState } from '@shared/testFixtures';
 import { mountHook, mountView, deferred } from '../renderer/src/hooks/hookTestHarness';
 import { useTopEightDraft } from '../renderer/src/ui/operator/useTopEightDraft';
 import { useThumbnailDraft } from '../renderer/src/ui/operator/useThumbnailDraft';
 
 const resolve = vi.hoisted(() => vi.fn());
-const libraryUi = vi.hoisted(() => ({ search: vi.fn(), save: vi.fn(), delete: vi.fn(), lookup: vi.fn() }));
+const libraryUi = vi.hoisted(() => ({
+  search: vi.fn(),
+  save: vi.fn(),
+  delete: vi.fn(),
+  lookup: vi.fn(),
+  get: vi.fn()
+}));
 vi.mock('../renderer/src/api', () => ({
   api: {
     resolveScoreboardPhotos: async () => ({ photos: [null] }),
@@ -22,6 +29,8 @@ vi.mock('../renderer/src/api', () => ({
     saveLibraryPlayer: libraryUi.save,
     deleteLibraryPlayer: libraryUi.delete,
     lookupLibraryPlayer: libraryUi.lookup,
+    libraryPlayer: libraryUi.get,
+    gameCharacterAssets: async () => ({ assets: [] }),
     countries: async () => ({ countries: [] }),
     videogames: async () => ({ games: [], cached: true })
   }
@@ -84,7 +93,7 @@ it('uses player IDs across graphics, preserves local edits, and ignores late lib
   expect(thumbnail.current.draft.players[1].character).toBe('Ken');
 });
 
-it('keeps drafts after failed actions, closes after saving, and uses app-wide notifications', async () => {
+async function openPlayerLibrary() {
   await initializeI18n();
   await i18n.changeLanguage('en');
   vi.useFakeTimers();
@@ -103,28 +112,104 @@ it('keeps drafts after failed actions, closes after saving, and uses app-wide no
     },
     overrides: { nickname: 'The Champion', pronouns: 'they/them' },
     aliases: ['Original tag'],
-    games: [],
+    games: [{ gameKey: 'street-fighter-6', characters: ['Cammy'], characterAssetId: null, portraitAssetId: null }],
     updatedAt: '2026-10-13T00:00:00Z',
     seenAt: '2026-10-13T00:00:00Z'
   };
-  libraryUi.search.mockResolvedValue({ players: [record], total: 1 });
+  libraryUi.search.mockImplementation(async (query = '') => ({
+    players: query ? [] : [record],
+    total: query ? 0 : 274
+  }));
+  libraryUi.get.mockResolvedValue(record);
+  resolve.mockResolvedValue([saved('1', 'Cammy')]);
+  const activeSet = createTestOverlayState().selectedSet;
+  activeSet.playerOne = {
+    ...activeSet.playerOne,
+    name: 'On-stream tag',
+    playerId: record.playerId,
+    localPlayerId: record.localId,
+    characters: ['Ken']
+  };
+  activeSet.playerTwo.name = 'New arrival';
+  libraryUi.save.mockReset();
+  libraryUi.delete.mockClear();
+  libraryUi.lookup.mockReset();
+  const view = await mountView(() =>
+    h(
+      MantineProvider,
+      { env: 'test' },
+      h(I18nextProvider, { i18n }, h(MatchesMenu, { activeSet, setSelectorDisabled: true, onOpenSetSelector() {} }))
+    )
+  );
+  async function click(text: string) {
+    const button = [...document.querySelectorAll('button')].find(
+      (button) => button.textContent === text || button.getAttribute('aria-label') === text
+    );
+    expect(button).toBeDefined();
+    await act(async () => button!.click());
+  }
+  await act(async () => document.querySelector<HTMLButtonElement>('[data-tutorial="matches-menu"]')!.click());
+  await click('Players');
+  await act(async () => vi.advanceTimersByTimeAsync(250));
+  async function close() {
+    try {
+      await view.unmount();
+    } finally {
+      notice.mockRestore();
+      vi.useRealTimers();
+    }
+  }
+  return { view, notice, record, click, close };
+}
+
+it('keeps drafts after failed saves and closes after a successful save', async () => {
+  const { record, click, notice, close } = await openPlayerLibrary();
   libraryUi.save.mockRejectedValueOnce(new Error('The player could not be saved.'));
   libraryUi.save.mockImplementationOnce(async (player) => ({
     player: { ...player, updatedAt: '2026-10-13T00:01:00Z' },
     warnings: []
   }));
-  libraryUi.delete.mockClear();
-  const view = await mountView(() =>
-    h(MantineProvider, { env: 'test' }, h(I18nextProvider, { i18n }, h(PlayerLibraryButton)))
-  );
-  async function click(text: string) {
-    const button = [...document.querySelectorAll('button')].find((button) => button.textContent === text);
-    expect(button).toBeDefined();
-    await act(async () => button!.click());
-  }
   try {
-    await click('Players');
+    expect(document.querySelector('.player-library-count')?.textContent).toBe(
+      '274 players registered in the player library'
+    );
+    const librarySearch = document.querySelector<HTMLInputElement>('.player-library-list input')!;
+    const unfilteredReads = () => libraryUi.search.mock.calls.filter(([query]) => !query).length;
+    const reads = unfilteredReads();
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(librarySearch, 'Missing player');
+      librarySearch.dispatchEvent(new Event('input', { bubbles: true }));
+    });
     await act(async () => vi.advanceTimersByTimeAsync(250));
+    expect(document.querySelector('.player-library-count')?.textContent).toBe(
+      '274 players registered in the player library'
+    );
+    expect(document.querySelector('.player-library-list')?.textContent).toContain('No players match this search.');
+    expect(unfilteredReads()).toBe(reads);
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(librarySearch, '');
+      librarySearch.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(250));
+    await click('On-stream tag');
+    expect(document.querySelector('.player-library-detail h3')?.textContent).toBe('Original tag');
+    expect(document.querySelector('.player-library-detail-header')?.textContent).not.toContain('Unsaved changes');
+    expect(
+      [...document.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === 'Save player')
+        ?.disabled
+    ).toBe(true);
+    expect(libraryUi.save).not.toHaveBeenCalled();
+    expect(record.games[0].characters).toEqual(['Cammy']);
+    await click('Close player');
+    expect(document.querySelector('.player-library-detail')).toBeNull();
+    expect(document.body.textContent).not.toContain('Unsaved player changes');
+    resolve.mockResolvedValueOnce([null]);
+    await click('New arrival');
+    expect(document.querySelector('.player-library-detail-header')?.textContent).toContain('Unsaved changes');
+    await click('Close player');
+    expect(document.body.textContent).toContain('Unsaved player changes');
+    await click('Discard changes');
+    expect(document.querySelector('.player-library-detail')).toBeNull();
     await act(async () => document.querySelector<HTMLButtonElement>('.player-library-row')!.click());
     const label = [...document.querySelectorAll<HTMLLabelElement>('label')].find(
       (label) => label.textContent === 'Player tag'
@@ -178,9 +263,17 @@ it('keeps drafts after failed actions, closes after saving, and uses app-wide no
       })
     );
     expect(libraryUi.delete).not.toHaveBeenCalled();
+  } finally {
+    await close();
+  }
+});
+
+it('opens lookup results and keeps the selected player after a failed lookup', async () => {
+  const { record, click, notice, close } = await openPlayerLibrary();
+  try {
     libraryUi.lookup.mockResolvedValueOnce({ player: record, source: 'local' });
     const lookupLabel = [...document.querySelectorAll<HTMLLabelElement>('label')].find(
-      (label) => label.textContent === 'Add from start.gg'
+      (label) => label.textContent === i18n.t('operator:players.lookupLabel')
     )!;
     const lookupInput = document.getElementById(lookupLabel.htmlFor) as HTMLInputElement;
     await act(async () => {
@@ -192,11 +285,11 @@ it('keeps drafts after failed actions, closes after saving, and uses app-wide no
     });
     await click('Find player');
     expect(libraryUi.lookup).toHaveBeenCalledWith('https://start.gg/user/a1b2c3d4');
-    expect(document.querySelector('.player-library-heading')?.textContent).toContain('Original tag');
-    expect(libraryUi.save).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('.player-library-detail h3')?.textContent).toContain('Original tag');
+    expect(libraryUi.save).toHaveBeenCalledTimes(0);
     libraryUi.lookup.mockRejectedValueOnce(new Error('Public lookup unavailable.'));
     await click('Find player');
-    expect(document.querySelector('.player-library-heading')?.textContent).toContain('Original tag');
+    expect(document.querySelector('.player-library-detail h3')?.textContent).toContain('Original tag');
     expect(notice).toHaveBeenLastCalledWith(
       expect.objectContaining({
         title: 'Action failed',
@@ -205,10 +298,29 @@ it('keeps drafts after failed actions, closes after saving, and uses app-wide no
       })
     );
     expect(document.querySelector('.player-library-panel')?.textContent).not.toContain('Public lookup unavailable.');
+  } finally {
+    await close();
+  }
+});
+
+it('translates rejected-field notices and protects unsaved drafts on Escape', async () => {
+  const { record, click, notice, close } = await openPlayerLibrary();
+  try {
+    await click('On-stream tag');
     for (const language of ['en', 'es-419']) {
       await act(async () => {
         await i18n.changeLanguage(language);
       });
+      expect(document.querySelector('.player-library-count')?.textContent).toBe(
+        language === 'en'
+          ? '274 players registered in the player library'
+          : '274 jugadores registrados en la biblioteca de jugadores'
+      );
+      expect(i18n.t('operator:players.count', { count: 1 })).toBe(
+        language === 'en'
+          ? '1 player registered in the player library'
+          : '1 jugador registrado en la biblioteca de jugadores'
+      );
       for (const field of ['nickname', 'pronouns', 'age'] as const) {
         const label = [...document.querySelectorAll<HTMLLabelElement>('label')].find(
           (label) => label.textContent === i18n.t(`operator:players.fields.${field}`)
@@ -258,7 +370,7 @@ it('keeps drafts after failed actions, closes after saving, and uses app-wide no
     await act(async () => {
       await i18n.changeLanguage('en');
     });
-    await click('Add player');
+    await click('New player');
     const draftInput = document.querySelector<HTMLInputElement>('.player-library-detail input:not([readonly])')!;
     await act(async () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(draftInput, 'Unsaved draft');
@@ -272,15 +384,14 @@ it('keeps drafts after failed actions, closes after saving, and uses app-wide no
     await act(async () => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
     await click('Discard changes');
     expect(document.querySelector('.player-library-panel')).toBeNull();
+    await act(async () => document.querySelector<HTMLButtonElement>('[data-tutorial="matches-menu"]')!.click());
     await click('Players');
     await act(async () => vi.advanceTimersByTimeAsync(250));
     expect(document.querySelector('.player-library-panel')).not.toBeNull();
     expect(document.querySelector('.player-library-detail')).toBeNull();
     await act(async () => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
     expect(document.querySelector('.player-library-panel')).toBeNull();
-    await view.unmount();
   } finally {
-    notice.mockRestore();
-    vi.useRealTimers();
+    await close();
   }
 });

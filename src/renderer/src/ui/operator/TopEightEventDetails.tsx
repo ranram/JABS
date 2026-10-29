@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Accordion, Button, NumberInput, Stack, Text, TextInput } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { TopEightDraftController } from './useTopEightDraft';
+import { OperatorIcon, DownloadSimpleIcon, PencilSimpleIcon } from '../icons';
 
 type TopEightEventDetailsProps = {
   controller: TopEightDraftController;
@@ -30,7 +31,7 @@ export function TopEightEventDetails({
   return (
     <Accordion variant="separated" radius="md" value={opened} onChange={setOpened}>
       <Accordion.Item className="operator-inset" value="startgg">
-        <Accordion.Control>
+        <Accordion.Control icon={<OperatorIcon icon={DownloadSimpleIcon} />}>
           <Text fw={700} size="sm">
             {t('operator:topEight.loadFromStartgg')}
           </Text>
@@ -51,7 +52,7 @@ export function TopEightEventDetails({
       </Accordion.Item>
 
       <Accordion.Item className="operator-inset" value="manual">
-        <Accordion.Control>
+        <Accordion.Control icon={<OperatorIcon icon={PencilSimpleIcon} />}>
           <Text fw={700} size="sm">
             {t('operator:topEight.manualEventDetails')}
           </Text>

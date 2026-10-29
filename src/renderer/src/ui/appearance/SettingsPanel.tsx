@@ -7,6 +7,7 @@ import {
   Divider,
   Drawer,
   FileButton,
+  Group,
   Select,
   SimpleGrid,
   Stack,
@@ -20,29 +21,64 @@ import {
   defaultAppearance,
   exportAppearance,
   parseAppearanceFile,
+  sameAppearance,
   type Appearance
 } from '@shared/appearancePreferences';
 import { useAppearance } from './AppearanceProvider';
 import { api } from '../../api';
 import { useOperatorNotifications } from '../operator/useOperatorNotifications';
+import { IconLabel, OperatorIcon, PlusIcon, SlidersHorizontalIcon } from '../icons';
+import '../panelHeader.css';
 
-export function SettingsButton({ compact = false }: { compact?: boolean }) {
+export function SettingsButton({
+  compact = false,
+  keyboardShortcuts
+}: {
+  compact?: boolean;
+  keyboardShortcuts?: { enabled: boolean; setEnabled(value: boolean): void };
+}) {
   const { t } = useTranslation('operator');
   const [opened, setOpened] = useState(false);
   return (
     <>
-      <Button size={compact ? 'compact-xs' : undefined} variant="default" onClick={() => setOpened(true)}>
+      <Button
+        size={compact ? 'compact-xs' : undefined}
+        variant="default"
+        onClick={() => setOpened(true)}
+        leftSection={<OperatorIcon icon={SlidersHorizontalIcon} size={compact ? 14 : 16} />}
+      >
         {t('appearance.settings')}
       </Button>
       <Drawer
         opened={opened}
         onClose={() => setOpened(false)}
-        title={t('appearance.settings')}
+        title={
+          <Text component="span" fw={800} size="lg">
+            <IconLabel icon={SlidersHorizontalIcon} size={18}>
+              {t('appearance.settings')}
+            </IconLabel>
+          </Text>
+        }
+        classNames={{ header: 'operator-section-header', title: 'operator-section-header-title' }}
+        padding="md"
+        styles={{ body: { paddingTop: 'var(--mantine-spacing-md)' } }}
         position="right"
         size="lg"
         keepMounted
       >
-        <SettingsPanel />
+        <Stack gap="md">
+          {keyboardShortcuts && (
+            <>
+              <Switch
+                label={t('editor.enableShortcuts')}
+                checked={keyboardShortcuts.enabled}
+                onChange={(event) => keyboardShortcuts.setEnabled(event.currentTarget.checked)}
+              />
+              <Divider />
+            </>
+          )}
+          <SettingsPanel />
+        </Stack>
       </Drawer>
     </>
   );
@@ -52,11 +88,13 @@ export function SettingsPanel() {
   const { t } = useTranslation(['operator', 'common']);
   const notify = useOperatorNotifications();
   const { state, ready, saving, error, update } = useAppearance();
-  const [presetId, setPresetId] = useState<string | null>(null);
+  const presetId = state.activePresetId ?? null;
   const [name, setName] = useState('');
   const [transferring, setTransferring] = useState(false);
   const appearance = state.appearance;
   const selected = state.presets.find(({ id }) => id === presetId);
+  const modified = selected && !sameAppearance(appearance, selected.appearance);
+  useEffect(() => setName(selected?.name ?? ''), [selected?.id, selected?.name]);
   const change = (patch: Partial<Appearance>, delay = 0) =>
     void update(
       (current) => ({
@@ -66,6 +104,10 @@ export function SettingsPanel() {
       delay
     );
 
+  async function resetAppearance() {
+    if (await update({ appearance: { ...defaultAppearance }, activePresetId: null })) setName('');
+  }
+
   async function importPreset(file: File | null) {
     if (!file) return;
     setTransferring(true);
@@ -73,16 +115,12 @@ export function SettingsPanel() {
       if (file.size > 65536) throw new Error('File too large');
       const imported = parseAppearanceFile(await file.text());
       const preset = { id: crypto.randomUUID(), name: imported.name, appearance: imported.appearance };
-      if (
-        await update((current) => ({
-          ...current,
-          presets: [...current.presets, preset],
-          appearance: preset.appearance
-        }))
-      ) {
-        setPresetId(preset.id);
-        setName(preset.name);
-      }
+      await update((current) => ({
+        ...current,
+        presets: [...current.presets, preset],
+        appearance: preset.appearance,
+        activePresetId: preset.id
+      }));
     } catch {
       notifications.show({ title: t('appearance.importFailed'), message: t('appearance.importHelp'), color: 'red' });
     } finally {
@@ -124,6 +162,13 @@ export function SettingsPanel() {
     );
   return (
     <Stack gap="md">
+      <Text size="sm" role="status">
+        {selected
+          ? `${t('appearance.currentPreset', { name: selected.name })}${modified ? ` · ${t('appearance.presetModified')}` : ''}`
+          : t(
+              sameAppearance(appearance, defaultAppearance) ? 'appearance.usingDefaults' : 'appearance.customAppearance'
+            )}
+      </Text>
       <Text fw={700}>{t('appearance.bracketNames')}</Text>
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <TextInput
@@ -194,7 +239,18 @@ export function SettingsPanel() {
         onChange={(event) => change({ entranceAnimations: event.currentTarget.checked })}
       />
       <Divider />
-      <Text fw={700}>{t('appearance.presets')}</Text>
+      <Group justify="space-between">
+        <Text fw={700}>{t('appearance.presets')}</Text>
+        <Button
+          size="compact-sm"
+          variant="default"
+          leftSection={<OperatorIcon icon={PlusIcon} />}
+          disabled={saving || transferring || state.presets.length >= 20}
+          onClick={() => void resetAppearance()}
+        >
+          {t('appearance.newPreset')}
+        </Button>
+      </Group>
       <Select
         label={t('appearance.savedPreset')}
         clearable
@@ -202,10 +258,8 @@ export function SettingsPanel() {
         value={presetId}
         data={state.presets.map(({ id, name: label }) => ({ value: id, label }))}
         onChange={(id) => {
-          setPresetId(id);
           const preset = state.presets.find((entry) => entry.id === id);
-          setName(preset?.name ?? '');
-          if (preset) void update({ appearance: preset.appearance });
+          void update(preset ? { activePresetId: preset.id, appearance: preset.appearance } : { activePresetId: null });
         }}
       />
       <TextInput
@@ -217,19 +271,17 @@ export function SettingsPanel() {
       <SimpleGrid type="container" cols={{ base: 1, '28rem': 2 }}>
         <Button
           disabled={saving || !name.trim() || (!selected && state.presets.length >= 20)}
-          onClick={async () => {
+          onClick={() => {
             const id = selected?.id ?? crypto.randomUUID();
-            if (
-              await update((current) => ({
-                ...current,
-                presets: selected
-                  ? current.presets.map((preset) =>
-                      preset.id === id ? { id, name: name.trim(), appearance: current.appearance } : preset
-                    )
-                  : [...current.presets, { id, name: name.trim(), appearance: current.appearance }]
-              }))
-            )
-              setPresetId(id);
+            void update((current) => ({
+              ...current,
+              activePresetId: id,
+              presets: selected
+                ? current.presets.map((preset) =>
+                    preset.id === id ? { id, name: name.trim(), appearance: current.appearance } : preset
+                  )
+                : [...current.presets, { id, name: name.trim(), appearance: current.appearance }]
+            }));
           }}
         >
           {selected ? t('appearance.updatePreset') : t('appearance.savePreset')}
@@ -237,9 +289,11 @@ export function SettingsPanel() {
         <DestructiveButton
           disabled={!selected || saving}
           onClick={() => {
-            void update((current) => ({ ...current, presets: current.presets.filter(({ id }) => id !== presetId) }));
-            setPresetId(null);
-            setName('');
+            void update((current) => ({
+              ...current,
+              activePresetId: null,
+              presets: current.presets.filter(({ id }) => id !== presetId)
+            }));
           }}
         >
           {t('appearance.deletePreset')}
@@ -259,15 +313,7 @@ export function SettingsPanel() {
         {t('appearance.presetHelp')}
       </Text>
       <Divider />
-      <Button
-        variant="default"
-        disabled={saving}
-        onClick={() => {
-          void update({ appearance: { ...defaultAppearance } });
-          setPresetId(null);
-          setName('');
-        }}
-      >
+      <Button variant="default" disabled={saving} onClick={() => void resetAppearance()}>
         {t('appearance.restoreDefaults')}
       </Button>
       <Text size="sm" c="dimmed">

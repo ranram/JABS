@@ -1,5 +1,7 @@
 pub(crate) mod commands;
 mod storage;
+mod operations;
+pub use operations::{Method, Operation};
 #[cfg(test)]
 mod tests;
 
@@ -47,6 +49,7 @@ pub enum Event {
     StingerFinished,
     StingerFailed,
     RendererError,
+    QueueContextMissing,
     RendererRejection,
     NativeCommandFailed,
     RealtimeDisconnected,
@@ -65,6 +68,10 @@ pub enum Event {
     LocalRequestRetry,
     #[serde(rename = "local-request:failed")]
     LocalRequestFailed,
+    #[serde(rename = "local-request:cancelled")]
+    LocalRequestCancelled,
+    #[serde(rename = "local-request:recovered")]
+    LocalRequestRecovered,
 }
 
 impl Event {
@@ -72,6 +79,7 @@ impl Event {
         matches!(
             self,
             Self::RendererError
+                | Self::QueueContextMissing
                 | Self::RendererRejection
                 | Self::NativeCommandFailed
                 | Self::RealtimeDisconnected
@@ -84,6 +92,8 @@ impl Event {
                 | Self::StreamSaveFailed
                 | Self::LocalRequestRetry
                 | Self::LocalRequestFailed
+                | Self::LocalRequestCancelled
+                | Self::LocalRequestRecovered
         )
     }
 
@@ -101,6 +111,7 @@ impl Event {
             | Self::StingerStarted
             | Self::StingerFinished
             | Self::RealtimeReconnected => "info",
+            Self::LocalRequestCancelled | Self::LocalRequestRecovered => "info",
             Self::PreviousSessionUnfinished
             | Self::SettingsRecovered
             | Self::ObsSourceDisconnected
@@ -135,9 +146,11 @@ pub enum Area {
 pub enum Reason {
     Network,
     Timeout,
+    Cancelled,
     Permission,
     RateLimit,
     Upstream,
+    Server,
     InvalidResponse,
     Validation,
     Storage,
@@ -169,7 +182,7 @@ impl Reason {
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub struct Context {
     pub area: Area,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -180,12 +193,25 @@ pub struct Context {
     pub line: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub column: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operation: Option<Operation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub method: Option<Method>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub elapsed_ms: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attempt: Option<u8>,
 }
 
 impl Context {
     fn is_valid(self) -> bool {
         self.status
             .is_none_or(|status| (100..=599).contains(&status))
+            && self.request_id.is_none_or(|id| id <= 9_007_199_254_740_991)
+            && self.elapsed_ms.is_none_or(|ms| ms <= 86_400_000)
+            && self.attempt.is_none_or(|attempt| (1..=2).contains(&attempt))
             && [self.line, self.column]
                 .into_iter()
                 .flatten()

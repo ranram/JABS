@@ -1,3 +1,4 @@
+import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, type GameId } from './gameProfiles';
 
@@ -8,7 +9,7 @@ const stylingGameIdSchema = z.custom<GameId>(
 export const resultScreenStateSchema = z.object({
   composition: z.enum(['classic', 'victory', 'spotlight']).default('classic'),
   stylingGameId: stylingGameIdSchema,
-  logoAssetId: z.string().trim().min(1).max(255).optional(),
+  logoAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional(),
   showBackground: z.boolean().default(true),
   showTextBackdrop: z.boolean().default(false),
   showTournamentLogo: z.boolean(),

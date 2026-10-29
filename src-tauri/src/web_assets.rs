@@ -17,6 +17,8 @@ pub fn mime_type(path: &str) -> &'static str {
         Some("webp") => "image/webp",
         Some("svg") => "image/svg+xml",
         Some("woff2") => "font/woff2",
+        Some("woff") => "font/woff",
+        Some("ttf") => "font/ttf",
         _ => "application/octet-stream",
     }
 }

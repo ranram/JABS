@@ -8,6 +8,7 @@ const parseMessage = (value: unknown) => parseRealtimeJson(value, parseCommentat
 export function useCommentatorState() {
   const { state, error } = useRealtimeState({
     load: api.commentatorState,
+    diagnosticOperation: 'commentators',
     parseMessage,
     loadError: 'Unable to load commentator state.'
   });

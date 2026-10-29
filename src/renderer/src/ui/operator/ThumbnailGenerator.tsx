@@ -1,22 +1,12 @@
 import { recordDiagnostic } from '../../diagnostics';
 import { CharacterSelect } from './CharacterSelect';
+import { GeneratorChoiceControl } from './GeneratorChoiceControl';
 import { GeneratorNavigation } from './GeneratorNavigation';
 import { PanelHeader } from '../PanelHeader';
+import { YoutubeLogoIcon, SlidersHorizontalIcon, UserIcon, MonitorIcon } from '../icons';
 import { PlayerNameInput } from '../players/PlayerNameInput';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import {
-  Badge,
-  Button,
-  ColorInput,
-  Paper,
-  SegmentedControl,
-  Select,
-  SimpleGrid,
-  Stack,
-  Switch,
-  Text,
-  Title
-} from '@mantine/core';
+import { Button, ColorInput, Paper, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
 import { charactersForAssetCatalog } from '@shared/characterRosters';
@@ -28,9 +18,7 @@ import {
   thumbnailMediaModeIds,
   thumbnailStyleIds,
   validateThumbnailDraft,
-  type ThumbnailDraft,
-  type ThumbnailMediaMode,
-  type ThumbnailStyleId
+  type ThumbnailDraft
 } from '@shared/thumbnail';
 import { sortByLabel } from './operatorUtils';
 import { exportGraphicAsPng, safeGraphicFilename } from './exportGraphic';
@@ -88,6 +76,7 @@ export function ThumbnailGenerator({
     previewDraft,
     media,
     ready: mediaReady,
+    refreshing: mediaRefreshing,
     availableCharacterNames,
     characterAssets,
     logoUrl,
@@ -114,7 +103,7 @@ export function ThumbnailGenerator({
     [previewDraft.mediaMode, previewDraft.showSponsorLogo, media]
   );
   const ready = gameContextReady && validateThumbnailDraft(draft);
-  const previewCurrent = mediaReady && previewDraft === draft;
+  const previewCurrent = (mediaReady || mediaRefreshing) && previewDraft === draft;
   const [exporting, setExporting] = useState(false);
   const { selectedLayer, setSelectedLayer } = controller;
   const sectionId = useId();
@@ -217,6 +206,7 @@ export function ThumbnailGenerator({
         detailsId={`${sectionId}-details`}
         previewId={`${sectionId}-preview`}
         exporting={exporting}
+        previewLoading={ready && !previewCurrent}
         reason={
           !gameContextReady
             ? t('operator:generators.selectGame')
@@ -230,16 +220,13 @@ export function ThumbnailGenerator({
       />
       <Stack gap="md">
         <div className="generator-settings-row">
-          <Paper className="panel generator-section" data-tutorial="thumbnail-setup" p="lg" radius="lg" withBorder>
+          <Paper className="panel generator-section" data-tutorial="thumbnail-setup" radius="lg" withBorder>
             <PanelHeader
               title={t('operator:workspaces.generators.thumbnail.title')}
-              description={t('operator:thumbnail.description')}
+              icon={YoutubeLogoIcon}
+              inset="var(--generator-section-padding)"
               mb="md"
-            >
-              <Badge color={ready ? 'green' : 'yellow'} variant="light">
-                {ready ? t('operator:thumbnail.ready') : t('operator:thumbnail.needsDetails')}
-              </Badge>
-            </PanelHeader>
+            />
             <Stack gap="md">
               {gameSelector}
               <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '36rem': 2 }}>
@@ -274,10 +261,15 @@ export function ThumbnailGenerator({
               </Stack>
             </Stack>
           </Paper>
-          <Paper className="panel generator-section" p="lg" radius="lg" withBorder>
-            <PanelHeader title={t('operator:quickTools.presentation')} mb="md" />
+          <Paper className="panel generator-section" radius="lg" withBorder>
+            <PanelHeader
+              title={t('operator:quickTools.presentation')}
+              icon={SlidersHorizontalIcon}
+              inset="var(--generator-section-padding)"
+              mb="md"
+            />
             <Stack gap="md">
-              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '42rem': 3 }}>
+              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '30rem': 3 }}>
                 <Select
                   label={t('operator:workspaces.styling')}
                   value={draft.stylingGameId}
@@ -305,42 +297,30 @@ export function ThumbnailGenerator({
                   onChange={(value) => controller.setText({ logoAssetId: value ?? undefined })}
                 />
               </SimpleGrid>
-              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '36rem': 2 }}>
-                <div>
-                  <Text fw={700} size="sm" mb={4}>
-                    {t('operator:thumbnail.mediaMode')}
-                  </Text>
-                  <SegmentedControl
-                    fullWidth
-                    value={draft.mediaMode}
-                    data={thumbnailMediaModeIds.map((mode) => ({
-                      value: mode,
-                      label: t(`operator:thumbnail.mediaModes.${mode}`)
-                    }))}
-                    onChange={(value) => {
-                      controller.setMediaMode(value as ThumbnailMediaMode);
-                      setSelectedLayer(undefined);
-                    }}
-                  />
-                </div>
-                <div>
-                  <Text fw={700} size="sm" mb={4}>
-                    {t('operator:thumbnail.style')}
-                  </Text>
-                  <SegmentedControl
-                    fullWidth
-                    value={draft.style}
-                    data={thumbnailStyleIds.map((style) => ({
-                      value: style,
-                      label: t(`operator:thumbnail.styles.${style}`)
-                    }))}
-                    onChange={(value) => {
-                      controller.setStyle(value as ThumbnailStyleId);
-                      setSelectedLayer(undefined);
-                    }}
-                  />
-                </div>
-              </SimpleGrid>
+              <GeneratorChoiceControl
+                label={t('operator:thumbnail.mediaMode')}
+                value={draft.mediaMode}
+                data={thumbnailMediaModeIds.map((mode) => ({
+                  value: mode,
+                  label: t(`operator:thumbnail.mediaModes.${mode}`)
+                }))}
+                onChange={(value) => {
+                  controller.setMediaMode(value);
+                  setSelectedLayer(undefined);
+                }}
+              />
+              <GeneratorChoiceControl
+                label={t('operator:thumbnail.style')}
+                value={draft.style}
+                data={thumbnailStyleIds.map((style) => ({
+                  value: style,
+                  label: t(`operator:thumbnail.styles.${style}`)
+                }))}
+                onChange={(value) => {
+                  controller.setStyle(value);
+                  setSelectedLayer(undefined);
+                }}
+              />
               <GraphicBackgroundControls value={draft.background} onChange={controller.setBackground} />
               <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '28rem': 2 }}>
                 {(['showTournamentLogo', 'showSponsorLogo'] as const).map((setting) => (
@@ -360,9 +340,13 @@ export function ThumbnailGenerator({
             <SimpleGrid type="container" cols={{ base: 1, '42rem': 2 }}>
               {draft.players.map((player, index) => (
                 <Paper key={index} className="panel generator-player-panel" p="md" radius="lg" withBorder>
-                  <Title order={3} size="h5" mb="md">
-                    {t('operator:thumbnail.player', { count: index + 1 })}
-                  </Title>
+                  <PanelHeader
+                    title={t('operator:thumbnail.player', { count: index + 1 })}
+                    icon={UserIcon}
+                    order={3}
+                    inset="md"
+                    mb="md"
+                  />
                   <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '24rem': 2 }}>
                     <PlayerNameInput
                       label={t('operator:topEight.playerTag')}
@@ -416,13 +400,15 @@ export function ThumbnailGenerator({
             <Paper
               id={`${sectionId}-preview`}
               className="panel generator-section generator-section-target generator-preview-panel"
-              p="lg"
               radius="lg"
               withBorder
             >
-              <Text fw={800} mb="sm">
-                {t('operator:thumbnail.preview')}
-              </Text>
+              <PanelHeader
+                title={t('operator:thumbnail.preview')}
+                icon={MonitorIcon}
+                inset="var(--generator-section-padding)"
+                mb="md"
+              />
               <GeneratorMediaControls
                 options={placementOptions}
                 selection={selectedLayer && { index: selectedLayer.player, layer: selectedLayer.layer }}

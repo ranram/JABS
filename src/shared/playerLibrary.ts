@@ -1,7 +1,8 @@
+import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { scoreboardPhotoSchema } from './scoreboardPhotos';
 
-const text = z.string().max(200);
+const text = z.string().refine(utf16AtMost(200));
 export const playerProfileSchema = z
   .object({
     name: text,
@@ -15,10 +16,10 @@ export const playerProfileSchema = z
   .strict();
 export const playerGamePreferencesSchema = z
   .object({
-    gameKey: z.string().min(1).max(150),
+    gameKey: z.string().min(1).refine(utf16AtMost(150)),
     characters: z.array(text).max(4),
-    characterAssetId: z.string().max(300).nullable(),
-    portraitAssetId: z.string().max(300).nullable()
+    characterAssetId: z.string().refine(utf16AtMost(300)).nullable(),
+    portraitAssetId: z.string().refine(utf16AtMost(300)).nullable()
   })
   .strict();
 export const libraryPlayerSchema = z

@@ -1,8 +1,31 @@
 import { describe, expect, it } from 'vitest';
 import { createTestOverlayState } from './testFixtures';
 import { startggReportReadiness } from './startggReporting';
+import { winnerSideForMatch } from './gameProfiles';
 
 describe('start.gg report readiness', () => {
+  it('reports explicit W/L and DQ winners without making up games or replacing saved progress', () => {
+    const selected = createTestOverlayState().selectedSet;
+    selected.setId = '100';
+    selected.state = '1';
+    selected.gameHistory = [];
+    selected.playerOne.score = 0;
+    selected.playerTwo.score = 0;
+    selected.upstreamReset = true;
+    const before = structuredClone(selected);
+    for (const kind of ['win-loss', 'disqualification'] as const) {
+      const outcome = { kind, winnerId: selected.playerTwo.entrantId };
+      const readiness = startggReportReadiness(selected, outcome);
+      expect(readiness).toMatchObject({ ready: true, result: { outcome, winnerId: outcome.winnerId } });
+      if (readiness.ready) expect(readiness.result.gameData).toBeUndefined();
+      expect(startggReportReadiness({ ...selected, state: '3' }, outcome)).toMatchObject({ ready: false });
+      expect(startggReportReadiness({ ...selected, setId: undefined }, outcome)).toMatchObject({ ready: false });
+      expect(startggReportReadiness(selected, { kind, winnerId: 'foreign-player' })).toMatchObject({ ready: false });
+      expect(winnerSideForMatch({ ...selected, upstreamReset: false, reportedOutcome: outcome })).toBe('two');
+    }
+    expect(selected).toEqual(before);
+    expect(startggReportReadiness(selected)).toMatchObject({ ready: false });
+  });
   it('accepts only a completed, untied local score with start.gg identities', () => {
     const selectedSet = {
       ...createTestOverlayState().selectedSet,
@@ -32,6 +55,11 @@ describe('start.gg report readiness', () => {
       ready: false,
       reason: expect.stringContaining('already marked complete')
     });
+    const reset = { ...selectedSet, upstreamReset: true };
+    expect(startggReportReadiness(reset)).toMatchObject({ ready: false, reasonCode: 'upstream-reset' });
+    expect(winnerSideForMatch(reset)).toBeUndefined();
+    expect(startggReportReadiness({ ...reset, upstreamReset: false })).toMatchObject({ ready: true });
+    expect(winnerSideForMatch({ ...reset, upstreamReset: false })).toBe('one');
     expect(startggReportReadiness({
       ...selectedSet,
       matchFormat: 'first-to',

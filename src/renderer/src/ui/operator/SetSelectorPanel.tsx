@@ -1,4 +1,14 @@
-import { memo, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode
+} from 'react';
 import {
   Box,
   Button,
@@ -16,18 +26,22 @@ import {
 } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { SetSummary, StartggPageInfo, StartggSetScope, StartggStreamAssignment } from '@shared/models';
-import { SetResultRow } from './SetResultRow';
-import { usePendingWrites } from '../../pendingWrites';
-import {
-  matchesSetPills,
-  streamAssignmentFilterValue,
-  streamPlatform,
-  visibleStreamAssignment
-} from './setPillFilters';
+import { useQueuedSets } from './matchQueueContext';
+import { filterLoadedSets } from '../../setSearch';
+import { VirtualSetResults } from './VirtualSetResults';
+import { usePendingWrites, useWritesInProgress } from '../../pendingWrites';
+import { matchesSetPills, streamAssignmentFilterValue, visibleStreamAssignment } from './setPillFilters';
+import { StreamAssignmentLabel } from './StreamAssignmentLabel';
+import { IconLabel, InfoIcon, ListChecksIcon } from '../icons';
+import '../panelHeader.css';
+
+const emptyFilters: string[] = [];
 
 type SetSelectorPanelProps = {
   sets: SetSummary[];
   visibleSets: SetSummary[];
+  catalogSets?: SetSummary[];
+  onLoadCatalog?(): void;
   assignments: StartggStreamAssignment[];
   scope?: StartggSetScope;
   scopeLabel: string;
@@ -55,6 +69,8 @@ type SetSelectorPanelProps = {
 function SetSelectorPanelComponent({
   sets,
   visibleSets,
+  catalogSets,
+  onLoadCatalog,
   assignments,
   scope,
   scopeLabel,
@@ -80,48 +96,82 @@ function SetSelectorPanelComponent({
 }: SetSelectorPanelProps) {
   const { t } = useTranslation(['operator', 'common']);
   const pendingWrites = usePendingWrites();
+  const writesInProgress = useWritesInProgress();
+  const working = loading || writesInProgress;
+  const queue = useQueuedSets();
+  const queuePositionBySetId = useMemo(
+    () => (queue && queue.eventId === scope?.eventId ? queue.positions : new Map<string, number>()),
+    [queue, scope?.eventId]
+  );
   const busyLabel = loading
     ? t('common:status.loading')
-    : draftDirty || pendingWrites
+    : draftDirty || writesInProgress
       ? t('operator:selector.dirtyWarning')
-      : undefined;
+      : pendingWrites
+        ? t('operator:selector.pendingOutcome')
+        : undefined;
   const searchInputId = useId();
   const resultsRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const [pillFilters, setPillFilters] = useState<string[]>([]);
   const scopeKey = JSON.stringify(scope);
+  const [filterSelection, setFilterSelection] = useState({ scopeKey, values: emptyFilters });
+  const pillFilters = filterSelection.scopeKey === scopeKey ? filterSelection.values : emptyFilters;
+  const setPillFilters = useCallback((values: string[]) => setFilterSelection({ scopeKey, values }), [scopeKey]);
+  const queuedOnly = pillFilters.includes('queue:queued');
+  const catalogRequest = useRef<SetSummary[] | undefined>(undefined);
+  useEffect(() => {
+    if (!queuedOnly) {
+      catalogRequest.current = undefined;
+      return;
+    }
+    if (queuePositionBySetId.size && !searchCatalogIsCurrent && catalogRequest.current !== sets) {
+      catalogRequest.current = sets;
+      onLoadCatalog?.();
+    }
+  }, [queuedOnly, queuePositionBySetId, searchCatalogIsCurrent, sets, onLoadCatalog]);
+  const candidates = useMemo(
+    () => (queuedOnly && catalogSets ? filterLoadedSets(catalogSets, search) : visibleSets),
+    [queuedOnly, catalogSets, search, visibleSets]
+  );
   useEffect(() => {
     setPillFilters([]);
-  }, [scopeKey]);
+  }, [setPillFilters]);
   const assignmentBySetId = useMemo(() => {
     const queuedBySetId = new Map(assignments.map((assignment) => [assignment.setId, assignment]));
     const bySetId = new Map<string, StartggStreamAssignment>();
-    for (const set of visibleSets) {
+    for (const set of candidates) {
       const assignment = visibleStreamAssignment(set, queuedBySetId.get(set.id));
       if (assignment) bySetId.set(set.id, assignment);
     }
     return bySetId;
-  }, [assignments, visibleSets]);
-  const hasMore = !search.trim() && Boolean(pageInfo && pageInfo.page < pageInfo.totalPages);
-  const filteredSets = visibleSets.filter((set) =>
-    matchesSetPills(set, pillFilters, assignmentBySetId.get(set.id), activeSetId)
+  }, [assignments, candidates]);
+  const hasMore = !queuedOnly && !search.trim() && Boolean(pageInfo && pageInfo.page < pageInfo.totalPages);
+  const filteredSets = useMemo(() => {
+    const result = candidates.filter((set) =>
+      matchesSetPills(set, pillFilters, assignmentBySetId.get(set.id), activeSetId, queuePositionBySetId.has(set.id))
+    );
+    if (queuedOnly) result.sort((a, b) => queuePositionBySetId.get(a.id)! - queuePositionBySetId.get(b.id)!);
+    return result;
+  }, [candidates, pillFilters, assignmentBySetId, activeSetId, queuePositionBySetId, queuedOnly]);
+  const streamFilterOptions = useMemo(
+    () =>
+      [
+        ...new Map(
+          [...assignmentBySetId.values()].map((assignment) => [streamAssignmentFilterValue(assignment), assignment])
+        ).values()
+      ]
+        .sort((left, right) => left.streamName.localeCompare(right.streamName))
+        .map((assignment) => ({
+          value: `stream:${streamAssignmentFilterValue(assignment)}`,
+          label: <StreamAssignmentLabel assignment={assignment} />
+        })),
+    [assignmentBySetId]
   );
-  const streamFilterOptions = [
-    ...new Map(
-      [...assignmentBySetId.values()].map((assignment) => [streamAssignmentFilterValue(assignment), assignment])
-    ).values()
-  ]
-    .sort((left, right) => left.streamName.localeCompare(right.streamName))
-    .map((assignment) => ({
-      value: `stream:${streamAssignmentFilterValue(assignment)}`,
-      label: t('operator:selector.streamAssignment', {
-        platform: t(
-          `operator:selector.streamPlatforms.${streamPlatform(assignment.streamSource, assignment.streamName)}`
-        ),
-        name: assignment.streamName
-      })
-    }));
-  const filterOptions = [
+  const stations = useMemo(
+    () => [...new Set(candidates.flatMap((set) => (set.station ? [set.station] : [])))].sort(),
+    [candidates]
+  );
+  const filterOptions: Array<{ group: string; items: Array<{ value: string; label: ReactNode }> }> = [
     {
       group: t('operator:selector.statusFilter'),
       items: [
@@ -131,10 +181,12 @@ function SetSelectorPanelComponent({
       ]
     },
     {
+      group: t('operator:queue.title'),
+      items: [{ value: 'queue:queued', label: t('operator:selector.queued') }]
+    },
+    {
       group: t('operator:selector.stationFilter'),
-      items: [...new Set(visibleSets.flatMap((set) => (set.station ? [set.station] : [])))]
-        .sort()
-        .map((station) => ({ value: `station:${station}`, label: station }))
+      items: stations.map((station) => ({ value: `station:${station}`, label: station }))
     },
     { group: t('operator:selector.streamFilter'), items: streamFilterOptions }
   ];
@@ -169,11 +221,20 @@ function SetSelectorPanelComponent({
       radius="lg"
       withBorder={!inDialog}
     >
-      <Group justify="space-between" align="center" gap="xs">
+      <Group
+        justify="space-between"
+        align="center"
+        gap="xs"
+        className={!inDialog ? 'operator-section-header' : undefined}
+        data-inset={!inDialog || undefined}
+        style={!inDialog ? ({ '--section-header-inset': 'var(--mantine-spacing-md)' } as CSSProperties) : undefined}
+      >
         <Group gap="xs" miw={0}>
           {!inDialog && (
             <Text component="h2" fw={800} size="lg" m={0}>
-              {t('operator:selector.title')}
+              <IconLabel icon={ListChecksIcon} size={18}>
+                {t('operator:selector.title')}
+              </IconLabel>
             </Text>
           )}
           {scope && (
@@ -219,7 +280,7 @@ function SetSelectorPanelComponent({
             {busyLabel && (
               <Tooltip label={busyLabel} events={{ hover: true, focus: true, touch: true }}>
                 <Box component="span" tabIndex={0} role="status" aria-label={busyLabel}>
-                  <Loader size="sm" />
+                  {working ? <Loader size="sm" /> : <InfoIcon size={18} aria-hidden="true" />}
                 </Box>
               </Tooltip>
             )}
@@ -273,36 +334,38 @@ function SetSelectorPanelComponent({
 
       <Stack
         ref={resultsRef}
-        className={`set-results-scroll${modalOpen ? ' is-modal-open' : ''}`}
+        className={`set-results-scroll${inDialog ? ' match-list-frame' : ''}${modalOpen ? ' is-modal-open' : ''}`}
         data-testid="set-results-scroll"
         role="region"
         aria-label={t('operator:selector.regionAria')}
         tabIndex={0}
-        gap="xs"
+        gap="sm"
       >
         {sets.length === 0 ? (
           <Text c="dimmed">{loading ? t('operator:selector.loadingSets') : t('operator:selector.none')}</Text>
         ) : filteredSets.length === 0 ? (
           <Text c="dimmed">
-            {pillFilters.length > 0
-              ? t('operator:selector.noFilterMatch')
-              : searchLoading
-                ? t('operator:selector.scanningFor', { query: search.trim() })
-                : t('operator:selector.noMatch', { query: search.trim() })}
+            {queuedOnly && searchLoading
+              ? t('operator:selector.loadingAll')
+              : pillFilters.length > 0
+                ? t('operator:selector.noFilterMatch')
+                : searchLoading
+                  ? t('operator:selector.scanningFor', { query: search.trim() })
+                  : t('operator:selector.noMatch', { query: search.trim() })}
           </Text>
         ) : (
-          filteredSets.map((set) => (
-            <SetResultRow
-              key={set.id}
-              set={set}
-              assignment={assignmentBySetId.get(set.id)}
-              activeSetId={activeSetId}
-              disabled={loading || draftDirty || pendingWrites}
-              onOpenSet={onOpenSet}
-            />
-          ))
+          <VirtualSetResults
+            sets={filteredSets}
+            scrollRef={resultsRef}
+            resetKey={`${scopeKey}:${search}:${pillFilters.join(',')}`}
+            assignments={assignmentBySetId}
+            queuePositions={queuePositionBySetId}
+            activeSetId={activeSetId}
+            disabled={loading || draftDirty || pendingWrites}
+            onOpenSet={onOpenSet}
+          />
         )}
-        {!search.trim() && (
+        {!queuedOnly && !search.trim() && (
           <Center ref={loadMoreRef} className="set-load-more-sentinel" aria-live="polite">
             {loadingMore ? (
               <Loader size="sm" aria-label={t('operator:selector.loadingMore')} />

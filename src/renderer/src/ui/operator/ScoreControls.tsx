@@ -1,22 +1,29 @@
 import { ActionIcon, Button, Group, Paper, Stack, Text } from '@mantine/core';
-import type { StartggPageInfo } from '@shared/models';
+import type { PlayerSide, StartggPageInfo } from '@shared/models';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type QuickScoreProps = {
+  resultControls?: ReactNode;
   label: string;
+  side?: PlayerSide;
   score: number;
   maxScore: number;
   disabled: boolean;
   onChange(score: number): void;
 };
 
-export function QuickScore({ label, score, maxScore, disabled, onChange }: QuickScoreProps) {
+export function QuickScore({ label, side, score, maxScore, disabled, onChange, resultControls }: QuickScoreProps) {
   const { t } = useTranslation('operator');
   return (
-    <Paper className="quick-score operator-inset" radius="md" p="sm" withBorder>
+    <Paper data-player-side={side} className="quick-score operator-inset" radius="md" p="sm" withBorder>
       <Stack gap={2}>
-        <Text className="quick-score-label" size="sm" fw={700}>{label}</Text>
-        <Text className="quick-score-value" size="xl" fw={900}>{score}</Text>
+        <Text className="quick-score-label" size="sm" fw={700}>
+          {label}
+        </Text>
+        <Text className="quick-score-value" size="xl" fw={900}>
+          {score}
+        </Text>
       </Stack>
       <Group gap="xs">
         <ActionIcon
@@ -24,7 +31,8 @@ export function QuickScore({ label, score, maxScore, disabled, onChange }: Quick
           disabled={disabled || score === 0}
           onClick={() => onChange(score - 1)}
           size="sm"
-          variant="default"
+          color="violet"
+          variant="light"
         >
           −
         </ActionIcon>
@@ -33,9 +41,12 @@ export function QuickScore({ label, score, maxScore, disabled, onChange }: Quick
           disabled={disabled || score >= maxScore}
           onClick={() => onChange(score + 1)}
           size="sm"
+          color="violet"
+          variant="light"
         >
           +
         </ActionIcon>
+        {resultControls}
       </Group>
     </Paper>
   );
@@ -52,11 +63,7 @@ export function PaginationControls({ label, pageInfo, disabled, onPage }: Pagina
   const { t } = useTranslation('common');
   return (
     <Group className="pagination-controls" component="nav" aria-label={label} justify="space-between">
-      <Button
-        disabled={disabled || pageInfo.page <= 1}
-        onClick={() => onPage(pageInfo.page - 1)}
-        variant="default"
-      >
+      <Button disabled={disabled || pageInfo.page <= 1} onClick={() => onPage(pageInfo.page - 1)} variant="default">
         {t('actions.previous')}
       </Button>
       <Text className="pagination-label" size="sm">

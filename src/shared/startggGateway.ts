@@ -1,4 +1,5 @@
 import type {
+  ReportOutcome,
   StartggEventsResult,
   StartggPhaseGroupsResult,
   StartggPhasesResult,
@@ -16,6 +17,7 @@ export type StartggSetContext = {
 };
 
 export type StartggQuickReportInput = {
+  outcome?: ReportOutcome;
   setId: string;
   gameId: string;
   bestOf: number;

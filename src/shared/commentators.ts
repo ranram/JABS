@@ -1,3 +1,4 @@
+import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, type GameId } from './gameProfiles';
 
@@ -10,11 +11,11 @@ export type CommentatorPresentation = z.infer<typeof commentatorPresentationSche
 
 export const commentatorStateSchema = z.object({
   stylingGameId: stylingGameIdSchema,
-  tournamentName: z.string().trim().min(1).max(80),
+  tournamentName: z.string().trim().min(1).refine(utf16AtMost(80)),
   logoAssetId: z.string().trim().min(1).optional(),
   commentators: z.tuple([
-    z.object({ name: z.string().trim().min(1).max(48), handle: z.string().trim().max(64) }),
-    z.object({ name: z.string().trim().min(1).max(48), handle: z.string().trim().max(64) })
+    z.object({ name: z.string().trim().min(1).refine(utf16AtMost(48)), handle: z.string().trim().refine(utf16AtMost(64)) }),
+    z.object({ name: z.string().trim().min(1).refine(utf16AtMost(48)), handle: z.string().trim().refine(utf16AtMost(64)) })
   ]),
   presentation: commentatorPresentationSchema,
   updatedAt: z.string().datetime({ offset: true })

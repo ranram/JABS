@@ -283,6 +283,13 @@ it('limits large brackets to readable views and configures pending pools without
   };
   await view.rerender();
   expect(view.container.querySelector('.bracket-player.is-winner')?.textContent).toContain('ひなお/Hinao');
+  const pendingPlayers = [...view.container.querySelectorAll('.bracket-player.is-pending')];
+  expect(pendingPlayers).toHaveLength(2);
+  for (const player of pendingPlayers) {
+    expect(player.textContent?.trim()).toBe('');
+    expect(player.querySelector('strong')?.getAttribute('title')).toBe('');
+    expect(player.querySelector('img')).toBeNull();
+  }
   expect(view.container.querySelector('.bracket-player.is-loser .bracket-score')?.textContent).toBe('DQ');
   expect(view.container.querySelector('.bracket-flag img')?.getAttribute('alt')).toBe('JP');
   expect(view.container.querySelector('.bracket-round-title')?.textContent).toBe('Winners Round 1');

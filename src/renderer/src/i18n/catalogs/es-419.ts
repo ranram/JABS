@@ -92,13 +92,116 @@ export const es419 = {
   },
   // Operator interface
   operator: {
+    ux: {
+      obsSetup: 'Configuración de OBS',
+      automatic: 'Auto',
+      requiredNames: 'Completa el nombre visible y los nombres de ambos jugadores antes de guardar.',
+      streamMatch: 'En transmisión',
+      noMatch: 'Sin partida seleccionada',
+      save: {
+        saved: 'Guardado automático activo',
+        pending: 'Cambios pendientes',
+        saving: 'Guardando…',
+        blocked: 'Cambios sin enviar'
+      },
+      result: {
+        local: 'Exhibición · Sin reporte a start.gg',
+        reported: 'Resultado reportado a start.gg',
+        ready: 'Listo para reportar a start.gg',
+        pending: 'Resultado sin reportar a start.gg'
+      },
+      scoreShortcuts: 'Atajos del marcador',
+      matchDetails: 'Nombre visible y estación',
+      scoreboardAppearance: 'Apariencia del marcador',
+      playerDetails: 'Bandera y datos del jugador',
+      setup: 'Torneo y acceso a la API',
+      saveError: 'No se guardaron estos cambios. Revisa los campos o vuelve a intentarlo.',
+      retrySave: 'Reintentar guardado',
+      inspectMatch: 'Revisar a {{one}} contra {{two}}',
+      loadingQueue: 'Cargando cola…',
+      queueConnection: 'Esperando que JABS se vuelva a conectar.',
+      queueEditing: 'Esperando que termines de editar la cola.',
+      streamEditing: 'Esperando que termines de editar el estado de transmisión.',
+      queueWorking: 'Esperando que termine la acción o el guardado actual.',
+      noPrevious: 'Estás al principio de la cola.',
+      noNext: 'No hay más partidas en la cola.',
+      queuePosition: 'Posición de la cola'
+    },
+    queue: {
+      topEightAutomatic: 'Agregar el Top 8 automáticamente',
+      topEightNotDetected:
+        'JABS no pudo identificar un único bracket de Top 8. Revisa la estructura del evento o agrega las partidas a la cola manualmente.',
+      topEightConfirm: '¿Enviar todas las partidas del Top 8 a la cola?',
+      topEightHelp:
+        'Agrega las partidas pendientes que faltan en el orden mostrado. La cola existente y la partida en transmisión se mantienen. Se incluye el reset de la Gran Final si start.gg lo muestra.',
+      topEightAlreadyQueued: 'Todas las partidas detectadas del Top 8 ya están en cola o reportadas.',
+      topEightYes: 'Sí, agregar partidas',
+      topEightNo: 'No, cancelar',
+
+      pausedCountdown: 'En pausa · quedan {{time}}',
+      title: 'Cola de partidas',
+      open: 'Cola ({{count}})',
+      matchCount_one: '{{count}} partida',
+      matchCount_other: '{{count}} partidas',
+      loadFailed: 'No se pudo cargar la cola de partidas.',
+      actionFailed: 'No se pudo actualizar la cola.',
+      chooseEvent: 'Selecciona un evento',
+      advance: 'Avanzar a la siguiente partida',
+      delay: 'Espera antes de avanzar (minutos)',
+      upNext: 'A continuación',
+      current: 'Actual',
+      reported: 'Reportado',
+      reportedHelp: 'Resultado reportado a start.gg.',
+      completedHelp: 'Ganador definido. Resultado sin reportar a start.gg.',
+      previous: 'Partida anterior',
+      next: 'Siguiente partida',
+      pause: 'Pausar cola',
+      resume: 'Reanudar',
+      start: 'Iniciar cola',
+      clear: 'Vaciar cola',
+      add: 'Agregar partida a la cola',
+      queued: 'En cola · #{{position}}',
+      send: 'Enviar a transmisión',
+      remove: 'Quitar',
+      moveUp: 'Subir',
+      moveDown: 'Bajar',
+      moved: 'Partida movida a la posición {{position}}.',
+      order: 'Partidas en cola',
+      countdown: 'Siguiente partida en {{time}}',
+      otherEvent:
+        'Esta cola pertenece a otro evento. Regresa a ese evento para continuar o vacía la cola para preparar otra.',
+      emptyHelp: 'Agrega partidas desde el selector. Agregar una partida mantiene la transmisión actual.',
+      modes: {
+        manual: 'Manual',
+        report: 'Tras reportar el resultado',
+        'winner-delay': 'Esperar tras definir al ganador'
+      },
+      help: {
+        manual: 'Usa Anterior y Siguiente para cambiar la partida en transmisión.',
+        report: 'Avanza cuando start.gg confirme un resultado reportado desde JABS para la partida actual de la cola.',
+        'winner-delay':
+          'La cola espera los minutos elegidos desde que la partida actual tiene un ganador y luego avanza a la siguiente. El tiempo de juego no cuenta.'
+      },
+      status: {
+        empty: 'La cola está vacía',
+        paused: 'En pausa',
+        'waiting-winner': 'Esperando un ganador',
+        'waiting-report': 'Esperando el reporte del resultado',
+        countdown: 'Cuenta regresiva',
+        'waiting-edits': 'Esperando que terminen la edición, el reporte o el stinger',
+        'waiting-players': 'Esperando a los rivales · se comprueba esta partida cada 15 segundos',
+        loading: 'Cargando la siguiente partida…',
+        finished: 'Cola finalizada'
+      }
+    },
     support: {
       title: 'Diagnóstico y soporte',
       description: 'Cuéntanos qué pasó y cuándo. Exporta un informe y adjúntalo a tu correo.',
       export: 'Exportar informe',
       openFolder: 'Abrir carpeta de registros',
       desktopOnly: 'Los registros están disponibles en la aplicación de escritorio de JABS.',
-      privacy: 'Los informes no incluyen tokens, datos de jugadores ni ajustes guardados. Nada se envía automáticamente.',
+      privacy:
+        'Los informes no incluyen tokens, datos de jugadores ni ajustes guardados. Nada se envía automáticamente.',
       copyEmail: 'Copiar correo',
       copied: 'Correo de soporte copiado.',
       failed: 'JABS no pudo completar esta acción. Inténtalo de nuevo.'
@@ -118,6 +221,7 @@ export const es419 = {
       guides: {
         quickStart: 'Primeros pasos',
         tournament: 'Organizar un torneo',
+        matchQueue: 'Usar la cola de partidas',
         exhibition: 'Preparar una exhibición',
         topEight: 'Crear una imagen de Top 8',
         thumbnail: 'Crear una miniatura de YouTube',
@@ -129,205 +233,237 @@ export const es419 = {
         stingers: 'Configurar stingers'
       },
       steps: {
+        queueAdd: {
+          title: 'Agrega las próximas partidas',
+          body: 'Carga un torneo de start.gg y elige un evento. Abre una partida en el selector y elige **Agregar partida a la cola**. Repite con las partidas que planeas transmitir. Agregarlas **mantiene la transmisión actual**. También puedes agregar **sets con rivales por definir (TBD)** que ya aparezcan en el bracket.'
+        },
+        queueOpen: {
+          title: 'Abre la cola de partidas',
+          body: 'Abre **Partidas → Cola**, o usa Cola en Controles en vivo. Cada cola pertenece a **un evento** y admite hasta **100 partidas**. Para el Top 8, elige **Agregar el Top 8 automáticamente**, revisa la lista y confirma con **Sí, agregar partidas**. Agregar estas partidas mantiene la transmisión y el estado de la cola.'
+        },
+        queueOrder: {
+          title: 'Identifica cada estado',
+          body: '**Actual** marca tu posición. **A continuación** indica la siguiente partida. **Completado** indica que hay un ganador local pendiente de reportar. **Reportado** indica que start.gg confirmó el resultado. El filtro En cola del selector muestra estas partidas en el orden de la cola.'
+        },
+        queueModes: {
+          title: 'Elige cómo avanzar',
+          body: '**Manual** espera a que cambies de partida. **Tras reportar el resultado** avanza cuando start.gg confirma un reporte enviado desde JABS para la partida actual. **Esperar tras definir al ganador** cuenta desde el marcador ganador, no desde el inicio del juego. Cambiar de modo **inicia una cola con partidas de inmediato**.'
+        },
+        queuePlayback: {
+          title: 'Inicia, pausa y reanuda',
+          body: '**Iniciar cola** omite las partidas reportadas. Si una partida sin reportar de la cola ya está en transmisión, la mantiene. **Pausar cola** detiene el avance automático. **Reanudar** lo continúa. Partida anterior, Siguiente partida y Enviar a transmisión pausan el avance automático. **Vaciar cola** quita las entradas y mantiene la partida en transmisión. Si los **rivales están por definir**, JABS comprueba el siguiente set cada **15 segundos** y mantiene la partida actual en transmisión hasta que esté listo.'
+        },
+        queueEdit: {
+          title: 'Reordena o quita partidas',
+          body: 'Usa las flechas para mover las próximas partidas. **Pausa primero** para mover la actual o las anteriores. **Quitar la partida actual** carga la siguiente y mantiene la cola en marcha o en pausa. **Si no hay otra partida**, la cola se detiene y mantiene la transmisión visible. Quitar otras entradas conserva la partida actual.'
+        },
+        queueTiming: {
+          title: 'Ajusta el tiempo de espera',
+          body: 'En el modo de espera tras definir al ganador, elige **de 1 a 30 minutos**. Editar los minutos mantiene la cola en marcha o en pausa y **reinicia una cuenta regresiva existente** con esa duración. El avance espera mientras editas, guardas, reportas o reproduces un stinger. **Los reportes W/L y DQ** omiten el stinger automático del ganador.'
+        },
+        queueSaved: {
+          title: 'Retoma tu cola',
+          body: 'El orden de la cola y los marcadores locales se guardan. Reiniciar JABS o perder la conexión **detiene el avance automático**. Revisa la partida actual antes de continuar. Cuando una cola termine, agrega más partidas y usa **Iniciar cola** para seguir con ellas. Vacía la cola antes de preparar otra para **un evento distinto**.'
+        },
         assetFolders: {
           title: 'Encuentra tus carpetas de imágenes',
-          body: 'Usa Abrir carpeta de recursos en Recursos, o el desplegable para abrir una carpeta específica. Las carpetas de personajes corresponden al juego seleccionado. Puedes usar PNG, JPEG o WebP.'
+          body: 'Abre **Recursos → Abrir carpeta de recursos**, o elige una carpeta específica en Recursos. Las carpetas de personajes corresponden al **juego seleccionado**. Las imágenes pueden ser **PNG, JPEG o WebP**.'
         },
         assetCharacters: {
           title: 'Agrega arte de personajes',
-          body: 'Arte de personajes contiene las imágenes grandes; Retratos de personajes, los iconos cuadrados. Mantén los archivos de cada juego en sus carpetas. Reemplaza los archivos vacíos sin cambiar sus nombres. Los nombres numerados agregan atuendos.'
+          body: '**Arte de personajes** contiene las imágenes grandes. **Retratos de personajes** contiene los iconos cuadrados. Mantén los archivos de cada juego en sus carpetas. Reemplaza los archivos vacíos **sin cambiar sus nombres**. Los nombres numerados agregan atuendos.'
         },
         assetPhotos: {
           title: 'Agrega fotos de jugadores',
-          body: 'Nombra las fotos con el tag del jugador. Usa Fotos de jugadores para recortes transparentes y Retratos de jugadores para fotos cuadradas de marcador. Los retratos tienen prioridad en los marcadores. Revisa la foto de cada jugador desde Jugadores.'
+          body: 'Nombra las fotos con el **tag del jugador**. Usa Fotos de jugadores para recortes transparentes y Retratos de jugadores para fotos cuadradas de marcador. **Los retratos tienen prioridad** en los marcadores. Revisa la foto de cada jugador desde Jugadores.'
         },
         assetLogos: {
           title: 'Agrega logos de patrocinadores y torneos',
-          body: 'Nombra los logos de patrocinadores con el patrocinador o prefijo del jugador. Los logos de torneos pueden tener cualquier nombre; elige el que quieras en las opciones del overlay.'
+          body: 'Nombra los logos de patrocinadores con el **patrocinador o prefijo del jugador**. Los logos de torneos pueden tener cualquier nombre. **Elige el que quieras** en las opciones del overlay.'
         },
         assetReload: {
           title: 'Actualiza las imágenes',
-          body: 'Elige Recargar recursos después de agregar o reemplazar archivos. Luego selecciona tus imágenes en JABS y ajusta su encuadre en la vista previa.'
+          body: 'Elige **Recargar recursos** después de agregar o reemplazar archivos. Luego selecciona tus imágenes en JABS y ajusta su encuadre en la vista previa.'
         },
         quickWelcome: {
           title: '¡Bienvenido a JABS!',
-          body: 'Puedes cerrar la guía cuando quieras y volver a abrir Primeros pasos desde Ayuda. Vamos a guiarte para preparar una transmisión. Esta barra reúne acciones disponibles desde cualquier pestaña; las pestañas de abajo organizan los overlays y las imágenes.'
+          body: 'Prepara un torneo o una exhibición y agrega los overlays a OBS. Estos menús están disponibles en todas las pestañas. En **Partidas** encontrarás Jugadores, Seleccionar set y Cola. Puedes volver a abrir este recorrido desde **Ayuda → Primeros pasos**.'
         },
         quickTournament: {
           title: 'Prepara la transmisión de un torneo',
-          body: 'Pega el enlace del torneo de start.gg y elige Cargar eventos. Selecciona un evento, filtra por fase o grupo, abre una partida y elige Enviar a transmisión.'
+          body: 'Pega el enlace del torneo de start.gg y elige **Cargar eventos**. Selecciona un evento, filtra por fase o grupo, abre una partida y elige **Enviar a transmisión**.'
         },
         quickExhibition: {
           title: 'O prepara una exhibición',
-          body: 'Sin un torneo cargado, elige el juego y los jugadores en Editar estado de transmisión. Si ya cargaste un torneo, usa Bracket → Opciones → Cerrar torneo primero.'
+          body: 'Sin un torneo cargado, usa **Editar estado de transmisión** para elegir el juego y los jugadores. Si ya cargaste un torneo, elige **Bracket → Cerrar torneo** primero.'
         },
         quickStream: {
           title: 'Prepara la partida y lleva el marcador',
-          body: 'Elige jugadores, personajes y estilo en Editar estado de transmisión. Los cambios se guardan automáticamente. Usa los controles en vivo para llevar el marcador.'
+          body: 'Elige jugadores, personajes y estilo en **Editar estado de transmisión**. Los cambios **se guardan automáticamente**. Usa los controles en vivo para llevar el marcador.'
         },
         quickAssets: {
           title: 'Agrega tus recursos multimedia',
-          body: 'Usa Recursos para abrir las carpetas de imágenes de personajes, fotos de jugadores y logos. Agrega tus imágenes y elige Recargar recursos para usarlas en los overlays y gráficos.'
+          body: 'Usa **Recursos** para abrir las carpetas de imágenes de personajes, fotos de jugadores y logos. Agrega tus imágenes y elige **Recargar recursos** para usarlas en los overlays y gráficos.'
         },
         quickReporting: {
           title: 'Envía resultados a start.gg',
-          body: 'Debes tener permiso para reportar resultados en el torneo cargado. Reportar resultado actualiza el marcador final en start.gg, termina la partida y actualiza la progresión del bracket.'
+          body: 'Debes tener **permiso para reportar resultados** en el torneo cargado. **Reportar resultado** actualiza el marcador final en start.gg, termina la partida y actualiza la progresión del bracket.'
         },
         quickLibrary: {
           title: 'Reutiliza los datos de jugadores',
-          body: 'Abre Jugadores para guardar perfiles, fotos y personajes de cada juego. Al elegir jugadores guardados para una partida, se completan sus datos. Puedes agregarlos más adelante.'
+          body: 'Abre **Partidas → Jugadores** para guardar perfiles, fotos y personajes de cada juego. Al elegir jugadores guardados para una partida, se completan sus datos. Puedes agregarlos más adelante.'
         },
         quickFinish: {
           title: 'Todo listo para empezar',
-          body: 'Empieza con el enlace de un torneo o prepara una exhibición en Editar estado de transmisión. En Ayuda encontrarás guías para cada tarea, incluidas imágenes, marcadores personalizados y stingers. Primeros pasos seguirá aquí para cuando quieras repasarlo.'
+          body: 'Empieza con el enlace de un torneo o prepara una exhibición en **Editar estado de transmisión**. En **Ayuda** encontrarás guías para cada tarea, incluidas imágenes, marcadores personalizados y stingers. Primeros pasos seguirá aquí para cuando quieras repasarlo.'
         },
         tournament: {
           title: 'Carga tu torneo',
-          body: 'Pega el enlace del torneo de start.gg y elige Cargar eventos. Los torneos públicos funcionan sin token.'
+          body: 'Pega el enlace del torneo de start.gg y elige **Cargar eventos**. Los torneos públicos funcionan **sin token**.'
         },
         event: {
           title: 'Elige un evento',
-          body: 'Selecciona el evento que vas a organizar. Los filtros de fase, grupo y estación ayudan a reducir la lista de partidas.'
+          body: 'Selecciona el evento que vas a organizar. Los **filtros de fase, grupo y estación** ayudan a reducir la lista de partidas.'
         },
         sets: {
           title: 'Envía una partida a transmisión',
-          body: 'Busca los jugadores o la ronda y abre una partida. Elige Enviar a transmisión para cargarla en los overlays.'
+          body: 'Busca los jugadores o la ronda y abre una partida. Elige **Enviar a transmisión** para cargarla en los overlays.'
         },
         stream: {
           title: 'Prepara la partida',
-          body: 'Revisa nombres, personajes, banderas y formato. JABS comprueba y guarda tus cambios antes de actualizar OBS.'
+          body: 'Revisa nombres, personajes, banderas y **formato**. JABS comprueba y **guarda tus cambios** antes de actualizar OBS.'
         },
         obs: {
           title: 'Conecta OBS',
-          body: 'Copia una URL de este menú y agrégala como Fuente de navegador de 1920×1080 en OBS. Mantén JABS abierto durante la transmisión. Para repetir la animación del overlay al volver a la escena, marca “Apagar fuente cuando no sea visible” y “Actualizar el navegador cuando la escena se active”. Deja ambas opciones sin marcar para Stingers.'
+          body: 'Copia una URL de este menú y agrégala como Fuente de navegador de **1920×1080** en OBS. **Mantén JABS abierto** durante la transmisión. Para repetir la animación del overlay al volver a la escena, marca “Apagar fuente cuando no sea visible” y “Actualizar el navegador cuando la escena se active”. **Deja ambas opciones sin marcar para Stingers**.'
         },
         exhibition: {
           title: 'Empieza sin un torneo',
-          body: 'Si hay un torneo cargado, usa Bracket → Opciones → Cerrar torneo primero. Esto limpia la partida en transmisión para preparar una exhibición.'
+          body: 'Si hay un torneo cargado, elige **Bracket → Cerrar torneo** primero. Esto **limpia la partida en transmisión** para preparar una exhibición.'
         },
         game: {
           title: 'Elige el juego',
-          body: 'Elige el juego en Editar estado de transmisión para establecer las reglas y las imágenes disponibles. Puedes elegir otro estilo de marcador.'
+          body: 'Elige el juego en **Editar estado de transmisión** para establecer las reglas y las imágenes disponibles. Puedes elegir otro estilo de marcador.'
         },
         players: {
           title: 'Elige los jugadores',
-          body: 'Escribe los tags o elige jugadores de las sugerencias y selecciona sus personajes y atuendos. Al elegir jugadores guardados, se completan sus datos y puedes consultar su historial de enfrentamientos.'
+          body: 'Escribe los tags o elige jugadores de las sugerencias y selecciona sus personajes y atuendos. Al elegir **jugadores guardados**, se completan sus datos y puedes consultar su historial de enfrentamientos.'
         },
         scores: {
           title: 'Lleva el marcador local',
-          body: 'Actualiza el marcador al terminar cada juego. Las exhibiciones incluyen formatos primero a y Reglas Topanga. Los cambios locales son independientes del reporte a start.gg.'
+          body: 'Actualiza el marcador al terminar cada juego. Las exhibiciones incluyen formatos primero a y Reglas Topanga. **Los cambios locales son independientes del reporte a start.gg**.'
         },
         topEight: {
           title: 'Prepara una imagen de Top 8',
-          body: 'Elige un juego, el nombre del torneo y el título. Carga los resultados finales de start.gg o llena los puestos a mano.'
+          body: 'Elige un juego, el nombre del torneo y el título. Carga los **resultados finales de start.gg** o llena los puestos a mano.'
         },
         assets: {
           title: 'Agrega tus imágenes',
-          body: 'Abre una carpeta desde Recursos. Nombra los archivos según el jugador, patrocinador o personaje y elige Recargar recursos.'
+          body: 'Abre una carpeta desde **Recursos**. Nombra los archivos según el jugador, patrocinador o personaje y elige **Recargar recursos**.'
         },
         placements: {
           title: 'Completa los puestos',
-          body: 'Revisa los ocho jugadores, patrocinadores, personajes, atuendos y banderas. Puedes elegir jugadores guardados entre las sugerencias de nombres.'
+          body: 'Revisa los **ocho jugadores**, patrocinadores, personajes, atuendos y banderas. Puedes elegir **jugadores guardados** entre las sugerencias de nombres.'
         },
         topEightExport: {
           title: 'Ajusta y exporta',
-          body: 'Arrastra las imágenes en la vista previa para encuadrar a cada jugador y descarga el PNG de 1920×1080. La exportación usa tus imágenes originales.'
+          body: 'Arrastra las imágenes en la vista previa para encuadrar a cada jugador y descarga el **PNG de 1920×1080**. La exportación usa tus **imágenes originales**.'
         },
         thumbnail: {
           title: 'Prepara una miniatura',
-          body: 'Elige un juego, el nombre del torneo y el título. Usa la partida en transmisión o ingresa tus propios jugadores.'
+          body: 'Elige un juego, el nombre del torneo y el título. Usa la **partida en transmisión** o ingresa **tus propios jugadores**.'
         },
         thumbnailPlayers: {
           title: 'Configura ambos jugadores',
-          body: 'Elige el nombre, patrocinador, personaje, atuendo y bandera de cada jugador. Si eliges uno guardado, se completan los datos que ya habías configurado.'
+          body: 'Elige el nombre, patrocinador, personaje, atuendo y bandera de cada jugador. Si eliges **uno guardado**, se completan los datos que ya habías configurado.'
         },
         thumbnailExport: {
           title: 'Encuadra la miniatura',
-          body: 'Acomoda las imágenes en la vista previa y descarga el PNG de 1280×720. El arte de personajes y las fotos se pueden mover por separado.'
+          body: 'Acomoda las imágenes en la vista previa y descarga el **PNG de 1280×720**. El arte de personajes y las fotos se pueden **mover por separado**.'
         },
         tokenPurpose: {
           title: 'Cuándo necesitas un token',
-          body: 'Los torneos públicos y los controles locales de OBS funcionan sin token. Agrega uno para reportar resultados o navegar con tu cuenta.'
+          body: 'Los torneos públicos y los controles locales de OBS funcionan **sin token**. Agrega uno para **reportar resultados** o navegar con tu cuenta.'
         },
         tokenCreate: {
           title: 'Crea un token de start.gg',
-          body: 'Sigue las instrucciones oficiales de abajo para crear un token en Developer Settings de start.gg. Cópialo cuando aparezca y pégalo en Acceso a la API.'
+          body: 'Sigue las instrucciones oficiales de abajo para crear un token en **Developer Settings** de start.gg. Cópialo cuando aparezca y pégalo en **Acceso a la API**.'
         },
         tokenStorage: {
           title: 'Guarda el token o úsalo por esta sesión',
-          body: 'Guardar token usa el almacenamiento seguro del sistema operativo. Si no está disponible, Usar durante la sesión lo conserva en memoria hasta cerrar JABS.'
+          body: '**Guardar token** usa el almacenamiento seguro del sistema operativo. Si no está disponible, **Usar durante la sesión** lo conserva en memoria **hasta cerrar JABS**.'
         },
         reporting: {
           title: 'Reportar requiere permiso',
-          body: 'Tu cuenta de start.gg debe tener permiso para reportar en el torneo. JABS pide confirmación y verifica la partida actual antes de enviar el resultado.'
+          body: 'Tu cuenta de start.gg debe tener **permiso para reportar** en el torneo. JABS pide **confirmación** y verifica la partida actual antes de enviar el resultado.'
         },
         library: {
           title: 'Abre Jugadores',
-          body: 'Guarda los datos de tus jugadores y sus personajes habituales para usarlos en futuras partidas. Elige Siguiente para abrir Jugadores.'
+          body: 'Abre **Partidas → Jugadores** para guardar los datos y personajes habituales de tus jugadores para futuras partidas. Elige **Siguiente** para abrir la biblioteca.'
         },
         libraryFind: {
           title: 'Agrega un jugador',
-          body: 'Busca un perfil de start.gg, agrega un jugador local o usa uno que ya esté en transmisión. Importar jugadores del evento, junto al selector de evento, permite agregar los participantes de un torneo.'
+          body: 'Busca un perfil de start.gg, agrega un jugador local o usa uno que ya esté en transmisión. **Importar jugadores del evento**, junto al selector de evento, permite agregar los participantes de un torneo.'
         },
         librarySelect: {
           title: 'Encuentra un jugador guardado',
-          body: 'Busca en la lista y selecciona un jugador para editarlo. Sus perfiles de start.gg ayudan a distinguir a quienes usan el mismo tag.'
+          body: 'Busca en la lista y selecciona un jugador para editarlo. Sus **perfiles de start.gg** ayudan a distinguir a quienes usan el mismo tag.'
         },
         libraryDefaults: {
           title: 'Guarda la configuración de un jugador',
-          body: 'Configura personajes, atuendos y encuadre de fotos por juego y elige Guardar jugador. En Editar estado de transmisión, los cambios de banderas, pronombres, redes y personajes de jugadores guardados se guardan automáticamente.'
+          body: 'Configura personajes, atuendos y encuadre de fotos por juego y elige **Guardar jugador**. En Editar estado de transmisión, los cambios de banderas, pronombres, redes y personajes de jugadores guardados **se guardan automáticamente**.'
         },
         libraryBackup: {
           title: 'Respalda tu biblioteca',
-          body: 'Exportar biblioteca guarda tus jugadores y su configuración en un archivo JSON. Las imágenes quedan en sus carpetas. Importar biblioteca agrega jugadores sin reemplazar los registros que ya tienes.'
+          body: '**Exportar biblioteca** guarda tus jugadores y su configuración en un archivo JSON. **Las imágenes quedan en sus carpetas**. **Importar biblioteca** agrega jugadores sin reemplazar los registros que ya tienes.'
         },
         media: {
           title: 'Trabaja en la vista previa',
-          body: 'Cuando las imágenes carguen, haz clic en una para seleccionarla. El modo Personaje + foto comienza con el personaje detrás de la foto.'
+          body: 'Cuando las imágenes carguen, **haz clic en una** para seleccionarla. El modo **Personaje + foto** comienza con el personaje detrás de la foto.'
         },
         mediaSelect: {
           title: 'Selecciona cualquiera de las imágenes',
-          body: 'Haz clic en una parte visible para seleccionarla. Las zonas transparentes dejan pasar a la otra imagen; Alt+clic selecciona la imagen que está detrás.'
+          body: 'Haz clic en una parte visible para seleccionarla. Las zonas transparentes dejan pasar a la otra imagen. **Alt+clic** selecciona la imagen que está detrás.'
         },
         mediaMove: {
           title: 'Mueve, cambia el tamaño y voltea',
-          body: 'Arrastra para mover la imagen seleccionada. Las flechas la mueven, Shift + flechas aumenta la distancia, + / − cambia el tamaño y F la voltea.'
+          body: 'Arrastra para mover la imagen seleccionada. **Las flechas** la mueven, **Shift + flechas** aumenta la distancia, **+ / −** cambia el tamaño y **F** la voltea.'
         },
         mediaReset: {
           title: 'Restablece una imagen',
-          body: 'Elige Restablecer posición para recuperar la posición, el tamaño y la orientación de la imagen seleccionada. La otra imagen conserva sus ajustes.'
+          body: 'Elige **Restablecer posición** para recuperar la posición, el tamaño y la orientación de la imagen seleccionada. **La otra imagen conserva sus ajustes**.'
         },
         scoreboard: {
           title: 'Importa un marco de marcador',
-          body: 'Elige un PNG transparente cercano a 1920×1080, escribe un nombre e impórtalo. El marco puede pesar hasta 20 MB.'
+          body: 'Elige un **PNG transparente** cercano a **1920×1080**, escribe un nombre e impórtalo. El marco puede pesar hasta **20 MB**.'
         },
         scoreboardLayout: {
           title: 'Ubica los campos en vivo',
-          body: 'Elige un diseño guardado y haz clic o selecciona un campo para moverlo. Alt+clic alcanza campos superpuestos. Las flechas mueven un campo; Shift lo mueve 10 píxeles.'
+          body: 'Elige un diseño guardado y haz clic o selecciona un campo para moverlo. **Alt+clic** alcanza campos superpuestos. **Las flechas** mueven un campo. Shift lo mueve **10 píxeles**.'
         },
         scoreboardRails: {
           title: 'Agrega extras de transmisión',
-          body: 'Activa los rieles izquierdo, central y derecho en el editor. Los laterales muestran tu texto de transmisión; el central, los datos de la partida.'
+          body: 'Activa los **rieles izquierdo, central y derecho** en el editor. Los laterales muestran tu texto de transmisión y el central muestra los datos de la partida.'
         },
         scoreboardSave: {
           title: 'Los diseños se guardan automáticamente',
-          body: 'Los cambios se guardan automáticamente; el indicador junto al título muestra si ya se guardaron. Elige Usar en OBS para mostrar el diseño en la transmisión.'
+          body: 'Los cambios **se guardan automáticamente**. El indicador junto al título muestra si ya se guardaron. Elige **Usar en OBS** para mostrar el diseño en la transmisión.'
         },
         stingers: {
           title: 'Elige tus clips',
-          body: 'Agrega videos Perfect y Winner en formato WebM. Winner puede reproducirse automáticamente cuando el marcador completa la partida.'
+          body: 'Agrega videos Perfect y Winner en formato **WebM**. Winner puede reproducirse **automáticamente** cuando el marcador completa la partida.'
         },
         stingerFraming: {
           title: 'Encuadra al ganador',
-          body: 'Usa la vista previa para revisar la foto, el personaje y la franja del nombre. Define cuándo aparecen los recursos en el clip; esta vista previa no activa OBS.'
+          body: 'Usa la vista previa para revisar la foto, el personaje y la franja del nombre. Define cuándo aparecen los recursos en el clip. Esta vista previa **no activa OBS**.'
         },
         stingerObs: {
           title: 'Agrega la fuente en OBS',
-          body: 'Copia la URL de Stingers y agrégala como Fuente de navegador de 1920×1080 sobre las demás fuentes. Reutilízala entre escenas y comprueba que aparezca activa en JABS. Deja sin marcar “Apagar fuente cuando no sea visible” y “Actualizar el navegador cuando la escena se active” para que cambiar de escena no interrumpa la reproducción.'
+          body: 'Copia la URL de Stingers y agrégala como Fuente de navegador de **1920×1080** **sobre las demás fuentes**. Reutilízala entre escenas y comprueba que aparezca activa en JABS. **Deja sin marcar “Apagar fuente cuando no sea visible” y “Actualizar el navegador cuando la escena se active”** para que cambiar de escena no interrumpa la reproducción.'
         },
         stingerPlay: {
           title: 'Reproduce clips desde cualquier pestaña',
-          body: 'Este menú permite reproducir los clips configurados o detenerlos. Winner requiere una partida con marcador completo. Reconectar fuente de OBS actualiza la conexión cuando hace falta.'
+          body: 'Este menú permite reproducir los clips configurados o detenerlos. Winner requiere una **partida con marcador completo**. **Reconectar fuente de OBS** actualiza la conexión cuando hace falta.'
         }
       }
     },
@@ -365,7 +501,7 @@ export const es419 = {
       enabled: 'Fotos de jugadores en marcadores',
       logoBackdrop: 'Logo del torneo detrás de los jugadores',
       sponsorBackdrop: 'Logos de patrocinadores detrás de los jugadores',
-      chooseLogo: 'Elige un logo de torneo en <extras>Extras de transmisión</extras>.',
+      chooseLogo: 'Elige un logo de torneo en <extras>Logo</extras>.',
       help: 'Prepara las fotos para los marcadores en <players>Jugadores</players>.',
       preparation: 'Foto para el marcador',
       reload: 'Recargar imágenes',
@@ -382,17 +518,18 @@ export const es419 = {
     players: {
       // Library navigation
       title: 'Jugadores',
-      add: 'Agregar jugador',
+      add: 'Nuevo jugador',
       closePlayer: 'Cerrar jugador',
       search: 'Buscar tags y alias',
-      searchPlaceholder: 'Escribe el tag de un jugador…',
-      count: '{{count}} jugadores guardados',
+      searchPlaceholder: 'Tag o alias…',
+      count_one: '{{count}} jugador registrado en la biblioteca de jugadores',
+      count_other: '{{count}} jugadores registrados en la biblioteca de jugadores',
       localPlayer: 'Jugador local',
       gameCount: 'Juegos: {{count}}',
       noMatches: 'No se encontraron jugadores con esa búsqueda.',
       emptyLibrary: 'Tus jugadores guardados aparecerán aquí.',
       onStream: 'En stream',
-      fromStream: 'Editar preferencias: {{name}}',
+      fromStream: 'Abrir jugador: {{name}}',
       newPlayer: 'Nuevo jugador',
       choosePlayer: 'Elige un jugador',
       choosePlayerHelp: 'Elige un jugador guardado para editar sus datos, o agrega uno nuevo.',
@@ -406,7 +543,7 @@ export const es419 = {
       useImported: 'Usar el valor importado',
       aliases: 'Otros tags',
       gamesHeading: 'Preferencias por juego',
-      game: 'Preferencias por juego',
+      game: 'Juego',
       chooseGameHelp: 'Elige un juego para guardar los personajes e ilustraciones de este jugador.',
       characters: 'Personajes, en orden de equipo',
       artwork: 'Ilustración del personaje',
@@ -455,7 +592,7 @@ export const es419 = {
       },
 
       // Event imports and library files
-      lookupLabel: 'Agregar desde start.gg',
+      lookupLabel: 'Perfil de start.gg',
       lookupPlaceholder: 'URL del perfil o ID numérico del jugador',
       lookupHelp: 'También puedes pegar el código del perfil que aparece después de /user/.',
       lookup: 'Buscar jugador',
@@ -494,15 +631,20 @@ export const es419 = {
       animations: 'Reproducir animaciones de overlays',
       presets: 'Apariencias guardadas',
       savedPreset: 'Apariencia guardada',
+      currentPreset: 'Apariencia en uso: {{name}}',
+      presetModified: 'con cambios',
+      usingDefaults: 'Apariencia actual: Valores predeterminados',
+      customAppearance: 'Apariencia actual: Configuración personalizada',
       choosePreset: 'Elige una apariencia',
       presetName: 'Nombre de la apariencia',
+      newPreset: 'Nueva apariencia',
       savePreset: 'Guardar apariencia',
       updatePreset: 'Actualizar apariencia',
       deletePreset: 'Eliminar apariencia',
       importPreset: 'Importar apariencia',
       exportPreset: 'Exportar apariencia actual',
       presetHelp:
-        'Se guardan los colores, los nombres del bracket, el tamaño del texto, el idioma y la opción de animaciones. Al importar una apariencia, se aplica de inmediato. Puedes guardar hasta 20.',
+        'Elige Nueva apariencia para empezar con los valores predeterminados. Ajusta las opciones, ponle un nombre y guárdala. Incluye colores, nombres del bracket, tamaño del texto, idioma y animaciones. Las apariencias importadas se aplican de inmediato. Puedes guardar hasta 20.',
       restoreDefaults: 'Restablecer valores',
       restoreHelp: 'Vuelve a la apariencia inicial y conserva tus apariencias guardadas.',
       defaultPresetName: 'Mi stream',
@@ -608,8 +750,7 @@ export const es419 = {
       stopPreview: 'Detener vista previa',
       readySources_one: '{{count}} fuente activa en OBS',
       readySources_other: '{{count}} fuentes activas en OBS',
-      sourceHelp:
-        'Agrega esta fuente de navegador de 1920×1080 sobre las demás y reutilízala en tus escenas.',
+      sourceHelp: 'Agrega esta fuente de navegador de 1920×1080 sobre las demás y reutilízala en tus escenas.',
       automaticWinner: 'Reproducir Ganador al completar el marcador del set',
       automaticHelp: 'Las correcciones del marcador y las reconexiones no repiten la celebración.',
       currentWinner: 'Ganador actual: {{name}}',
@@ -766,7 +907,7 @@ export const es419 = {
     },
 
     // Utility groups
-    utilityGroups: { moderation: 'Moderación', media: 'Recursos', bracket: 'Bracket', obs: 'OBS' },
+    utilityGroups: { moderation: 'Moderación', media: 'Recursos', bracket: 'Bracket', obs: 'OBS', matches: 'Partidas' },
 
     // start.gg connection and bracket browser
     startgg: {
@@ -817,7 +958,8 @@ export const es419 = {
       logosReloaded: 'Se encontraron {{count}} logo(s) de torneo.',
       assetsReloadFailed: 'No se pudieron recargar los catálogos locales de recursos.',
       chooseProfile: 'Elige un perfil de juego',
-      unknownGame: 'Este juego usa un perfil de overlay existente. Puedes cambiarlo aquí; el nombre del juego y sus imágenes se conservan.',
+      unknownGame:
+        'Este juego usa un perfil de overlay existente. Puedes cambiarlo aquí. El nombre del juego y sus imágenes se conservan.',
       phase: 'Fase',
       allPhases: 'Todas las fases',
       pool: 'Pool / grupo de fase',
@@ -833,6 +975,7 @@ export const es419 = {
 
     // Set selection and filters
     selector: {
+      queued: 'En cola',
       open: 'Seleccionar set',
       pillFilters: 'Filtrar por:',
       pillFiltersHelp:
@@ -849,6 +992,7 @@ export const es419 = {
       total: '{{count}} en total',
       bracketOrder: 'orden del bracket de start.gg',
       dirtyWarning: 'Esperando a que terminen de guardarse los cambios.',
+      pendingOutcome: 'Confirma o desmarca el resultado W/DQ pendiente.',
       search: 'Buscar sets',
       searchPlaceholder: 'Jugador, ronda, estación o ID del set',
       loadingAll: 'Cargando todas las páginas del bracket para buscar…',
@@ -868,6 +1012,7 @@ export const es419 = {
       tbd: 'Por definir',
       winner: 'Ganador',
       loser: 'Perdedor',
+      disqualified: 'Descalificado',
       setPages: 'Páginas de sets',
       streamAssignment: '{{platform}} · {{name}}',
       streamPlatforms: { youtube: 'YouTube', twitch: 'Twitch', stream: 'Transmisión' },
@@ -886,6 +1031,14 @@ export const es419 = {
       waitSave: 'Espera a que se guarden los cambios antes de usar estos controles.',
       waitAction: 'Espera a que termine la acción en curso.',
       title: 'Editar estado de transmisión',
+      clearPlayers: 'Borrar datos de jugadores',
+      clearPlayersHelp:
+        'Usa Borrar datos de jugadores para preparar una partida local. Para reportar resultados a start.gg, carga la partida desde Partidas → Seleccionar set. Ingresar jugadores manualmente no vinculará una partida al torneo en curso.',
+      exhibitionTitle: 'Título de la exhibición',
+      exhibitionLogo: 'Logo de la exhibición',
+      showExhibitionLogo: 'Mostrar logo de la exhibición',
+      exhibitionLogoBackdrop: 'Logo de la exhibición detrás de los jugadores',
+      chooseExhibitionLogo: 'Elige un logo de exhibición en <extras>Logo de la exhibición</extras>.',
       description: 'Los cambios se guardan automáticamente después de que JABS los comprueba y luego actualizan OBS.',
       unsaved: 'Sin guardar',
       savePending: 'Pendiente de guardar',
@@ -936,9 +1089,9 @@ export const es419 = {
 
     // Broadcast details
     broadcast: {
-      sharedLogoHelp: 'Usa el logo elegido aquí o, si no seleccionas uno, el de Extras de transmisión.',
+      showSeeds: 'Mostrar seeds en los marcadores',
+      sharedLogoHelp: 'Usa el logo elegido aquí o, si no seleccionas uno, el de Apariencia del marcador.',
       sponsorLogoHelp: 'Muestra el logo del equipo o patrocinador de cada jugador cuando esté disponible.',
-      title: 'Extras de transmisión',
       enabled: '{{count}} activos',
       optional: 'Rieles y logo opcionales',
       showRails: 'Mostrar rieles informativos inferiores',
@@ -952,7 +1105,7 @@ export const es419 = {
       unavailableLogo: 'No disponible: {{logo}}',
       chooseLogo: 'Elige un logo',
       logoHint: 'Agrega archivos PNG, JPEG o WebP a Logos de torneos y elige Recargar recursos.',
-      reloadLogos: 'Actualizar logos',
+      reloadLogos: 'Actualizar logos'
     },
 
     // Live match controls
@@ -1012,7 +1165,20 @@ export const es419 = {
     },
 
     // Result reporting checks
+    outcomes: {
+      chooseWinner: 'Elige a uno de los jugadores como ganador.',
+      winAction: 'Marcar a {{player}} como ganador',
+      dqAction: 'Descalificar a {{player}}',
+      winLoss: 'Victoria W/L de {{winner}}',
+      dq: '{{winner}} gana por descalificación de {{loser}}',
+      confirmWinLoss:
+        '¿Reportar a {{winner}} como ganador sobre {{loser}} (W/L) en el set {{setId}} de start.gg? No se enviarán marcadores ni selecciones de personajes.',
+      confirmDQ:
+        '¿Descalificar a {{loser}} y reportar a {{winner}} como ganador del set {{setId}} en start.gg? No se enviarán marcadores ni selecciones de personajes.',
+      accepted: 'start.gg aceptó el resultado.'
+    },
     readiness: {
+      upstreamReset: 'Restablece o actualiza el marcador local antes de reportar este resultado.',
       alreadyComplete: 'Este set ya se muestra como completado en start.gg.',
       setMissing: 'Carga un set de start.gg antes de reportar un resultado.',
       exhibitionLocalOnly: 'Los marcadores de exhibición quedan en JABS y no se pueden reportar a start.gg.',
@@ -1147,8 +1313,7 @@ export const es419 = {
       invalidBracketOrder:
         'Los enfrentamientos del Top 8 requieren dos partidas de ganadores seguidas de dos de perdedores.',
       invalidPlayerName: 'Ingresa un nombre de 1 a 100 caracteres para cada jugador.',
-      blockedCharacter:
-        'Ese nombre de personaje contiene texto bloqueado. Elige otro personaje.',
+      blockedCharacter: 'Ese nombre de personaje contiene texto bloqueado. Elige otro personaje.',
       blockedTournamentName: 'El nombre del torneo contiene texto bloqueado.',
       blockedEventName: 'El nombre del evento contiene texto bloqueado.',
       blockedPlayerName: 'El nombre de un jugador contiene texto bloqueado.',
@@ -1159,6 +1324,8 @@ export const es419 = {
 
     // Shared game selection and character folders
     generators: {
+      ready: 'Lista para exportar',
+      needsDetails: 'Faltan detalles',
       previewFailed: 'No se pudo actualizar la vista previa.',
       game: 'Juego',
       characterFileGuides: 'Reemplaza los archivos vacíos con tus imágenes y conserva los nombres de los personajes.',
@@ -1256,8 +1423,6 @@ export const es419 = {
     // YouTube thumbnail generator
     thumbnail: {
       description: 'Crea una miniatura de YouTube con la partida en transmisión o ingresa los jugadores manualmente.',
-      ready: 'Lista para exportar',
-      needsDetails: 'Faltan detalles',
       game: 'Catálogo de arte del juego',
       style: 'Estilo de composición',
       styles: {
@@ -1296,8 +1461,7 @@ export const es419 = {
     // Moderation controls
     moderation: {
       title: 'Excepciones de moderación',
-      description:
-        'Permite nombres o valores completos que se bloquearon por error.',
+      description: 'Permite nombres o valores completos que se bloquearon por error.',
       path: 'Archivo:',
       open: 'Editar lista permitida',
       openHint: 'Edita las excepciones de moderación en JABS.',
@@ -1352,6 +1516,7 @@ export const es419 = {
       // Tournament loading and cache
       tournamentUnloaded: 'Se cerró el torneo y se borró la partida de la transmisión.',
       exhibitionGameFailed: 'No se pudo cambiar el juego de la exhibición. Vuelve a seleccionarlo.',
+      clearPlayersFailed: 'No se pudieron borrar los datos de los jugadores. Inténtalo de nuevo.',
       tournamentUnloadFailed: 'No se pudieron cerrar el torneo y borrar el estado activo de la transmisión.',
       clearCacheConfirm:
         '¿Borrar el historial de torneos recientes y reiniciar el selector de sets? El estado activo y los cambios guardados permanecerán intactos.',

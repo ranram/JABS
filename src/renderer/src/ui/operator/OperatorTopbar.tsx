@@ -1,6 +1,7 @@
 import { Badge, Group, Text } from '@mantine/core';
-import { useTranslation } from 'react-i18next';
 import type { SelectedSetState } from '@shared/models';
+import { hasStreamMatch } from './streamStatus';
+import { useTranslation } from 'react-i18next';
 import { LanguageSelect } from '../LanguageSelect';
 import { AppUpdateControls } from './AppUpdateControls';
 import brandLogo from '../../assets/jabs-logo.png';
@@ -58,8 +59,10 @@ export function OperatorTopbar({
           <Text component="span" size="xs">
             {t('operator:topbar.onStream')}
           </Text>
-          <Text component="strong" size="sm">
-            {selectedSet?.displayName ?? t('operator:topbar.loadingState')}
+          <Text component="strong" size="sm" title={selectedSet?.displayName}>
+            {hasStreamMatch(selectedSet) && selectedSet
+              ? `${selectedSet.playerOne.name} ${selectedSet.playerOne.score} – ${selectedSet.playerTwo.score} ${selectedSet.playerTwo.name}`
+              : t('operator:ux.noMatch')}
           </Text>
         </div>
         <LanguageSelect compact />

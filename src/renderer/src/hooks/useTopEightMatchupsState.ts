@@ -10,6 +10,7 @@ export function useTopEightMatchupsState() {
   const { t } = useTranslation('operator');
   return useRealtimeState({
     load: api.topEightMatchupsState,
+    diagnosticOperation: 'top-eight-matchups',
     parseMessage,
     loadError: t('topEightMatchups.unavailable')
   });

@@ -8,7 +8,9 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 5173,
-    strictPort: true
+    strictPort: true,
+    // OBS keeps the native page address; hot updates connect directly to Vite.
+    hmr: { clientPort: 5173 }
   },
   build: {
     outDir: resolve(__dirname, 'dist'),

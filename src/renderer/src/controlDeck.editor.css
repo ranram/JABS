@@ -84,7 +84,7 @@
 .broadcast-editor {
   margin-top: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--operator-container-border);
   border-radius: 11px;
   background: rgba(0, 0, 0, 0.13);
 }
@@ -148,7 +148,7 @@
 .broadcast-editor-content {
   display: grid;
   gap: 11px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--operator-container-border);
   padding: 12px;
 }
 
@@ -220,7 +220,7 @@
 .preview-panel > h2:not(:first-child) {
   margin-top: 8px;
   padding-top: 14px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  border-top: 1px dashed var(--operator-container-border);
 }
 
 .handoff-url {
@@ -240,6 +240,7 @@
 }
 
 .quick-score {
+  --quick-score-button-size: 30px;
   position: relative;
   overflow: hidden;
   padding: 11px;
@@ -272,17 +273,40 @@
   font-style: italic;
 }
 
-.quick-score .mantine-ActionIcon-root {
-  min-width: 30px !important;
-  width: 30px !important;
-  min-height: 30px !important;
-  height: 30px !important;
+.quick-score :is(.mantine-ActionIcon-root, .mantine-Button-root) {
+  min-width: var(--quick-score-button-size) !important;
+  width: var(--quick-score-button-size) !important;
+  min-height: var(--quick-score-button-size) !important;
+  height: var(--quick-score-button-size) !important;
   border-radius: 8px !important;
+  padding: 0 !important;
+}
+
+.quick-score .mantine-ActionIcon-root {
+  background: var(--ai-bg);
+  color: var(--ai-color);
+  border: var(--ai-bd);
   box-shadow: none !important;
   font-size: 18px !important;
   line-height: 1 !important;
-  padding: 0 !important;
   transform: none !important;
+}
+
+.quick-score .mantine-ActionIcon-root:hover:not(:disabled):not([data-disabled]) {
+  background: var(--ai-hover);
+  color: var(--ai-hover-color, var(--ai-color));
+}
+
+/* Keep score controls on their own palettes instead of the toolbar's button colors. */
+.quick-score .mantine-Button-root[data-variant] {
+  background: var(--button-bg);
+  color: var(--button-color);
+  border: var(--button-bd);
+}
+
+.quick-score .mantine-Button-root[data-variant]:hover:not(:disabled):not([data-disabled]) {
+  background: var(--button-hover);
+  color: var(--button-hover-color, var(--button-color));
 }
 
 .pagination-controls {

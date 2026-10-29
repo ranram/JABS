@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use tokio::sync::broadcast;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Appearance {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,6 +52,8 @@ pub struct Preset {
 pub struct Preferences {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scoreboard_font: Option<String>,
+    #[serde(default)]
+    pub active_preset_id: Option<String>,
     pub appearance: Appearance,
     pub presets: Vec<Preset>,
     pub operator_language: String,
@@ -64,13 +66,18 @@ pub struct AppearanceStore {
 }
 impl AppearanceStore {
     pub fn load(database: &Database) -> Result<Self, String> {
-        let state = crate::persisted_state::restore(
+        let payload = database.load_broadcast_surface("appearance-preferences")?;
+        let legacy_selection = payload.as_deref()
+            .and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok())
+            .is_some_and(|value| value.get("activePresetId").is_none());
+        let mut state = crate::persisted_state::restore(
             database,
             "Appearance",
-            database.load_broadcast_surface("appearance-preferences")?,
+            payload,
             || {
                 Ok(Preferences {
                     scoreboard_font: None,
+                    active_preset_id: None,
                     appearance: Appearance::default(),
                     presets: vec![],
                     operator_language: "en".into(),
@@ -79,6 +86,14 @@ impl AppearanceStore {
             },
             validate,
         )?;
+        if legacy_selection {
+            // Identical presets cannot reveal which one the operator last chose.
+            let mut matches = state.presets.iter().filter(|preset| preset.appearance == state.appearance);
+            state.active_preset_id = match (matches.next(), matches.next()) {
+                (Some(preset), None) => Some(preset.id.clone()),
+                _ => None,
+            };
+        }
         save(database, &state)?;
         Ok(Self {
             state: RwLock::new(state),
@@ -99,6 +114,8 @@ impl AppearanceStore {
         database: &Database,
         mut submitted: Preferences,
     ) -> Result<Preferences, String> {
+        // Loading may censor old data; an operator edit must fail without replacing its text.
+        reject_blocked_labels(&submitted)?;
         validate(&mut submitted)?;
         let mut state = self
             .state
@@ -114,6 +131,22 @@ impl AppearanceStore {
         );
         Ok(submitted)
     }
+}
+fn reject_blocked_labels(value: &Preferences) -> Result<(), String> {
+    let bracket_labels = std::iter::once(&value.appearance)
+        .chain(value.presets.iter().map(|preset| &preset.appearance))
+        .flat_map(|appearance| [
+            ("The Winners bracket name", appearance.winners_label.as_deref()),
+            ("The Losers bracket name", appearance.losers_label.as_deref()),
+        ]);
+    let preset_names = value.presets.iter()
+        .map(|preset| ("The preset name", Some(preset.name.as_str())));
+    for (field, text) in bracket_labels.chain(preset_names) {
+        if text.is_some_and(crate::moderation::contains_blocked_text) {
+            return Err(format!("{field} contains blocked text. Your previous settings were kept."));
+        }
+    }
+    Ok(())
 }
 fn validate_text(value: &mut String) -> Result<(), String> {
     if value.encode_utf16().count() > 100 || value.chars().any(char::is_control) {
@@ -178,6 +211,9 @@ fn validate(value: &mut Preferences) -> Result<(), String> {
         }
         validate_appearance(&mut preset.appearance)?;
     }
+    if value.active_preset_id.as_ref().is_some_and(|id| !ids.contains(id)) {
+        value.active_preset_id = None;
+    }
     Ok(())
 }
 fn save(database: &Database, value: &Preferences) -> Result<(), String> {
@@ -213,6 +249,36 @@ pub async fn update(
 mod tests {
     use super::*;
     #[test]
+    fn blocked_names_identify_the_field_and_preserve_saved_settings() {
+        let db = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let store = AppearanceStore::load(&db).unwrap();
+        let original = store.current().unwrap();
+        let mut updates = store.subscribe();
+        let mut losers = original.clone();
+        losers.appearance.losers_label = Some("Randy".into());
+        let mut winners = original.clone();
+        winners.appearance.winners_label = Some("Randy".into());
+        let mut preset = original.clone();
+        preset.presets.push(Preset {
+            id: "weekly".into(), name: "Randy".into(), appearance: original.appearance.clone(),
+        });
+        for (submitted, field) in [
+            (losers, "The Losers bracket name"),
+            (winners, "The Winners bracket name"),
+            (preset, "The preset name"),
+        ] {
+            let error = store.replace(&db, submitted).err().unwrap();
+            assert_eq!(error, format!("{field} contains blocked text. Your previous settings were kept."));
+        }
+        assert_eq!(store.current().unwrap().appearance.losers_label, None);
+        assert_eq!(store.current().unwrap().updated_at, original.updated_at);
+        assert!(updates.try_recv().is_err());
+        let restored = AppearanceStore::load(&db).unwrap().current().unwrap();
+        assert_eq!(restored.appearance.losers_label, None);
+        assert_eq!(restored.updated_at, original.updated_at);
+    }
+
+    #[test]
     fn appearance_presets_persist_validate_and_reject_stale_writes() {
         let db = Database::open(std::path::Path::new(":memory:")).unwrap();
         let store = AppearanceStore::load(&db).unwrap();
@@ -230,7 +296,8 @@ mod tests {
             name: "Weekly".into(),
             appearance: value.appearance.clone(),
         });
-        value.presets[0].appearance.losers_label = Some("Hell".into());
+        value.presets[0].appearance.losers_label = Some("Hells".into());
+        value.active_preset_id = Some("weekly".into());
         let mut updates = store.subscribe();
         store.replace(&db, value).unwrap();
         assert!(updates
@@ -240,6 +307,7 @@ mod tests {
         assert!(store.replace(&db, stale).is_err());
         let mut restored = AppearanceStore::load(&db).unwrap().current().unwrap();
         assert_eq!(restored.scoreboard_font.as_deref(), Some("oswald"));
+        assert_eq!(restored.active_preset_id.as_deref(), Some("weekly"));
         assert!(serde_json::to_value(&restored.presets[0])
             .unwrap()
             .get("scoreboardFont")
@@ -254,9 +322,43 @@ mod tests {
         assert_eq!(restored.presets.len(), 1);
         assert_eq!(
             restored.presets[0].appearance.losers_label.as_deref(),
-            Some("Hell")
+            Some("Hells")
         );
         restored.presets[0].appearance.primary_color = "url(file:///tmp/image)".into();
         assert!(store.replace(&db, restored).is_err());
+    }
+
+    #[test]
+    fn legacy_selection_recovers_unique_matches_and_respects_explicit_custom_settings() {
+        for (stored_id, duplicate, expected) in [
+            (None, false, Some("weekly")),
+            (None, true, None),
+            (Some(serde_json::Value::Null), false, None),
+            (Some(serde_json::json!("missing")), false, None),
+        ] {
+            let db = Database::open(std::path::Path::new(":memory:")).unwrap();
+            let mut preferences = AppearanceStore::load(&db).unwrap().current().unwrap();
+            preferences.appearance.color_override = true;
+            preferences.appearance.primary_color = "#112233".into();
+            preferences.presets.push(Preset {
+                id: "weekly".into(), name: "Weekly".into(), appearance: preferences.appearance.clone(),
+            });
+            if duplicate {
+                preferences.presets.push(Preset {
+                    id: "night".into(), name: "Night".into(), appearance: preferences.appearance.clone(),
+                });
+            }
+            let mut payload = serde_json::to_value(&preferences).unwrap();
+            match stored_id {
+                Some(id) => payload["activePresetId"] = id,
+                None => { payload.as_object_mut().unwrap().remove("activePresetId"); }
+            }
+            db.save_broadcast_surface("appearance-preferences", &payload.to_string(), &preferences.updated_at).unwrap();
+            let restored = AppearanceStore::load(&db).unwrap().current().unwrap();
+            assert_eq!(restored.active_preset_id.as_deref(), expected);
+            assert!(restored.appearance == preferences.appearance);
+            let restarted = AppearanceStore::load(&db).unwrap().current().unwrap();
+            assert_eq!(restarted.active_preset_id.as_deref(), expected);
+        }
     }
 }

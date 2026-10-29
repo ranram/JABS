@@ -601,6 +601,12 @@ export function scoreLimitForPlayer(selectedSet: SelectedSetState, side: 'one' |
 }
 
 export function winnerSideForMatch(selectedSet: SelectedSetState): 'one' | 'two' | undefined {
+  if (selectedSet.upstreamReset) return undefined;
+  if (selectedSet.reportedOutcome) {
+    const winnerId = selectedSet.reportedOutcome.winnerId;
+    return winnerId === selectedSet.playerOne.entrantId ? 'one'
+      : winnerId === selectedSet.playerTwo.entrantId ? 'two' : undefined;
+  }
   const one = selectedSet.playerOne.score;
   const two = selectedSet.playerTwo.score;
   if (one === two) return undefined;

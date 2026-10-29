@@ -94,6 +94,8 @@ export type GameCharacterAssetVariant = {
 };
 
 export type BroadcastPresentation = {
+  /** Omitted in older saves; tournament scoreboards show seeds by default. */
+  seedsEnabled?: boolean;
   infoBarEnabled: boolean;
   infoLeft?: string;
   infoRight?: string;
@@ -119,7 +121,19 @@ export type ExhibitionGameSelection = {
   updatedAt: string;
 };
 
+export type ReportOutcome = {
+  kind: 'win-loss' | 'disqualification';
+  winnerId: string;
+};
+
 export type SelectedSetState = {
+  /** Confirmed result reported without game scores; numeric progress is kept separately. */
+  reportedOutcome?: ReportOutcome;
+  /**
+   * True marks retained scores from a reset result.
+   * False follows a score edit/reset or confirmed report; missing covers older/imported data.
+   */
+  upstreamReset?: boolean;
   setId?: string;
   eventId?: string;
   tournamentSlug?: string;
@@ -154,6 +168,7 @@ export type OverlayState = {
 
 export type SetSummary = {
   id: string;
+  reportedOutcome?: ReportOutcome;
   roundNumber?: number;
   displayScore?: string;
   entrantOneScore?: number;

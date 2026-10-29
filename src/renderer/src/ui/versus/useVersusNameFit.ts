@@ -1,5 +1,5 @@
-import { useCenteredNameFit } from '../useCenteredNameFit';
+import { useIdentityTextFit } from '../useIdentityTextFit';
 
 export function useVersusNameFit(identity: string) {
-  return useCenteredNameFit(identity, '.versus-name-text');
+  return useIdentityTextFit(identity, '.versus-name-text');
 }

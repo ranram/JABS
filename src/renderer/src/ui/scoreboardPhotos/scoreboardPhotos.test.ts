@@ -151,6 +151,10 @@ it('does no photo work while disabled and uses placeholders for missing or faile
   const controls = await mountView(() =>
     h(MantineProvider, { env: 'test' }, h(ScoreboardPhotoControls, { selectedSet }))
   );
+  expect(controls.container.querySelector('p div')).toBeNull();
+  const libraryLink = controls.container.querySelector('.mantine-Checkbox-description button');
+  expect(libraryLink?.textContent).toBe('Players');
+  expect(libraryLink?.classList.contains('mantine-Anchor-root')).toBe(true);
   const logoSwitch = () =>
     [...controls.container.querySelectorAll<HTMLInputElement>('input')].find((input) =>
       input.closest('.mantine-Checkbox-root')?.textContent?.includes('Tournament logo behind players')
@@ -223,7 +227,12 @@ it('does no photo work while disabled and uses placeholders for missing or faile
   selectedSet.broadcast = { ...selectedSet.broadcast!, logoAssetId: undefined };
   await controls.rerender();
   expect(logoSwitch().disabled).toBe(true);
-  expect(controls.container.textContent).toContain('Choose a tournament logo in Broadcast extras.');
+  expect(controls.container.textContent).toContain('Choose a tournament logo under Logo.');
+  await controls.rerender(() =>
+    h(MantineProvider, { env: 'test' }, h(ScoreboardPhotoControls, { selectedSet, isExhibition: true }))
+  );
+  expect(controls.container.textContent).toContain('Exhibition logo behind players');
+  expect(controls.container.textContent).toContain('Choose an exhibition logo under Exhibition logo.');
   transport.enabled = false;
   await view.rerender();
   expect(view.container.querySelector('svg')).toBeNull();

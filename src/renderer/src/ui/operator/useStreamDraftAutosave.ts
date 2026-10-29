@@ -19,6 +19,7 @@ type StreamDraftAutosaveOptions = {
   setDraftState: Dispatch<SetStateAction<OperatorDraftState | undefined>>;
   setMessage: NoticeSink;
   failureMessage: string;
+  requiredNamesMessage?: string;
 };
 
 export function useStreamDraftAutosave({
@@ -28,10 +29,13 @@ export function useStreamDraftAutosave({
   setOverlayState,
   setDraftState,
   setMessage,
-  failureMessage
+  failureMessage,
+  requiredNamesMessage = failureMessage
 }: StreamDraftAutosaveOptions) {
   const [saving, setSaving] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [error, setError] = useState<string>();
+  const [retryVersion, setRetryVersion] = useState(0);
   const failedKeyRef = useRef<string | undefined>(undefined);
   const pausedRef = useRef(false);
   const timerRef = useRef<number | undefined>(undefined);
@@ -45,14 +49,26 @@ export function useStreamDraftAutosave({
       await action();
       failedKeyRef.current = undefined;
       setBlocked(false);
+      setError(undefined);
     } finally {
       pausedRef.current = false;
     }
   }
 
   useEffect(() => {
-    if (pausedRef.current || !dirty || !draft || saving) return;
-    if (!draft.displayName.trim() || !draft.playerOne.name.trim() || !draft.playerTwo.name.trim()) return;
+    if (saving) return;
+    if (!dirty || !draft) {
+      failedKeyRef.current = undefined;
+      setBlocked(false);
+      setError(undefined);
+      return;
+    }
+    if (pausedRef.current) return;
+    if (!draft.displayName.trim() || !draft.playerOne.name.trim() || !draft.playerTwo.name.trim()) {
+      setBlocked(true);
+      setError(requiredNamesMessage);
+      return;
+    }
     const submitted = normalizeOperatorDraft(draft, assetCatalogSlug);
     const submittedKey = operatorDraftContentKey(draft, assetCatalogSlug);
     if (failedKeyRef.current === submittedKey) return;
@@ -60,8 +76,7 @@ export function useStreamDraftAutosave({
 
     async function save() {
       setSaving(true);
-      // Re-arm identical moderation errors so each rejected edit produces a fresh toast.
-      setMessage(undefined, 'info');
+      setError(undefined);
       api.reportRendererDiagnostic('stream-save:renderer-start');
       try {
         const response = await api.updateSelectedSet(submitted);
@@ -88,7 +103,9 @@ export function useStreamDraftAutosave({
         failedKeyRef.current = submittedKey;
         setBlocked(true);
         api.reportRendererDiagnostic('stream-save:renderer-failed');
-        setMessage(error instanceof Error ? error.message : failureMessage, 'error');
+        const message = error instanceof Error ? error.message : failureMessage;
+        setError(message);
+        setMessage(message, 'error');
       } finally {
         setSaving(false);
       }
@@ -97,7 +114,23 @@ export function useStreamDraftAutosave({
       if (!pausedRef.current) inFlightRef.current = save();
     }, AUTOSAVE_DEBOUNCE_MS);
     return () => window.clearTimeout(timerRef.current);
-  }, [assetCatalogSlug, dirty, draft, failureMessage, saving, setDraftState, setMessage, setOverlayState]);
+  }, [
+    assetCatalogSlug,
+    dirty,
+    draft,
+    failureMessage,
+    requiredNamesMessage,
+    retryVersion,
+    saving,
+    setDraftState,
+    setMessage,
+    setOverlayState
+  ]);
 
-  return { saving, blocked, withAutosavePaused };
+  function retry() {
+    if (saving || pausedRef.current) return;
+    failedKeyRef.current = undefined;
+    setRetryVersion((value) => value + 1);
+  }
+  return { saving, blocked, error, retry, withAutosavePaused };
 }

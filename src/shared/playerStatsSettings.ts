@@ -1,10 +1,11 @@
+import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, type GameId } from './gameProfiles';
 
 export const playerStatsSettingsSchema = z.object({
   // Unset choices follow the live match style and rails logo independently.
   stylingGameId: z.custom<GameId>((value) => typeof value === 'string' && canonicalGameId(value) === value).optional(),
-  logoAssetId: z.string().trim().min(1).max(255).optional(),
+  logoAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional(),
   showBackground: z.boolean().default(true),
   showTournamentLogo: z.boolean().default(true),
   showPlacementLogos: z.boolean().default(true),

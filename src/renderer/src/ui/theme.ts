@@ -1,5 +1,14 @@
-import { Alert, Notification, createTheme, rem } from '@mantine/core';
+import { Alert, Drawer, Modal, Notification, createTheme, rem } from '@mantine/core';
+import { createElement } from 'react';
+import { DialogCloseIcon } from './DialogCloseIcon';
 import './notifications.css';
+import './destructiveButton.css';
+
+const closeButtonProps = {
+  size: 30,
+  className: 'operator-modal-close',
+  icon: createElement(DialogCloseIcon)
+};
 
 const warningNotice = {
   backgroundColor: '#29231d',
@@ -16,6 +25,8 @@ const toastColors = {
 export const jabsTheme = createTheme({
   primaryColor: 'violet',
   components: {
+    Modal: Modal.extend({ defaultProps: { closeButtonProps } }),
+    Drawer: Drawer.extend({ defaultProps: { closeButtonProps } }),
     Alert: Alert.extend({
       defaultProps: { p: 'xs' },
       styles: (_theme, props) => props.color === 'yellow' ? {

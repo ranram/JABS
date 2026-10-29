@@ -1,4 +1,4 @@
-use super::{Area, Context, Entry, Event, Reason, SUPPORT_EMAIL};
+use super::{Area, Context, Entry, Event, Method, Operation, Reason, SUPPORT_EMAIL};
 use serde::Deserialize;
 use std::{
     fs::{self, OpenOptions},
@@ -11,6 +11,7 @@ const FILES: [&str; 3] = ["jabs.log", "jabs.1.log", "jabs.2.log"];
 
 // Export only recognized log fields; ignore extra text in edited or damaged files.
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct StoredEntry {
     timestamp: String,
     session: String,
@@ -21,6 +22,11 @@ struct StoredEntry {
     status: Option<u16>,
     line: Option<u32>,
     column: Option<u32>,
+    operation: Option<Operation>,
+    method: Option<Method>,
+    request_id: Option<u64>,
+    elapsed_ms: Option<u32>,
+    attempt: Option<u8>,
     count: usize,
 }
 
@@ -32,6 +38,11 @@ impl StoredEntry {
             status: self.status,
             line: self.line,
             column: self.column,
+            operation: self.operation,
+            method: self.method,
+            request_id: self.request_id,
+            elapsed_ms: self.elapsed_ms,
+            attempt: self.attempt,
         };
         if !context.is_valid()
             || self.timestamp.len() > 64

@@ -31,8 +31,8 @@ export function PlayerLibraryField({
           onChange({ ...player, overrides: { ...player.overrides, [field]: event.currentTarget.value } })
         }
       />
-      <Group mih={24}>
-        {field !== 'nickname' && Object.hasOwn(player.overrides, field) && (
+      {field !== 'nickname' && Object.hasOwn(player.overrides, field) && (
+        <Group>
           <Button
             size="compact-xs"
             variant="subtle"
@@ -44,8 +44,8 @@ export function PlayerLibraryField({
           >
             {t('players.useImported')}
           </Button>
-        )}
-      </Group>
+        </Group>
+      )}
     </Stack>
   );
 }

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { acceptCatalogMessage, websocketUrl } from '../api';
 import { reconnectDelay } from './realtime';
 import { i18n } from '../i18n';
-import { recordDiagnostic } from '../diagnostics';
+import { diagnosticArea, recordDiagnostic } from '../diagnostics';
+import type { DiagnosticOperation } from '../diagnosticOperations';
 
 type RealtimeStateOptions<T> = {
   load(): Promise<T>;
@@ -10,6 +11,7 @@ type RealtimeStateOptions<T> = {
   loadError: string;
   reconnectingError?: string;
   refreshIntervalMs?: number;
+  diagnosticOperation?: DiagnosticOperation;
 };
 
 /** Keeps a local state snapshot synchronized with the shared realtime stream. */
@@ -18,7 +20,8 @@ export function useRealtimeState<T>({
   parseMessage,
   loadError,
   reconnectingError = i18n.t('errors:realtimeConnection'),
-  refreshIntervalMs
+  refreshIntervalMs,
+  diagnosticOperation
 }: RealtimeStateOptions<T>) {
   const [state, setState] = useState<T>();
   const [error, setError] = useState<string>();
@@ -33,6 +36,8 @@ export function useRealtimeState<T>({
     let snapshotVersion = 0;
     let loadId = 0;
     let pendingLoads = 0;
+    const diagnosticContext = diagnosticOperation
+      ? { area: diagnosticArea(diagnosticOperation), operation: diagnosticOperation } : {};
 
     async function refresh(): Promise<void> {
       pendingLoads += 1;
@@ -71,7 +76,7 @@ export function useRealtimeState<T>({
         socket = nextSocket;
         nextSocket.addEventListener('open', () => {
           if (disposed || socket !== nextSocket) return;
-          if (reconnectAttempt > 0) recordDiagnostic('realtime-reconnected');
+          if (reconnectAttempt > 0) recordDiagnostic('realtime-reconnected', diagnosticContext);
           reconnectAttempt = 0;
           setError(undefined);
           void refresh();
@@ -88,7 +93,7 @@ export function useRealtimeState<T>({
         });
         function disconnected() {
           if (disposed || socket !== nextSocket) return;
-          recordDiagnostic('realtime-disconnected', { reason: 'network' });
+          recordDiagnostic('realtime-disconnected', { ...diagnosticContext, reason: 'network' });
           socket = undefined;
           loadId += 1;
           setError(reconnectingError);
@@ -99,7 +104,7 @@ export function useRealtimeState<T>({
         nextSocket.addEventListener('error', disconnected);
       } catch (socketError) {
         if (disposed) return;
-        recordDiagnostic('realtime-disconnected', { reason: 'network' });
+        recordDiagnostic('realtime-disconnected', { ...diagnosticContext, reason: 'network' });
         setError(socketError instanceof Error ? socketError.message : reconnectingError);
         scheduleReconnect();
       }
@@ -118,7 +123,7 @@ export function useRealtimeState<T>({
       socket?.close();
       if (interval !== undefined) window.clearInterval(interval);
     };
-  }, [load, loadError, parseMessage, reconnectingError, refreshIntervalMs, connection]);
+  }, [load, loadError, parseMessage, reconnectingError, refreshIntervalMs, diagnosticOperation, connection]);
 
   return { state, setState, error, reconnect };
 }

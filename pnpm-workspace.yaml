@@ -7,6 +7,8 @@ minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 # Install the reviewed security patch without waiting for the release-age window.
 minimumReleaseAgeExclude:
+  # Reviewed security fix for GHSA-834v-8h66-3h79.
+  - "happy-dom@21.0.4"
   - "vitest@4.1.12"
   - "@vitest/expect@4.1.12"
   - "@vitest/mocker@4.1.12"

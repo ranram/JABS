@@ -4,6 +4,7 @@ import type { LocalHandoffUrl } from '../../desktopRuntime';
 import { sortByLabel } from './operatorUtils';
 import { publicOverlayKinds } from './overlaySources';
 import { en } from '../../i18n/catalogs/en';
+import { OperatorIcon, CopyIcon, CheckIcon } from '../icons';
 
 export function OverlayUrlMenu({
   copied,
@@ -20,13 +21,14 @@ export function OverlayUrlMenu({
   const sortedKinds = sortByLabel(publicOverlayKinds, (kind) => en.operator.live.overlayNames[kind], 'en');
   const label = copied ? t('live.copiedOverlay', { overlay: t(`live.overlayNames.${copied}`) }) : t('live.copyObs');
   return (
-    <Menu position="bottom-end" shadow="md" width={220}>
+    <Menu position="bottom-end" shadow="md" width={280}>
       <Menu.Target>
         <Button
           data-testid="copy-obs-url"
           size={compact ? 'compact-xs' : undefined}
           variant="default"
           disabled={disabled}
+          leftSection={<OperatorIcon icon={copied ? CheckIcon : CopyIcon} size={compact ? 14 : 16} />}
           rightSection={<span aria-hidden="true">▾</span>}
         >
           {label}
@@ -34,7 +36,7 @@ export function OverlayUrlMenu({
       </Menu.Target>
       <Menu.Dropdown>
         {sortedKinds.map((kind) => (
-          <Menu.Item key={kind} onClick={() => onCopy(kind)}>
+          <Menu.Item key={kind} onClick={() => onCopy(kind)} leftSection={<OperatorIcon icon={CopyIcon} />}>
             {t(`live.overlayNames.${kind}`)}
           </Menu.Item>
         ))}

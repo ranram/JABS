@@ -8,6 +8,7 @@ const parseMessage = (value: unknown) => parseRealtimeJson(value, parsePlayerSta
 export function usePlayerStatsSettings() {
   return useRealtimeState({
     load: api.playerStatsSettings,
+    diagnosticOperation: 'player-stats-settings',
     parseMessage,
     loadError: 'Unable to load Player Stats settings.'
   });

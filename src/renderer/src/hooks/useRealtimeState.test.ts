@@ -1,12 +1,16 @@
 // @vitest-environment happy-dom
 import { act } from 'react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { deferred, mountHook } from './hookTestHarness';
 import { useRealtimeState } from './useRealtimeState';
 import { useLogoAssetUrl } from './useLogoAssetUrl';
-import { useCatalogRevision } from './useCatalogRevision';
+import { useCatalogRevision, useGamePreparationRevision } from './useCatalogRevision';
+import { api, acceptCatalogMessage } from '../api';
 import { useStingers } from './useStingers';
 import type { StingerState } from '@shared/stingers';
+import { initializeI18n } from '../i18n';
+
+beforeAll(initializeI18n);
 
 const media = vi.hoisted(() => ({
   logo: vi.fn(async () => 'old-logo'),
@@ -216,4 +220,46 @@ it('renews the stinger stream on a source reset, preserving settings and refusin
   expect(resetSocket.close).toHaveBeenCalledOnce();
   expect(Socket.instances.at(-1)).not.toBe(resetSocket);
   expect(hook.current.state).toEqual(restarted);
+});
+
+it('keeps unchanged images cached and reserves folder setup for explicit reloads', async () => {
+  const baseline = 10_000;
+  acceptCatalogMessage(JSON.stringify({ event: 'asset-catalog', revision: baseline }));
+  media.logo.mockResolvedValue('current-logo');
+  media.logo.mockClear();
+  let revision = baseline;
+  let changed = false;
+  const fetcher = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ revision, changed }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+  );
+  vi.stubGlobal('fetch', fetcher);
+  const view = await mountHook(() => ({
+    revision: useCatalogRevision(),
+    preparation: useGamePreparationRevision(),
+    logo: useLogoAssetUrl('logo.png')
+  }));
+  const initial = { ...view.current };
+  await act(async () => {
+    await api.checkAssets();
+  });
+  expect(view.current).toEqual(initial);
+  expect(media.logo).toHaveBeenCalledTimes(1);
+  changed = true;
+  revision++;
+  await act(async () => {
+    await api.checkAssets();
+  });
+  expect(view.current.revision).toBe(initial.revision + 1);
+  expect(view.current.preparation).toBe(initial.preparation);
+  expect(media.logo).toHaveBeenCalledTimes(2);
+  revision++;
+  await act(async () => {
+    await api.reloadAssets();
+  });
+  expect(view.current.preparation).toBe(initial.preparation + 1);
+  expect(media.logo).toHaveBeenCalledTimes(3);
+  expect(fetcher).toHaveBeenCalledTimes(3);
 });

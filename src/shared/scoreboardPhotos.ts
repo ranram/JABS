@@ -1,3 +1,4 @@
+import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, gameIdForStartggVideogame, gameProfiles } from './gameProfiles';
 import type { SelectedSetState } from './models';
@@ -23,7 +24,7 @@ export const scoreboardPhotoSchema = z
     assetId: z
       .string()
       .min(1)
-      .max(255)
+      .refine(utf16AtMost(255))
       .refine((s) => !s.includes('/') && !s.includes('\\') && !s.includes('\0') && s !== '..'),
     fingerprint: z.string().regex(/^[a-f0-9]{16}$/),
     crop: headshotCropSchema,

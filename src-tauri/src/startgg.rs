@@ -3,7 +3,7 @@ use crate::{
     runtime::RuntimeState,
     secrets,
     startgg_queries,
-    state::{BroadcastPresentation, GameResult, Player, SelectedSet},
+    state::{BroadcastPresentation, GameResult, Player, ReportOutcome, ReportOutcomeKind, SelectedSet},
 };
 use futures_util::future::join_all;
 pub use jabs_startgg_client::{
@@ -413,6 +413,7 @@ pub async fn report_set(
     set_id: &str,
     winner_id: &str,
     game_data: Option<&[ReportedGame]>,
+    is_dq: bool,
 ) -> Result<ReportReceipt, ApiError> {
     required_text(set_id, "Choose a set to report.")?;
     required_text(winner_id, "Choose the winning entrant.")?;
@@ -423,7 +424,7 @@ pub async fn report_set(
         ),
         None => (
             startgg_queries::REPORT_SET_WINNER_ONLY,
-            json!({ "setId": set_id, "winnerId": winner_id }),
+            json!({ "setId": set_id, "winnerId": winner_id, "isDQ": is_dq }),
         ),
     };
     let data: Value = authenticated_request(runtime, query, variables).await?;
@@ -498,8 +499,11 @@ pub async fn selected_set(
         .and_then(|event| optional_object(event.get("videogame")))
         .and_then(|videogame| optional_text(videogame.get("name")));
     let mut selected_set = SelectedSet {
+        report_baseline: None,
+        reported_outcome: None,
+        upstream_reset: None,
         set_id: Some(set_id),
-        event_id: optional_context(input.event_id),
+        event_id: set.get("event").and_then(|event| event.get("id")).and_then(normalized_id).or_else(|| optional_context(input.event_id)),
         tournament_slug: optional_context(input.tournament_slug),
         tournament_name: set.get("event").and_then(|event| event.get("tournament"))
             .and_then(|tournament| optional_text(tournament.get("name")))
@@ -523,6 +527,7 @@ pub async fn selected_set(
         match_format: Some("best-of".to_owned()),
         best_of,
         broadcast: Some(BroadcastPresentation {
+            seeds_enabled: None,
             info_bar_enabled: false,
             info_left: None,
             info_right: None,
@@ -537,6 +542,7 @@ pub async fn selected_set(
     crate::state::censor_untrusted_selected_set(&mut selected_set);
     crate::state::validate_selected_set(&selected_set)
         .map_err(|message| invalid_response(&message))?;
+    selected_set.report_baseline = Some(crate::state::ReportBaseline::from_set(&selected_set));
     Ok(Some(selected_set))
 }
 
@@ -1042,6 +1048,7 @@ fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
         "id": id,
         "roundNumber": finite_i64(object.get("round")),
         "displayScore": optional_text(object.get("displayScore")),
+        "reportedOutcome": summary_reported_outcome(value, &slots),
         "entrantOneScore": entrant_one_score,
         "entrantTwoScore": entrant_two_score,
         "phase": phase,
@@ -1057,6 +1064,34 @@ fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
         "entrantTwo": entrant_two,
         "prerequisites": prerequisites
     })))
+}
+
+fn summary_reported_outcome(set: &Value, slots: &[&Value]) -> Option<ReportOutcome> {
+    if set.get("state").and_then(normalized_id).as_deref() != Some("3") {
+        return None;
+    }
+    let winner_id = set.get("winnerId").and_then(normalized_id)?;
+    let one = slots.first()?.pointer("/entrant/id").and_then(normalized_id)?;
+    let two = slots.get(1)?.pointer("/entrant/id").and_then(normalized_id)?;
+    if one == two || (winner_id != one && winner_id != two) {
+        return None;
+    }
+    // Read DQ before slot_score clamps negative API values for numeric controls.
+    let one_score = finite_i64(slots.first()?.pointer("/standing/stats/score/value"));
+    let two_score = finite_i64(slots.get(1)?.pointer("/standing/stats/score/value"));
+    let (winner_score, loser_score) = if winner_id == one {
+        (one_score, two_score)
+    } else {
+        (two_score, one_score)
+    };
+    let kind = if loser_score == Some(-1) && winner_score != Some(-1) {
+        ReportOutcomeKind::Disqualification
+    } else if one_score.unwrap_or(0) == 0 && two_score.unwrap_or(0) == 0 {
+        ReportOutcomeKind::WinLoss
+    } else {
+        return None;
+    };
+    Some(ReportOutcome { kind, winner_id })
 }
 
 fn entrant_summary(slot: &Value) -> Option<Value> {
@@ -1178,9 +1213,9 @@ mod tests {
     use super::{
         character_for_entrant_from_games, grand_final_prerequisite, head_to_head_sets,
         is_initial_grand_final, is_winners_final, node_list, player_from_slot, set_summary,
-        validate_event_slug, map_event_standings,
+        validate_event_slug, map_event_standings, normalized_id,
     };
-    use serde_json::json;
+    use serde_json::{Value, json};
 
     #[test]
     fn rejects_malformed_collections_and_invalid_event_slugs() {
@@ -1223,6 +1258,43 @@ mod tests {
         data["event"]["state"] = json!("COMPLETED");
         data["event"]["standings"]["nodes"].as_array_mut().unwrap().pop();
         assert_eq!(map_event_standings(data).unwrap()["finalized"], false);
+    }
+
+    #[test]
+    fn completed_summary_preserves_dq_and_scoreless_winners_without_changing_scores() {
+        for (one, two, winner, kind) in [
+            (json!(-1), json!(0), json!(2), "disqualification"),
+            (json!(0), json!(-1), json!("1"), "disqualification"),
+            (json!(0), json!(0), json!(1), "win-loss"),
+            (Value::Null, Value::Null, json!("2"), "win-loss"),
+        ] {
+            let mut source = json!({
+                "id": 42, "state": 3, "winnerId": winner,
+                "slots": [
+                    {"entrant": {"id": 1}, "standing": {"stats": {"score": {"value": one}}}},
+                    {"entrant": {"id": 2}, "standing": {"stats": {"score": {"value": two}}}}
+                ]
+            });
+            let summary = set_summary(&source).unwrap().unwrap();
+            assert_eq!(summary["reportedOutcome"], json!({
+                "kind": kind, "winnerId": normalized_id(&winner).unwrap()
+            }));
+            for (field, raw) in [("entrantOneScore", &one), ("entrantTwoScore", &two)] {
+                assert_eq!(summary[field], if raw.is_null() { Value::Null } else { json!(0) });
+            }
+            source["state"] = json!(1);
+            assert!(set_summary(&source).unwrap().unwrap()["reportedOutcome"].is_null());
+            source["state"] = json!(3);
+            source["winnerId"] = json!(999);
+            assert!(set_summary(&source).unwrap().unwrap()["reportedOutcome"].is_null());
+            source["winnerId"] = winner;
+            source["slots"][0]["standing"]["stats"]["score"]["value"] = json!(3);
+            source["slots"][1]["standing"]["stats"]["score"]["value"] = json!(2);
+            let numeric = set_summary(&source).unwrap().unwrap();
+            assert!(numeric["reportedOutcome"].is_null());
+            assert_eq!(numeric["entrantOneScore"], 3);
+            assert_eq!(numeric["entrantTwoScore"], 2);
+        }
     }
 
     #[test]

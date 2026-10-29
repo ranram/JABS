@@ -1,6 +1,8 @@
 import { Button, Group, Select, SimpleGrid, Stack } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { MediaLayerKind } from '@shared/mediaPlacement';
+import { OperatorDisclosure } from './OperatorDisclosure';
+import { ImageIcon } from '../icons';
 import { MediaControlHint } from './MediaControlHint';
 
 type MediaSelection = { index: number; layer: MediaLayerKind };
@@ -36,23 +38,30 @@ export function GeneratorMediaControls({
   }
 
   return (
-    <Stack gap="xs" mb="md">
-      <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '34rem': 2 }}>
-        <Select
-          label={label}
-          value={selection ? `${selection.index}:${selection.layer}` : noSelection}
-          placeholder={t('actions.select')}
-          clearable
-          data={[{ value: noSelection, label: t('actions.select') }, ...options]}
-          onChange={select}
-        />
-        <Group align="flex-end">
-          <Button fullWidth variant="default" disabled={!selection} onClick={onReset}>
-            {resetLabel}
-          </Button>
-        </Group>
-      </SimpleGrid>
-      <MediaControlHint showOverlapSelection />
-    </Stack>
+    <OperatorDisclosure
+      title={label}
+      icon={ImageIcon}
+      expandWhen
+      className="generator-media-controls"
+    >
+      <Stack gap="xs">
+        <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '34rem': 2 }}>
+          <Select
+            aria-label={label}
+            value={selection ? `${selection.index}:${selection.layer}` : noSelection}
+            placeholder={t('actions.select')}
+            clearable
+            data={[{ value: noSelection, label: t('actions.select') }, ...options]}
+            onChange={select}
+          />
+          <Group align="flex-end">
+            <Button fullWidth variant="default" disabled={!selection} onClick={onReset}>
+              {resetLabel}
+            </Button>
+          </Group>
+        </SimpleGrid>
+        <MediaControlHint showOverlapSelection />
+      </Stack>
+    </OperatorDisclosure>
   );
 }

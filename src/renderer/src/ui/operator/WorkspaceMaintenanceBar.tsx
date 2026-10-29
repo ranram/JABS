@@ -1,6 +1,5 @@
-import { Button, Group, Switch, Text, Tooltip, Menu, Box } from '@mantine/core';
+import { Button, Group, Text, Menu } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import { PlayerLibraryButton } from '../players/PlayerLibraryModal';
 import { SettingsButton } from '../appearance/SettingsPanel';
 import { AssetsMenu } from './AssetsMenu';
 import type { SelectedSetState, StartggSetScope } from '@shared/models';
@@ -10,7 +9,9 @@ import { OverlayUrlMenu } from './OverlayUrlMenu';
 import { StingerQuickMenu } from '../stingers/StingerQuickMenu';
 import { HelpMenu } from '../tutorials/HelpMenu';
 import type { TutorialWorkspace } from '../tutorials/tutorials';
-import { Fragment, type ReactNode } from 'react';
+import { OperatorIcon, WrenchIcon, ArrowsClockwiseIcon, TrashSimpleIcon, SignOutIcon } from '../icons';
+import { MatchesMenu } from './MatchesMenu';
+import './workspaceMaintenance.css';
 
 type WorkspaceMaintenanceBarProps = {
   activeSet?: SelectedSetState;
@@ -64,7 +65,6 @@ export function WorkspaceMaintenanceBar({
   setSelectorDisabled
 }: WorkspaceMaintenanceBarProps) {
   const { t } = useTranslation('operator');
-  // Navigation keeps the English order in every language.
   const bracketActions: Array<{
     id: string;
     label: string;
@@ -72,9 +72,11 @@ export function WorkspaceMaintenanceBar({
     help?: string;
     testId?: string;
     onClick(): void;
+    icon: typeof ArrowsClockwiseIcon;
   }> = [
     {
       id: 'clear',
+      icon: TrashSimpleIcon,
       label: t('startgg.clearCache'),
       disabled: loading,
       testId: 'clear-startgg-cache',
@@ -82,6 +84,7 @@ export function WorkspaceMaintenanceBar({
     },
     {
       id: 'reload',
+      icon: ArrowsClockwiseIcon,
       label: t('editor.reload'),
       disabled: reloadSelectedSetDisabled,
       help: reloadWarning ?? t(loading ? 'editor.waitAction' : 'editor.reloadHint'),
@@ -89,6 +92,7 @@ export function WorkspaceMaintenanceBar({
     },
     {
       id: 'refresh',
+      icon: ArrowsClockwiseIcon,
       label: t('browser.refresh'),
       disabled: loading || !setScope,
       help: t(loading ? 'editor.waitAction' : 'browser.selectEvent'),
@@ -98,38 +102,25 @@ export function WorkspaceMaintenanceBar({
   if (tournamentLoaded)
     bracketActions.push({
       id: 'unload',
+      icon: SignOutIcon,
       label: t('startgg.unloadTournament'),
       disabled: unloadTournamentDisabled,
       testId: 'unload-tournament',
       onClick: onUnloadTournament
     });
-  const tools = [
-    { id: 'players', content: <PlayerLibraryButton selectedSet={activeSet} compact /> },
-    {
-      id: 'set-selector',
-      content: (
-        <Button size="compact-xs" variant="default" disabled={setSelectorDisabled} onClick={onOpenSetSelector}>
-          {t('selector.open')}
-        </Button>
-      )
-    },
-    { id: 'settings', content: <SettingsButton compact /> },
-    {
-      id: 'help',
-      content: <HelpMenu navigate={onTutorialWorkspace} />
-    }
-  ];
-  const groups: Array<{ id: string; label: string; tutorial?: string; content: ReactNode }> = [
-    {
-      id: 'bracket',
-      label: t('utilityGroups.bracket'),
-      tutorial: 'bracket-options',
-      content: (
-        <Group className="workspace-maintenance-actions" gap="xs" wrap="nowrap">
+  return (
+    <div className="workspace-maintenance-container">
+      <Group className="workspace-maintenance-bar">
+        <div className="workspace-maintenance-group workspace-maintenance-bracket" data-tutorial="bracket-options">
           <Menu position="bottom-start" shadow="md" width={280}>
             <Menu.Target>
-              <Button size="compact-xs" variant="default" rightSection={<span aria-hidden="true">▾</span>}>
-                {t('quickTools.bracketOptions')}
+              <Button
+                size="compact-xs"
+                variant="default"
+                leftSection={<OperatorIcon icon={WrenchIcon} size={14} />}
+                rightSection={<span aria-hidden="true">▾</span>}
+              >
+                {t('utilityGroups.bracket')}
               </Button>
             </Menu.Target>
             <Menu.Dropdown>
@@ -139,6 +130,7 @@ export function WorkspaceMaintenanceBar({
                   data-testid={action.testId}
                   disabled={action.disabled}
                   onClick={action.onClick}
+                  leftSection={<OperatorIcon icon={action.icon} />}
                 >
                   {action.label}
                   {action.disabled && action.help && (
@@ -150,70 +142,37 @@ export function WorkspaceMaintenanceBar({
               ))}
             </Menu.Dropdown>
           </Menu>
-        </Group>
-      )
-    },
-    {
-      id: 'media',
-      label: t('utilityGroups.media'),
-      tutorial: 'assets',
-      content: (
-        <Group className="workspace-maintenance-actions" gap="xs" wrap="nowrap">
-          <AssetsMenu game={assetCatalogSlug} />
-          <Tooltip label={t('browser.reloadAssetsHint')} openDelay={350}>
-            <Box component="span" display="flex">
-              <Button data-tutorial="reload-assets" size="compact-xs" variant="default" loading={reloadingAssets} onClick={onReloadAssets}>
-                {t('browser.reloadAssets')}
-              </Button>
-            </Box>
-          </Tooltip>
-        </Group>
-      )
-    },
-    {
-      id: 'moderation',
-      label: t('utilityGroups.moderation'),
-      content: <ModerationAllowlistControls onApplied={onModerationApplied} />
-    },
-    {
-      id: 'obs',
-      label: t('utilityGroups.obs'),
-      tutorial: 'obs',
-      content: (
-        <Group gap="xs" wrap="nowrap">
+        </div>
+
+        <MatchesMenu
+          activeSet={activeSet}
+          setSelectorDisabled={setSelectorDisabled}
+          onOpenSetSelector={onOpenSetSelector}
+        />
+
+        <div className="workspace-maintenance-group workspace-maintenance-media" data-tutorial="assets">
+          <AssetsMenu game={assetCatalogSlug} reloading={reloadingAssets} onReload={onReloadAssets} />
+        </div>
+
+        <div className="workspace-maintenance-group workspace-maintenance-moderation">
+          <ModerationAllowlistControls onApplied={onModerationApplied} />
+        </div>
+
+        <div
+          className="workspace-maintenance-group workspace-maintenance-obs"
+          data-tutorial="obs"
+          role="group"
+          aria-label="OBS"
+        >
           <OverlayUrlMenu copied={copiedHandoff} disabled={!localBaseUrl} compact onCopy={onCopy} />
           <StingerQuickMenu activeSet={activeSet} onConfigure={onConfigureStingers} />
-        </Group>
-      )
-    },
-    {
-      id: 'tools',
-      label: t('quickTools.tools'),
-      content: (
-        <Group gap="xs" wrap="nowrap">
-          {tools.map((tool) => (
-            <Fragment key={tool.id}>{tool.content}</Fragment>
-          ))}
-        </Group>
-      )
-    }
-  ];
-
-  return (
-    <Group className="workspace-maintenance-bar" gap="md" align="flex-end" wrap="wrap">
-      {groups.map((group) => (
-        <div key={group.id} className="workspace-maintenance-group" data-tutorial={group.tutorial}>
-          <Text className="workspace-maintenance-label">{group.label}</Text>
-          {group.content}
         </div>
-      ))}
-      <Switch
-        className="workspace-shortcuts-toggle"
-        size="xs"
-        label={t('editor.enableShortcuts')}
-        checked={keyboardShortcuts.enabled}
-        onChange={(event) => keyboardShortcuts.setEnabled(event.currentTarget.checked)}
-      />
-    </Group>
+
+        <div className="workspace-maintenance-group workspace-maintenance-preferences">
+          <SettingsButton compact keyboardShortcuts={keyboardShortcuts} />
+          <HelpMenu navigate={onTutorialWorkspace} />
+        </div>
+      </Group>
+    </div>
   );
 }

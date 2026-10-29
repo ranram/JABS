@@ -4,6 +4,8 @@ import type { GameCharacterAsset } from '@shared/models';
 import { useCatalogRevision } from '../../hooks/useCatalogRevision';
 import { api } from '../../api';
 
+const emptyAssets: readonly GameCharacterAsset[] = [];
+
 export type CharacterCatalogOptions = {
   characters: readonly string[];
   assets: readonly GameCharacterAsset[];
@@ -14,30 +16,34 @@ export function useCharacterCatalogOptions(
   assetCatalogRevision: number
 ): CharacterCatalogOptions {
   const catalogRevision = useCatalogRevision();
-  const [assets, setAssets] = useState<GameCharacterAsset[]>([]);
+  const [catalog, setCatalog] = useState<{ slug: string; assets: GameCharacterAsset[] }>();
+  const assets = catalog && catalog.slug === assetCatalogSlug ? catalog.assets : emptyAssets;
 
   useEffect(() => {
     let active = true;
-    setAssets([]);
     if (!assetCatalogSlug) {
-      return () => { active = false; };
+      return () => {
+        active = false;
+      };
     }
     void api.gameCharacterAssets(assetCatalogSlug).then(
       ({ assets }) => {
-        if (active) setAssets(assets);
+        if (active) setCatalog({ slug: assetCatalogSlug, assets });
       },
-      () => {
-        if (active) setAssets([]);
-      }
+      () => undefined
     );
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [assetCatalogRevision, assetCatalogSlug, catalogRevision]);
 
-  return useMemo(() => ({
-    characters: [...new Set([
-      ...charactersForAssetCatalog(assetCatalogSlug ?? ''),
-      ...assets.map((asset) => asset.character)
-    ])],
-    assets
-  }), [assetCatalogSlug, assets]);
+  return useMemo(
+    () => ({
+      characters: [
+        ...new Set([...charactersForAssetCatalog(assetCatalogSlug ?? ''), ...assets.map((asset) => asset.character)])
+      ],
+      assets
+    }),
+    [assetCatalogSlug, assets]
+  );
 }

@@ -1,3 +1,4 @@
+import { OperatorDisclosure } from '../operator/OperatorDisclosure';
 import { localizedNativeError } from '../../i18n/nativeErrors';
 import { HintedButton } from '../operator/HintedButton';
 import { DestructiveButton } from '../DestructiveButton';
@@ -14,8 +15,7 @@ import {
   SimpleGrid,
   Stack,
   Switch,
-  Text,
-  Title
+  Text
 } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { SelectedSetState } from '@shared/models';
@@ -27,6 +27,7 @@ import { useStingers } from '../../hooks/useStingers';
 import { announcementPresentation } from '../announcementPresentation';
 import { StingerFramingPreview, StingerStage } from './StingerStage';
 import { PanelHeader } from '../PanelHeader';
+import { OperatorIcon, SlidersHorizontalIcon, MonitorIcon, FilmSlateIcon, ImageIcon } from '../icons';
 import './stingersPanel.css';
 
 export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: SelectedSetState; localBaseUrl?: string }) {
@@ -116,50 +117,49 @@ export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: Selecte
   return (
     <Paper className="panel stingers-panel" data-tutorial="stingers" p="md" radius="lg" withBorder>
       <Stack gap="md">
-        <PanelHeader title={t('workspaces.stingers')}>
-          <Group gap="xs" wrap="nowrap">
-            <Button
-              variant="default"
-              loading={working}
-              disabled={saving}
-              onClick={() => void run(live.reconnectSources)}
-            >
-              {t('stingers.reconnect')}
-            </Button>
-            <Button color="red" variant="light" onClick={() => void run(api.stopStinger)}>
-              {t('stingers.stopBroadcast')}
-            </Button>
+        <PanelHeader title={t('workspaces.stingers')} icon={FilmSlateIcon} inset="md">
+          <Group className="stinger-header-actions" gap="xs">
+            <Group gap="xs" wrap="nowrap">
+              <DestructiveButton onClick={() => void run(api.stopStinger)}>
+                {t('stingers.stopBroadcast')}
+              </DestructiveButton>
+              <Button
+                variant="default"
+                loading={working}
+                disabled={saving}
+                onClick={() => void run(live.reconnectSources)}
+              >
+                {t('stingers.reconnect')}
+              </Button>
+            </Group>
             <Badge color={live.state?.readySources ? 'green' : 'gray'}>
               {t('stingers.readySources', { count: live.state?.readySources ?? 0 })}
             </Badge>
           </Group>
         </PanelHeader>
-        <div>
-          <Text size="sm" c="dimmed" mb="xs">
-            {t('stingers.sourceHelp')} {t('stingers.audioHelp')}
-          </Text>
-          {localBaseUrl && <OverlaySourceField localBaseUrl={localBaseUrl} source="stingers" />}
-        </div>
         {(message || live.error || live.state?.playbackError) && (
           <Text role="alert" c="red">
             {message ?? live.error ?? (live.state?.playbackError && localizedNativeError(live.state.playbackError))}
           </Text>
         )}
+        <Text size="xs" c="dimmed">
+          {t('stingers.formats')}
+        </Text>
         <div className="stingers-workspace">
           <Stack gap="xs" className="stinger-controls">
-            <Text size="xs" c="dimmed">
-              {t('stingers.formats')}
-            </Text>
             <div className="stinger-clip-list">
               {(['perfect', 'winner'] as const).map((kind) => {
                 const clip = settings[kind];
                 return (
                   <Paper className="operator-inset" key={kind} p="md" withBorder radius="md">
                     <Stack gap="md">
-                      <Group justify="space-between" gap="xs">
-                        <Title order={3} size="h5">
-                          {t(`stingers.${kind}`)}
-                        </Title>
+                      <PanelHeader
+                        className="stinger-section-header"
+                        title={t(`stingers.${kind}`)}
+                        icon={FilmSlateIcon}
+                        order={3}
+                        inset="md"
+                      >
                         {kind === 'winner' && (
                           <Badge
                             className="stinger-winner-status"
@@ -170,8 +170,17 @@ export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: Selecte
                             {winner ? t('stingers.currentWinner', { name: winner.name }) : t('stingers.noWinner')}
                           </Badge>
                         )}
-                      </Group>
+                      </PanelHeader>
+                      {live.state?.cue?.kind === kind && (
+                        <Text size="sm" c="green" role="status">
+                          {t(live.state.cue.claimed ? 'stingers.playingClip' : 'stingers.queuedClip', {
+                            name: t(`stingers.${kind}`)
+                          })}
+                        </Text>
+                      )}
                       <FileInput
+                        styles={{ placeholder: clip.video ? { color: 'var(--mantine-color-text)' } : undefined }}
+                        title={clip.video?.name}
                         label={t('stingers.video')}
                         placeholder={clip.video?.name ?? t('stingers.chooseVideo')}
                         accept=".webm,video/webm"
@@ -203,7 +212,7 @@ export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: Selecte
                           }
                         />
                       )}
-                      <Group grow preventGrowOverflow={false}>
+                      <SimpleGrid className="operator-action-grid" type="container" cols={{ base: 1, '30rem': 3 }}>
                         <HintedButton
                           fullWidth
                           reason={
@@ -251,11 +260,13 @@ export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: Selecte
                         >
                           {t('stingers.remove')}
                         </DestructiveButton>
-                      </Group>
+                      </SimpleGrid>
                       {kind === 'winner' && (
                         <Accordion variant="separated" radius="md">
                           <Accordion.Item value="playback">
-                            <Accordion.Control>{t('stingers.playbackSettings')}</Accordion.Control>
+                            <Accordion.Control icon={<OperatorIcon icon={SlidersHorizontalIcon} />}>
+                              {t('stingers.playbackSettings')}
+                            </Accordion.Control>
                             <Accordion.Panel>
                               <Stack gap="md">
                                 <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
@@ -306,10 +317,13 @@ export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: Selecte
             </div>
           </Stack>
           <Stack gap="md" className="stinger-preview-controls">
-            <Group justify="space-between">
-              <Title order={3} size="h5">
-                {t('stingers.framing')}
-              </Title>
+            <PanelHeader
+              className="stinger-section-header"
+              title={t('stingers.framing')}
+              icon={ImageIcon}
+              order={3}
+              inset="md"
+            >
               <Group>
                 <Select
                   aria-label={t('stingers.previewPlayer')}
@@ -327,7 +341,7 @@ export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: Selecte
                   {t('stingers.stopPreview')}
                 </Button>
               </Group>
-            </Group>
+            </PanelHeader>
             <Text size="sm" c="dimmed">
               {t('stingers.framingHelp')}
             </Text>
@@ -351,6 +365,12 @@ export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: Selecte
             </div>
           </Stack>
         </div>
+        <OperatorDisclosure title={t('ux.obsSetup')} icon={MonitorIcon}>
+          <Text size="sm" c="dimmed" mb="xs">
+            {t('stingers.sourceHelp')} {t('stingers.audioHelp')}
+          </Text>
+          {localBaseUrl && <OverlaySourceField localBaseUrl={localBaseUrl} source="stingers" />}
+        </OperatorDisclosure>
       </Stack>
     </Paper>
   );

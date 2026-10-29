@@ -18,7 +18,6 @@ export function useStingerWinnerAnimation(
     if (!stage || !element || !ready) return;
     const root = stage;
     const video = element;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const start = mediaDelaySeconds * 1000;
     let end = 0;
     let running = !video.paused && !video.seeking;
@@ -58,7 +57,7 @@ export function useStingerWinnerAnimation(
         Number.isFinite(video.duration) && video.duration > 0 ? video.duration : stingerLimits.durationSeconds;
       end = Math.min(naturalDuration, durationSeconds ?? stingerLimits.durationSeconds) * 1000;
       const duration = end - start;
-      if (duration > 0 && appearance.entranceAnimations && !reducedMotion.matches) {
+      if (duration > 0 && appearance.entranceAnimations) {
         try {
           const tempo = Math.min(1, duration / 4200);
           const fadeStart = duration - Math.min(650, duration * 0.2);
@@ -144,12 +143,10 @@ export function useStingerWinnerAnimation(
       ['durationchange', rebuild]
     ];
     for (const [event, listener] of events) video.addEventListener(event, listener);
-    reducedMotion.addEventListener('change', rebuild);
     rebuild();
     return () => {
       clearTimeout(boundary);
       for (const [event, listener] of events) video.removeEventListener(event, listener);
-      reducedMotion.removeEventListener('change', rebuild);
       clearAnimations();
       root.style.visibility = 'hidden';
     };

@@ -1,7 +1,8 @@
+import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, gameProfiles, scoreLimitForMatch, type GameId } from './gameProfiles';
 import { isSafeGameAssetCatalogSlug } from './gameAssetCatalog';
-import type { OverlayState, SelectedSetState } from './models';
+import type { OverlayState } from './models';
 
 const gameIds = Object.keys(gameProfiles) as [GameId, ...GameId[]];
 const requiredId = z.string().trim().min(1, 'Identifiers cannot be empty.');
@@ -18,6 +19,7 @@ const logoAssetId = z
   .regex(/^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:png|jpe?g|webp)$/i, 'Choose a valid local logo asset.');
 
 export const broadcastPresentationSchema = z.object({
+  seedsEnabled: z.boolean().optional(),
   infoBarEnabled: z.boolean().default(false),
   infoLeft: optionalDisplayText,
   infoRight: optionalDisplayText,
@@ -30,8 +32,8 @@ export const playerStateSchema = z.object({
     .string()
     .regex(/^[a-f0-9]{32}$/)
     .optional(),
-  playerPhotoAssetId: z.string().max(255).optional(),
-  portraitAssetId: z.string().max(255).optional(),
+  playerPhotoAssetId: z.string().refine(utf16AtMost(255)).optional(),
+  portraitAssetId: z.string().refine(utf16AtMost(255)).optional(),
   entrantId: requiredId,
   playerId: requiredId.optional(),
   name: z.string().trim().min(1, 'Player names cannot be empty.'),
@@ -40,7 +42,7 @@ export const playerStateSchema = z.object({
   xHandle: optionalDisplayText,
   characters: z.array(z.string().trim().min(1)).max(4).optional(),
   character: optionalDisplayText,
-  characterAssetId: z.string().trim().min(1).max(255).optional(),
+  characterAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional(),
   country: optionalDisplayText,
   displayFlag: z
     .string()
@@ -59,7 +61,7 @@ export const setGameResultSchema = z.object({
     .array(
       z.object({
         entrantId: requiredId,
-        character: z.string().trim().min(1).max(100)
+        character: z.string().trim().min(1).refine(utf16AtMost(100))
       })
     )
     .max(8)
@@ -68,6 +70,13 @@ export const setGameResultSchema = z.object({
 
 export const selectedSetStateSchema = z
   .object({
+    upstreamReset: z.boolean().optional(),
+    reportedOutcome: z
+      .object({
+        kind: z.enum(['win-loss', 'disqualification']),
+        winnerId: requiredId
+      })
+      .optional(),
     setId: requiredId.optional(),
     eventId: requiredId.optional(),
     tournamentSlug: requiredId.optional(),
@@ -93,7 +102,7 @@ export const selectedSetStateSchema = z
       .string()
       .regex(/^[a-z0-9][a-z0-9-]{0,63}$/)
       .optional(),
-    customScoreboardRevision: z.string().min(1).max(64).optional(),
+    customScoreboardRevision: z.string().min(1).refine(utf16AtMost(64)).optional(),
     assetCatalogSlug: z
       .string()
       .refine(isSafeGameAssetCatalogSlug, 'Choose a valid local game asset catalog.')
@@ -111,6 +120,16 @@ export const selectedSetStateSchema = z
     updatedAt: z.string().datetime()
   })
   .superRefine((selectedSet, context) => {
+    if (
+      selectedSet.reportedOutcome &&
+      ![selectedSet.playerOne.entrantId, selectedSet.playerTwo.entrantId].includes(selectedSet.reportedOutcome.winnerId)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['reportedOutcome', 'winnerId'],
+        message: 'Choose the winning entrant.'
+      });
+    }
     if (selectedSet.matchFormat === 'best-of' && ![3, 5].includes(selectedSet.bestOf)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -188,10 +207,5 @@ export const overlayStateSchema = z.object({
 
 export function parseOverlayState(value: unknown): OverlayState | undefined {
   const result = overlayStateSchema.safeParse(value);
-  return result.success ? result.data : undefined;
-}
-
-export function parseSelectedSetState(value: unknown): SelectedSetState | undefined {
-  const result = selectedSetStateSchema.safeParse(value);
   return result.success ? result.data : undefined;
 }
