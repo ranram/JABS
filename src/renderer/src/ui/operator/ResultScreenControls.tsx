@@ -147,21 +147,6 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
     <Stack gap="md" w="100%">
       <SimpleGrid type="container" cols={{ base: 1, '42rem': 3 }}>
         <Select
-          label={t('workspaces.resultScreen.composition')}
-          value={state.composition}
-          data={[
-            { value: 'classic', label: t('workspaces.resultScreen.classic') },
-            { value: 'victory', label: t('workspaces.resultScreen.victory') },
-            { value: 'spotlight', label: t('workspaces.resultScreen.spotlight') }
-          ]}
-          disabled={saving}
-          allowDeselect={false}
-          onChange={(value) => {
-            if (value === 'classic' || value === 'victory' || value === 'spotlight') void update('composition', value);
-          }}
-        />
-
-        <Select
           label={t('workspaces.styling')}
           searchable
           value={state.stylingGameId}
@@ -174,6 +159,20 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
           assetId={state.logoAssetId}
           disabled={saving}
           onChange={(logoAssetId) => void update('logoAssetId', logoAssetId)}
+        />
+        <Select
+          label={t('workspaces.resultScreen.composition')}
+          value={state.composition}
+          data={[
+            { value: 'classic', label: t('workspaces.resultScreen.classic') },
+            { value: 'victory', label: t('workspaces.resultScreen.victory') },
+            { value: 'spotlight', label: t('workspaces.resultScreen.spotlight') }
+          ]}
+          disabled={saving}
+          allowDeselect={false}
+          onChange={(value) => {
+            if (value === 'classic' || value === 'victory' || value === 'spotlight') void update('composition', value);
+          }}
         />
       </SimpleGrid>
       <SimpleGrid type="container" cols={{ base: 1, '36rem': 2, '60rem': 3 }}>

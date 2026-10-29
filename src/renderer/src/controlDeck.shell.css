@@ -56,10 +56,6 @@
   padding: var(--mantine-spacing-md);
 }
 
-.operator-shell .panel:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
 .operator-shell .grid-layout > .panel:first-child {
   border-bottom-left-radius: 38px;
 }
@@ -88,7 +84,7 @@
   border: 1px solid rgba(217, 255, 67, 0.35);
   border-radius: 7px;
   color: var(--deck-lime);
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 10px;
   font-weight: 900;
   transform: rotate(-2deg);
@@ -98,7 +94,7 @@
 .operator-shell .panel h2 {
   margin: 0;
   color: var(--deck-ink);
-  font-family: Impact, "Arial Black", sans-serif;
+  font-family: Impact, 'Arial Black', sans-serif;
   font-size: 22px;
   font-style: italic;
   font-weight: 800;
@@ -164,7 +160,7 @@
   gap: var(--mantine-spacing-md);
   margin-top: var(--mantine-spacing-md);
   padding-top: var(--mantine-spacing-md);
-  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  border-top: 1px dashed var(--operator-container-border);
 }
 
 .browser-filter-grid label,
@@ -196,8 +192,8 @@
   overscroll-behavior: contain;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-content: start;
-  padding: 4px 8px 12px 4px;
-  scroll-padding-block: 4px 12px;
+  padding: 10px 12px 14px;
+  scroll-padding-block: 10px 14px;
   scroll-snap-type: y proximity;
   scrollbar-color: rgba(217, 255, 67, 0.52) rgba(255, 255, 255, 0.035);
   scrollbar-gutter: stable;
@@ -214,6 +210,20 @@
 .set-selector-dialog .set-results-scroll {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
   max-height: min(55vh, 34rem);
+}
+
+.set-results-scroll:has(> .set-results-spacer) {
+  scroll-snap-type: none;
+  overflow-anchor: none;
+}
+
+.set-results-scroll:has(> .set-results-spacer) .set-row {
+  content-visibility: visible;
+}
+
+.set-results-spacer {
+  grid-column: 1 / -1;
+  pointer-events: none;
 }
 
 .set-results-scroll > .mantine-Text-root,
@@ -275,12 +285,12 @@
   gap: 8px;
   margin-bottom: 8px;
   overflow: visible;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--operator-container-border) !important;
   border-radius: 11px !important;
   background: rgba(255, 255, 255, 0.045) !important;
   box-shadow: none !important;
   color: var(--deck-ink) !important;
-  padding: 13px 14px !important;
+  padding: 16px !important;
   text-align: left;
 }
 
@@ -289,31 +299,12 @@
   background: rgba(217, 255, 67, 0.065) !important;
 }
 
-.set-row .set-row-topline {
-  display: flex;
-  min-width: 0;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .set-row-flags {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 5px;
-}
-
-.set-row-flag-stack {
-  display: flex;
-  max-width: 62%;
-  flex: 0 1 auto;
-  margin-left: auto;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 4px;
 }
 
 .set-row-assignment-flags {
@@ -366,78 +357,4 @@
   border-color: rgba(255, 102, 90, 0.3);
   background: rgba(255, 102, 90, 0.1);
   color: #ff9b92;
-}
-
-.set-row .set-row-context {
-  min-width: 0;
-  color: #f7f3e8;
-  font-size: 11px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.set-row .set-row-matchup {
-  display: grid;
-  min-width: 0;
-  align-items: center;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 9px;
-}
-
-.set-row .set-row-player {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 7px;
-  color: #f7f3e8;
-  font-size: 14px;
-  font-weight: 750;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-}
-
-.set-row .set-row-player-two {
-  justify-content: flex-end;
-  text-align: right;
-}
-
-.set-row .set-row-player-name {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.set-row .set-row-outcome {
-  display: inline-grid;
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.set-row .set-row-outcome.is-winner {
-  background: #16834b;
-}
-
-.set-row .set-row-outcome.is-loser {
-  background: #bc3541;
-}
-
-.set-row .set-row-versus {
-  color: #888291;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.set-row .set-row-final-score {
-  color: #aaa5b5;
-  font-size: 11px;
-  font-weight: 700;
 }

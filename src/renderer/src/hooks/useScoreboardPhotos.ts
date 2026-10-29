@@ -13,6 +13,7 @@ const parseMessage = (value: unknown) =>
 export function useScoreboardPhotos() {
   return useRealtimeState({
     load: api.scoreboardPhotoSettings,
+    diagnosticOperation: 'scoreboard-photos',
     parseMessage,
     loadError: 'Unable to load scoreboard photo settings.'
   });

@@ -1,24 +1,12 @@
 import { recordDiagnostic } from '../../diagnostics';
 import { CharacterSelect } from './CharacterSelect';
+import { GeneratorChoiceControl } from './GeneratorChoiceControl';
 import { GeneratorNavigation } from './GeneratorNavigation';
 import { PanelHeader } from '../PanelHeader';
+import { TrophyIcon, SlidersHorizontalIcon, UsersIcon, MonitorIcon } from '../icons';
 import { PlayerNameInput } from '../players/PlayerNameInput';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import {
-  Badge,
-  Center,
-  ColorInput,
-  Group,
-  Loader,
-  Overlay,
-  Paper,
-  SegmentedControl,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title
-} from '@mantine/core';
+import { Center, ColorInput, Group, Loader, Overlay, Paper, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
 import { charactersForAssetCatalog } from '@shared/characterRosters';
@@ -34,9 +22,7 @@ import {
   hasConventionalTopEightPlacements,
   topEightStyleIds,
   topEightMediaModeIds,
-  validateTopEightDraft,
-  type TopEightMediaMode,
-  type TopEightStyleId
+  validateTopEightDraft
 } from '@shared/topEight';
 import { api } from '../../api';
 import { sortByLabel } from './operatorUtils';
@@ -96,6 +82,7 @@ export function TopEightGenerator({
     previewDraft,
     media,
     ready: mediaReady,
+    refreshing: mediaRefreshing,
     availableCharacterNames,
     characterAssets,
     mediaWarning
@@ -133,7 +120,7 @@ export function TopEightGenerator({
   );
   const stylingProfile = profiles.find((candidate) => candidate.id === previewDraft.stylingGameId) ?? profile;
   const validation = validateTopEightDraft(draft);
-  const previewCurrent = mediaReady && previewDraft === draft;
+  const previewCurrent = (mediaReady || mediaRefreshing) && previewDraft === draft;
   const logoUrl = useLogoAssetUrl(draft.logoAssetId);
   const sortedLogos = useMemo(
     () => sortByLabel(logos, (logo) => logo.label, i18n.resolvedLanguage ?? i18n.language),
@@ -307,6 +294,7 @@ export function TopEightGenerator({
         detailsId={`${sectionId}-details`}
         previewId={`${sectionId}-preview`}
         exporting={exporting}
+        previewLoading={gameContextReady && !validation && !previewCurrent}
         reason={
           !gameContextReady
             ? t('operator:generators.selectGame')
@@ -320,16 +308,13 @@ export function TopEightGenerator({
       />
       <Stack className="top8-generator-workspace" gap="md">
         <div className="generator-settings-row">
-          <Paper className="panel generator-section" data-tutorial="top-eight-setup" p="lg" radius="lg" withBorder>
+          <Paper className="panel generator-section" data-tutorial="top-eight-setup" radius="lg" withBorder>
             <PanelHeader
               title={t('operator:workspaces.generators.topEight.title')}
-              description={t('operator:topEight.description')}
+              icon={TrophyIcon}
+              inset="var(--generator-section-padding)"
               mb="md"
-            >
-              <Badge color={validation ? 'yellow' : 'green'} variant="light">
-                {validation ? t('operator:topEight.draft') : t('operator:topEight.ready')}
-              </Badge>
-            </PanelHeader>
+            />
             <Stack gap="md">
               {gameSelector}
               <TopEightEventDetails
@@ -365,8 +350,13 @@ export function TopEightGenerator({
               )}
             </Stack>
           </Paper>
-          <Paper className="panel generator-section top8-generator-controls" p="lg" radius="lg" withBorder>
-            <PanelHeader title={t('operator:quickTools.presentation')} mb="md" />
+          <Paper className="panel generator-section top8-generator-controls" radius="lg" withBorder>
+            <PanelHeader
+              title={t('operator:quickTools.presentation')}
+              icon={SlidersHorizontalIcon}
+              inset="var(--generator-section-padding)"
+              mb="md"
+            />
             <Stack gap="md">
               <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '36rem': 2 }}>
                 <Select
@@ -389,43 +379,30 @@ export function TopEightGenerator({
                   onChange={(value) => controller.setLogo(value ?? undefined)}
                 />
               </SimpleGrid>
-              <SimpleGrid spacing="sm" type="container" cols={{ base: 1, '36rem': 2 }}>
-                <div>
-                  <Text fw={700} size="sm" mb={4}>
-                    {t('operator:topEight.mediaMode')}
-                  </Text>
-                  <SegmentedControl
-                    fullWidth
-                    value={draft.mediaMode}
-                    data={topEightMediaModeIds.map((mode) => ({
-                      value: mode,
-                      label: t(`operator:topEight.mediaModes.${mode}`)
-                    }))}
-                    onChange={(value) => {
-                      controller.setMediaMode(value as TopEightMediaMode);
-                      setSelectedLayer(undefined);
-                    }}
-                  />
-                </div>
-                <div>
-                  <Text fw={700} size="sm" mb={4}>
-                    {t('operator:topEight.style')}
-                  </Text>
-                  <SegmentedControl
-                    className="top8-style-control"
-                    fullWidth
-                    value={draft.style}
-                    data={topEightStyleIds.map((style) => ({
-                      value: style,
-                      label: t(`operator:topEight.styles.${style}`)
-                    }))}
-                    onChange={(value) => {
-                      controller.setStyle(value as TopEightStyleId);
-                      setSelectedLayer(undefined);
-                    }}
-                  />
-                </div>
-              </SimpleGrid>
+              <GeneratorChoiceControl
+                label={t('operator:topEight.mediaMode')}
+                value={draft.mediaMode}
+                data={topEightMediaModeIds.map((mode) => ({
+                  value: mode,
+                  label: t(`operator:topEight.mediaModes.${mode}`)
+                }))}
+                onChange={(value) => {
+                  controller.setMediaMode(value);
+                  setSelectedLayer(undefined);
+                }}
+              />
+              <GeneratorChoiceControl
+                label={t('operator:topEight.style')}
+                value={draft.style}
+                data={topEightStyleIds.map((style) => ({
+                  value: style,
+                  label: t(`operator:topEight.styles.${style}`)
+                }))}
+                onChange={(value) => {
+                  controller.setStyle(value);
+                  setSelectedLayer(undefined);
+                }}
+              />
               <ColorInput
                 label={t('operator:topEight.headlineColor')}
                 value={draft.headlineColor}
@@ -444,7 +421,6 @@ export function TopEightGenerator({
         <Paper
           id={`${sectionId}-preview`}
           className="panel generator-section generator-section-target top8-preview-panel generator-preview-panel"
-          p="lg"
           radius="lg"
           pos="relative"
           withBorder
@@ -459,9 +435,12 @@ export function TopEightGenerator({
               </Center>
             </Overlay>
           )}
-          <Text fw={800} mb="sm">
-            {t('operator:topEight.preview')}
-          </Text>
+          <PanelHeader
+            title={t('operator:topEight.preview')}
+            icon={MonitorIcon}
+            inset="var(--generator-section-padding)"
+            mb="md"
+          />
           <Text c="dimmed" size="xs" mb="sm">
             {t('operator:topEight.previewQuality')}
           </Text>
@@ -498,13 +477,15 @@ export function TopEightGenerator({
         <Paper
           id={`${sectionId}-details`}
           className="panel generator-section generator-section-target top8-entrants-panel"
-          p="lg"
           radius="lg"
           withBorder
         >
-          <Title order={2} size="h4" mb="md">
-            {t('operator:topEight.placements')}
-          </Title>
+          <PanelHeader
+            title={t('operator:topEight.placements')}
+            icon={UsersIcon}
+            inset="var(--generator-section-padding)"
+            mb="md"
+          />
           <SimpleGrid type="container" cols={{ base: 1, '40rem': 2, '72rem': 4 }}>
             {draft.entrants.map((entrant, index) => (
               <Paper
@@ -514,7 +495,12 @@ export function TopEightGenerator({
                 radius="md"
                 withBorder
               >
-                <Text fw={800}>{t('operator:topEight.placement', { count: entrant.placement })}</Text>
+                <PanelHeader
+                  title={t('operator:topEight.placement', { count: entrant.placement })}
+                  icon={TrophyIcon}
+                  order={3}
+                  inset="md"
+                />
                 <div className="player-field-row">
                   <PlayerNameInput
                     label={t('operator:topEight.playerTag')}

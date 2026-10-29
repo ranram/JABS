@@ -1,9 +1,10 @@
+import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { bundledFontSchema } from './fonts';
 
 const label = z
   .string()
-  .max(100)
+  .refine(utf16AtMost(100))
   .refine((value) => !/[\u0000-\u001f\u007f]/u.test(value));
 const color = z.string().regex(/^#[0-9a-f]{6}$/i);
 export const appearanceSchema = z
@@ -20,6 +21,10 @@ export const appearanceSchema = z
   .strict();
 export type Appearance = z.infer<typeof appearanceSchema>;
 export const defaultAppearance: Appearance = appearanceSchema.parse({});
+const appearanceKeys = Object.keys(appearanceSchema.shape) as Array<keyof Appearance>;
+export function sameAppearance(left: Appearance, right: Appearance): boolean {
+  return appearanceKeys.every((key) => left[key] === right[key]);
+}
 export const appearancePresetSchema = z
   .object({
     id: z.string().regex(/^[a-zA-Z0-9-]{1,64}$/),
@@ -31,6 +36,11 @@ export const appearancePreferencesSchema = z
   .object({
     scoreboardFont: bundledFontSchema.optional(),
     appearance: appearanceSchema,
+    activePresetId: z
+      .string()
+      .regex(/^[a-zA-Z0-9-]{1,64}$/)
+      .nullable()
+      .optional(),
     presets: z
       .array(appearancePresetSchema)
       .max(20)

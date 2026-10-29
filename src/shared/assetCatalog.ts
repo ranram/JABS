@@ -7,3 +7,7 @@ export const assetCatalogRevisionSchema = z.object({
 export const assetCatalogMessageSchema = assetCatalogRevisionSchema.extend({
   event: z.literal('asset-catalog')
 });
+
+export const assetCatalogCheckSchema = assetCatalogRevisionSchema.extend({
+  changed: z.boolean()
+});

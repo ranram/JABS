@@ -2,12 +2,11 @@ import { recordDiagnostic, setOverlayDiagnosticTransport, type DiagnosticEvent }
 import { libraryLookupSchema, libraryImportSchema, libraryPlayerSchema, librarySaveSchema, librarySearchSchema, libraryResolveSchema, playerImportPageSchema, type LibraryPlayer, type LibraryIdentity } from '@shared/playerLibrary';
 import { appearancePreferencesSchema, type AppearancePreferences } from '@shared/appearancePreferences';
 import { gameCharacterPreparationSchema, startggVideogamesSchema, type GameCharacterPreparation } from '@shared/startggVideogames';
-import { invalidateCatalogConsumers } from './hooks/useCatalogRevision';
+import { invalidateCatalogConsumers, requestGameFolderCheck } from './hooks/useCatalogRevision';
 import { stingerStateSchema, stingerClaimSchema, type StingerSettings, type StingerKind } from '@shared/stingers';
-import { assetCatalogMessageSchema, assetCatalogRevisionSchema } from '@shared/assetCatalog';
+import { assetCatalogMessageSchema, assetCatalogRevisionSchema, assetCatalogCheckSchema } from '@shared/assetCatalog';
 import { bracketScreenStateSchema, type BracketSettings } from '@shared/bracketScreen';
 import { parseRealtimeJson } from './hooks/realtime';
-import { beginPendingWrite } from './pendingWrites';
 import type {
   AppHealth,
   ExhibitionGameSelection,
@@ -20,7 +19,7 @@ import type {
   OverlayState,
   RecentTournament,
   SelectedSetState,
-  StartggErrorCode,
+  ReportOutcome,
   StartggEventsResult,
   StartggEventStandingsResult,
   StartggPhaseGroupsResult,
@@ -54,10 +53,10 @@ import { withJsonBodyHeaders } from './requestInit';
 import { BoundedPromiseCache } from './boundedPromiseCache';
 import { trimTransparentPadding } from './trimTransparentPadding';
 import { blobDataUrl } from './blobDataUrl';
-import { decodeResponse, type ResponseDecoder } from './responseDecoder';
-import { i18n } from './i18n';
+import { RequestTrace, httpFailureReason, requestFailureReason } from './requestDiagnostics';
+import { createLocalApiTransport } from './localApiTransport';
+export { LocalApiError } from './localApiTransport';
 import { scoreboardPhotoSettingsSchema, resolvedScoreboardPhotosSchema, type ScoreboardPhotoSettings, type ScoreboardPhotoIdentity } from '@shared/scoreboardPhotos';
-import { localizedStartggError } from './i18n/startggErrors';
 import { localizedNativeError } from './i18n/nativeErrors';
 import {
   clearNativeStartggToken,
@@ -94,6 +93,8 @@ async function resolveApiBase(): Promise<string> {
 }
 
 const apiBasePromise = resolveApiBase();
+const { request, performRequest } = createLocalApiTransport(apiBasePromise);
+export { request, performRequest };
 if (window.location.pathname.startsWith('/overlay')) {
   setOverlayDiagnosticTransport(async (event, context) => {
     const base = await apiBasePromise;
@@ -111,7 +112,7 @@ function applyCatalogRevision(revision: number): void {
   // Several state hooks share this stream. Refresh each page only once per reload.
   if (nativeCatalogRevision === revision) return;
   nativeCatalogRevision = revision;
-  invalidateCatalogRasterCache();
+  invalidateCatalogRasterCache({ recheckGameFolders: false });
 }
 
 export function acceptCatalogMessage(value: unknown): boolean {
@@ -133,14 +134,21 @@ export function invalidateCatalogRasterCache({ recheckGameFolders = true } = {})
 async function cachedRasterUrl(cache: BoundedPromiseCache<string>, path: string, trimPadding = false): Promise<string> {
   return cache.getOrCreate(path, async () => {
     const apiBase = await apiBasePromise;
-    const response = await fetch(`${apiBase}${path}`);
+    const trace = new RequestTrace(path);
+    let response: Response;
+    try {
+      response = await fetch(`${apiBase}${path}`);
+    } catch (error) {
+      trace.record('image-failed', requestFailureReason(error));
+      throw error;
+    }
     if (!response.ok) {
-      recordDiagnostic('image-failed', { area: 'assets', status: response.status });
+      trace.record('image-failed', httpFailureReason(response.status), response.status);
       throw new Error(`Local image request failed (${response.status}).`);
     }
     const contentType = response.headers.get('content-type')?.split(';', 1)[0];
     if (!contentType || !['image/png', 'image/jpeg', 'image/webp'].includes(contentType)) {
-      recordDiagnostic('image-failed', { area: 'assets', reason: 'invalid-response' });
+      trace.record('image-failed', 'invalid-response', response.status);
       throw new Error('The local image response had an invalid content type.');
     }
     const source = await blobDataUrl(await response.blob());
@@ -154,80 +162,8 @@ async function catalogRasterUrl(path: string, trimPadding = false): Promise<stri
 
 window.addEventListener('pagehide', () => invalidateCatalogRasterCache(), { once: true });
 
-type RequestOptions<T> = {
-  retryNetworkFailure?: boolean;
-  decoder?: ResponseDecoder<T>;
-};
-
-export class LocalApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly code?: string
-  ) {
-    super(message);
-    this.name = 'LocalApiError';
-  }
-}
-
 function reportRendererDiagnostic(event: DiagnosticEvent): void {
   recordDiagnostic(event, { area: event.startsWith('stream-save:') ? 'stream' : 'app' });
-}
-
-async function request<T>(path: string, init?: RequestInit, options: RequestOptions<T> = {}): Promise<T> {
-  const finish = init?.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()) ? beginPendingWrite() : undefined;
-  try {
-    return await performRequest(path, init, options);
-  } finally {
-    finish?.();
-  }
-}
-
-async function performRequest<T>(path: string, init?: RequestInit, options: RequestOptions<T> = {}): Promise<T> {
-  const apiBase = await apiBasePromise;
-  let response: Response;
-  try {
-    response = await fetch(`${apiBase}${path}`, {
-      ...withJsonBodyHeaders(init)
-    });
-  } catch {
-    if (options.retryNetworkFailure) {
-      reportRendererDiagnostic('local-request:retry');
-      await new Promise((resolve) => window.setTimeout(resolve, 120));
-      try {
-        response = await fetch(`${apiBase}${path}`, {
-          ...withJsonBodyHeaders(init)
-        });
-      } catch {
-        reportRendererDiagnostic('local-request:failed');
-        throw new Error(i18n.t('errors:localServiceAfterRetry', { url: apiBase }));
-      }
-    } else {
-      reportRendererDiagnostic('local-request:failed');
-      throw new Error(i18n.t('errors:localService', { url: apiBase }));
-    }
-  }
-
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => undefined)) as {
-      error?: string;
-      code?: StartggErrorCode;
-    } | undefined;
-    throw new LocalApiError(localizedResponseError(payload, response.status), response.status, payload?.code);
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return decodeResponse(await response.json(), options.decoder, path);
-}
-
-function localizedResponseError(
-  payload: { error?: string; code?: StartggErrorCode } | undefined,
-  status: number
-): string {
-  return localizedStartggError(payload, i18n.t('errors:http', { status }));
 }
 
 export async function websocketUrl(): Promise<string> {
@@ -241,7 +177,7 @@ export async function websocketUrl(): Promise<string> {
 // OBS may embed an older browser without AbortSignal.timeout.
 async function stingerRequest(path: string, init?: RequestInit, timeoutMs = 4000) {
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  const timer = window.setTimeout(() => controller.abort(new DOMException('', 'TimeoutError')), timeoutMs);
   try {
     return await request(path, { ...init, signal: controller.signal }, { decoder: stingerStateSchema });
   } finally {
@@ -252,7 +188,7 @@ async function stingerRequest(path: string, init?: RequestInit, timeoutMs = 4000
 export const api = {
   scoreboardPhotoSettings: () => request('/api/scoreboard-photos', undefined, { decoder: scoreboardPhotoSettingsSchema }),
   updateScoreboardPhotoSettings: (settings: ScoreboardPhotoSettings) => request('/api/scoreboard-photos', { method: 'PUT', body: JSON.stringify(settings) }, { decoder: scoreboardPhotoSettingsSchema }),
-  resolveScoreboardPhotos: (players: ScoreboardPhotoIdentity[]) => request('/api/scoreboard-photos/resolve', { method: 'POST', body: JSON.stringify({ players }) }, { decoder: resolvedScoreboardPhotosSchema }),
+  resolveScoreboardPhotos: (players: ScoreboardPhotoIdentity[]) => request('/api/scoreboard-photos/resolve', { method: 'POST', body: JSON.stringify({ players }) }, { decoder: resolvedScoreboardPhotosSchema, trackPendingWrite: false }),
   playerHeadshotAssetUrl: (id: string) => catalogRasterUrl(`/assets/player-headshots/${encodeURIComponent(id)}`),
   stingers: () => stingerRequest('/api/broadcast/stingers'),
   updateStingers: (settings: StingerSettings) => request('/api/broadcast/stingers', { method: 'PUT', body: JSON.stringify(settings) }, { decoder: stingerStateSchema }),
@@ -292,6 +228,13 @@ export const api = {
   reloadAssets: async () => {
     const result = await request('/api/assets/reload', { method: 'POST' }, { decoder: assetCatalogRevisionSchema });
     applyCatalogRevision(result.revision);
+    requestGameFolderCheck();
+  },
+  checkAssets: async (signal?: AbortSignal) => {
+    const result = await request('/api/assets/check', { method: 'POST', signal }, { decoder: assetCatalogCheckSchema, trackPendingWrite: false });
+    if (result.changed || (nativeCatalogRevision !== undefined && nativeCatalogRevision !== result.revision)) {
+      applyCatalogRevision(result.revision);
+    } else nativeCatalogRevision ??= result.revision;
   },
   commentatorState: () => request<CommentatorState>(
     '/api/broadcast/commentators', undefined, { decoder: commentatorStateSchema }
@@ -342,7 +285,7 @@ export const api = {
     request<{ matches: OverlayMediaMatches['playerOne'][] }>('/api/assets/identity-media', {
       method: 'POST',
       body: JSON.stringify({ identities, ...context })
-    }),
+    }, { trackPendingWrite: false }),
   sponsorLogoAssetUrl: (assetId: string) =>
     catalogRasterUrl(`/assets/sponsor-logos/${encodeURIComponent(assetId)}`, true),
   playerPhotoAssetUrl: (assetId: string) =>
@@ -490,6 +433,7 @@ export const api = {
       body: JSON.stringify({ setId, gameId, ...context })
     }),
   reportStartggSet: (input: {
+    outcome?: ReportOutcome;
     setId: string;
     winnerId: string;
     updatedAt: string;
@@ -519,6 +463,11 @@ export const api = {
     request<OverlayState>('/api/state/selected-set', {
       method: 'DELETE'
     }, { retryNetworkFailure: true, decoder: overlayStateSchema }),
+  clearPlayerDetails: (updatedAt: string) => request<OverlayState>(
+    '/api/state/players/clear',
+    { method: 'POST', body: JSON.stringify({ updatedAt }) },
+    { decoder: overlayStateSchema }
+  ),
   validateModerationText: (field: string, value: string) =>
     request<{ safe: true }>('/api/moderation/text', {
       method: 'POST',

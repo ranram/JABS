@@ -1,5 +1,9 @@
 mod realtime;
+mod assets;
 mod selection;
+mod web;
+#[cfg(debug_assertions)]
+mod dev_web;
 use axum::{
     body::{Body, Bytes},
     Json, Router,
@@ -42,6 +46,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
         loop { interval.tick().await; stinger_runtime.stingers.expire(); }
     });
+    tokio::spawn(crate::match_queue::engine::run(runtime.clone()));
     crate::versus_history::watch(runtime.clone());
     tokio::spawn(crate::bracket_screen::run_refresh(runtime.clone()));
     let listener = tokio::net::TcpListener::from_std(listener)?;
@@ -70,6 +75,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .merge(crate::player_library::routes::router())
         .merge(crate::player_stats::router())
         .merge(crate::stingers::router())
+        .merge(crate::match_queue::router())
         .merge(crate::scoreboard_photos::router())
         .route("/api/health", get({
             let runtime = runtime.clone();
@@ -83,6 +89,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .route("/api/state/score", post(set_score))
         .route("/api/state/scores/reset", post(reset_scores))
         .route("/api/state/players/swap", post(swap_players))
+        .route("/api/state/players/clear", post(selection::clear_players))
         .route("/api/settings/appearance", get(crate::appearance_preferences::current).put(crate::appearance_preferences::update))
         // Broadcast layouts
         .route("/api/broadcast/commentators", get(commentator_state).put(update_commentator_state))
@@ -94,7 +101,8 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .route("/api/broadcast/versus-screen/history", post(refresh_versus_history))
         // Media catalogs and image files
         .route("/api/assets/logos", get(logos))
-        .route("/api/assets/reload", post(reload_assets))
+        .route("/api/assets/reload", post(assets::reload))
+        .route("/api/assets/check", post(assets::check))
         .route("/api/assets/catalog-summary", get(asset_catalog_summary))
         .route("/assets/tournament-logos/{asset_id}", get(logo_asset))
         .route("/api/assets/player-media", get(player_media))
@@ -140,10 +148,11 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .with_state(runtime)
         .layer(cors)
         .layer(axum::middleware::from_fn(move |request: axum::extract::Request, next: axum::middleware::Next| async move {
+            let route = request.uri().path().to_owned();
             if let Some(response) = reject_untrusted_request(request.method(), request.headers(), port) {
+                crate::diagnostics::http_failure(&route, response.status().as_u16());
                 return response;
             }
-            let route = request.uri().path().to_owned();
             let response = next.run(request).await;
             if response.status().is_client_error() || response.status().is_server_error() {
                 crate::diagnostics::http_failure(&route, response.status().as_u16());
@@ -217,6 +226,7 @@ async fn select_exhibition_game(
     if let Some(response) = reject_untrusted_mutation(&headers) {
         return response;
     }
+    runtime.match_queue.interrupt(&runtime.database);
     let previous = runtime.overlay.selected_set().ok();
     match runtime
         .overlay
@@ -249,6 +259,7 @@ async fn clear_selected_set(
     if let Some(response) = reject_untrusted_mutation(&headers) {
         return response;
     }
+    runtime.match_queue.interrupt(&runtime.database);
     match runtime.overlay.clear_selected_set(&runtime.database) {
         Ok(state) => {
             let _ = runtime.bracket_screen.clear(&runtime.database);
@@ -424,15 +435,6 @@ async fn asset_catalog_summary(
         Ok(summary) => secure_json(Json(summary)),
         Err(error) => secure_json((StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": error })))),
     }
-}
-
-async fn reload_assets(State(runtime): State<Arc<RuntimeState>>, headers: HeaderMap) -> Response {
-    if let Some(response) = reject_untrusted_mutation(&headers) {
-        return response;
-    }
-    runtime.player_stats.invalidate_images();
-    runtime.asset_catalog_revision.send_modify(|revision| *revision += 1);
-    secure_json(Json(serde_json::json!({ "revision": *runtime.asset_catalog_revision.borrow() })))
 }
 
 async fn logo_asset(
@@ -876,7 +878,25 @@ async fn startgg_sets(
         per_page: query.per_page,
     };
     match crate::startgg::sets(&runtime, request).await {
-        Ok(result) => secure_json(Json(result)),
+        Ok(result) => {
+            if let Some(sets) = result.get("sets").and_then(|sets| sets.as_array()) {
+                let observed = runtime.observe_startgg_sets(&query.event_id, sets);
+                if let Err(error) = observed {
+                    crate::diagnostics::record(
+                        crate::diagnostics::Event::RequestFailed,
+                        crate::diagnostics::Context {
+                            area: crate::diagnostics::Area::Bracket,
+                            operation: Some(crate::diagnostics::Operation::StartggSets),
+                            method: Some(crate::diagnostics::Method::Get),
+                            reason: Some(crate::diagnostics::Reason::Storage),
+                            ..Default::default()
+                        },
+                    );
+                    return state_result(Err(error));
+                }
+            }
+            secure_json(Json(result))
+        }
         Err(error) => startgg_error(error),
     }
 }
@@ -885,20 +905,20 @@ async fn startgg_sets(
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct SelectedSetBody {
-    set_id: String,
-    game_id: String,
-    asset_catalog_slug: Option<String>,
-    event_id: Option<String>,
-    tournament_slug: Option<String>,
+pub(crate) struct SelectedSetBody {
+    pub set_id: String,
+    pub game_id: String,
+    pub asset_catalog_slug: Option<String>,
+    pub event_id: Option<String>,
+    pub tournament_slug: Option<String>,
     #[serde(default = "default_true")]
-    restore_overrides: bool,
+    pub restore_overrides: bool,
     #[serde(default = "default_true")]
-    preserve_broadcast: bool,
+    pub preserve_broadcast: bool,
     #[serde(default)]
-    preserve_station: bool,
+    pub preserve_station: bool,
     #[serde(default)]
-    preserve_match_length: bool,
+    pub preserve_match_length: bool,
 }
 
 fn default_true() -> bool {
@@ -913,6 +933,17 @@ async fn inspect_startgg_set(
     if let Some(response) = reject_untrusted_mutation(&headers) { return response; }
     match fetch_selected_set(&runtime, &body).await {
         Ok(Some(mut selected_set)) => {
+            if let Some(event_id) = selected_set.event_id.as_deref() {
+                let summary = serde_json::json!({
+                    "id": selected_set.set_id,
+                    "state": selected_set.state,
+                    "entrantOne": { "id": selected_set.player_one.entrant_id },
+                    "entrantTwo": { "id": selected_set.player_two.entrant_id },
+                });
+                if let Err(error) = runtime.observe_startgg_sets(event_id, &[summary]) {
+                    return state_result(Err(error));
+                }
+            }
             reconcile_imported_characters(&mut selected_set, &runtime.game_asset_directory);
             secure_json(Json(serde_json::json!({
                 "selectedSet": selected_set,
@@ -932,32 +963,16 @@ async fn select_startgg_set(
     if let Some(response) = reject_untrusted_mutation(&headers) {
         return response;
     }
-    let mut fresh = match fetch_selected_set(&runtime, &body).await {
-        Ok(Some(selected_set)) => selected_set,
+    runtime.match_queue.interrupt(&runtime.database);
+    let raw = match fetch_selected_set(&runtime, &body).await {
+        Ok(Some(fresh)) => fresh,
         Ok(None) => return secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Set not found." })))),
         Err(error) => return startgg_error(error),
     };
-    if let Err(error) = selection::apply_player_preferences(
-        &runtime.database, &runtime.game_asset_directory, &mut fresh, body.restore_overrides,
-    ) {
-        return state_result(Err(error));
-    }
-    if body.preserve_broadcast {
-        if let Ok(current) = runtime.overlay.selected_set() {
-            retain_broadcast_extras(&mut fresh, &current);
-        }
-    }
-    if body.preserve_station || body.preserve_match_length {
-        if let Ok(current) = runtime.overlay.selected_set() {
-            if body.preserve_station {
-                fresh.station = current.station;
-            }
-            if body.preserve_match_length {
-                fresh.match_format = current.match_format;
-                fresh.best_of = current.best_of;
-            }
-        }
-    }
+    let mut fresh = match prepare_imported_set(&runtime, &body, raw) {
+        Ok(fresh) => fresh,
+        Err(error) => return state_result(Err(error)),
+    };
     let previous = runtime.overlay.selected_set().ok();
     let selected_set_changed = previous.as_ref().and_then(|current| current.set_id.as_deref()) != fresh.set_id.as_deref();
     crate::state::censor_untrusted_selected_set(&mut fresh);
@@ -992,6 +1007,18 @@ async fn select_startgg_set(
         }
         Err(error) => state_result(Err(error)),
     }
+}
+
+pub(crate) fn prepare_imported_set(runtime: &RuntimeState, body: &SelectedSetBody, mut fresh: crate::state::SelectedSet) -> Result<crate::state::SelectedSet, String> {
+    let upstream_reset = runtime.match_queue.result_was_reset(&fresh)?;
+    selection::apply_player_preferences(&runtime.database, &runtime.game_asset_directory, &mut fresh, body.restore_overrides, upstream_reset)?;
+    let current = runtime.overlay.selected_set()?;
+    if body.preserve_broadcast { retain_broadcast_extras(&mut fresh, &current); }
+    if body.preserve_station { fresh.station = current.station; }
+    if body.preserve_match_length && current.match_format.as_deref() == Some("best-of") {
+        fresh.match_format = current.match_format; fresh.best_of = current.best_of;
+    }
+    Ok(fresh)
 }
 
 fn retain_broadcast_extras(
@@ -1034,7 +1061,7 @@ fn reconcile_imported_characters(
     }
 }
 
-async fn fetch_selected_set(
+pub(crate) async fn fetch_selected_set(
     runtime: &RuntimeState,
     body: &SelectedSetBody,
 ) -> Result<Option<crate::state::SelectedSet>, crate::startgg::ApiError> {
@@ -1166,49 +1193,17 @@ async fn web_or_not_found(
             })),
         ));
     }
+    // OBS can retain packaged asset URLs when the app switches to a dev build.
+    if path.starts_with("assets/") {
+        return web::bundled_response(path);
+    }
     #[cfg(debug_assertions)]
     {
-        let port = _runtime.api_port.load(std::sync::atomic::Ordering::Acquire);
-        let separator = if uri.query().is_some() { '&' } else { '?' };
-        let location = format!("http://127.0.0.1:5173{}{}apiPort={port}", uri, separator);
-        let mut response = StatusCode::TEMPORARY_REDIRECT.into_response();
-        if let Ok(location) = HeaderValue::from_str(&location) {
-            response.headers_mut().insert(header::LOCATION, location);
-        }
-        return secure_json(response);
+        dev_web::response(uri).await
     }
     #[cfg(not(debug_assertions))]
     {
-        let asset_path = if path.is_empty() { "index.html" } else { path };
-        let resolved = crate::web_assets::get(asset_path)
-            .map(|contents| (asset_path, contents))
-            .or_else(|| (!asset_path.contains('.')).then(|| {
-                crate::web_assets::get("index.html").map(|contents| ("index.html", contents))
-            }).flatten());
-        let Some((asset_path, contents)) = resolved else {
-            return secure_json((
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({ "error": "Web asset not found." })),
-            ));
-        };
-        if contents.is_empty() {
-            return secure_json((
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({ "error": "JABS web assets are unavailable." })),
-            ));
-        }
-        let mut response = Response::new(Body::from(contents));
-        response.headers_mut().insert(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static(crate::web_assets::mime_type(asset_path)),
-        );
-        response.headers_mut().insert(
-            header::CONTENT_SECURITY_POLICY,
-            HeaderValue::from_static(
-                "default-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ws://127.0.0.1:*"
-            ),
-        );
-        secure_json(response)
+        web::bundled_response(path)
     }
 }
 
@@ -1321,12 +1316,21 @@ mod tests {
         ).unwrap());
         let mut assets = runtime.asset_catalog_revision.subscribe();
         let revision = *assets.borrow();
-        let rejected = super::reload_assets(axum::extract::State(runtime.clone()), HeaderMap::new()).await;
+        let rejected = super::assets::reload(axum::extract::State(runtime.clone()), HeaderMap::new()).await;
         assert_eq!(rejected.status(), axum::http::StatusCode::FORBIDDEN);
         assert!(!assets.has_changed().unwrap());
         let mut reload_headers = HeaderMap::new();
         reload_headers.insert("x-jabs-action", HeaderValue::from_static("renderer-v1"));
-        let accepted = super::reload_assets(axum::extract::State(runtime), reload_headers).await;
+        let rejected_check = super::assets::check(axum::extract::State(runtime.clone()), HeaderMap::new()).await;
+        assert_eq!(rejected_check.status(), axum::http::StatusCode::FORBIDDEN);
+        let unchanged = super::assets::check(axum::extract::State(runtime.clone()), reload_headers.clone()).await;
+        assert_eq!(unchanged.status(), axum::http::StatusCode::OK);
+        let body = axum::body::to_bytes(unchanged.into_body(), 1024).await.unwrap();
+        let response: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(response["changed"], false);
+        assert_eq!(response["revision"], revision);
+        assert!(!assets.has_changed().unwrap());
+        let accepted = super::assets::reload(axum::extract::State(runtime), reload_headers).await;
         assert_eq!(accepted.status(), axum::http::StatusCode::OK);
         assets.changed().await.unwrap();
         let body = axum::body::to_bytes(accepted.into_body(), 1024).await.unwrap();

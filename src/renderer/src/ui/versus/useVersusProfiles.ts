@@ -24,6 +24,6 @@ export function useVersusProfiles(set?: SelectedSetState): VersusProfile[] {
       : [];
     return { key, players };
   }, [key, revision]);
-  const { state } = useRealtimeState({ load, parseMessage: noMessage, loadError: 'Unable to load library details.' });
+  const { state } = useRealtimeState({ load, diagnosticOperation: 'players-resolve', parseMessage: noMessage, loadError: 'Unable to load library details.' });
   return state?.key === key ? state.players.map((player) => player ?? {}) : [];
 }

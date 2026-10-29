@@ -7,7 +7,7 @@
 }
 .player-library-modal-header {
   flex: 0 0 auto;
-  border-bottom: 1px solid var(--mantine-color-dark-4);
+  border-bottom: 1px solid var(--operator-container-border);
   background: var(--mantine-color-dark-7);
 }
 .player-library-modal-body {
@@ -69,8 +69,7 @@
   outline: 2px solid var(--mantine-primary-color-filled);
   outline-offset: -2px;
 }
-.player-library-row-details,
-.player-library-heading {
+.player-library-row-details {
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
@@ -91,12 +90,9 @@
   flex-shrink: 0;
   padding: var(--mantine-spacing-md);
 }
-.player-library-detail-header {
-  border-bottom: 1px solid var(--mantine-color-dark-4);
-}
 .player-library-detail-actions,
 .player-library-pagination {
-  border-top: 1px solid var(--mantine-color-dark-4);
+  border-top: 1px solid var(--operator-container-border);
 }
 .player-library-detail-scroll {
   padding: var(--mantine-spacing-md);
@@ -133,9 +129,12 @@
   }
 }
 
-.player-library-lookup {
-  align-items: flex-start;
+.player-library-confirm-actions > .mantine-Button-root {
+  min-height: 36px;
+  height: auto;
+  padding-block: 8px;
 }
-.player-library-lookup > .mantine-Button-root {
-  margin-top: var(--operator-input-label-offset);
+.player-library-confirm-actions .mantine-Button-label {
+  white-space: normal;
+  text-align: center;
 }

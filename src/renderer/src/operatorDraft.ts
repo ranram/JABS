@@ -83,7 +83,6 @@ export function reconcileDirtyDraft(
     displayName: changed('displayName', draft, baseline, live),
     round: changed('round', draft, baseline, live),
     station: changed('station', draft, baseline, live),
-    state: changed('state', draft, baseline, live),
     stylingGameId: changed('stylingGameId', draft, baseline, live),
     customScoreboardId: changed('customScoreboardId', draft, baseline, live),
     customScoreboardRevision: changed('customScoreboardRevision', draft, baseline, live),

@@ -7,6 +7,8 @@ export type TutorialStep = {
   fallbackTarget?: string;
   workspace?: TutorialWorkspace;
   openLibrary?: boolean;
+  openQueue?: boolean;
+  openMenu?: 'matches' | 'assets';
   link?: string;
 };
 
@@ -24,7 +26,7 @@ export const tutorials = {
     { id: 'quickStream', target: '.editor-panel', fallbackTarget: '.startgg-panel' },
     { id: 'quickReporting', target: target('report-result'), fallbackTarget: target('api-access') },
     obs,
-    { id: 'quickLibrary', target: target('players') },
+    { id: 'quickLibrary', target: target('players'), openMenu: 'matches' },
     { id: 'quickFinish', target: target('help') }
   ],
   tournament: [
@@ -33,6 +35,16 @@ export const tutorials = {
     { id: 'sets', target: '.set-list' },
     { id: 'stream', target: '.editor-panel' },
     obs
+  ],
+  matchQueue: [
+    { id: 'queueAdd', target: '.set-list', fallbackTarget: '.tournament-lookup-row', workspace: 'bracket' },
+    { id: 'queueOpen', target: target('queue-open'), openMenu: 'matches' },
+    { id: 'queueOrder', target: target('queue-list'), openQueue: true },
+    { id: 'queueModes', target: target('queue-settings'), openQueue: true },
+    { id: 'queuePlayback', target: target('queue-playback'), openQueue: true },
+    { id: 'queueEdit', target: target('queue-list'), openQueue: true },
+    { id: 'queueTiming', target: target('queue-settings'), openQueue: true },
+    { id: 'queueSaved', target: target('queue-panel'), openQueue: true }
   ],
   exhibition: [
     { id: 'exhibition', target: target('bracket-options'), workspace: 'bracket' },
@@ -60,11 +72,11 @@ export const tutorials = {
     { id: 'reporting', target: target('api-access') }
   ],
   library: [
-    { id: 'library', target: target('players') },
-    { id: 'libraryFind', target: '.player-library-toolbar', openLibrary: true },
+    { id: 'library', target: target('players'), openMenu: 'matches' },
+    { id: 'libraryFind', target: '[data-tutorial="player-library-create"]', openLibrary: true },
     { id: 'librarySelect', target: '.player-library-list', openLibrary: true },
     { id: 'libraryDefaults', target: '.player-library-workspace', openLibrary: true },
-    { id: 'libraryBackup', target: '.player-library-toolbar', openLibrary: true }
+    { id: 'libraryBackup', target: '.player-library-file-actions', openLibrary: true }
   ],
   media: [
     { id: 'media', target: '.thumbnail-generator .generator-preview-panel', workspace: 'thumbnail' },
@@ -77,7 +89,7 @@ export const tutorials = {
     { id: 'assetCharacters', target: target('assets') },
     { id: 'assetPhotos', target: target('assets') },
     { id: 'assetLogos', target: target('assets') },
-    { id: 'assetReload', target: target('reload-assets') }
+    { id: 'assetReload', target: target('reload-assets'), openMenu: 'assets' }
   ],
   scoreboard: [
     { id: 'scoreboard', target: '.custom-scoreboard-library-controls', workspace: 'custom-scoreboard' },
@@ -96,6 +108,6 @@ export const tutorials = {
 
 export type TutorialId = keyof typeof tutorials;
 export const tutorialIds = [
-  'quickStart', 'tokens', 'tournament', 'exhibition', 'library', 'folders', 'media',
+  'quickStart', 'tokens', 'tournament', 'matchQueue', 'exhibition', 'library', 'folders', 'media',
   'scoreboard', 'stingers', 'topEight', 'thumbnail'
 ] as const satisfies readonly TutorialId[];

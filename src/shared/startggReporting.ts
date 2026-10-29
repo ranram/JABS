@@ -1,7 +1,8 @@
-import type { SelectedSetState, SetGameCharacterSelection } from './models';
+import type { SelectedSetState, SetGameCharacterSelection, ReportOutcome } from './models';
 import { scoreLimitForBestOf } from './gameProfiles';
 
 export type ReportableStartggResult = {
+  outcome?: ReportOutcome;
   setId: string;
   winnerId: string;
   winnerName: string;
@@ -21,12 +22,27 @@ export type StartggReportReadiness =
   | {
       ready: false;
       reason: string;
-      reasonCode: 'already-complete' | 'set-missing' | 'exhibition-local-only' | 'entrants-missing' | 'score-incomplete' | 'history-mismatch';
+      reasonCode:
+        | 'already-complete'
+        | 'upstream-reset'
+        | 'invalid-winner'
+        | 'set-missing'
+        | 'exhibition-local-only'
+        | 'entrants-missing'
+        | 'score-incomplete'
+        | 'history-mismatch';
       bestOf?: number;
       target?: number;
     };
 
-export function startggReportReadiness(selectedSet: SelectedSetState): StartggReportReadiness {
+export function startggReportReadiness(selectedSet: SelectedSetState, outcome?: ReportOutcome): StartggReportReadiness {
+  if (selectedSet.upstreamReset && !outcome) {
+    return {
+      ready: false,
+      reasonCode: 'upstream-reset',
+      reason: 'Reset or update the local score before reporting this result.'
+    };
+  }
   if (selectedSet.state === '3') {
     return { ready: false, reason: 'This set is already marked complete on start.gg.', reasonCode: 'already-complete' };
   }
@@ -41,9 +57,30 @@ export function startggReportReadiness(selectedSet: SelectedSetState): StartggRe
     };
   }
   if (!selectedSet.playerOne.entrantId || !selectedSet.playerTwo.entrantId) {
-    return { ready: false, reason: 'Both start.gg entrant IDs are required to report a result.', reasonCode: 'entrants-missing' };
+    return {
+      ready: false,
+      reason: 'Both start.gg entrant IDs are required to report a result.',
+      reasonCode: 'entrants-missing'
+    };
   }
 
+  if (outcome) {
+    const players = [selectedSet.playerOne, selectedSet.playerTwo];
+    const winner = players.find((player) => player.entrantId === outcome.winnerId);
+    if (!winner) return { ready: false, reasonCode: 'invalid-winner', reason: 'Choose the winning entrant.' };
+    const loser = winner === selectedSet.playerOne ? selectedSet.playerTwo : selectedSet.playerOne;
+    return {
+      ready: true,
+      result: {
+        setId: selectedSet.setId,
+        winnerId: winner.entrantId,
+        winnerName: winner.name,
+        winnerScore: winner.score,
+        loserScore: loser.score,
+        outcome
+      }
+    };
+  }
   const target = scoreLimitForBestOf(selectedSet.gameId, selectedSet.bestOf);
   const oneWon = selectedSet.playerOne.score === target && selectedSet.playerTwo.score < target;
   const twoWon = selectedSet.playerTwo.score === target && selectedSet.playerOne.score < target;
@@ -68,9 +105,7 @@ export function startggReportReadiness(selectedSet: SelectedSetState): StartggRe
       (game) => game.winnerId === selectedSet.playerTwo.entrantId
     ).length;
     const hasUnknownWinner = selectedSet.gameHistory.some(
-      (game) =>
-        game.winnerId !== selectedSet.playerOne.entrantId &&
-        game.winnerId !== selectedSet.playerTwo.entrantId
+      (game) => game.winnerId !== selectedSet.playerOne.entrantId && game.winnerId !== selectedSet.playerTwo.entrantId
     );
     if (
       hasUnknownWinner ||
@@ -86,9 +121,7 @@ export function startggReportReadiness(selectedSet: SelectedSetState): StartggRe
     gameData = selectedSet.gameHistory.map((game, index) => ({
       gameNum: index + 1,
       winnerId: game.winnerId,
-      ...(game.selections?.length
-        ? { selections: game.selections.map((selection) => ({ ...selection })) }
-        : {})
+      ...(game.selections?.length ? { selections: game.selections.map((selection) => ({ ...selection })) } : {})
     }));
   }
   return {

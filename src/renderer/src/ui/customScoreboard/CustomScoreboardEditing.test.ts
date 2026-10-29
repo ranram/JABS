@@ -93,6 +93,8 @@ it('selects visible flag pixels and locks pointer or keyboard moves to the activ
 
 it('grabs small text accurately at reduced preview sizes without saving hand jitter', async () => {
   const editor = await mountEditor();
+  editor.selectedSet.setId = 'tournament-set';
+  editor.selectedSet.playerOne.seed = 3;
   editor.scoreboard = withCustomScoreboardRegion(editor.scoreboard, 'playerOneName', {
     x: 100,
     y: 40,
@@ -202,7 +204,9 @@ it('enables individual rails locally and preserves their visibility when saved',
   expect(changeBroadcast).toHaveBeenLastCalledWith({ infoBarEnabled: false });
   editor.scoreboard = { ...editor.scoreboard, visibility: { ...editor.scoreboard.visibility, bottomRails: false } };
   await extras.rerender();
-  const leftRail = [...extras.container.querySelectorAll('label')].find((node) => node.textContent === 'Left rail')!;
+  const leftRail = [...extras.container.querySelectorAll<HTMLLabelElement>('.mantine-Checkbox-label')].find(
+    (node) => node.textContent === 'Left rail'
+  )!;
   await act(async () => leftRail.click());
   expect(editor.scoreboard.visibility).toMatchObject({
     bottomRails: true,

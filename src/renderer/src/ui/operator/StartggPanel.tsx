@@ -30,16 +30,30 @@ import { TopEightGenerator } from './TopEightGenerator';
 import { useTopEightDraft } from './useTopEightDraft';
 import { useGameAssetPreparation, type GameAssetSelection } from './useGameAssetPreparation';
 import { GameSelect } from './GameSelect';
-import { api, invalidateCatalogRasterCache } from '../../api';
+import { useAssetRefreshOnReturn } from './useAssetRefreshOnReturn';
 import { generatorGameContext, standaloneGameContext } from './generatorGameContext';
 import { CustomScoreboardPanel } from './CustomScoreboardPanel';
 import { WorkspaceMaintenanceBar } from './WorkspaceMaintenanceBar';
 import type { LocalHandoffUrl } from '../../desktopRuntime';
 import { BracketRefreshStatus } from './BracketRefreshStatus';
-import { PanelHeader } from '../PanelHeader';
 import type { BracketController } from './bracketController';
 import { displayPhaseName } from '@shared/matchContext';
 import type { CharacterCatalogOptions } from './useCharacterCatalogOptions';
+import { PanelHeader } from '../PanelHeader';
+import {
+  OperatorIcon,
+  ListChecksIcon,
+  TreeStructureIcon,
+  PlugsConnectedIcon,
+  FlagCheckeredIcon,
+  GameControllerIcon,
+  KeyIcon,
+  SquaresFourIcon,
+  StackIcon,
+  FilmSlateIcon,
+  TrophyIcon,
+  YoutubeLogoIcon
+} from '../icons';
 
 type StartggPanelProps = {
   bracket: BracketController;
@@ -154,19 +168,15 @@ export function StartggPanel({
     if (workspace === 'bracket' || !selectedEventId) setSetSelectorOpen(false);
   }, [workspace, selectedEventId]);
   const closeSetSelector = () => setSetSelectorOpen(false);
-  const selectorContent = typeof setSelector === 'function'
-    ? setSelector({ inDialog: setSelectorOpen, onClose: closeSetSelector })
-    : setSelector;
+  const selectorContent =
+    typeof setSelector === 'function'
+      ? setSelector({ inDialog: setSelectorOpen, onClose: closeSetSelector })
+      : setSelector;
   const selectorUsesPhase = setScope?.type === 'phase' || setScope?.type === 'phaseGroup';
   const selectorPhaseId = setScope?.type === 'phase' ? setScope.phaseId : selectedPhaseId;
-  const selectorPhase = selectorUsesPhase
-    ? phases.find((phase) => String(phase.id) === selectorPhaseId)
-    : undefined;
+  const selectorPhase = selectorUsesPhase ? phases.find((phase) => String(phase.id) === selectorPhaseId) : undefined;
   const selectedEvent = events.find((event) => String(event.id) === selectedEventId);
   const selectorContextName = displayPhaseName(selectorPhase?.name) || selectedEvent?.name.trim();
-  const selectorTitle = [t('operator:selector.title'), selectorContextName]
-    .filter(Boolean)
-    .join(' · ');
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const sortedEvents = useMemo(() => sortByLabel(events, (event) => event.name, locale), [events, locale]);
   const sortedGameProfiles = useMemo(
@@ -192,12 +202,12 @@ export function StartggPanel({
   const assetCatalogSlug = gameContext.assetCatalogSlug;
   // Keep the English navigation order in every language, with brackets first.
   const workspaces = [
-    { id: 'bracket', label: t('operator:workspaces.bracket') },
-    { id: 'custom-scoreboard', label: t('operator:workspaces.customScoreboard') },
-    { id: 'overlays', label: t('operator:workspaces.otherOverlays') },
-    { id: 'stingers', label: t('operator:workspaces.stingers') },
-    { id: 'top-eight', label: t('operator:workspaces.topEight') },
-    { id: 'thumbnail', label: t('operator:workspaces.thumbnail') }
+    { id: 'bracket', label: t('operator:workspaces.bracket'), icon: TreeStructureIcon },
+    { id: 'custom-scoreboard', label: t('operator:workspaces.customScoreboard'), icon: SquaresFourIcon },
+    { id: 'overlays', label: t('operator:workspaces.otherOverlays'), icon: StackIcon },
+    { id: 'stingers', label: t('operator:workspaces.stingers'), icon: FilmSlateIcon },
+    { id: 'top-eight', label: t('operator:workspaces.topEight'), icon: TrophyIcon },
+    { id: 'thumbnail', label: t('operator:workspaces.thumbnail'), icon: YoutubeLogoIcon }
   ];
   const [topEightGameSelection, setTopEightGameSelection] = useState<GameAssetSelection>();
   const [thumbnailGameSelection, setThumbnailGameSelection] = useState<GameAssetSelection>();
@@ -213,28 +223,7 @@ export function StartggPanel({
     tournamentLoaded ? assetCatalogSlug : thumbnail.draft.assetCatalogSlug,
     tournamentLoaded ? eventGameSelection : thumbnailGameSelection
   );
-  useEffect(() => {
-    let leftApp = false;
-    let timer: number | undefined;
-    const leave = () => {
-      leftApp = true;
-      window.clearTimeout(timer);
-    };
-    const refresh = () => {
-      if (!leftApp) return;
-      leftApp = false;
-      timer = window.setTimeout(() => {
-        void api.reloadAssets().catch(() => invalidateCatalogRasterCache());
-      }, 200);
-    };
-    window.addEventListener('blur', leave);
-    window.addEventListener('focus', refresh);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener('blur', leave);
-      window.removeEventListener('focus', refresh);
-    };
-  }, []);
+  useAssetRefreshOnReturn();
   useEffect(() => {
     if (!tournamentLoaded || !assetCatalogSlug) return;
     if (eventVideogameId) {
@@ -247,92 +236,94 @@ export function StartggPanel({
   }, [tournamentLoaded, gameContext.gameId, gameContext.gameName, assetCatalogSlug, eventVideogameId]);
   return (
     <>
-      <Paper className="panel startgg-panel" p="md" radius="lg" withBorder>
-        <PanelHeader title={t('operator:startgg.title')} description={t('operator:startgg.description')}>
+      <details className="startgg-panel operator-disclosure operator-setup" open={!tournamentLoaded}>
+        <summary>
+          <OperatorIcon icon={PlugsConnectedIcon} />
+          <div className="operator-setup-summary">
+            <Text fw={700}>{t('operator:ux.setup')}</Text>
+            {tournamentLoaded && selectedEvent && <span className="operator-setup-context">{selectedEvent.name}</span>}
+          </div>
           <BracketRefreshStatus refresh={bracketRefresh} />
-        </PanelHeader>
-
-        <SimpleGrid type="container" cols={{ base: 1, '48rem': 2 }} mt="md">
-          <Stack gap="sm" className="startgg-entry-block operator-inset" data-tutorial="api-access">
-            <div>
-              <Text fw={700}>{t('operator:startgg.apiAccess')}</Text>
-            </div>
-            <PasswordInput
-              ref={tokenInputRef}
-              autoComplete="off"
-              placeholder={t('operator:startgg.tokenPlaceholder')}
-              disabled={loading}
-              onChange={(event) => onTokenInputReady(Boolean(event.currentTarget.value.trim()))}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && tokenInputReady) onSaveToken();
-              }}
-            />
-            <Group grow preventGrowOverflow={false}>
-              <Button disabled={loading || !tokenInputReady} onClick={onSaveToken}>
-                {tokenStorageAvailable ? t('operator:startgg.saveToken') : t('operator:startgg.useForSession')}
-              </Button>
-              {tokenConfigured && (
-                <DestructiveButton disabled={loading} onClick={onRemoveToken}>
-                  {t('operator:startgg.removeToken')}
-                </DestructiveButton>
-              )}
-            </Group>
-            <div>
-              <Text size="xs" c="dimmed">
-                {t('operator:startgg.tokenLocal')}
-              </Text>
-              <Text size="xs" c="dimmed">
-                {t('operator:startgg.publicHelp')}
-              </Text>
-              {!tokenStorageAvailable && (
-                <Text size="sm" c="dimmed">
-                  {t('operator:startgg.sessionStorage')}
-                </Text>
-              )}
-            </div>
-          </Stack>
-
-          <Stack gap="sm" className="startgg-entry-block operator-inset">
-            <div>
-              <Text fw={700}>{t('operator:startgg.tournament')}</Text>
-            </div>
-            <Group align="flex-end" wrap="wrap" className="tournament-lookup-row">
-              <TextInput
-                data-testid="tournament-input"
-                value={tournamentSlug}
-                placeholder={t('operator:startgg.tournamentPlaceholder')}
-                onChange={(event) => bracket.actions.setTournamentSlug(event.currentTarget.value)}
-                style={{ flex: 1 }}
+        </summary>
+        <div className="operator-disclosure-content">
+          <SimpleGrid type="container" cols={{ base: 1, '48rem': 2 }}>
+            <Stack gap="sm" className="startgg-entry-block operator-inset" data-tutorial="api-access">
+              <PanelHeader title={t('operator:startgg.apiAccess')} icon={KeyIcon} order={3} inset="sm" />
+              <PasswordInput
+                ref={tokenInputRef}
+                autoComplete="off"
+                placeholder={t('operator:startgg.tokenPlaceholder')}
+                disabled={loading}
+                onChange={(event) => onTokenInputReady(Boolean(event.currentTarget.value.trim()))}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && tokenInputReady) onSaveToken();
+                }}
               />
-              <Button
-                data-testid="load-events"
-                disabled={loading || !tournamentSlug}
-                onClick={() => bracket.actions.loadEvents()}
-              >
-                {t('operator:startgg.loadEvents')}
-              </Button>
-            </Group>
-            {recentTournaments.length > 0 && (
-              <Group gap="xs" aria-label={t('operator:startgg.recentAria')}>
-                <Text size="xs" c="dimmed">
-                  {t('operator:startgg.recent')}
-                </Text>
-                {recentTournaments.map((tournament) => (
-                  <Button
-                    key={tournament.slug}
-                    variant="subtle"
-                    size="compact-xs"
-                    disabled={loading}
-                    onClick={() => bracket.actions.loadEvents(tournament.slug)}
-                  >
-                    {tournament.slug}
-                  </Button>
-                ))}
+              <Group grow preventGrowOverflow={false}>
+                <Button disabled={loading || !tokenInputReady} onClick={onSaveToken}>
+                  {tokenStorageAvailable ? t('operator:startgg.saveToken') : t('operator:startgg.useForSession')}
+                </Button>
+                {tokenConfigured && (
+                  <DestructiveButton disabled={loading} onClick={onRemoveToken}>
+                    {t('operator:startgg.removeToken')}
+                  </DestructiveButton>
+                )}
               </Group>
-            )}
-          </Stack>
-        </SimpleGrid>
-      </Paper>
+              <div>
+                <Text size="xs" c="dimmed">
+                  {t('operator:startgg.tokenLocal')}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  {t('operator:startgg.publicHelp')}
+                </Text>
+                {!tokenStorageAvailable && (
+                  <Text size="sm" c="dimmed">
+                    {t('operator:startgg.sessionStorage')}
+                  </Text>
+                )}
+              </div>
+            </Stack>
+
+            <Stack gap="sm" className="startgg-entry-block operator-inset">
+              <PanelHeader title={t('operator:startgg.tournament')} icon={FlagCheckeredIcon} order={3} inset="sm" />
+              <Group align="flex-end" wrap="wrap" className="tournament-lookup-row">
+                <TextInput
+                  data-testid="tournament-input"
+                  value={tournamentSlug}
+                  placeholder={t('operator:startgg.tournamentPlaceholder')}
+                  onChange={(event) => bracket.actions.setTournamentSlug(event.currentTarget.value)}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  data-testid="load-events"
+                  disabled={loading || !tournamentSlug}
+                  onClick={() => bracket.actions.loadEvents()}
+                >
+                  {t('operator:startgg.loadEvents')}
+                </Button>
+              </Group>
+              {recentTournaments.length > 0 && (
+                <Group gap="xs" aria-label={t('operator:startgg.recentAria')}>
+                  <Text size="xs" c="dimmed">
+                    {t('operator:startgg.recent')}
+                  </Text>
+                  {recentTournaments.map((tournament) => (
+                    <Button
+                      key={tournament.slug}
+                      variant="subtle"
+                      size="compact-xs"
+                      disabled={loading}
+                      onClick={() => bracket.actions.loadEvents(tournament.slug)}
+                    >
+                      {tournament.slug}
+                    </Button>
+                  ))}
+                </Group>
+              )}
+            </Stack>
+          </SimpleGrid>
+        </div>
+      </details>
 
       <Tabs
         className="operator-workspaces"
@@ -375,7 +366,7 @@ export function StartggPanel({
           />
           <Tabs.List aria-label={t('operator:workspaces.aria')}>
             {workspaces.map((item) => (
-              <Tabs.Tab key={item.id} value={item.id}>
+              <Tabs.Tab key={item.id} value={item.id} leftSection={<OperatorIcon icon={item.icon} />}>
                 {item.label}
               </Tabs.Tab>
             ))}
@@ -387,12 +378,11 @@ export function StartggPanel({
             <div className="bracket-overview-grid">
               <Paper className="panel bracket-workspace" p="md" radius="lg" withBorder>
                 {detectedProfile && (
-                  <Group gap="xs">
-                    <Text size="sm">{t('operator:startgg.detectedProfile')}</Text>
+                  <PanelHeader title={t('operator:startgg.detectedProfile')} icon={GameControllerIcon} inset="md">
                     <Badge variant="light" h="auto" maw="100%" styles={{ label: { whiteSpace: 'normal' } }}>
                       {detectedProfile.label}
                     </Badge>
-                  </Group>
+                  </PanelHeader>
                 )}
 
                 <Group mt="md" align="flex-end" gap="md">
@@ -588,8 +578,16 @@ export function StartggPanel({
         </Tabs.Panel>
       </Tabs>
       {setSelectorOpen && (
-        <Modal opened onClose={closeSetSelector} title={selectorTitle} size="xl">
-          {selectorContent}
+        <Modal opened onClose={closeSetSelector} title={t('operator:selector.title')} size="xl">
+          <Stack gap="md" className="set-selector-modal">
+            <PanelHeader
+              title={selectorContextName || t('operator:selector.title')}
+              icon={ListChecksIcon}
+              order={3}
+              inset="md"
+            />
+            {selectorContent}
+          </Stack>
         </Modal>
       )}
     </>

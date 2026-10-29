@@ -5,10 +5,12 @@ export function matchesSetPills(
   set: SetSummary,
   filters: readonly string[],
   assignment?: StartggStreamAssignment,
-  activeSetId?: string
+  activeSetId?: string,
+  queued = false
 ): boolean {
   const values = {
     status: setStatusTone(set, activeSetId),
+    queue: queued ? 'queued' : undefined,
     station: set.station,
     stream: assignment ? streamAssignmentFilterValue(assignment) : undefined
   };

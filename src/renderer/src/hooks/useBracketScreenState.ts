@@ -12,6 +12,7 @@ const parseMessage = (value: unknown) =>
 export function useBracketScreenState() {
   return useRealtimeState({
     load: api.bracketScreenState,
+    diagnosticOperation: 'bracket-screen',
     parseMessage,
     loadError: 'Could not load the bracket screen.'
   });

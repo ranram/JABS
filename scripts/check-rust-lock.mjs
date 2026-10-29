@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { verifyVendoredGlib } from "./vendored-glib.mjs";
 
 const lockfilePath = resolve(process.cwd(), "src-tauri", "Cargo.lock");
 const lockfile = await readFile(lockfilePath, "utf8").catch((error) => {
@@ -54,5 +55,12 @@ for (const block of packageBlocks) {
     throw new Error(`Registry package ${name} ${version} is missing its SHA-256 checksum.`);
   }
 }
+
+const glib = packageBlocks.filter((block) => /^name = "glib"$/m.test(block));
+if (glib.length !== 1 || !/^version = "0.18.5"$/m.test(glib[0]) || /^source = /m.test(glib[0])) {
+  throw new Error("The current GTK3 graph must use the reviewed local GLib security backport.");
+}
+const manifest = await verifyVendoredGlib(resolve(process.cwd(), "vendor", "glib"));
+console.log(`Verified GLib ${manifest.version} backport for ${manifest.advisory}.`);
 
 console.log(`Rust lock policy passed for ${packageBlocks.length} locked packages.`);

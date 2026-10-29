@@ -1,3 +1,4 @@
+import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { bundledFontIds, bundledFontSchema, type BundledFontId } from './fonts';
 
@@ -58,8 +59,8 @@ const playerElementRegionsSchema = z.object({
 export const customScoreboardSchema = z.object({
   version: z.literal(1),
   id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/),
-  name: z.string().trim().min(1).max(60),
-  frameRevision: z.string().min(1).max(64),
+  name: z.string().trim().min(1).refine(utf16AtMost(60)),
+  frameRevision: z.string().min(1).refine(utf16AtMost(64)),
   regions: z.object({
     // Retained so layouts imported before independent player regions remain readable.
     playerOne: regionSchema,

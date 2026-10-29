@@ -31,7 +31,7 @@ export function useGameAssetPreparation(
       return;
     }
     const key = JSON.stringify([assetCatalogSlug, videogameId]);
-    // Returning to JABS checks the same folders quietly; a new game shows setup progress.
+    // A new game shows setup progress; explicit folder rechecks run quietly.
     if (previousSelection.current !== key) setStatus({ loading: true });
     previousSelection.current = key;
     void api

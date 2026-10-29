@@ -1,3 +1,5 @@
+import { OperatorDisclosure } from './OperatorDisclosure';
+import { OperatorIcon, SlidersHorizontalIcon, UploadSimpleIcon, SquaresFourIcon } from '../icons';
 import { CustomScoreboardBroadcastExtras } from './CustomScoreboardBroadcastExtras';
 import { DestructiveButton } from '../DestructiveButton';
 import type { NoticeSink } from './operatorNotice';
@@ -8,7 +10,6 @@ import {
   ColorInput,
   FileInput,
   Fieldset,
-  Group,
   NumberInput,
   Paper,
   Select,
@@ -185,7 +186,7 @@ export function CustomScoreboardPanel({
     <Paper className="panel custom-scoreboard-workspace" p="md" radius="lg" withBorder>
       <Fieldset disabled={working} variant="unstyled">
         <Stack gap="md">
-          <PanelHeader title={t('customScoreboard.title')} description={t('customScoreboard.description')}>
+          <PanelHeader title={t('customScoreboard.title')} icon={SquaresFourIcon} inset="md">
             {draft && frameUrl && (
               <Badge color={autosaveStatusColors[status]} role="status">
                 {t(`customScoreboard.autosave.${status}`)}
@@ -207,64 +208,82 @@ export function CustomScoreboardPanel({
               }}
             />
 
-            <SimpleGrid cols={{ base: 1, md: 3 }}>
-              <TextInput
-                label={t('customScoreboard.name')}
-                value={name}
-                maxLength={60}
-                onChange={(event) => setName(event.currentTarget.value)}
-              />
-              <FileInput
-                label={t('customScoreboard.image')}
-                description={t('customScoreboard.imageHelp')}
-                inputWrapperOrder={['label', 'input', 'description', 'error']}
-                accept="image/png"
-                value={file}
-                clearable
-                onChange={setFile}
-              />
-              <Button
-                className="custom-scoreboard-import-button"
-                loading={working}
-                disabled={!file || !name.trim()}
-                onClick={() => void importScoreboard()}
-              >
-                {t('customScoreboard.import')}
-              </Button>
-            </SimpleGrid>
+            <OperatorDisclosure title={t('customScoreboard.import')} icon={UploadSimpleIcon} expandWhen={!draft}>
+              <SimpleGrid type="container" cols={{ base: 1, '48rem': 3 }}>
+                <TextInput
+                  label={t('customScoreboard.name')}
+                  value={name}
+                  maxLength={60}
+                  onChange={(event) => setName(event.currentTarget.value)}
+                />
+                <FileInput
+                  label={t('customScoreboard.image')}
+                  description={t('customScoreboard.imageHelp')}
+                  inputWrapperOrder={['label', 'input', 'description', 'error']}
+                  accept="image/png"
+                  value={file}
+                  clearable
+                  onChange={setFile}
+                />
+                <Button
+                  className="custom-scoreboard-import-button"
+                  loading={working}
+                  disabled={!file || !name.trim()}
+                  onClick={() => void importScoreboard()}
+                >
+                  {t('customScoreboard.import')}
+                </Button>
+              </SimpleGrid>
+            </OperatorDisclosure>
           </div>
           {draft && frameUrl && (
             <>
+              <Stack gap="xs">
+                <SimpleGrid
+                  className="operator-action-grid"
+                  type="container"
+                  cols={{ base: 1, '36rem': status === 'error' ? 4 : 3 }}
+                >
+                  {status === 'error' && (
+                    <Button variant="light" onClick={retry}>
+                      {t('customScoreboard.retry')}
+                    </Button>
+                  )}
+                  <Button
+                    variant={activeScoreboardId === draft.id ? 'light' : 'filled'}
+                    color={activeScoreboardId === draft.id ? 'green' : undefined}
+                    onClick={() => onSelect(draft.id, draft.frameRevision)}
+                  >
+                    {activeScoreboardId === draft.id ? t('customScoreboard.active') : t('customScoreboard.useInObs')}
+                  </Button>
+                  <Button variant="default" onClick={() => onSelect(undefined)}>
+                    {t('customScoreboard.useAutomatic')}
+                  </Button>
+                  <DestructiveButton disabled={saving} loading={working} onClick={() => void removeScoreboard()}>
+                    {t('customScoreboard.delete')}
+                  </DestructiveButton>
+                </SimpleGrid>
+              </Stack>
               <div className="custom-scoreboard-editor-layout">
+                <div className="custom-scoreboard-preview-column">
+                  <div className="custom-scoreboard-preview-shell">
+                    <CustomScoreboardCanvas
+                      scoreboard={draft}
+                      frameUrl={frameUrl}
+                      selectedSet={activeSet}
+                      logoUrl={logoUrl}
+                      editingRegion={regionId}
+                      editorLabel={t('customScoreboard.keyboardCanvas')}
+                      onSelectRegion={working ? undefined : setRegionId}
+                      onMoveRegion={working ? undefined : (region, x, y) => patchRegion({ x, y }, region)}
+                    />
+                  </div>
+                  <Text c="dimmed" size="xs">
+                    {t('customScoreboard.dragHelp')}
+                  </Text>
+                </div>
                 <div className="custom-scoreboard-field-controls">
-                  <Stack gap="xs">
-                    <Group grow preventGrowOverflow={false}>
-                      {status === 'error' && (
-                        <Button variant="light" onClick={retry}>
-                          {t('customScoreboard.retry')}
-                        </Button>
-                      )}
-                      <Button
-                        variant={activeScoreboardId === draft.id ? 'light' : 'filled'}
-                        color={activeScoreboardId === draft.id ? 'green' : undefined}
-                        onClick={() => onSelect(draft.id, draft.frameRevision)}
-                      >
-                        {activeScoreboardId === draft.id
-                          ? t('customScoreboard.active')
-                          : t('customScoreboard.useInObs')}
-                      </Button>
-                      <Button variant="default" onClick={() => onSelect(undefined)}>
-                        {t('customScoreboard.useAutomatic')}
-                      </Button>
-                      <DestructiveButton disabled={saving} loading={working} onClick={() => void removeScoreboard()}>
-                        {t('customScoreboard.delete')}
-                      </DestructiveButton>
-                    </Group>
-                    <Text size="xs" c="dimmed">
-                      {t('customScoreboard.autosaveHelp')}
-                    </Text>
-                  </Stack>
-                  <SimpleGrid cols={{ base: 1, md: 2 }}>
+                  <SimpleGrid type="container" cols={{ base: 1, '48rem': 2 }}>
                     <TextInput
                       label={t('customScoreboard.savedName')}
                       value={draft.name}
@@ -288,17 +307,13 @@ export function CustomScoreboardPanel({
                       }
                     />
                   )}
-                  <CustomScoreboardBroadcastExtras
-                    scoreboard={draft}
-                    onChange={setDraft}
-                    broadcast={activeSet?.broadcast}
-                    onBroadcastChange={activeSet ? onPatchBroadcast : undefined}
-                  />
-                  <Accordion variant="contained" defaultValue="appearance">
+                  <Accordion variant="contained">
                     <Accordion.Item className="operator-inset" value="appearance">
-                      <Accordion.Control>{t('quickTools.presentation')}</Accordion.Control>
+                      <Accordion.Control icon={<OperatorIcon icon={SlidersHorizontalIcon} />}>
+                        {t('quickTools.presentation')}
+                      </Accordion.Control>
                       <Accordion.Panel>
-                        <Stack gap="md">
+                        <Stack gap="md" pt="md">
                           <SimpleGrid cols={2}>
                             {(
                               ['flags', 'sponsors', 'xHandles', 'pronouns', 'seeds', 'round', 'tournamentLogo'] as const
@@ -373,27 +388,16 @@ export function CustomScoreboardPanel({
                               />
                             ))}
                           </SimpleGrid>
+                          <CustomScoreboardBroadcastExtras
+                            scoreboard={draft}
+                            onChange={setDraft}
+                            broadcast={activeSet?.broadcast}
+                            onBroadcastChange={activeSet ? onPatchBroadcast : undefined}
+                          />
                         </Stack>
                       </Accordion.Panel>
                     </Accordion.Item>
                   </Accordion>
-                </div>
-                <div className="custom-scoreboard-preview-column">
-                  <div className="custom-scoreboard-preview-shell">
-                    <CustomScoreboardCanvas
-                      scoreboard={draft}
-                      frameUrl={frameUrl}
-                      selectedSet={activeSet}
-                      logoUrl={logoUrl}
-                      editingRegion={regionId}
-                      editorLabel={t('customScoreboard.keyboardCanvas')}
-                      onSelectRegion={working ? undefined : setRegionId}
-                      onMoveRegion={working ? undefined : (region, x, y) => patchRegion({ x, y }, region)}
-                    />
-                  </div>
-                  <Text c="dimmed" size="xs">
-                    {t('customScoreboard.dragHelp')}
-                  </Text>
                 </div>
               </div>
             </>

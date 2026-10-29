@@ -10,7 +10,6 @@
   --deck-black: #0b0910;
   --deck-panel: rgba(22, 19, 29, 0.9);
   --deck-panel-strong: rgba(13, 11, 18, 0.97);
-  --deck-line: rgba(255, 255, 255, 0.12);
   --deck-lime: #d9ff43;
   --deck-coral: #ff665a;
   --deck-cyan: #69e7ff;
@@ -151,7 +150,7 @@
 .operator-shell code {
   display: block;
   overflow-wrap: anywhere;
-  border: 1px dashed rgba(105, 231, 255, 0.35);
+  border: 1px dashed var(--operator-container-border);
   border-radius: 10px;
   background: #08070c;
   color: #b9f4ff;
@@ -163,7 +162,7 @@
 
 .hero-panel,
 .operator-shell .panel {
-  border: 1px solid var(--deck-line);
+  border: 1px solid var(--operator-container-border);
   background: linear-gradient(145deg, rgba(29, 25, 38, 0.94), rgba(15, 13, 21, 0.94));
   box-shadow: var(--deck-shadow);
 }
@@ -430,7 +429,7 @@
   width: fit-content;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--deck-line);
+  border: 1px solid var(--operator-container-border);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   color: #c5c0cb;

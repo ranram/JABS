@@ -3,7 +3,8 @@ import { useState, type Dispatch, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { scoreLimitForBestOf, type GameId } from '@shared/gameProfiles';
 import { characterTeamSelection } from '@shared/characterTeams';
-import type { SelectedSetState, SetSummary, StartggResultMeta } from '@shared/models';
+import type { SelectedSetState, SetSummary, StartggResultMeta, ReportOutcome } from '@shared/models';
+import { reportOutcomeText, reportConfirmationText } from './ResultOutcomeControls';
 import { startggReportReadiness, type StartggReportReadiness } from '@shared/startggReporting';
 import type { StartggGateway } from '@shared/startggGateway';
 import { errorMessage, setQuickScoreValue } from './operatorUtils';
@@ -69,7 +70,6 @@ export function useQuickScoreActions({
     if (!nextTarget) return;
     setLoading(true);
     setReceipt(undefined);
-    setMessage(undefined, 'info');
     try {
       const response = await startgg.inspectStartggSet(nextTarget.id, setLoadGameId, {
         eventId: selectedEventId || undefined,
@@ -96,19 +96,13 @@ export function useQuickScoreActions({
       assetCatalogSlug
     });
     recordResult(response);
-    setTarget((current) => current
-      ? restoreModeratedSummary(current, response.selectedSet)
-      : current);
-    setScoreState((current) => current
-      ? restoreModeratedSet(current, response.selectedSet)
-      : current);
-    setBaseline((current) => current
-      ? restoreModeratedSet(current, response.selectedSet)
-      : current);
+    setTarget((current) => (current ? restoreModeratedSummary(current, response.selectedSet) : current));
+    setScoreState((current) => (current ? restoreModeratedSet(current, response.selectedSet) : current));
+    setBaseline((current) => (current ? restoreModeratedSet(current, response.selectedSet) : current));
   }
 
   function changeScore(side: 'one' | 'two', score: number): void {
-    setScoreState((current) => current ? setQuickScoreValue(current, side, score) : current);
+    setScoreState((current) => (current ? setQuickScoreValue(current, side, score) : current));
   }
 
   function changeBestOf(bestOf: number): void {
@@ -136,38 +130,36 @@ export function useQuickScoreActions({
   }
 
   function resetScores(): void {
-    setScoreState((current) => current ? {
-      ...current,
-      gameHistory: [],
-      playerOne: { ...current.playerOne, score: 0 },
-      playerTwo: { ...current.playerTwo, score: 0 }
-    } : current);
+    setScoreState((current) =>
+      current
+        ? {
+            ...current,
+            gameHistory: [],
+            playerOne: { ...current.playerOne, score: 0 },
+            playerTwo: { ...current.playerTwo, score: 0 }
+          }
+        : current
+    );
   }
 
-  async function report(): Promise<void> {
+  async function report(outcome?: ReportOutcome): Promise<void> {
     if (!scoreState || !baseline) {
       setMessage(t('messages.quickSetRequired'), 'warning');
       return;
     }
+    const readiness = startggReportReadiness(scoreState, outcome);
     if (!readiness.ready) {
       setMessage(readinessReason(readiness), 'warning');
       return;
     }
     const result = readiness.result;
-    if (!window.confirm(t('messages.quickConfirm', {
-      winner: result.winnerName,
-      playerOne: scoreState.playerOne.name,
-      scoreOne: scoreState.playerOne.score,
-      scoreTwo: scoreState.playerTwo.score,
-      playerTwo: scoreState.playerTwo.name,
-      setId: result.setId
-    }))) return;
+    if (!window.confirm(reportConfirmationText(scoreState, result, 'quick'))) return;
 
     setLoading(true);
-    setMessage(undefined, 'info');
     try {
       const response = await startgg.quickReportStartggSet({
         setId: result.setId,
+        outcome,
         gameId: scoreState.gameId,
         bestOf: scoreState.bestOf,
         expected: {
@@ -183,22 +175,28 @@ export function useQuickScoreActions({
         confirmed: true
       });
       setTokenVerified(true);
-      const characterNotice = response.reportedCharacterSelectionCount > 0
-        ? ` ${t('messages.characterSelectionsReported', {
-            count: response.reportedCharacterSelectionCount
-          })}`
-        : '';
-      const nextReceipt = `${t('messages.quickReceipt', {
-        winner: result.winnerName,
-        winnerScore: result.winnerScore,
-        loserScore: result.loserScore,
-        setId: response.reportedSetId,
-        completion: response.reportedSetState === '3' ? t('messages.markedComplete') : ''
-      })}${characterNotice}`;
+      const characterNotice =
+        response.reportedCharacterSelectionCount > 0
+          ? ` ${t('messages.characterSelectionsReported', {
+              count: response.reportedCharacterSelectionCount
+            })}`
+          : '';
+      const nextReceipt = outcome
+        ? `${reportOutcomeText(scoreState, outcome)} ${t('outcomes.accepted')}`
+        : `${t('messages.quickReceipt', {
+            winner: result.winnerName,
+            winnerScore: result.winnerScore,
+            loserScore: result.loserScore,
+            setId: response.reportedSetId,
+            completion: response.reportedSetState === '3' ? t('messages.markedComplete') : ''
+          })}${characterNotice}`;
       setReceipt(nextReceipt);
-      setScoreState((current) => current ? { ...current, state: response.reportedSetState } : current);
+      setScoreState((current) => (current ? { ...current, state: response.reportedSetState } : current));
       const refreshed = await refreshAfterReport();
-      setMessage(refreshed ? nextReceipt : `${nextReceipt} ${t('messages.selectorRefreshFailed')}`, refreshed ? 'success' : 'warning');
+      setMessage(
+        refreshed ? nextReceipt : `${nextReceipt} ${t('messages.selectorRefreshFailed')}`,
+        refreshed ? 'success' : 'warning'
+      );
     } catch (error) {
       setTokenVerified(false);
       setMessage(errorMessage(error, t('messages.quickReportFailed')), 'error');

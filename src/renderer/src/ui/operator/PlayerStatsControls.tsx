@@ -43,10 +43,7 @@ export function PlayerStatsControls({ logos, profiles }: { logos: LogoAsset[]; p
   ] as const;
   return (
     <Stack gap="md">
-      <Text size="sm" c="dimmed">
-        {t('workspaces.playerStats.sharedSettings')}
-      </Text>
-      <SimpleGrid type="container" cols={{ base: 1, '32rem': 2 }}>
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <Select
           label={t('workspaces.styling')}
           placeholder={t('workspaces.playerStats.liveStyle')}
@@ -65,7 +62,7 @@ export function PlayerStatsControls({ logos, profiles }: { logos: LogoAsset[]; p
           onChange={(logoAssetId) => void update({ logoAssetId })}
         />
       </SimpleGrid>
-      <SimpleGrid type="container" cols={{ base: 1, '32rem': 2 }}>
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <Switch
           label={t('workspaces.transparentBackground')}
           checked={!state.showBackground}

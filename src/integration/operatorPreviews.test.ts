@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, createElement as h, useState } from 'react';
 import { MantineProvider } from '@mantine/core';
-import { afterEach, beforeAll, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import { gameProfiles } from '@shared/gameProfiles';
 import { createTestOverlayState, createTestCustomScoreboard } from '@shared/testFixtures';
 import type { StartggGateway } from '@shared/startggGateway';
@@ -20,8 +20,15 @@ import { StartggPanel } from '../renderer/src/ui/operator/StartggPanel';
 import { useBracketBrowser } from '../renderer/src/ui/operator/useBracketBrowser';
 import { useCustomScoreboard } from '../renderer/src/hooks/useCustomScoreboard';
 
+vi.mock('../renderer/src/hooks/useScoreboardPhotos', () => ({
+  useScoreboardPhotos: () => ({
+    state: { enabled: false, logoBackdrop: false, sponsorBackdrop: false, updatedAt: '1' }
+  })
+}));
+
 const transport = vi.hoisted(() => ({
   revision: 1,
+  check: vi.fn(async () => false),
   catalogRevision: 1000,
   games: vi.fn(),
   characters: vi.fn(async (_slug: string): Promise<{ assets: GameCharacterAsset[] }> => ({ assets: [] })),
@@ -70,6 +77,12 @@ vi.mock('../renderer/src/api', async (importOriginal) => {
         original.acceptCatalogMessage(
           JSON.stringify({ event: 'asset-catalog', revision: ++transport.catalogRevision })
         ),
+      checkAssets: async () => {
+        if (await transport.check())
+          original.acceptCatalogMessage(
+            JSON.stringify({ event: 'asset-catalog', revision: ++transport.catalogRevision })
+          );
+      },
       customScoreboards: transport.scoreboards,
       customScoreboardFrameUrl: async () => `data:image/png;base64,frame${transport.revision}`,
       updateCustomScoreboard: transport.save,
@@ -80,6 +93,14 @@ vi.mock('../renderer/src/api', async (importOriginal) => {
 
 const scoreboard = createTestCustomScoreboard();
 Object.assign(scoreboard.visibility, { flags: false, tournamentLogo: true, bottomRails: false });
+beforeEach(() => {
+  vi.stubGlobal(
+    'WebSocket',
+    class extends EventTarget {
+      close() {}
+    }
+  );
+});
 beforeAll(async () => {
   await initializeI18n();
 });
@@ -330,6 +351,10 @@ it('imports final standings automatically and refreshes preview media without re
   for (const selector of ['.top8-canvas', '.thumbnail-canvas']) {
     expect(view.container.querySelector(`${selector} img[src="data:image/png;base64,logo2"]`)).not.toBeNull();
   }
+  expect(view.container.textContent).not.toContain(i18n.t('operator:quickTools.loadingPreview'));
+  for (const button of view.container.querySelectorAll<HTMLButtonElement>('.generator-export-actions button')) {
+    expect(button.disabled).toBe(false);
+  }
   await act(async () => finishCatalog({ assets: characterAssets }));
   assertArtwork(2);
   await act(async () => {
@@ -496,40 +521,38 @@ it('keeps standalone games independent, follows loaded events in both generators
   await tab('thumbnail');
   expect(gameInput().value).toBe('Samurai Shodown');
   const reads = transport.characters.mock.calls.length;
-  const preparations = folderChecks.mock.calls.length;
+  const preparationRequests = () => folderChecks.mock.calls.filter(([url]) => url.includes('/game-characters/prepare'));
+  const preparations = preparationRequests().length;
   // Window-management focus events alone must not trigger asset work.
   await act(async () => {
     window.dispatchEvent(new Event('focus'));
     await vi.advanceTimersByTimeAsync(300);
   });
   expect(transport.characters).toHaveBeenCalledTimes(reads);
-  expect(folderChecks).toHaveBeenCalledTimes(preparations);
-  let finishPreparation!: () => void;
-  const pendingPreparation = new Promise<void>((resolve) => {
-    finishPreparation = resolve;
-  });
-  folderChecks.mockImplementation(async () => {
-    await pendingPreparation;
-    return new Response(JSON.stringify({ created: 0, rosterAvailable: true }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  });
+  expect(preparationRequests()).toHaveLength(preparations);
   await act(async () => {
     window.dispatchEvent(new Event('blur'));
     window.dispatchEvent(new Event('focus'));
-    await vi.advanceTimersByTimeAsync(300);
+    await vi.advanceTimersByTimeAsync(500);
   });
+  expect(transport.check).toHaveBeenCalledTimes(1);
+  expect(transport.characters).toHaveBeenCalledTimes(reads);
+  expect(preparationRequests()).toHaveLength(preparations);
   expect(view.container.textContent).not.toContain(i18n.t('operator:generators.preparingCharacters'));
-  expect(transport.characters.mock.calls.length).toBeGreaterThan(reads);
-  expect(folderChecks.mock.calls.length).toBeGreaterThan(preparations);
-  const refreshedReads = transport.characters.mock.calls.length;
-  await act(async () => finishPreparation());
-  expect(transport.characters).toHaveBeenCalledTimes(refreshedReads);
-  const afterFocus = folderChecks.mock.calls.length;
+  transport.check.mockResolvedValueOnce(true);
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(1000);
+    window.dispatchEvent(new Event('blur'));
+    window.dispatchEvent(new Event('focus'));
+    await vi.advanceTimersByTimeAsync(5_000);
   });
-  expect(folderChecks).toHaveBeenCalledTimes(afterFocus);
+  expect(transport.check).toHaveBeenCalledTimes(2);
+  expect(transport.characters.mock.calls.length).toBeGreaterThan(reads);
+  expect(preparationRequests()).toHaveLength(preparations);
+  const refreshedReads = transport.characters.mock.calls.length;
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1_000);
+  });
+  expect(transport.characters).toHaveBeenCalledTimes(refreshedReads);
   // Loading a tournament binds both drafts to its selected event, including unsupported games.
   await act(async () => browser.actions.loadEvents('loaded-tournament'));
   expect(gameInput().readOnly).toBe(true);

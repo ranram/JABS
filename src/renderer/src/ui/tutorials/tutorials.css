@@ -6,7 +6,7 @@
   width: min(360px, calc(100vw - 32px));
   margin: 0;
   padding: var(--mantine-spacing-md);
-  border: 1px solid var(--mantine-color-violet-5);
+  border: 1px solid var(--operator-container-border);
   border-radius: var(--mantine-radius-md);
   background: var(--mantine-color-dark-7);
   color: var(--mantine-color-text);
@@ -24,6 +24,10 @@
 .jabs-tutorial .driver-popover-description {
   font-size: var(--mantine-font-size-sm);
   line-height: 1.5;
+}
+
+.jabs-tutorial .driver-popover-description strong {
+  font-weight: 700;
 }
 
 .jabs-tutorial .driver-popover-footer {

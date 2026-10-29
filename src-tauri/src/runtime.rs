@@ -19,6 +19,7 @@ pub struct RuntimeState {
     pub secure_storage_available: AtomicBool,
     pub session_token: Mutex<Option<Zeroizing<String>>>,
     pub overlay: OverlayStore,
+    pub match_queue: crate::match_queue::QueueStore,
     pub commentators: CommentatorStore,
     pub result_screen: ResultScreenStore,
     pub stingers: crate::stingers::StingerStore,
@@ -42,9 +43,19 @@ pub struct RuntimeState {
     pub moderation_allowlist_path: PathBuf,
     pub reporting_set_id: tokio::sync::Mutex<Option<String>>,
     pub asset_catalog_revision: tokio::sync::watch::Sender<u64>,
+    pub asset_changes: crate::catalogs::changes::AssetChangeTracker,
 }
 
 impl RuntimeState {
+    pub fn observe_startgg_sets(&self, event_id: &str, sets: &[serde_json::Value]) -> Result<(), String> {
+        let reset_ids = self.match_queue.observe_bracket(&self.database, event_id, sets)?;
+        let live_reset = self.overlay.observe_bracket_state(&self.database, event_id, sets, &reset_ids)?;
+        for set_id in reset_ids.into_iter().chain(live_reset) {
+            self.stingers.reset_set_completion(&set_id);
+        }
+        Ok(())
+    }
+
     pub fn new(
         database: Database,
         logo_directory: PathBuf,
@@ -66,11 +77,17 @@ impl RuntimeState {
         let result_screen = ResultScreenStore::load(&database)?;
         let versus_screen = VersusScreenStore::load(&database)?;
         let top_eight_matchups = TopEightMatchupsStore::load(&database)?;
+        let player_headshot_directory = player_photo_directory.with_file_name("player_headshots");
+        let asset_changes = crate::catalogs::changes::AssetChangeTracker::new(vec![
+            logo_directory.clone(), sponsor_directory.clone(), player_photo_directory.clone(),
+            player_headshot_directory.clone(), game_asset_directory.clone(), custom_scoreboard_directory.clone(),
+        ]);
         Ok(Self {
             api_port: AtomicU16::new(0),
             secure_storage_available: AtomicBool::new(false),
             session_token: Mutex::new(None),
             overlay,
+            match_queue: crate::match_queue::QueueStore::load(&database)?,
             commentators,
             result_screen,
             stingers: crate::stingers::StingerStore::load(&database)?,
@@ -84,7 +101,8 @@ impl RuntimeState {
             top_eight_matchups,
             startgg: StartggService::default(),
             scoreboard_photos: crate::scoreboard_photos::PhotoStore::load(&database)?,
-            player_headshot_directory: player_photo_directory.with_file_name("player_headshots"),
+            player_headshot_directory,
+            asset_changes,
             database,
             logo_directory,
             sponsor_directory,

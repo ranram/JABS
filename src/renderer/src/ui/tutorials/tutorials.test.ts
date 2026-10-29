@@ -1,11 +1,15 @@
 // @vitest-environment happy-dom
-import { act, createElement as h } from 'react';
+import { act, createElement as h, useState } from 'react';
 import { readFileSync } from 'node:fs';
 import { MantineProvider } from '@mantine/core';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { mountHook } from '../../hooks/hookTestHarness';
 import { initializeI18n, i18n } from '../../i18n';
 import { HelpMenu } from './HelpMenu';
+import { MatchesMenu } from '../operator/MatchesMenu';
+import { MatchQueueModal } from '../operator/MatchQueueModal';
+import { MatchQueueContext, type QueueController } from '../operator/matchQueueContext';
+import { tutorials } from './tutorials';
 import { runTutorial, type TutorialPopover } from './runTutorial';
 import { isTutorialActive } from './tutorialActivity';
 
@@ -63,17 +67,33 @@ it('advances Help guides with a real Next click without touching token fields', 
     <div class="tournament-lookup-row"></div><div class="startgg-panel"></div>
     <div data-tutorial="bracket-options"></div><div data-tutorial="obs"></div>
     <button data-tutorial="players">Players</button>
-    <div data-tutorial="assets"><button data-tutorial="reload-assets">Reload assets</button></div>
+    <div data-tutorial="assets">
+      <button data-tutorial="assets-menu" aria-expanded="false">Media</button>
+      <div data-assets-dropdown hidden>
+        <button data-folder-action>Open assets folder</button>
+        <button data-tutorial="reload-assets">Reload assets</button>
+      </div>
+    </div>
   `);
+  const assetsMenu = fields.querySelector<HTMLButtonElement>('[data-tutorial="assets-menu"]')!;
+  assetsMenu.addEventListener('click', () => {
+    const expanded = assetsMenu.getAttribute('aria-expanded') !== 'true';
+    assetsMenu.setAttribute('aria-expanded', String(expanded));
+    fields.querySelector<HTMLElement>('[data-assets-dropdown]')!.hidden = !expanded;
+  });
   const secret = fields.querySelector('input')!;
   const change = vi.fn();
   secret.addEventListener('input', change);
   const navigate = vi.fn();
-  const help = () => h(MantineProvider, { env: 'test' }, h(HelpMenu, { navigate }));
+  const help = () => h(MantineProvider, { env: 'test' }, h('div', {},
+    h(MatchesMenu, { setSelectorDisabled: true, onOpenSetSelector() {} }),
+    h(HelpMenu, { navigate })
+  ));
   const mountHelp = () => mountHook(help, true, (view) => view);
   window.localStorage.removeItem('jabs.quick-start.dismissed');
   let view = await mountHelp();
   expect(document.querySelector('.jabs-tutorial .driver-popover-title')?.textContent).toBe('Welcome to JABS!');
+  expect(view.container.querySelector('[data-tutorial="matches-menu"]')?.getAttribute('aria-expanded')).toBe('false');
   await act(async () => document.querySelector<HTMLButtonElement>('[aria-label="Close guide"]')!.click());
   expect(window.localStorage.getItem('jabs.quick-start.dismissed')).toBe('true');
   await view.unmount();
@@ -83,8 +103,8 @@ it('advances Help guides with a real Next click without touching token fields', 
   await act(async () => button('Help', view.container).click());
   const guides = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
     .map((item) => item.textContent);
-  expect(guides.slice(1, 6)).toEqual([
-    'Quick Start', 'Connect a start.gg token', 'Run a tournament', 'Run an exhibition', 'Use the Player Library'
+  expect(guides.slice(1, 7)).toEqual([
+    'Quick Start', 'Connect a start.gg token', 'Run a tournament', 'Use the Match Queue', 'Run an exhibition', 'Use the Player Library'
   ]);
   await act(async () => {
     [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
@@ -124,7 +144,7 @@ it('advances Help guides with a real Next click without touching token fields', 
   expect(secret.value).toBe('not-a-real-token');
   expect(change).not.toHaveBeenCalled();
   const openFolder = vi.fn();
-  fields.querySelector('[data-tutorial="assets"]')!.addEventListener('click', openFolder);
+  fields.querySelector('[data-folder-action]')!.addEventListener('click', openFolder);
   await act(async () => button('Help', view.container).click());
   await act(async () => {
     [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
@@ -135,6 +155,90 @@ it('advances Help guides with a real Next click without touching token fields', 
     await act(async () => button(step === 4 ? 'Done' : 'Next').click());
   }
   expect(openFolder).not.toHaveBeenCalled();
+  expect(assetsMenu.getAttribute('aria-expanded')).toBe('false');
+  await view.unmount();
+});
+
+it.each(['en', 'es-419'])('walks through the queue in %s without changing matches or automation', async (language) => {
+  await i18n.changeLanguage(language);
+  const t = i18n.getFixedT(language, 'operator');
+  fixture(language === 'en' ? '<div class="set-list"></div>' : '<div class="tournament-lookup-row"></div>');
+  const mutateQueue = vi.fn();
+  const openQueue = vi.fn();
+  const closeQueue = vi.fn();
+  const navigate = vi.fn();
+  function QueueGuide() {
+    const [opened, setOpened] = useState(false);
+    const controller: QueueController = {
+      state: {
+        entries: [],
+        cursor: null,
+        mode: 'manual',
+        delayMinutes: 1,
+        running: false,
+        remainingMs: null,
+        revision: 1,
+        status: 'empty'
+      },
+      opened,
+      busy: false,
+      blocked: false,
+      open: () => {
+        openQueue();
+        setOpened(true);
+      },
+      close: () => {
+        closeQueue();
+        setOpened(false);
+      },
+      hold() {},
+      add: mutateQueue,
+      act: mutateQueue
+    };
+    return h(
+      MatchQueueContext.Provider,
+      { value: controller },
+      h(MatchesMenu, { setSelectorDisabled: false, onOpenSetSelector() {} }),
+      h(HelpMenu, { navigate }),
+      h(MatchQueueModal)
+    );
+  }
+  const view = await mountHook(
+    () => h(MantineProvider, { env: 'test' }, h(QueueGuide)),
+    false,
+    (value) => value
+  );
+  await act(async () => button(t('help.title'), view.container).click());
+  await act(async () => {
+    [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+      .find((item) => item.textContent === t('help.guides.matchQueue'))!
+      .click();
+  });
+  expect(document.querySelector('.driver-popover-title')?.textContent).toBe(t('help.steps.queueAdd.title'));
+  expect(document.querySelector('.jabs-tutorial')?.textContent).not.toContain(t('help.missing'));
+  await act(async () => button(t('help.next')).click());
+  expect(openQueue).not.toHaveBeenCalled();
+  await act(async () => button(t('help.next')).click());
+  expect(openQueue).toHaveBeenCalledOnce();
+  expect(document.querySelector('.jabs-tutorial')?.contains(document.activeElement)).toBe(true);
+  await act(async () => button(t('help.previous')).click());
+  expect(closeQueue).toHaveBeenCalledOnce();
+  await act(async () => button(t('help.next')).click());
+  for (let index = 2; index < tutorials.matchQueue.length; index++) {
+    const popover = document.querySelector('.jabs-tutorial')!;
+    expect(popover.querySelector('.driver-popover-title')?.textContent).toBe(
+      t(`help.steps.${tutorials.matchQueue[index].id}.title`)
+    );
+    expect(popover.textContent).not.toContain(t('help.missing'));
+      expect(popover.querySelector('.driver-popover-description strong')).not.toBeNull();
+      expect(popover.querySelector('.driver-popover-description')?.textContent).not.toContain('**');
+    await act(async () => button(t(index === tutorials.matchQueue.length - 1 ? 'help.done' : 'help.next')).click());
+  }
+  expect(openQueue).toHaveBeenCalledTimes(2);
+  expect(closeQueue).toHaveBeenCalledTimes(2);
+  expect(mutateQueue).not.toHaveBeenCalled();
+  expect(navigate).toHaveBeenCalledWith('bracket');
+  expect(isTutorialActive()).toBe(false);
   await view.unmount();
 });
 
@@ -184,23 +288,37 @@ it('waits for navigation targets, explains unavailable steps, and cancels pendin
   expect(document.querySelector('.driver-popover')).toBeNull();
 });
 
-it('opens the player library without creating identities and escapes guide text before handing it to Driver', async () => {
-  const content = fixture('<button data-tutorial="players">Players</button>');
+it('opens the library without creating players and renders bold while keeping HTML as text', async () => {
+  const content = fixture(`
+    <button data-tutorial="matches-menu" aria-expanded="false">Matches</button>
+    <div data-matches-dropdown hidden><button data-tutorial="players">Players</button></div>
+  `);
+  const matches = content.querySelector<HTMLButtonElement>('[data-tutorial="matches-menu"]')!;
+  const reveal = vi.fn(() => {
+    const expanded = matches.getAttribute('aria-expanded') !== 'true';
+    matches.setAttribute('aria-expanded', String(expanded));
+    content.querySelector<HTMLElement>('[data-matches-dropdown]')!.hidden = !expanded;
+  });
+  matches.addEventListener('click', reveal);
   const opened = vi.fn(() => {
     const library = document.createElement('div');
     library.className = 'player-library-panel';
     library.innerHTML =
-      '<div class="player-library-toolbar"><button>Add player</button></div><div class="player-library-list"></div><div class="player-library-workspace"></div>';
+      '<div class="player-library-toolbar"><div class="player-library-file-actions"><button>Export library</button></div></div><div class="player-library-list"><button data-tutorial="player-library-create">New player</button></div><div class="player-library-workspace"></div>';
     content.append(library);
   });
-  content.querySelector('button')!.addEventListener('click', opened);
+  content.querySelector('[data-tutorial="players"]')!.addEventListener('click', opened);
   const create = vi.fn();
   content.addEventListener('click', (event) => {
-    if ((event.target as HTMLElement).textContent === 'Add player') create();
+    if ((event.target as HTMLElement).textContent === 'New player') create();
   });
   let popover: TutorialPopover | undefined;
   const t = i18n.getFixedT('en', 'operator');
+  const originalTitle = t('help.steps.library.title');
+  const originalBody = t('help.steps.library.body');
   i18n.addResource('en', 'operator', 'help.steps.library.title', '<img src=x onerror="alert(1)">Library');
+  i18n.addResource('en', 'operator', 'help.steps.library.body',
+    '**Players & profiles** <img src=x onerror="alert(1)"> **<svg onload="alert(1)">** <strong>literal</strong> **unfinished');
   try {
     stop = runTutorial({
       id: 'library',
@@ -213,7 +331,16 @@ it('opens the player library without creating identities and escapes guide text 
     await act(async () => {});
     expect(document.querySelector('.driver-popover-title img')).toBeNull();
     expect(document.querySelector('.driver-popover-title')?.textContent).toContain('<img');
+    const description = document.querySelector('.driver-popover-description')!;
+    expect([...description.querySelectorAll('strong')].map((element) => element.textContent)).toEqual([
+      'Players & profiles', '<svg onload="alert(1)">'
+    ]);
+    expect(description.querySelector('img, svg, script, a')).toBeNull();
+    expect(description.textContent).toBe(
+      'Players & profiles <img src=x onerror="alert(1)"> <svg onload="alert(1)"> <strong>literal</strong> **unfinished'
+    );
     expect(opened).not.toHaveBeenCalled();
+    expect(matches.getAttribute('aria-expanded')).toBe('true');
     popover!.next();
     await act(async () => {});
     expect(opened).toHaveBeenCalledOnce();
@@ -224,7 +351,8 @@ it('opens the player library without creating identities and escapes guide text 
     expect(create).not.toHaveBeenCalled();
     expect(opened).toHaveBeenCalledOnce();
   } finally {
-    i18n.addResource('en', 'operator', 'help.steps.library.title', 'Open Players');
+    i18n.addResource('en', 'operator', 'help.steps.library.title', originalTitle);
+    i18n.addResource('en', 'operator', 'help.steps.library.body', originalBody);
     stop?.();
   }
 });

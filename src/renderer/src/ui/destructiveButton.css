@@ -10,3 +10,15 @@
   background: var(--button-hover);
   color: var(--button-hover-color, var(--button-color));
 }
+
+.mantine-CloseButton-root.operator-modal-close {
+  border: 1px solid var(--mantine-color-red-outline);
+  border-radius: 8px;
+  background: var(--mantine-color-red-light);
+  color: var(--mantine-color-white);
+}
+
+.mantine-CloseButton-root.operator-modal-close:hover:not(:disabled):not([data-disabled]) {
+  background: var(--mantine-color-red-light-hover);
+  color: var(--mantine-color-white);
+}

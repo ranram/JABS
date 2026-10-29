@@ -12,12 +12,11 @@
 .set-action-dialog {
   width: min(760px, 100%);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--operator-container-border);
   border-radius: 20px;
   background:
     radial-gradient(circle at 90% 0%, rgba(105, 231, 255, 0.1), transparent 36%),
-    radial-gradient(circle at 0% 100%, rgba(217, 255, 67, 0.07), transparent 40%),
-    #111016;
+    radial-gradient(circle at 0% 100%, rgba(217, 255, 67, 0.07), transparent 40%), #111016;
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58);
   color: var(--deck-ink);
 }
@@ -27,7 +26,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  border-bottom: 1px solid var(--operator-container-border);
   padding: var(--mantine-spacing-md);
 }
 
@@ -67,17 +66,23 @@
 
 .set-action-choice {
   display: grid;
-  min-height: 108px;
-  align-content: center;
-  border-radius: 14px !important;
-  padding: 15px 17px !important;
+  min-height: 124px;
+  align-content: start;
+  border: 1px solid var(--operator-container-border) !important;
+  border-top: 2px solid var(--set-action-edge) !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  background: var(--set-action-background) !important;
+  box-shadow: none;
   text-align: left;
+  transition: background-color 150ms ease;
 }
 
 .set-action-choice .mantine-Button-inner,
 .set-action-choice .mantine-Button-label {
   width: 100%;
   overflow: visible;
+  align-items: flex-start;
 }
 
 .set-action-choice .mantine-Button-label {
@@ -92,18 +97,39 @@
 .set-action-description {
   max-width: 100%;
   overflow-wrap: anywhere;
-  color: var(--deck-muted);
+  color: #c0bac9;
   white-space: normal;
 }
 
 .stream-choice {
-  border-color: rgba(217, 255, 67, 0.25) !important;
-  background: linear-gradient(145deg, rgba(217, 255, 67, 0.12), rgba(17, 16, 22, 0.8)) !important;
+  --set-action-edge: #a78bfa;
+  --set-action-title: #d4c5ff;
+  --set-action-background: rgba(167, 139, 250, 0.075);
+  --set-action-hover: rgba(167, 139, 250, 0.13);
 }
 
 .score-choice {
-  border-color: rgba(105, 231, 255, 0.25) !important;
-  background: linear-gradient(145deg, rgba(105, 231, 255, 0.12), rgba(17, 16, 22, 0.8)) !important;
+  --set-action-edge: #75c5d7;
+  --set-action-title: #b6e1ec;
+  --set-action-background: rgba(103, 232, 249, 0.055);
+  --set-action-hover: rgba(103, 232, 249, 0.1);
+}
+
+.set-action-title {
+  color: var(--set-action-title);
+}
+
+.set-action-choice:hover:not(:disabled) {
+  background: var(--set-action-hover) !important;
+}
+
+.set-action-choice:focus-visible {
+  outline: 2px solid var(--set-action-edge);
+  outline-offset: 3px;
+}
+
+.set-action-choice:disabled :is(.set-action-title, .set-action-description) {
+  color: #a6a0b1;
 }
 
 .set-action-note {

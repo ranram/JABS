@@ -48,6 +48,15 @@ it('localizes native HTTP and desktop failures with field details and keeps Engl
   expect(localizedNativeError('moderation.protectedEntry|3')).toBe(
     'La línea 3 contiene un término protegido y no se puede permitir.'
   );
+  for (const [field, translated] of [
+    ['The Winners bracket name', 'el nombre del bracket de ganadores'],
+    ['The Losers bracket name', 'el nombre del bracket de perdedores'],
+    ['The preset name', 'el nombre del ajuste preestablecido']
+  ]) {
+    expect(localizedNativeError(`${field} contains blocked text. Your previous settings were kept.`)).toBe(
+      `Se detectó texto bloqueado en ${translated}. Se conservaron los ajustes anteriores.`
+    );
+  }
   expect(localizedNativeError('unmapped operating-system detail')).toBe(i18n.t('errors:nativeFailure'));
   expect(localizedStartggError({ code: '__proto__', error: 'unknown failure' }, 'Error HTTP 422')).toBe(
     'Error HTTP 422'

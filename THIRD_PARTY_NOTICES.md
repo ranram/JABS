@@ -4,6 +4,13 @@ JABS uses third-party software, data, fonts, and moderation resources.
 
 This file provides attribution for those components. The original license terms remain controlling and should be retained with source and release distributions where required.
 
+## GLib Rust bindings
+
+- Package: `glib@0.18.5`, with a local security backport
+- Source: [gtk-rs/gtk-rs-core](https://github.com/gtk-rs/gtk-rs-core)
+- License: MIT. See `vendor/glib/LICENSE` and `vendor/glib/COPYRIGHT`
+- Modifications: the upstream `VariantStrIter` fix for RUSTSEC-2024-0429 and compiler-warning syntax cleanup, described in `vendor/README.md`
+
 ## App artwork
 
 The project owner supplied the boxing-glove artwork as public-domain material. The original PNG is `src-tauri/app-icon.png`; the header image and platform icons are resized copies.
@@ -87,6 +94,19 @@ JABS uses i18next and react-i18next for its bundled English and Latin American S
 - Copyright: Copyright (c) 2025 Julian Garnier
 
 JABS uses Anime.js for short OBS overlay entrances.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## Phosphor Icons
+
+- Package: `@phosphor-icons/react@2.1.10`
+- Source: [phosphor-icons/react](https://github.com/phosphor-icons/react)
+- License: MIT
+- Copyright: Copyright (c) 2020 Phosphor Icons
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 

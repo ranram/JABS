@@ -20,6 +20,8 @@ For games without a built-in roster, JABS can load character names from start.gg
 
 ## Files and reloads
 
-Use PNG, JPEG, or WebP up to 20 MiB. Put images directly in `characters/` or `portraits/`; nested image folders, SVG, and animated images are unsupported. Choose **Reload assets** after adding or replacing files.
+Use PNG, JPEG, or WebP up to 20 MiB. Put images directly in `characters/` or `portraits/`. Nested image folders, SVG, and animated images are unsupported.
+
+After adding or replacing files, return to JABS to load the changes. Choose **Media → Reload assets** to force a refresh.
 
 Installed copies use this structure inside JABS's app-data directory; **Open folder** in JABS locates it. Only add artwork you have permission to use or share.

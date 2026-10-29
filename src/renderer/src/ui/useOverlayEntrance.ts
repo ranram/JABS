@@ -23,18 +23,11 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
     runningAnimation.current = undefined;
   }
 
+  // Broadcast motion follows the operator's switch, independently of local OS preferences.
   // Loading updates must not interrupt an entrance that is already playing.
   useLayoutEffect(() => {
     if (!animationsEnabled || inactive) return;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const stopForReducedMotion = () => {
-      if (reducedMotion.matches) stopAnimation();
-    };
-    reducedMotion.addEventListener('change', stopForReducedMotion);
-    return () => {
-      stopAnimation();
-      reducedMotion.removeEventListener('change', stopForReducedMotion);
-    };
+    return stopAnimation;
   }, [activation, inactive, cues, animationsEnabled, presentationKey]);
 
   useLayoutEffect(() => {
@@ -50,11 +43,6 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
     )
       return;
     const root = element;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (reducedMotion.matches) {
-      played.current = { activation, presentationKey };
-      return;
-    }
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     root.dataset.entrancePending = '';
@@ -63,12 +51,6 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
       cancelled = true;
       clearTimeout(timer);
       delete root.dataset.entrancePending;
-    }
-    function onReducedMotion() {
-      if (reducedMotion.matches) {
-        played.current = { activation, presentationKey };
-        cancel();
-      }
     }
     async function begin() {
       const images = [...root.querySelectorAll('img')];
@@ -95,7 +77,6 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
       }
     }
 
-    reducedMotion.addEventListener('change', onReducedMotion);
     // OBS does not expose a current-source status getter. A fresh page gets one
     // entrance; subsequent entrances follow its Program activation events.
     if (ready) void begin();
@@ -105,7 +86,6 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
       }, 1000);
     return () => {
       cancel();
-      reducedMotion.removeEventListener('change', onReducedMotion);
     };
   }, [activation, inactive, cues, animationsEnabled, ready, presentationKey]);
 

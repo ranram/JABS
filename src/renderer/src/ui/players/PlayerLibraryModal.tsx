@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, FileButton, Group, Modal, ScrollArea, Text, Badge, Paper, Title } from '@mantine/core';
+import { Alert, Button, FileButton, Group, Modal, ScrollArea, Text, Badge, Paper, Title } from '@mantine/core';
 import { useTutorialActive } from '../tutorials/tutorialActivity';
 import { DestructiveButton } from '../DestructiveButton';
 import { useEffect, useRef, useState } from 'react';
@@ -11,6 +11,19 @@ import { PlayerLibraryEditor } from './PlayerLibraryEditor';
 import { PlayerLibraryList } from './PlayerLibraryList';
 import { PlayerProfileLookup } from './PlayerProfileLookup';
 import { useOperatorNotifications } from '../operator/useOperatorNotifications';
+import {
+  OperatorIcon,
+  UserIcon,
+  PlusIcon,
+  FloppyDiskIcon,
+  PencilSimpleIcon,
+  TrashSimpleIcon,
+  DownloadSimpleIcon,
+  UploadSimpleIcon,
+  ArrowsClockwiseIcon,
+  XIcon
+} from '../icons';
+import { PanelHeader } from '../PanelHeader';
 import './playerLibrary.css';
 
 function newPlayer(name = ''): LibraryPlayer {
@@ -33,60 +46,37 @@ const archiveSchema = z
   })
   .strict();
 
-export function PlayerLibraryButton({
+export function PlayerLibraryDialog({
   selectedSet,
-  compact = false,
-  inline = false
+  opened,
+  onClose
 }: {
   selectedSet?: SelectedSetState;
-  compact?: boolean;
-  inline?: boolean;
+  opened: boolean;
+  onClose(): void;
 }) {
   const { t } = useTranslation('operator');
-  const [opened, setOpened] = useState(false);
   const tutorialActive = useTutorialActive();
-  const requestClose = useRef(() => setOpened(false));
+  const requestClose = useRef(onClose);
   return (
-    <>
-      {inline ? (
-        <Anchor component="button" type="button" inherit underline="always" onClick={() => setOpened(true)}>
-          {t('players.title')}
-        </Anchor>
-      ) : (
-        <Button
-          data-tutorial={compact ? 'players' : undefined}
-          size={compact ? 'compact-xs' : undefined}
-          variant="default"
-          onClick={() => setOpened(true)}
-        >
-          {t('players.title')}
-        </Button>
-      )}
-      <Modal
-        opened={opened}
-        onClose={() => requestClose.current()}
-        title={t('players.title')}
-        size="min(1440px, 96vw)"
-        yOffset="3vh"
-        xOffset="2vw"
-        classNames={{
-          content: 'player-library-modal',
-          header: 'player-library-modal-header',
-          body: 'player-library-modal-body'
-        }}
-        closeOnClickOutside={false}
-        trapFocus={!tutorialActive}
-        closeOnEscape={!tutorialActive}
-      >
-        {opened && (
-          <PlayerLibraryPanel
-            selectedSet={selectedSet}
-            requestClose={requestClose}
-            closeModal={() => setOpened(false)}
-          />
-        )}
-      </Modal>
-    </>
+    <Modal
+      opened={opened}
+      onClose={() => requestClose.current()}
+      title={t('players.title')}
+      size="min(1440px, 96vw)"
+      yOffset="3vh"
+      xOffset="2vw"
+      classNames={{
+        content: 'player-library-modal',
+        header: 'player-library-modal-header',
+        body: 'player-library-modal-body'
+      }}
+      closeOnClickOutside={false}
+      trapFocus={!tutorialActive}
+      closeOnEscape={!tutorialActive}
+    >
+      {opened && <PlayerLibraryPanel selectedSet={selectedSet} requestClose={requestClose} closeModal={onClose} />}
+    </Modal>
   );
 }
 function PlayerLibraryPanel({
@@ -104,6 +94,8 @@ function PlayerLibraryPanel({
   const [page, setPage] = useState(1);
   const [results, setResults] = useState<LibraryPlayer[]>([]);
   const [total, setTotal] = useState(0);
+  const [libraryTotal, setLibraryTotal] = useState<number>();
+  const libraryTotalRevision = useRef(-1);
   const [revision, setRevision] = useState(0);
   const [player, setPlayer] = useState<LibraryPlayer>();
   const [savedPlayerSnapshot, setSavedPlayerSnapshot] = useState('');
@@ -170,8 +162,19 @@ function PlayerLibraryPanel({
     const timer = window.setTimeout(() => {
       void api
         .searchPlayers(query, (page - 1) * 50)
-        .then((result) => {
+        .then(async (result) => {
+          if (!active) return;
+          // Filtering changes the result count, not the number of saved players.
+          const registered = query.trim()
+            ? libraryTotalRevision.current === revision
+              ? undefined
+              : (await api.searchPlayers()).total
+            : result.total;
           if (active) {
+            if (registered !== undefined) {
+              setLibraryTotal(registered);
+              libraryTotalRevision.current = revision;
+            }
             setResults(result.players);
             setTotal(result.total);
             const lastPage = Math.max(1, Math.ceil(result.total / 50));
@@ -233,8 +236,12 @@ function PlayerLibraryPanel({
       [{ localPlayerId: subject.localPlayerId, playerId: subject.playerId }],
       gameKey
     );
-    const record = resolved ? await api.libraryPlayer(resolved.localPlayerId) : newPlayer(subject.name);
-    record.playerId ??= subject.playerId ?? null;
+    if (resolved) {
+      beginEditing(await api.libraryPlayer(resolved.localPlayerId));
+      return;
+    }
+    const record = newPlayer(subject.name);
+    record.playerId = subject.playerId ?? null;
     const games = record.games.filter((game) => game.gameKey !== gameKey);
     games.push({
       gameKey,
@@ -295,28 +302,37 @@ function PlayerLibraryPanel({
   }
   return (
     <div className="player-library-panel">
-      <Group className="player-library-toolbar" justify="space-between">
-        <Button disabled={busy} onClick={() => changeEditor(() => beginEditing(newPlayer()))}>
-          {t('players.add')}
-        </Button>
-        <Group gap="xs">
-          <Button variant="default" disabled={busy} onClick={() => void action(exportPlayers)}>
-            {t('players.export')}
-          </Button>
-          <FileButton accept="application/json" onChange={(file) => file && void action(() => importFile(file))}>
-            {(props) => (
-              <Button {...props} variant="default" disabled={busy}>
-                {t('players.importFile')}
+      <div className="player-library-toolbar">
+        <PlayerProfileLookup
+          disabled={busy}
+          loading={lookingUp}
+          onLookup={(reference) => changeEditor(() => void action(() => findPlayer(reference)))}
+          actions={
+            <Group className="player-library-file-actions" gap="xs" wrap="nowrap">
+              <Button
+                leftSection={<OperatorIcon icon={DownloadSimpleIcon} />}
+                variant="default"
+                disabled={busy}
+                onClick={() => void action(exportPlayers)}
+              >
+                {t('players.export')}
               </Button>
-            )}
-          </FileButton>
-        </Group>
-      </Group>
-      <PlayerProfileLookup
-        disabled={busy}
-        loading={lookingUp}
-        onLookup={(reference) => changeEditor(() => void action(() => findPlayer(reference)))}
-      />
+              <FileButton accept="application/json" onChange={(file) => file && void action(() => importFile(file))}>
+                {(props) => (
+                  <Button
+                    {...props}
+                    leftSection={<OperatorIcon icon={UploadSimpleIcon} />}
+                    variant="default"
+                    disabled={busy}
+                  >
+                    {t('players.importFile')}
+                  </Button>
+                )}
+              </FileButton>
+            </Group>
+          }
+        />
+      </div>
       {selectedSet && (
         <Group gap="xs" className="player-library-stream-choices">
           <Text size="xs" c="dimmed">
@@ -328,6 +344,8 @@ function PlayerLibraryPanel({
               size="compact-sm"
               variant="light"
               disabled={busy}
+              leftSection={<OperatorIcon icon={UserIcon} size={14} />}
+              aria-label={t('players.fromStream', { name: subject.name })}
               onClick={() => changeEditor(() => void action(() => fromStream(subject)))}
             >
               {subject.name}
@@ -338,9 +356,10 @@ function PlayerLibraryPanel({
       {pendingChange && (
         <Alert color="yellow" title={t('players.unsavedTitle')}>
           <Text size="sm">{t('players.unsavedHelp')}</Text>
-          <Group mt="sm">
+          <Group className="player-library-confirm-actions" mt="sm" gap="sm" grow>
             <Button
               size="sm"
+              leftSection={<OperatorIcon icon={FloppyDiskIcon} />}
               disabled={busy}
               onClick={() =>
                 void action(savePlayer).then((saved) => {
@@ -352,6 +371,7 @@ function PlayerLibraryPanel({
             </Button>
             <DestructiveButton
               size="sm"
+              leftSection={<OperatorIcon icon={TrashSimpleIcon} />}
               disabled={busy}
               onClick={() => {
                 pendingChange.proceed();
@@ -360,7 +380,13 @@ function PlayerLibraryPanel({
             >
               {t('players.discardContinue')}
             </DestructiveButton>
-            <Button size="sm" variant="subtle" disabled={busy} onClick={() => setPendingChange(undefined)}>
+            <Button
+              size="sm"
+              variant="default"
+              leftSection={<OperatorIcon icon={PencilSimpleIcon} />}
+              disabled={busy}
+              onClick={() => setPendingChange(undefined)}
+            >
               {t('players.keepEditing')}
             </Button>
           </Group>
@@ -368,9 +394,11 @@ function PlayerLibraryPanel({
       )}
       <div className="player-library-workspace">
         <PlayerLibraryList
+          onCreate={() => changeEditor(() => beginEditing(newPlayer()))}
           query={query}
           page={page}
           total={total}
+          libraryTotal={libraryTotal}
           players={results}
           selectedId={player?.localId}
           busy={busy}
@@ -386,24 +414,33 @@ function PlayerLibraryPanel({
         />
         {player ? (
           <section className="player-library-detail operator-inset">
-            <Group className="player-library-detail-header" justify="space-between" align="flex-start" wrap="nowrap">
-              <div className="player-library-heading">
-                <Title order={3}>{playerLabel(player) || t('players.newPlayer')}</Title>
-                <Text size="xs" c="dimmed" mt={4}>
-                  {player.playerId ? `start.gg #${player.playerId}` : t('players.localPlayer')}
-                </Text>
-              </div>
-              <Group gap="xs" wrap="nowrap" align="flex-start" style={{ flexShrink: 0 }}>
-                <Button variant="default" disabled={busy} onClick={() => changeEditor(closePlayer)}>
-                  {t('players.closePlayer')}
-                </Button>
+            <PanelHeader
+              className="player-library-detail-header"
+              title={playerLabel(player) || t('players.newPlayer')}
+              description={player.playerId ? `start.gg #${player.playerId}` : t('players.localPlayer')}
+              icon={UserIcon}
+              order={3}
+              size="h3"
+            >
+              <Group gap="xs" wrap="wrap" align="center">
                 {dirty && (
                   <Badge color="yellow" variant="light" size="sm">
                     {t('players.unsaved')}
                   </Badge>
                 )}
+                <DestructiveButton
+                  aria-label={t('players.closePlayer')}
+                  size="compact-sm"
+                  w={30}
+                  h={30}
+                  p={0}
+                  disabled={busy}
+                  onClick={() => changeEditor(closePlayer)}
+                >
+                  <OperatorIcon icon={XIcon} />
+                </DestructiveButton>
               </Group>
-            </Group>
+            </PanelHeader>
             <ScrollArea className="player-library-detail-scroll" type="auto" offsetScrollbars>
               <fieldset className="player-library-form" disabled={busy}>
                 <PlayerLibraryEditor
@@ -419,11 +456,17 @@ function PlayerLibraryPanel({
             </ScrollArea>
             <Group className="player-library-detail-actions" justify="space-between">
               <Group gap="xs">
-                <Button loading={saving} disabled={busy || !dirty} onClick={() => void action(savePlayer)}>
+                <Button
+                  leftSection={<OperatorIcon icon={FloppyDiskIcon} />}
+                  loading={saving}
+                  disabled={busy || !dirty}
+                  onClick={() => void action(savePlayer)}
+                >
                   {t('players.save')}
                 </Button>
                 <Button
                   variant="default"
+                  leftSection={<OperatorIcon icon={ArrowsClockwiseIcon} />}
                   disabled={busy || !player.seenAt}
                   onClick={() =>
                     changeEditor(() => void action(async () => beginEditing(await api.libraryPlayer(player.localId))))
@@ -434,11 +477,17 @@ function PlayerLibraryPanel({
               </Group>
               <Group gap="xs">
                 {confirmDelete && (
-                  <Button variant="subtle" disabled={busy} onClick={() => setConfirmDelete(false)}>
+                  <Button
+                    leftSection={<OperatorIcon icon={XIcon} />}
+                    variant="default"
+                    disabled={busy}
+                    onClick={() => setConfirmDelete(false)}
+                  >
                     {t('players.cancelDelete')}
                   </Button>
                 )}
                 <DestructiveButton
+                  leftSection={<OperatorIcon icon={TrashSimpleIcon} />}
                   disabled={busy || !player.seenAt}
                   onClick={() => {
                     if (!confirmDelete) {
@@ -463,7 +512,12 @@ function PlayerLibraryPanel({
             <Text c="dimmed" size="sm" maw={360}>
               {t('players.choosePlayerHelp')}
             </Text>
-            <Button variant="light" disabled={busy} onClick={() => beginEditing(newPlayer())}>
+            <Button
+              leftSection={<OperatorIcon icon={PlusIcon} />}
+              variant="light"
+              disabled={busy}
+              onClick={() => beginEditing(newPlayer())}
+            >
               {t('players.add')}
             </Button>
           </Paper>

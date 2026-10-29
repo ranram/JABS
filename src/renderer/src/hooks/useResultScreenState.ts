@@ -8,6 +8,7 @@ const parseMessage = (value: unknown) => parseRealtimeJson(value, parseResultScr
 export function useResultScreenState() {
   return useRealtimeState({
     load: api.resultScreenState,
+    diagnosticOperation: 'result-screen',
     parseMessage,
     loadError: 'Unable to load Winner/Champion settings.'
   });

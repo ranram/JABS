@@ -1,4 +1,8 @@
 mod text_moderation;
+mod bracket_status;
+mod results;
+mod players;
+pub use results::ReportBaseline;
 
 pub use text_moderation::censor_untrusted_selected_set;
 use text_moderation::assert_safe_state;
@@ -46,6 +50,11 @@ pub struct OverlayState {
 #[derive(Clone, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SelectedSet {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub report_baseline: Option<ReportBaseline>,
+    /// Confirmed W/L or DQ winner; recorded game scores remain unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reported_outcome: Option<ReportOutcome>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub set_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -67,6 +76,10 @@ pub struct SelectedSet {
     pub station: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
+    /// True prevents scores retained after a bracket reset from deciding a new result.
+    /// False follows a score edit/reset or confirmed report; None covers older/imported data.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub upstream_reset: Option<bool>,
     pub game_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub game_name: Option<String>,
@@ -133,6 +146,8 @@ pub struct Player {
 #[derive(Clone, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BroadcastPresentation {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seeds_enabled: Option<bool>,
     pub info_bar_enabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub info_left: Option<String>,
@@ -178,6 +193,20 @@ pub struct ExhibitionGameSelection {
     pub videogame_id: String,
     pub asset_catalog_slug: String,
     pub updated_at: String,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum ReportOutcomeKind {
+    WinLoss,
+    Disqualification,
+}
+
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReportOutcome {
+    pub kind: ReportOutcomeKind,
+    pub winner_id: String,
 }
 
 pub struct ReportableResult {
@@ -258,11 +287,21 @@ impl OverlayStore {
         database: &Database,
         logo_directory: &Path,
         game_asset_directory: &Path,
-        mut selected_set: SelectedSet,
+        selected_set: SelectedSet,
+    ) -> Result<Value, String> {
+        self.replace_selected_set_if_current(database, logo_directory, game_asset_directory, selected_set, None)
+    }
+
+    pub fn replace_selected_set_if_current(
+        &self, database: &Database, logo_directory: &Path, game_asset_directory: &Path,
+        mut selected_set: SelectedSet, expected: Option<&str>,
     ) -> Result<Value, String> {
         normalize_character_teams(&mut selected_set);
         let mut current = self.state.write()
             .map_err(|_| "Local stream state is unavailable.".to_owned())?;
+        if expected.is_some_and(|version| version != current.selected_set.updated_at) {
+            return Err("The live match changed while loading the queue. Review it before continuing.".into());
+        }
         selected_set.updated_at = next_timestamp(&current.selected_set.updated_at)?;
         let mut next = OverlayState { selected_set };
         validate_state(&next)?;
@@ -299,15 +338,44 @@ impl OverlayStore {
         submitted.game_name = current.selected_set.game_name.clone();
         submitted.videogame_id = current.selected_set.videogame_id.clone();
         submitted.game_history = current.selected_set.game_history.clone();
+        submitted.report_baseline = if submitted.set_id == current.selected_set.set_id {
+            current.selected_set.report_baseline.clone()
+        } else {
+            None
+        };
+        if submitted.set_id == current.selected_set.set_id {
+            if submitted.set_id.is_some() {
+                submitted.state = current.selected_set.state.clone();
+            }
+            let scores_changed = [&submitted.player_one, &submitted.player_two]
+                .iter()
+                .any(|player| {
+                    [&current.selected_set.player_one, &current.selected_set.player_two]
+                        .iter()
+                        .any(|previous| {
+                            previous.entrant_id == player.entrant_id && previous.score != player.score
+                        })
+                });
+            submitted.reported_outcome = if scores_changed {
+                None
+            } else {
+                current.selected_set.reported_outcome.clone()
+            };
+            submitted.upstream_reset = if scores_changed {
+                Some(false)
+            } else {
+                current.selected_set.upstream_reset
+            };
+        }
         if current.selected_set.set_id.is_some() {
-        submitted.player_one.player_id = player_id_for_entrant(
-            &current.selected_set,
-            &submitted.player_one.entrant_id,
-        );
-        submitted.player_two.player_id = player_id_for_entrant(
-            &current.selected_set,
-            &submitted.player_two.entrant_id,
-        );
+            submitted.player_one.player_id = player_id_for_entrant(
+                &current.selected_set,
+                &submitted.player_one.entrant_id,
+            );
+            submitted.player_two.player_id = player_id_for_entrant(
+                &current.selected_set,
+                &submitted.player_two.entrant_id,
+            );
         }
         for player in [&mut submitted.player_one, &mut submitted.player_two] {
             if let Some(local_id) = player.local_player_id.as_deref() {
@@ -467,6 +535,10 @@ impl OverlayStore {
                 score_limit(selected_set)
             };
             let score = requested_score.min(limit);
+            if score != previous_score {
+                selected_set.reported_outcome = None;
+                selected_set.upstream_reset = Some(false);
+            }
             update_history(
                 &mut selected_set.game_history,
                 &winner_id,
@@ -489,6 +561,8 @@ impl OverlayStore {
             selected_set.player_one.score = 0;
             selected_set.player_two.score = 0;
             selected_set.game_history = Some(Vec::new());
+            selected_set.reported_outcome = None;
+            selected_set.upstream_reset = Some(false);
             Ok(())
         })
     }
@@ -517,12 +591,15 @@ impl OverlayStore {
         database: &Database,
         set_id: &str,
         reported_state: &str,
+        outcome: Option<ReportOutcome>,
     ) -> Result<Value, String> {
         self.mutate(database, |selected_set| {
             if selected_set.set_id.as_deref() != Some(set_id) {
                 return Err("The active stream set changed after start.gg accepted the report.".to_owned());
             }
             selected_set.state = Some(reported_state.to_owned());
+            selected_set.reported_outcome = outcome;
+            selected_set.upstream_reset = Some(false);
             Ok(())
         })
     }
@@ -570,6 +647,9 @@ fn persist_stream_state(
 fn default_state() -> OverlayState {
     OverlayState {
         selected_set: SelectedSet {
+            report_baseline: None,
+            reported_outcome: None,
+            upstream_reset: None,
             set_id: None,
             event_id: None,
             tournament_slug: None,
@@ -591,6 +671,7 @@ fn default_state() -> OverlayState {
             match_format: Some("best-of".to_owned()),
             best_of: 3,
             broadcast: Some(BroadcastPresentation {
+                seeds_enabled: None,
                 info_bar_enabled: false,
                 info_left: None,
                 info_right: None,
@@ -641,6 +722,12 @@ fn default_state() -> OverlayState {
 
 fn validate_state(state: &OverlayState) -> Result<(), String> {
     let selected_set = &state.selected_set;
+    if selected_set.reported_outcome.as_ref().is_some_and(|outcome| {
+        outcome.winner_id != selected_set.player_one.entrant_id
+            && outcome.winner_id != selected_set.player_two.entrant_id
+    }) {
+        return Err("Choose the winning entrant.".to_owned());
+    }
     required(&selected_set.display_name, "Display name")?;
     required(&selected_set.player_one.entrant_id, "Player one entrant ID")?;
     required(&selected_set.player_two.entrant_id, "Player two entrant ID")?;
@@ -775,7 +862,13 @@ pub fn validate_selected_set(selected_set: &SelectedSet) -> Result<(), String> {
     validate_state(&OverlayState { selected_set: selected_set.clone() })
 }
 
-pub fn report_readiness(selected_set: &SelectedSet) -> Result<ReportableResult, String> {
+pub fn report_readiness(
+    selected_set: &SelectedSet,
+    outcome: Option<&ReportOutcome>,
+) -> Result<ReportableResult, String> {
+    if selected_set.upstream_reset == Some(true) && outcome.is_none() {
+        return Err("Reset or update the local score before reporting this result.".to_owned());
+    }
     if selected_set.state.as_deref() == Some("3") {
         return Err("This set is already marked complete on start.gg.".to_owned());
     }
@@ -790,6 +883,21 @@ pub fn report_readiness(selected_set: &SelectedSet) -> Result<ReportableResult, 
     }
     required(&selected_set.player_one.entrant_id, "Player one entrant ID")?;
     required(&selected_set.player_two.entrant_id, "Player two entrant ID")?;
+    if let Some(outcome) = outcome {
+        validate_selected_set(selected_set)?;
+        let (winner, loser) = if outcome.winner_id == selected_set.player_one.entrant_id {
+            (&selected_set.player_one, &selected_set.player_two)
+        } else if outcome.winner_id == selected_set.player_two.entrant_id {
+            (&selected_set.player_two, &selected_set.player_one)
+        } else {
+            return Err("Choose the winning entrant.".to_owned());
+        };
+        return Ok(ReportableResult {
+            winner_id: winner.entrant_id.clone(),
+            winner_score: winner.score,
+            loser_score: loser.score,
+        });
+    }
     let target = score_limit(selected_set);
     let player_one_won = selected_set.player_one.score == target
         && selected_set.player_two.score < target;
@@ -1063,7 +1171,7 @@ mod tests {
         selected.best_of = 13;
         selected.set_id = Some("123".to_owned());
         assert!(validate_selected_set(&selected).is_err());
-        assert!(report_readiness(&selected)
+        assert!(report_readiness(&selected, None)
             .err()
             .unwrap()
             .contains("cannot be reported"));
@@ -1115,7 +1223,7 @@ mod tests {
                 );
                 let mut linked = store.selected_set().unwrap();
                 linked.set_id = Some("123".to_owned());
-                assert!(report_readiness(&linked).is_err());
+                assert!(report_readiness(&linked, None).is_err());
             }
         }
     }
@@ -1322,13 +1430,13 @@ mod tests {
             GameResult { winner_id: "p2".to_owned(), selections: Vec::new() },
             GameResult { winner_id: "p1".to_owned(), selections: Vec::new() },
         ]);
-        let report = report_readiness(&selected).unwrap();
+        let report = report_readiness(&selected, None).unwrap();
         assert_eq!(report.winner_id, "p1");
 
         selected.game_history = None;
-        assert_eq!(report_readiness(&selected).unwrap().winner_id, "p1");
+        assert_eq!(report_readiness(&selected, None).unwrap().winner_id, "p1");
         selected.state = Some("3".to_owned());
-        assert!(report_readiness(&selected).is_err());
+        assert!(report_readiness(&selected, None).is_err());
     }
 
     #[test]

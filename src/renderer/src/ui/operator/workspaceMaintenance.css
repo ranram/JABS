@@ -1,0 +1,71 @@
+.workspace-maintenance-container {
+  container: maintenance-toolbar / inline-size;
+}
+
+.workspace-maintenance-container .workspace-maintenance-bar {
+  min-width: 0;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--operator-container-border);
+  background: linear-gradient(100deg, rgba(61, 51, 77, 0.9), rgba(49, 43, 60, 0.94) 55%, rgba(39, 36, 46, 0.97));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.workspace-maintenance-container .workspace-maintenance-bar > .workspace-maintenance-group {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  align-items: stretch;
+  gap: 8px;
+  padding-left: 10px;
+  border-left: 1px solid var(--operator-container-border);
+}
+.workspace-maintenance-container .workspace-maintenance-bar > .workspace-maintenance-group:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.workspace-maintenance-container .workspace-maintenance-bar > .workspace-maintenance-group:empty {
+  display: none;
+}
+
+.workspace-maintenance-bar .mantine-Button-root {
+  height: auto;
+  min-height: 28px;
+  padding-block: 4px;
+}
+.workspace-maintenance-bar .mantine-Button-label {
+  white-space: normal;
+}
+.workspace-maintenance-preferences {
+  margin-left: auto;
+}
+
+@container maintenance-toolbar (max-width: 1100px) {
+  .workspace-maintenance-container .workspace-maintenance-bar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .workspace-maintenance-container .workspace-maintenance-bar > .workspace-maintenance-group {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .workspace-maintenance-bar .mantine-Button-root {
+    min-width: 0;
+    width: 100%;
+  }
+  .workspace-maintenance-bar .mantine-Button-label {
+    overflow-wrap: anywhere;
+  }
+  .workspace-maintenance-container .workspace-maintenance-obs,
+  .workspace-maintenance-container .workspace-maintenance-preferences {
+    display: grid;
+    grid-column: span 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-left: 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--operator-container-border);
+  }
+}

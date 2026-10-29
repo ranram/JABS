@@ -6,11 +6,12 @@ import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import type { StingerCue, StingerState } from '@shared/stingers';
 import { createTestOverlayState } from '@shared/testFixtures';
 import { deferred, mountView } from '../../hooks/hookTestHarness';
-import { trackObsSourceActivity } from '../../hooks/obsSourceActivity';
+import { getObsSourceActivity, trackObsSourceActivity } from '../../hooks/obsSourceActivity';
 import { initializeI18n } from '../../i18n';
 import { StingersOverlay } from './StingersOverlay';
 import { StingerFramingPreview, StingerStage } from './StingerStage';
 import { StingerQuickMenu } from './StingerQuickMenu';
+import * as appearanceSettings from '../appearance/AppearanceProvider';
 
 const transport = vi.hoisted(() => ({
   snapshot: undefined as StingerState | undefined,
@@ -204,8 +205,9 @@ it('hides on the chosen duration and reports decoding errors without leaving med
   expect(unavailable).toHaveBeenCalledWith('playback-failed');
 });
 
-it('registers an already-visible OBS source on startup and reconnect without replaying an old cue', async () => {
+it('registers an OBS source despite browser occlusion and reconnects without replaying an old cue', async () => {
   transport.source.mockRejectedValueOnce(new Error('Heartbeat timed out'));
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
   stopTracking = trackObsSourceActivity();
   const view = await mountView(() => h(StingersOverlay));
   expect(transport.source).toHaveBeenCalledWith(expect.any(String), true, false);
@@ -213,8 +215,9 @@ it('registers an already-visible OBS source on startup and reconnect without rep
     await vi.advanceTimersByTimeAsync(1500);
   });
   expect(transport.source).toHaveBeenCalledTimes(2);
-  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
-  await act(async () => document.dispatchEvent(new Event('visibilitychange')));
+  await act(async () =>
+    window.dispatchEvent(new CustomEvent('obsSourceVisibleChanged', { detail: { visible: false } }))
+  );
   expect(transport.source).toHaveBeenLastCalledWith(expect.any(String), false, false);
   await act(async () =>
     window.dispatchEvent(new CustomEvent('obsSourceVisibleChanged', { detail: { visible: true } }))
@@ -236,13 +239,79 @@ it('registers an already-visible OBS source on startup and reconnect without rep
   transport.snapshot = { ...transport.snapshot!, connectionId: 'new-connection', cue: undefined };
   await view.rerender();
   expect(transport.source).toHaveBeenLastCalledWith(expect.any(String), false, false);
-  expect(window.location.reload).toHaveBeenCalledOnce();
+  expect(window.location.reload).not.toHaveBeenCalled();
   expect(transport.claim).not.toHaveBeenCalled();
   await view.unmount();
   Reflect.deleteProperty(window, 'obsstudio');
   transport.source.mockClear();
   await mountView(() => h(StingersOverlay));
   expect(transport.source.mock.calls.some(([, active]) => active)).toBe(false);
+});
+
+it('honors direct OBS activity callbacks without duplicate activation or playback', async () => {
+  const previousActive = vi.fn();
+  const previousVisible = vi.fn();
+  const obs = { onActiveChange: previousActive, onVisibilityChange: previousVisible };
+  Reflect.set(window, 'obsstudio', obs);
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+  stopTracking = trackObsSourceActivity();
+  obs.onActiveChange(false);
+  obs.onVisibilityChange(true);
+  const view = await mountView(() => h(StingersOverlay));
+  expect(transport.source).toHaveBeenLastCalledWith(expect.any(String), false, false);
+  await act(async () => {
+    obs.onActiveChange(true);
+    obs.onVisibilityChange(false);
+  });
+  await activate(true);
+  expect(getObsSourceActivity().activation).toBe(1);
+  expect(transport.source).toHaveBeenLastCalledWith(expect.any(String), true, true);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(6000);
+  });
+  expect(transport.source).toHaveBeenLastCalledWith(expect.any(String), true, true);
+  transport.snapshot = { ...transport.snapshot!, cue: cue() };
+  await view.rerender();
+  expect(transport.claim).toHaveBeenCalledOnce();
+  await act(async () => obs.onActiveChange(false));
+  expect(transport.source).toHaveBeenLastCalledWith(expect.any(String), false, false);
+  expect(view.container.querySelector('video')).toBeNull();
+  expect(previousActive).toHaveBeenCalledWith(false);
+  expect(previousVisible).toHaveBeenCalledWith(false);
+  await view.unmount();
+  stopTracking();
+  stopTracking = undefined;
+  expect(obs.onActiveChange).toBe(previousActive);
+  expect(obs.onVisibilityChange).toBe(previousVisible);
+});
+
+it('renews registration in place after reconnect without replaying a claimed cue', async () => {
+  stopTracking = trackObsSourceActivity();
+  await activate(true);
+  transport.snapshot = { ...transport.snapshot!, connectionId: 'first-session' };
+  const view = await mountView(() => h(StingersOverlay));
+  const oldClient = transport.source.mock.calls.at(-1)![0];
+  transport.snapshot = {
+    ...transport.snapshot!,
+    connectionId: 'reconnected-session',
+    cue: { ...cue(), claimed: true }
+  };
+  await view.rerender();
+  const [newClient, active, program] = transport.source.mock.calls.at(-1)!;
+  expect(newClient).not.toBe(oldClient);
+  expect([active, program]).toEqual([true, true]);
+  expect(transport.source).toHaveBeenCalledWith(oldClient, false, false);
+  expect(window.location.reload).not.toHaveBeenCalled();
+  expect(transport.claim).not.toHaveBeenCalled();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1500);
+  });
+  expect(transport.source).toHaveBeenLastCalledWith(newClient, true, true);
+  transport.snapshot = { ...transport.snapshot!, cue: { ...cue(), id: 'new-result' } };
+  await view.rerender();
+  expect(transport.claim).toHaveBeenCalledExactlyOnceWith(newClient, 'new-result');
+  await view.unmount();
+  expect(transport.source).toHaveBeenLastCalledWith(newClient, false, false);
 });
 
 it('waits for the captured winner media and reveals it at the configured time', async () => {
@@ -288,7 +357,14 @@ it('waits for the captured winner media and reveals it at the configured time', 
 
 it('stages the winner assets on the video clock, fits the actual clip, and cancels movement on stop', async () => {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  Object.defineProperty(reducedMotion, 'matches', { configurable: true, value: true });
   vi.spyOn(window, 'matchMedia').mockReturnValue(reducedMotion);
+  let playAnimations = true;
+  const useAppearance = appearanceSettings.useAppearance;
+  vi.spyOn(appearanceSettings, 'useAppearance').mockImplementation(() => {
+    const context = useAppearance();
+    return { ...context, appearance: { ...context.appearance, entranceAnimations: playAnimations } };
+  });
   const animations: {
     element: Element;
     frames: Keyframe[];
@@ -392,13 +468,17 @@ it('stages the winner assets on the video clock, fits the actual clip, and cance
   await act(async () => reducedMotion.dispatchEvent(new Event('change')));
   await move(1.1);
   expect(layer.style.visibility).toBe('visible');
+  expect(short.every((animation) => animation.cancel.mock.calls.length === 0)).toBe(true);
+  expect(animations).toHaveLength(animatedCount);
+  playAnimations = false;
+  await view.rerender();
   expect(short.every((animation) => animation.cancel.mock.calls.length === 1)).toBe(true);
   expect(animations).toHaveLength(animatedCount);
 
   // Missing animation support still obeys the reveal window.
   Object.defineProperty(Element.prototype, 'animate', { configurable: true, value: undefined });
-  Object.defineProperty(reducedMotion, 'matches', { configurable: true, value: false });
-  await act(async () => reducedMotion.dispatchEvent(new Event('change')));
+  playAnimations = true;
+  await view.rerender();
   expect(layer.style.visibility).toBe('visible');
   Object.defineProperty(video, 'duration', { configurable: true, value: 0.5 });
   await act(async () => video.dispatchEvent(new Event('durationchange')));

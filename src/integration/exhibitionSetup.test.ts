@@ -11,16 +11,39 @@ import { initializeI18n, i18n } from '../renderer/src/i18n';
 import { OperatorDashboard } from '../renderer/src/ui/OperatorDashboard';
 import { invalidateCatalogConsumers } from '../renderer/src/hooks/useCatalogRevision';
 
+vi.mock('../renderer/src/hooks/useScoreboardPhotos', () => ({
+  useScoreboardPhotos: () => ({
+    state: { enabled: false, logoBackdrop: false, sponsorBackdrop: false, updatedAt: '1' }
+  })
+}));
+
 const transport = vi.hoisted(() => ({
   state: vi.fn(),
   selectGame: vi.fn(),
   clear: vi.fn(),
+  clearPlayers: vi.fn(),
+  saveLibraryPlayer: vi.fn(),
   save: vi.fn(),
   score: vi.fn(),
   reset: vi.fn(),
   characters: vi.fn(),
   prepare: vi.fn(),
   notice: vi.fn()
+}));
+vi.mock('../renderer/src/matchQueueApi', () => ({
+  matchQueueApi: {
+    current: async () => ({
+      entries: [],
+      cursor: null,
+      mode: 'manual',
+      delayMinutes: 1,
+      running: false,
+      remainingMs: null,
+      revision: 0,
+      status: 'empty'
+    }),
+    heartbeat: async () => undefined
+  }
 }));
 vi.mock('@mantine/notifications', () => ({ notifications: { show: transport.notice } }));
 vi.mock('../renderer/src/ui/operator/OperatorTopbar', () => ({ OperatorTopbar: () => null }));
@@ -50,6 +73,8 @@ vi.mock('../renderer/src/api', async (importOriginal) => {
       state: transport.state,
       selectExhibitionGame: transport.selectGame,
       clearSelectedSet: transport.clear,
+      clearPlayerDetails: transport.clearPlayers,
+      saveLibraryPlayer: transport.saveLibraryPlayer,
       updateSelectedSet: transport.save,
       setScore: transport.score,
       resetScores: transport.reset,
@@ -103,6 +128,79 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+});
+
+it.each([false, true])('clears the current players without saving profiles (start.gg match: %s)', async (linked) => {
+  await initializeI18n();
+  await i18n.changeLanguage('en');
+  vi.useFakeTimers();
+  vi.stubGlobal(
+    'WebSocket',
+    class extends EventTarget {
+      close() {}
+    }
+  );
+  let live = createTestOverlayState();
+  live.selectedSet = {
+    ...live.selectedSet,
+    setId: linked ? '100' : undefined,
+    gameName: 'Street Fighter 6',
+    broadcast: { infoBarEnabled: true, logoEnabled: false, infoLeft: '!bracket' },
+    playerOne: {
+      entrantId: '10',
+      playerId: '101',
+      localPlayerId: 'alpha',
+      name: 'Alpha',
+      prefix: 'Team',
+      score: 1,
+      pronouns: 'they/them'
+    },
+    playerTwo: { entrantId: '20', playerId: '202', name: 'Beta', score: 0 }
+  };
+  const original = structuredClone(live);
+  const cleared = createTestOverlayState();
+  cleared.selectedSet.gameName = live.selectedSet.gameName;
+  cleared.selectedSet.broadcast = live.selectedSet.broadcast;
+  cleared.selectedSet.updatedAt = '2026-08-12T00:00:01.000Z';
+  transport.state.mockImplementation(async () => live);
+  transport.characters.mockResolvedValue({ assets: [] });
+  transport.prepare.mockResolvedValue({ rosterAvailable: true, created: 0 });
+  transport.save.mockImplementation(async (selectedSet: SelectedSetState) => (live = { selectedSet }));
+  transport.clearPlayers.mockImplementation(async () => (live = cleared));
+  const view = await mountView(() => h(MantineProvider, { env: 'test' }, h(OperatorDashboard)));
+  const name = () => view.container.querySelector<HTMLInputElement>('[data-testid="editor-one-name"]')!.value;
+  function fieldLabel(testId: string) {
+    const input = view.container.querySelector<HTMLInputElement>(`[data-testid="${testId}"]`)!;
+    return [...view.container.querySelectorAll('label')].find((label) => label.htmlFor === input.id)?.textContent;
+  }
+  expect(fieldLabel('editor-display-name')).toBe(linked ? 'Display name' : 'Exhibition title');
+  expect(fieldLabel('editor-logo-asset')).toBe(linked ? 'Logo' : 'Exhibition logo');
+  expect(fieldLabel('editor-logo-enabled')).toBe(linked ? 'Show tournament / sponsor logo' : 'Show exhibition logo');
+  expect(name()).toBe('Alpha');
+  const clear = [...view.container.querySelectorAll('button')].find(
+    (button) => button.textContent === 'Clear player details'
+  )!;
+  expect(clear.disabled).toBe(false);
+  await act(async () => clear.click());
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000);
+  });
+  expect(transport.clearPlayers).toHaveBeenCalledExactlyOnceWith(original.selectedSet.updatedAt);
+  expect(name()).toBe('Player 1');
+  expect(view.container.querySelector<HTMLInputElement>('[data-testid="editor-two-name"]')!.value).toBe('Player 2');
+  expect(live.selectedSet.broadcast).toEqual(original.selectedSet.broadcast);
+  expect(fieldLabel('editor-display-name')).toBe('Exhibition title');
+  expect(fieldLabel('editor-logo-asset')).toBe('Exhibition logo');
+  expect(fieldLabel('editor-logo-enabled')).toBe('Show exhibition logo');
+  const reportingHelp = document.getElementById(clear.getAttribute('aria-describedby')!);
+  expect(reportingHelp?.textContent).toContain('load the match through Matches → Set Selector');
+  expect(reportingHelp?.textContent).toContain(
+    'Entering players manually will not link a match to the ongoing tournament.'
+  );
+  expect(transport.saveLibraryPlayer).not.toHaveBeenCalled();
+  expect(transport.save).not.toHaveBeenCalled();
+  expect(transport.notice).not.toHaveBeenCalledWith(expect.objectContaining({ color: 'red' }));
+  await view.unmount();
 });
 
 it('plays best-of, first-to and Topanga exhibitions and clears the game after unloading a tournament', async () => {
@@ -168,6 +266,15 @@ it('plays best-of, first-to and Topanga exhibitions and clears the game after un
     return live;
   });
   const view = await mountView(() => h(MantineProvider, { env: 'test' }, h(OperatorDashboard)));
+  const oneDetails = view.container.querySelector<HTMLDetailsElement>('[data-testid="editor-one-details"]')!;
+  const twoDetails = view.container.querySelector<HTMLDetailsElement>('[data-testid="editor-two-details"]')!;
+  await act(async () => oneDetails.querySelector('summary')!.click());
+  expect(oneDetails.open).toBe(true);
+  expect(twoDetails.open).toBe(true);
+  await act(async () => twoDetails.querySelector('summary')!.click());
+  expect(oneDetails.open).toBe(false);
+  expect(twoDetails.open).toBe(false);
+
   function gameInput(labelText: string) {
     const label = [...view.container.querySelectorAll('.editor-panel label')].find(
       (label) => label.textContent === labelText
@@ -210,10 +317,13 @@ it('plays best-of, first-to and Topanga exhibitions and clears the game after un
   expect(playersLink.textContent).toBe('Players');
   await act(async () => playersLink.click());
   const library = document.querySelector<HTMLElement>('[role=dialog]')!;
-  expect(library.textContent).toContain('Add player');
+  expect(library.textContent).toContain('New player');
   await act(async () => library.querySelector<HTMLButtonElement>('.mantine-Modal-close')!.click());
   await chooseGame('Samurai Shodown');
   expect(gameInput('Game').value).toBe('Samurai Shodown');
+  expect(view.container.querySelector('[data-testid="editor-one-seed"]')).toBeNull();
+  expect(view.container.querySelector('[data-testid="editor-two-seed"]')).toBeNull();
+  expect(view.container.querySelector('[data-testid="editor-seeds-enabled"]')).toBeNull();
   expect(transport.selectGame).toHaveBeenCalledWith(
     expect.objectContaining({
       gameName: 'Samurai Shodown',
@@ -254,7 +364,9 @@ it('plays best-of, first-to and Topanga exhibitions and clears the game after un
     const callsAtLimit = transport.score.mock.calls.length;
     await act(async () => increase.click());
     expect(transport.score).toHaveBeenCalledTimes(callsAtLimit);
-    expect(view.container.querySelector<HTMLButtonElement>('[data-testid="report-startgg-result"]')?.disabled).toBe(true);
+    expect(view.container.querySelector<HTMLButtonElement>('[data-testid="report-startgg-result"]')?.disabled).toBe(
+      true
+    );
     await click('Reset scores');
     expect(live.selectedSet.playerOne.score).toBe(0);
     expect(increase.disabled).toBe(false);
@@ -264,7 +376,14 @@ it('plays best-of, first-to and Topanga exhibitions and clears the game after un
   const lengthDropdown = document.getElementById(length.getAttribute('aria-controls')!)!;
   const lengthOptions = [...lengthDropdown.querySelectorAll<HTMLElement>('[role="option"]')];
   expect(lengthOptions.map((option) => option.textContent)).toEqual([
-    'Best of 3', 'Best of 5', 'First to 2', 'First to 3', 'First to 5', 'First to 7', 'First to 10', 'Topanga Rules'
+    'Best of 3',
+    'Best of 5',
+    'First to 2',
+    'First to 3',
+    'First to 5',
+    'First to 7',
+    'First to 10',
+    'Topanga Rules'
   ]);
   await act(async () => {
     lengthOptions.at(-1)!.click();

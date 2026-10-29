@@ -8,9 +8,12 @@ mod database;
 mod diagnostics;
 mod external_links;
 mod fonts;
+#[cfg(all(test, target_os = "linux"))]
+mod glib_security_tests;
 mod generated_moderation_terms;
 mod local_server;
 mod match_formats;
+mod match_queue;
 mod media_directories;
 mod moderation;
 mod persisted_state;
@@ -31,7 +34,6 @@ mod stingers;
 mod top_eight_matchups;
 mod versus_history;
 mod versus_screen;
-#[cfg(not(debug_assertions))]
 mod web_assets;
 
 use runtime::RuntimeState;

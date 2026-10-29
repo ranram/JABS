@@ -1,11 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { getObsSourceActivity, subscribeObsSourceActivity } from '../../hooks/obsSourceActivity';
 import { DisplayText } from '../DisplayText';
+import { useAppearance } from '../appearance/AppearanceProvider';
 
 const tickerPixelsPerSecond = 28;
 const minimumTickerDurationSeconds = 18;
 
 export function VersusFrame({ tickers, preview }: { tickers: [string, string]; preview?: boolean }) {
+  const { appearance } = useAppearance();
   const { active } = useSyncExternalStore(subscribeObsSourceActivity, getObsSourceActivity);
   const [hidden, setHidden] = useState(document.hidden);
   useEffect(() => {
@@ -18,7 +20,9 @@ export function VersusFrame({ tickers, preview }: { tickers: [string, string]; p
       <div className="versus-frame" aria-hidden="true">
         <div className="versus-frame-border" data-entrance="frame" />
       </div>
-      <div className={`versus-rails${preview || hidden || active === false ? ' is-paused' : ''}`}>
+      <div
+        className={`versus-rails${preview || hidden || active === false || !appearance.entranceAnimations ? ' is-paused' : ''}`}
+      >
         {tickers.map(
           (text, index) => text && <BorderTicker key={index} text={text} side={index === 0 ? 'left' : 'right'} />
         )}

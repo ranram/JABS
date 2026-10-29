@@ -1,5 +1,5 @@
 use super::{
-    Area, Context, Event, Reason, commands,
+    Area, Context, Event, Method, Operation, Reason, commands,
     storage::{LogStorage, MAX_FILE_BYTES},
 };
 use std::{fs, path::PathBuf};
@@ -28,6 +28,11 @@ fn diagnostic_files_rotate_bound_exports_and_preserve_session_evidence() {
     let context = Context {
         area: Area::Reporting,
         reason: Some(Reason::Timeout),
+        operation: Some(Operation::QueueHeartbeat),
+        method: Some(Method::Post),
+        request_id: Some(42),
+        elapsed_ms: Some(3000),
+        attempt: Some(1),
         ..Default::default()
     };
     for _ in 0..5 {
@@ -43,11 +48,24 @@ fn diagnostic_files_rotate_bound_exports_and_preserve_session_evidence() {
     assert_eq!(entries[0]["count"], 1);
     assert_eq!(entries[1]["count"], 4);
     assert_eq!(entries[0]["reason"], "timeout");
+    assert_eq!(entries[0]["operation"], "queue-heartbeat");
+    assert_eq!(entries[0]["method"], "POST");
+    assert_eq!(entries[0]["requestId"], 42);
+    assert_eq!(entries[0]["elapsedMs"], 3000);
+    assert_eq!(entries[0]["attempt"], 1);
     assert!(report.contains(env!("CARGO_PKG_VERSION")));
     assert!(report.contains(super::SUPPORT_EMAIL));
+    log.record(Event::QueueContextMissing, Context { area: Area::Bracket, ..Default::default() }).unwrap();
+    assert!(log.report().unwrap().contains("\"event\":\"queue-context-missing\""));
     let mut edited = entries[0].clone();
     edited["message"] = serde_json::json!("private secret from an edited log");
     fs::write(directory.join("jabs.log"), format!("{edited}\n")).unwrap();
+    assert!(!log.report().unwrap().contains("private secret"));
+    for key in ["operation", "method", "requestId", "elapsedMs", "attempt"] {
+        edited.as_object_mut().unwrap().remove(key);
+    }
+    fs::write(directory.join("jabs.log"), format!("{edited}\n")).unwrap();
+    assert!(log.report().unwrap().contains("report-outcome-uncertain"));
     assert!(!log.report().unwrap().contains("private secret"));
     edited["session"] = serde_json::json!("private-user");
     fs::write(directory.join("jabs.log"), format!("{edited}\n")).unwrap();
@@ -86,6 +104,7 @@ fn diagnostic_ingress_accepts_only_reviewed_events_and_non_text_metadata() {
         ..Default::default()
     };
     assert!(commands::report_renderer_diagnostic(Event::StreamSaveFailed, Some(context)).is_ok());
+    assert!(commands::report_renderer_diagnostic(Event::QueueContextMissing, Some(context)).is_ok());
     assert!(commands::report_renderer_diagnostic(Event::SessionStarted, Some(context)).is_err());
     assert!(commands::report_renderer_diagnostic(Event::NativePanic, None).is_err());
     assert!(
@@ -114,9 +133,21 @@ fn diagnostic_ingress_accepts_only_reviewed_events_and_non_text_metadata() {
         serde_json::json!({"reason":"private token"}),
         serde_json::json!({"path":"/home/private-user/picture.png"}),
         serde_json::json!({"token":"private token"}),
+        serde_json::json!({"operation":"/api/players/private-id"}),
+        serde_json::json!({"method":"private method"}),
     ] {
         let request = serde_json::json!({"event":"renderer-error","context":metadata});
         assert!(serde_json::from_value::<commands::RendererReport>(request).is_err());
     }
     assert!(serde_json::from_str::<Event>("\"private arbitrary text\"").is_err());
+    for context in [
+        Context { request_id: Some(9_007_199_254_740_992), ..Context::default() },
+        Context { elapsed_ms: Some(86_400_001), ..Context::default() },
+        Context { attempt: Some(0), ..Context::default() },
+        Context { attempt: Some(3), ..Context::default() },
+    ] {
+        assert!(commands::report_renderer_diagnostic(Event::LocalRequestFailed, Some(context)).is_err());
+    }
+    assert_eq!(Event::LocalRequestCancelled.level(), "info");
+    assert_eq!(Event::LocalRequestRecovered.level(), "info");
 }

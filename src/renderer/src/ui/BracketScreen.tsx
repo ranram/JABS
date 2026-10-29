@@ -43,7 +43,6 @@ function BracketPresentationContent({ state, preview = false }: { state: Bracket
     '--bracket-background': profile.overlay.background,
     ...appearanceStyle
   } as CSSProperties;
-  const matches = useMemo(() => new Map(snapshot?.matches.map((match) => [match.id, match])), [snapshot?.matches]);
   return (
     <main
       ref={ref}
@@ -75,8 +74,8 @@ function BracketPresentationContent({ state, preview = false }: { state: Bracket
             {logoUrl && <img src={logoUrl} alt="" />}
           </header>
           <div className="bracket-lanes">
-            <BracketLane side="winners" layout={layout.winners} matches={matches} />
-            <BracketLane side="losers" layout={layout.losers} matches={matches} />
+            <BracketLane side="winners" layout={layout.winners} />
+            <BracketLane side="losers" layout={layout.losers} />
           </div>
         </>
       ) : preview ? (
@@ -94,15 +93,7 @@ function BracketPresentationContent({ state, preview = false }: { state: Bracket
   );
 }
 
-function BracketLane({
-  side,
-  layout,
-  matches
-}: {
-  side: 'winners' | 'losers';
-  layout: BracketLaneLayout;
-  matches: Map<string, BracketMatch>;
-}) {
+function BracketLane({ side, layout }: { side: 'winners' | 'losers'; layout: BracketLaneLayout }) {
   const title = useBracketLabel(side);
   const connections = useMemo(() => bracketConnections(layout), [layout]);
   if (!layout.columns.length) return null;
@@ -153,7 +144,7 @@ function BracketLane({
                       style={{ top: y }}
                     >
                       {match.slots.map((slot, row) => (
-                        <BracketPlayer key={row} slot={slot} match={match} matches={matches} />
+                        <BracketPlayer key={row} slot={slot} match={match} />
                       ))}
                     </article>
                   ))}
@@ -180,41 +171,32 @@ function BracketLane({
   );
 }
 
-function BracketPlayer({
-  slot,
-  match,
-  matches
-}: {
-  slot: BracketSlot;
-  match: BracketMatch;
-  matches: Map<string, BracketMatch>;
-}) {
+function BracketPlayer({ slot, match }: { slot: BracketSlot; match: BracketMatch }) {
   const { t } = useTranslation('operator');
   const flag = displayFlagUrl(slot.country, undefined);
   const winner = Boolean(match.winnerId && slot.entrantId === match.winnerId);
   const loser = Boolean(match.winnerId && slot.entrantId && !winner);
-  const feeder = slot.prerequisite && matches.get(slot.prerequisite.setId);
-  const placeholder = slot.prerequisite
-    ? t(slot.prerequisite.placement === 1 ? 'bracketScreen.winnerOf' : 'bracketScreen.loserOf', {
-        round: feeder ? `${feeder.round} #${feeder.id}` : `#${slot.prerequisite.setId}`
-      })
-    : t(match.state === 3 && !slot.entrantId ? 'bracketScreen.bye' : 'bracketScreen.tbd');
+  const name = slot.name ?? (match.state === 3 && !slot.entrantId ? t('bracketScreen.bye') : '');
   return (
     <div
       className={`bracket-player${winner ? ' is-winner' : loser ? ' is-loser' : ''}${!slot.entrantId ? ' is-pending' : ''}`}
     >
-      <span className="bracket-flag"><img src={flag} alt={displayFlagLabel(slot.country, undefined)} /></span>
-      <strong title={slot.name ?? placeholder}>
+      <span className="bracket-flag">
+        {slot.entrantId && <img src={flag} alt={displayFlagLabel(slot.country, undefined)} />}
+      </span>
+      <strong title={name}>
         {slot.sponsor && (
           <span className="bracket-sponsor">
             <DisplayText text={slot.sponsor} />
             {'|'}
           </span>
         )}
-        <DisplayText text={slot.name ?? placeholder} />
+        <DisplayText text={name} />
       </strong>
       <span className="bracket-score">
-        <span className="bracket-score-text">{slot.score === -1 ? 'DQ' : (slot.score ?? '—')}</span>
+        <span className="bracket-score-text">
+          {slot.entrantId ? (slot.score === -1 ? 'DQ' : (slot.score ?? '—')) : ''}
+        </span>
       </span>
     </div>
   );

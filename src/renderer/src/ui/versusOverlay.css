@@ -97,11 +97,6 @@
     transform: translateY(-50%);
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .versus-ticker-track {
-    animation: none;
-  }
-}
 
 .versus-overlay.is-transparent-background {
   background: transparent;

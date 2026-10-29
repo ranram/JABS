@@ -21,6 +21,9 @@ import { i18n, normalizeLocale } from '../../i18n';
 import { useRealtimeState } from '../../hooks/useRealtimeState';
 import { parseRealtimeJson } from '../../hooks/realtime';
 import { useSettingsDraft } from '../../hooks/useSettingsDraft';
+import { localizedNativeError } from '../../i18n/nativeErrors';
+import { useOperatorNotifications } from '../operator/useOperatorNotifications';
+import { accentTextColor } from './textContrast';
 import './appearance.css';
 
 type Update = (
@@ -50,9 +53,11 @@ const parseAppearanceMessage = (value: unknown) =>
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const { i18n: operatorI18n } = useTranslation();
+  const notify = useOperatorNotifications();
   const [error, setError] = useState<string>();
   const live = useRealtimeState({
     load: api.appearancePreferences,
+    diagnosticOperation: 'appearance-settings',
     parseMessage: parseAppearanceMessage,
     loadError: 'Could not load appearance settings.'
   });
@@ -64,7 +69,11 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         setError(undefined);
         return saved;
       } catch (failure) {
-        setError(failure instanceof Error ? failure.message : 'Could not save appearance settings.');
+        const message = failure instanceof Error
+          ? failure.message
+          : localizedNativeError('Could not save appearance settings.');
+        setError(message);
+        if (!window.location.pathname.startsWith('/overlay')) notify(message, 'error');
         throw failure;
       }
     },
@@ -171,13 +180,4 @@ export function appearanceStyle(appearance: Appearance): CSSProperties {
     style['--adjustable-media-outline'] = `color-mix(in srgb, ${appearance.primaryColor} 82%, white)`;
   }
   return style as CSSProperties;
-}
-
-function accentTextColor(color: string) {
-  const channels = [1, 3, 5].map((offset) => {
-    const value = Number.parseInt(color.slice(offset, offset + 2), 16) / 255;
-    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  });
-  const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
-  return luminance > 0.179 ? '#000000' : '#ffffff';
 }

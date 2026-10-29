@@ -1,5 +1,5 @@
 import { ScoreboardPlayerName } from '../ScoreboardPlayerName';
-import { useCenteredNameFit } from '../useCenteredNameFit';
+import { useIdentityTextFit } from '../useIdentityTextFit';
 import type { CustomScoreboardFontId } from '@shared/customScoreboards';
 
 export function CustomScoreboardName({
@@ -15,7 +15,7 @@ export function CustomScoreboardName({
   fontSize: number;
   font: CustomScoreboardFontId;
 }) {
-  const ref = useCenteredNameFit(JSON.stringify([name, sponsor, side, fontSize, font]), '.custom-scoreboard-identity');
+  const ref = useIdentityTextFit(JSON.stringify([name, sponsor, side, fontSize, font]), '.custom-scoreboard-identity');
   return (
     <span ref={ref} className="custom-scoreboard-name-fit">
       <span className="custom-scoreboard-identity">

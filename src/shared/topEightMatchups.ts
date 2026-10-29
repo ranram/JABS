@@ -1,3 +1,4 @@
+import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, type GameId } from './gameProfiles';
 import type { SetSummary } from './models';
@@ -7,10 +8,10 @@ const playerSchema = z.object({
   localPlayerId: z.string().optional(),
   portraitAssetId: z.string().optional(),
   entrantId: z.string().optional(),
-  name: z.string().trim().min(1).max(100),
-  sponsor: z.string().trim().max(100).optional(),
-  character: z.string().trim().min(1).max(100).optional(),
-  characterAssetId: z.string().trim().min(1).max(255).optional()
+  name: z.string().trim().min(1).refine(utf16AtMost(100)),
+  sponsor: z.string().trim().refine(utf16AtMost(100)).optional(),
+  character: z.string().trim().min(1).refine(utf16AtMost(100)).optional(),
+  characterAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional()
 });
 
 const matchupSchema = z.object({
@@ -24,10 +25,10 @@ export const topEightMatchupsStateSchema = z.object({
   showBackground: z.boolean().default(true),
   showTournamentLogo: z.boolean().default(true),
   flipPlayerTwoPortraits: z.boolean().default(false),
-  assetCatalogSlug: z.string().trim().min(1).max(100),
-  tournamentName: z.string().trim().min(1).max(120),
-  eventName: z.string().trim().max(120).optional(),
-  logoAssetId: z.string().trim().min(1).max(255).optional(),
+  assetCatalogSlug: z.string().trim().min(1).refine(utf16AtMost(100)),
+  tournamentName: z.string().trim().min(1).refine(utf16AtMost(120)),
+  eventName: z.string().trim().refine(utf16AtMost(120)).optional(),
+  logoAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional(),
   matchups: z.array(matchupSchema).length(4).refine(
     (matchups) => matchups.every((matchup, index) => matchup.bracket === (index < 2 ? 'winners' : 'losers')),
     'Top 8 requires two winners matchups followed by two losers matchups.'
@@ -36,6 +37,10 @@ export const topEightMatchupsStateSchema = z.object({
 });
 
 export type TopEightMatchupsState = z.infer<typeof topEightMatchupsStateSchema>;
+
+export function isTopEightPhaseName(name: string): boolean {
+  return /(^|\s)top\s*8($|\s)/iu.test(name.normalize('NFKC').replace(/[_-]+/gu, ' ').trim());
+}
 
 export function parseTopEightMatchupsRealtime(value: unknown): TopEightMatchupsState | undefined {
   const message = z.object({
@@ -48,10 +53,8 @@ export function parseTopEightMatchupsRealtime(value: unknown): TopEightMatchupsS
 /** Finds the four sets where eight entrants enter the final double-elimination subtree. */
 export function detectTopEightOpeningSets(sets: readonly SetSummary[]): SetSummary[] | undefined {
   const byId = new Map(sets.map((set) => [set.id, set]));
-  const referenced = new Set(sets.flatMap((set) => set.prerequisites?.map(({ setId }) => setId) ?? []));
   const candidates = sets.filter((set) =>
     (set.prerequisites?.length ?? 0) === 2
-    && !referenced.has(set.id)
   );
 
   const detected: SetSummary[][] = [];
@@ -83,7 +86,8 @@ export function detectTopEightOpeningSets(sets: readonly SetSummary[]): SetSumma
   if (detected.length === 0) return undefined;
   const latestPhaseOrder = Math.max(...detected.map((opening) => opening[0]?.phaseOrder ?? -1));
   const latest = detected.filter((opening) => (opening[0]?.phaseOrder ?? -1) === latestPhaseOrder);
-  return latest.length === 1 ? latest[0] : undefined;
+  const distinct = [...new Map(latest.map((opening) => [opening.map(({ id }) => id).sort().join(','), opening])).values()];
+  return distinct.length === 1 ? distinct[0] : undefined;
 }
 
 /** Uses bracket coordinates after an explicitly named Top 8 phase establishes the scope. */

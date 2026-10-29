@@ -205,20 +205,62 @@ fn automatic_winner_requires_fresh_completion_and_does_not_repeat_after_correcti
     topanga.match_format = Some("topanga".into());
     topanga.player_one.score = 7;
     topanga.player_two.score = 6;
-    assert_eq!(winner(&topanga), None);
+    assert_eq!(topanga.winner(), None);
     topanga.player_one.score = 8;
-    assert_eq!(winner(&topanga), Some("one"));
+    assert_eq!(topanga.winner(), Some("one"));
     let mut imported = topanga;
     imported.match_format = Some("best-of".into());
     imported.player_one.score = 1;
     imported.player_two.score = 0;
     imported.state = Some("3".into());
-    assert_eq!(winner(&imported), Some("one"));
+    assert_eq!(imported.winner(), Some("one"));
     store.finish(None, None, None).unwrap();
     store.reset_completion();
     let mut before_import = imported.clone();
     before_import.state = Some("2".into());
     store.score_updated(&before_import, &imported);
+    assert!(store.current().unwrap().cue.is_none());
+}
+
+#[test]
+fn automatic_winner_skips_scoreless_reports_and_rearms_after_upstream_resets() {
+    let (database, store, mut before) = setup();
+    before.set_id = Some("100".into());
+    before.state = Some("1".into());
+    before.best_of = 3;
+    before.player_one.score = 1;
+    let mut won = before.clone();
+    won.player_one.score = 2;
+    won.upstream_reset = Some(false);
+    let mut settings = store.current().unwrap().settings;
+    settings.automatic_winner = true;
+    store.replace(&database, settings).unwrap();
+    store.register("source-one", true, true).unwrap();
+    for kind in [crate::state::ReportOutcomeKind::WinLoss, crate::state::ReportOutcomeKind::Disqualification] {
+        let mut scoreless = won.clone();
+        scoreless.state = Some("3".into());
+        scoreless.reported_outcome = Some(crate::state::ReportOutcome { kind, winner_id: scoreless.player_two.entrant_id.clone() });
+        store.score_updated(&before, &scoreless);
+        assert!(store.current().unwrap().cue.is_none());
+    }
+    store.score_updated(&before, &won);
+    assert_eq!(store.current().unwrap().cue.unwrap().kind, Kind::Winner);
+    store.finish(None, None, None).unwrap();
+    store.inner.lock().unwrap().automatic_completions.push_back("startgg-other".into());
+
+    let mut reset = won.clone();
+    reset.upstream_reset = Some(true);
+    store.score_updated(&won, &reset);
+    store.score_updated(&before, &reset);
+    assert!(store.current().unwrap().cue.is_none());
+    assert!(store.inner.lock().unwrap().automatic_completions.iter().any(|id| id == "startgg-other"));
+    let mut replayed = before;
+    replayed.upstream_reset = Some(false);
+    store.score_updated(&reset, &replayed);
+    store.score_updated(&replayed, &won);
+    assert_eq!(store.current().unwrap().cue.unwrap().kind, Kind::Winner);
+    store.finish(None, None, None).unwrap();
+    store.score_updated(&replayed, &won);
     assert!(store.current().unwrap().cue.is_none());
 }
 

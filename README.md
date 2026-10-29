@@ -60,7 +60,7 @@ Other fighting games are available through the searchable **Game** list or their
 ## Get started
 
 1. Load a start.gg tournament URL or slug, choose an event, and send a set to stream. For exhibitions, choose a game and enter the players directly.
-2. Copy a URL from **OBS URLs** in the toolbar into an OBS Browser Source at `1920×1080`.
+2. Choose a source from **Copy overlay URL** in the toolbar, then paste its URL into an OBS Browser Source at `1920×1080`.
 3. Keep JABS running and update scores from **Edit stream state**.
 
 Choose **Help** for in-app tutorials. The [User Manual](USER_MANUAL.md) covers artwork, overlays, and [connecting to start.gg for reporting](USER_MANUAL.md#connect-to-startgg).

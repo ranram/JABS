@@ -1,3 +1,4 @@
+import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, type GameId } from './gameProfiles';
 
@@ -8,9 +9,9 @@ export const bracketSettingsSchema = z.object({
   stylingGameId: z.custom<GameId>((value) => typeof value === 'string' && canonicalGameId(value) === value),
   showBackground: z.boolean().default(true),
   showTournamentLogo: z.boolean().default(true),
-  logoAssetId: z.string().max(255).optional(),
-  heading: z.string().max(100).optional(),
-  eventLabel: z.string().max(100).optional(),
+  logoAssetId: z.string().refine(utf16AtMost(255)).optional(),
+  heading: z.string().refine(utf16AtMost(100)).optional(),
+  eventLabel: z.string().refine(utf16AtMost(100)).optional(),
   winnersRound: z.number().int().min(1).max(100).optional(),
   losersRound: z.number().int().min(-100).max(-1).optional(),
   scope: bracketScopeSchema.optional(),
@@ -18,8 +19,8 @@ export const bracketSettingsSchema = z.object({
 });
 export const bracketSlotSchema = z.object({
   entrantId: id.optional(),
-  name: z.string().max(200).optional(),
-  sponsor: z.string().max(200).optional(),
+  name: z.string().refine(utf16AtMost(200)).optional(),
+  sponsor: z.string().refine(utf16AtMost(200)).optional(),
   country: z
     .string()
     .regex(/^[A-Z]{2}$/)
@@ -30,7 +31,7 @@ export const bracketSlotSchema = z.object({
 export const bracketMatchSchema = z.object({
   id: setId,
   roundNumber: z.number().int().min(-100).max(100),
-  round: z.string().max(200),
+  round: z.string().refine(utf16AtMost(200)),
   state: z.number().int().min(1).max(7),
   winnerId: id.optional(),
   slots: z.tuple([bracketSlotSchema, bracketSlotSchema])

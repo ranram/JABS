@@ -12,6 +12,7 @@ type Options = {
   quickScoreOpen: boolean;
   refreshQuickScore(): Promise<void>;
   refreshSets(scope: StartggSetScope): Promise<void>;
+  retryStreamSave(): void;
   setOverlayState: Dispatch<SetStateAction<OverlayState | undefined>>;
   setDraftState: Dispatch<SetStateAction<OperatorDraftState | undefined>>;
 };
@@ -43,6 +44,8 @@ export function useModerationRefresh(options: Options) {
     if (options.quickScoreOpen) tasks.push(options.refreshQuickScore());
     if (options.setScope) tasks.push(options.refreshSets(options.setScope));
     await Promise.allSettled(tasks);
+    // Recheck edits rejected under the previous list, even when their text is unchanged.
+    options.retryStreamSave();
   }
 
   return { moderationRevision, refreshAfterModeration };

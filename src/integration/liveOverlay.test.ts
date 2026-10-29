@@ -3,13 +3,14 @@ import noFlag from '../renderer/src/assets/Flag_of_None.webp';
 import { readFileSync } from 'node:fs';
 import { act, createElement as h } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { createTestOverlayState } from '@shared/testFixtures';
+import { createTestCustomScoreboard, createTestOverlayState } from '@shared/testFixtures';
 import { commentatorStateSchema, type CommentatorState } from '@shared/commentators';
 import { resultScreenStateSchema, type ResultScreenState } from '@shared/resultScreen';
 import { topEightMatchupsStateSchema, type TopEightMatchupsState } from '@shared/topEightMatchups';
 import type { GameCharacterAsset, OverlayState, PlayerMediaMatch } from '@shared/models';
 import { deferred, mountView } from '../renderer/src/hooks/hookTestHarness';
 import { initializeI18n, i18n } from '../renderer/src/i18n';
+import { CustomScoreboardCanvas } from '../renderer/src/ui/CustomScoreboardCanvas';
 import { OverlayView } from '../renderer/src/ui/OverlayView';
 import { countryFlagUrl, displayFlagUrl } from '../renderer/src/ui/overlayPlayerPresentation';
 import playerPlaceholder from '../renderer/src/assets/player_placeholder.svg';
@@ -95,6 +96,45 @@ it('uses an overlay logo when selected and falls back to the current rails logo'
     await view.rerender();
     expect(view.container.querySelector(selector)).toBeNull();
   }
+});
+
+it('shows tournament seeds only when enabled and hides exhibition seeds without deleting them', async () => {
+  const { view, overlay } = await mountLiveOverlay();
+  const set = overlay.selectedSet;
+  const scoreboard = createTestCustomScoreboard();
+  scoreboard.visibility.seeds = true;
+  const custom = await mountView(() =>
+    h(CustomScoreboardCanvas, {
+      scoreboard,
+      selectedSet: set,
+      frameUrl: 'frame.png'
+    })
+  );
+  const seedText = () => view.container.querySelector('.overlay-player-left .overlay-player-details')?.textContent;
+  const customSeedText = () =>
+    custom.container.querySelector('[data-custom-scoreboard-region="playerOneSeed"]')?.textContent;
+  expect(seedText()).toBe('Seed 3');
+  expect(customSeedText()).toBe('Seed 3');
+
+  set.broadcast = { ...set.broadcast!, seedsEnabled: false };
+  await view.rerender();
+  await custom.rerender();
+  expect(seedText()).toBeUndefined();
+  expect(customSeedText()).toBeUndefined();
+  expect(set.playerOne.seed).toBe(3);
+
+  set.broadcast.seedsEnabled = true;
+  await view.rerender();
+  await custom.rerender();
+  expect(seedText()).toBe('Seed 3');
+  expect(customSeedText()).toBe('Seed 3');
+
+  set.setId = undefined;
+  await view.rerender();
+  await custom.rerender();
+  expect(seedText()).toBeUndefined();
+  expect(customSeedText()).toBeUndefined();
+  expect(set.playerOne.seed).toBe(3);
 });
 
 it('keeps Top 8 portrait slots blank while loading and refreshes only when their media changes', async () => {

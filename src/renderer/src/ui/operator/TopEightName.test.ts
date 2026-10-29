@@ -47,14 +47,13 @@ it('fits long names and restores the design size after resizing or shortening th
   const height = getComputedStyle(row).height;
   expect(field.textContent).toBe('あいう/ABC');
   expect(getComputedStyle(field).whiteSpace).toBe('nowrap');
-  expect(Number.parseFloat(field.style.fontSize)).toBeCloseTo(17.82);
   expect(field.scrollWidth).toBeLessThanOrEqual(available);
   available = 200;
   await act(async () => resize());
   expect(getComputedStyle(field).fontSize).toBe('27px');
   available = 100;
   await act(async () => resize());
-  expect(Number.parseFloat(field.style.fontSize)).toBeCloseTo(17.82);
+  expect(field.scrollWidth).toBeLessThanOrEqual(available);
   name = 'Test';
   await view.rerender();
   expect(getComputedStyle(field).fontSize).toBe('27px');

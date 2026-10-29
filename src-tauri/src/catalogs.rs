@@ -7,6 +7,7 @@ use std::{
 use unicode_normalization::{UnicodeNormalization, char::is_combining_mark};
 
 mod character_assets;
+pub mod changes;
 mod character_setup;
 pub use character_setup::{prepare_character_files, built_in_roster, local_character_roster, repair_existing_character_folders};
 pub use character_assets::{

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, createElement as h } from 'react';
 import { readFileSync } from 'node:fs';
-import { MantineProvider } from '@mantine/core';
+import { Drawer, MantineProvider, Modal } from '@mantine/core';
 import { I18nextProvider } from 'react-i18next';
 import { expect, it, vi } from 'vitest';
 import {
@@ -20,12 +20,18 @@ import {
   useAppearance,
   useAppearanceStyle
 } from '../renderer/src/ui/appearance/AppearanceProvider';
-import { SettingsButton } from '../renderer/src/ui/appearance/SettingsPanel';
+import { SettingsButton, SettingsPanel } from '../renderer/src/ui/appearance/SettingsPanel';
 import { OverlayView } from '../renderer/src/ui/OverlayView';
 import { BroadcastScoreboardFontSelect } from '../renderer/src/ui/fonts/BroadcastScoreboardFontSelect';
 import { BracketPresentation } from '../renderer/src/ui/BracketScreen';
 import { initializeI18n, i18n } from '../renderer/src/i18n';
 import { mountView } from '../renderer/src/hooks/hookTestHarness';
+import { contrastRatio, parseColor } from '../renderer/src/ui/appearance/textContrast';
+import { localizedNativeError } from '../renderer/src/i18n/nativeErrors';
+import { jabsTheme } from '../renderer/src/ui/theme';
+
+const notices = vi.hoisted(() => ({ show: vi.fn(), hide: vi.fn() }));
+vi.mock('@mantine/notifications', () => ({ notifications: notices }));
 
 const transport = vi.hoisted(() => ({
   state: undefined as AppearancePreferences | undefined,
@@ -43,6 +49,101 @@ vi.mock('../renderer/src/hooks/useLogoAssetUrl', () => ({ useLogoAssetUrl: () =>
 vi.mock('../renderer/src/hooks/useScoreboardPhotos', () => ({
   useScoreboardPhotos: () => ({ state: { enabled: false, updatedAt: '1' } })
 }));
+
+it('shares translated modal close controls and preserves hidden-close guards', async () => {
+  await initializeI18n();
+  for (const kind of ['modal', 'drawer']) {
+    await i18n.changeLanguage('en');
+    const onClose = vi.fn();
+    let withCloseButton = true;
+    const view = await mountView(() => {
+      const props = { opened: true, onClose, title: 'Dialog', withCloseButton };
+      return h(
+        MantineProvider,
+        { env: 'test', theme: jabsTheme },
+        kind === 'modal' ? h(Modal, props) : h(Drawer, props)
+      );
+    });
+    try {
+      const close = document.querySelector<HTMLButtonElement>('.operator-modal-close')!;
+      expect(close?.textContent).toBe('Close');
+      await act(async () => i18n.changeLanguage('es-419'));
+      expect(close.textContent).toBe('Cerrar');
+      await act(async () => close.click());
+      expect(onClose).toHaveBeenCalledTimes(1);
+      withCloseButton = false;
+      await view.rerender();
+      expect(document.querySelector('.operator-modal-close')).toBeNull();
+    } finally {
+      await view.unmount();
+    }
+  }
+  await i18n.changeLanguage('en');
+});
+
+it.each([
+  ['en', 'The Losers bracket name contains blocked text. Your previous settings were kept.'],
+  [
+    'es-419',
+    'Se detectó texto bloqueado en el nombre del bracket de perdedores. Se conservaron los ajustes anteriores.'
+  ]
+])('notifies every rejected bracket-name save in %s and keeps the saved name', async (locale, message) => {
+  await initializeI18n();
+  await i18n.changeLanguage(locale);
+  notices.show.mockClear();
+  const original = appearancePreferencesSchema.parse({
+    appearance: { losersLabel: 'Lower' },
+    presets: [],
+    operatorLanguage: locale,
+    updatedAt: '2026-10-26T00:00:00Z'
+  });
+  transport.load.mockReset().mockResolvedValue(original);
+  transport.save
+    .mockReset()
+    .mockRejectedValue(
+      new Error(
+        localizedNativeError('The Losers bracket name contains blocked text. Your previous settings were kept.')
+      )
+    );
+  vi.stubGlobal(
+    'WebSocket',
+    class extends EventTarget {
+      close() {}
+    }
+  );
+  let settings!: ReturnType<typeof useAppearance>;
+  function Observer() {
+    settings = useAppearance();
+    return h('span', null, settings.appearance.losersLabel);
+  }
+  const view = await mountView(() => h(AppearanceProvider, { children: h(Observer) }));
+  try {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      let saved = true;
+      await act(async () => {
+        saved = await settings.update((current) => ({
+          ...current,
+          appearance: { ...current.appearance, losersLabel: 'Randy' }
+        }));
+      });
+      expect(saved).toBe(false);
+      expect(view.container.textContent).toBe('Lower');
+      expect(settings.error).toBe(message);
+      expect(notices.show).toHaveBeenCalledTimes(attempt);
+      expect(notices.show).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          color: 'red',
+          message,
+          withCloseButton: true
+        })
+      );
+    }
+  } finally {
+    await view.unmount();
+    vi.unstubAllGlobals();
+    await i18n.changeLanguage('en');
+  }
+});
 
 it('shares appearance changes with broadcast previews and saves portable presets without changing operator language', async () => {
   await initializeI18n();
@@ -282,15 +383,24 @@ it('shares appearance changes with broadcast previews and saves portable presets
   const save = [...document.querySelectorAll('button')].find((node) => node.textContent === 'Save preset')!;
   await act(async () => save.click());
   expect(transport.state!.presets).toHaveLength(1);
+  expect(transport.state!.activePresetId).toBe(transport.state!.presets[0].id);
   expect(transport.state!.presets[0].appearance.losersLabel).toBe('El Camino del Ninja');
   await act(async () => document.querySelector<HTMLButtonElement>('.mantine-Drawer-close')!.click());
   for (const profile of [gameProfiles['street-fighter-6'], gameProfiles['guilty-gear-strive']]) {
     transport.overlay.selectedSet.stylingGameId = profile.id;
+    transport.overlay.selectedSet.playerOne.prefix = 'Sponsor One';
+    transport.overlay.selectedSet.playerTwo.prefix = 'Sponsor Two';
     await view.rerender();
-    const left = view.container.querySelector('.overlay-player-left .overlay-player-score')!;
-    const right = view.container.querySelector('.overlay-player-right .overlay-player-score')!;
-    expect(getComputedStyle(left).color, profile.id).toBe('#112233');
-    expect(getComputedStyle(right).color, profile.id).toBe('#445566');
+    const stage = view.container.querySelector<HTMLElement>('[data-overlay-template]')!;
+    expect(stage.style.getPropertyValue('--appearance-primary')).toBe('#112233');
+    expect(stage.style.getPropertyValue('--appearance-secondary')).toBe('#445566');
+    // Happy DOM does not resolve color-mix score backings; the opaque plate remains measurable.
+    const backing = profile.id === 'street-fighter-6' ? ([18, 12, 9] as const) : ([24, 20, 17] as const);
+    for (const label of view.container.querySelectorAll<HTMLElement>('.overlay-player-score, .overlay-player-prefix')) {
+      const color = parseColor(getComputedStyle(label).color)!;
+      expect(label.style.color, profile.id).not.toBe('');
+      expect(contrastRatio([color[0], color[1], color[2]], backing), profile.id).toBeGreaterThanOrEqual(4.5);
+    }
   }
   await act(async () => settingsButton.click());
   const presetLabel = [...document.querySelectorAll('label')].find((node) => node.textContent === 'Saved preset')!;
@@ -308,6 +418,7 @@ it('shares appearance changes with broadcast previews and saves portable presets
   const restore = [...document.querySelectorAll('button')].find((node) => node.textContent === 'Restore defaults')!;
   await act(async () => restore.click());
   expect(transport.state!.appearance).toEqual(defaultAppearance);
+  expect(transport.state!.activePresetId).toBeNull();
   expect(transport.state!.scoreboardFont).toBe('oswald');
   expect(transport.state!.presets).toHaveLength(1);
   expect(canvas.style.getPropertyValue('--game-accent')).toBe('');
@@ -335,6 +446,137 @@ it('shares appearance changes with broadcast previews and saves portable presets
   window.history.replaceState(null, '', originalPath);
   vi.unstubAllGlobals();
 }, 15_000);
+
+it('restores preset identity, creates separate presets, and rolls back failed changes', async () => {
+  await initializeI18n();
+  await i18n.changeLanguage('en');
+  vi.stubGlobal(
+    'WebSocket',
+    class extends EventTarget {
+      close() {}
+    }
+  );
+  const appearance = {
+    ...defaultAppearance,
+    colorOverride: true,
+    primaryColor: '#112233',
+    secondaryColor: '#334455',
+    winnersLabel: 'Upper',
+    losersLabel: 'Lower',
+    textSize: 'large' as const,
+    broadcastLanguage: 'es-419' as const,
+    entranceAnimations: false
+  };
+  transport.state = appearancePreferencesSchema.parse({
+    appearance,
+    scoreboardFont: 'oswald',
+    activePresetId: 'night',
+    presets: [
+      { id: 'weekly', name: 'Weekly', appearance },
+      { id: 'night', name: 'Night', appearance }
+    ],
+    operatorLanguage: 'en',
+    updatedAt: '2026-10-27T00:00:00Z'
+  });
+  transport.load.mockReset().mockImplementation(async () => transport.state);
+  transport.save.mockReset().mockImplementation(async (submitted: AppearancePreferences) => {
+    transport.state = appearancePreferencesSchema.parse({
+      ...submitted,
+      updatedAt: new Date(Date.parse(submitted.updatedAt) + 1).toISOString()
+    });
+    return transport.state;
+  });
+  let settings!: ReturnType<typeof useAppearance>;
+  function Fixture() {
+    settings = useAppearance();
+    return h(SettingsPanel);
+  }
+  const mount = () =>
+    mountView(() => h(MantineProvider, { env: 'test' }, h(AppearanceProvider, { children: h(Fixture) })));
+  let view = await mount();
+  const input = (label: string) => {
+    const field = [...document.querySelectorAll('label')].find((node) => node.textContent === label)!;
+    return document.getElementById(field.htmlFor) as HTMLInputElement;
+  };
+  const choose = async (label: string, value: string) => {
+    await act(async () => input(label).click());
+    const option = [...document.querySelectorAll<HTMLElement>('[role=option]')].find(
+      (node) => node.textContent === value
+    )!;
+    await act(async () => option.click());
+  };
+  const click = async (label: string) =>
+    act(async () => {
+      [...document.querySelectorAll<HTMLButtonElement>('button')].find((node) => node.textContent === label)!.click();
+    });
+  try {
+    expect(input('Saved preset').value).toBe('Night');
+    expect(document.body.textContent).toContain('Current preset: Night');
+    await choose('Saved preset', 'Weekly');
+    expect(transport.state!.activePresetId).toBe('weekly');
+    await view.unmount();
+    view = await mount();
+    expect(input('Saved preset').value).toBe('Weekly');
+    expect(input('Preset name').value).toBe('Weekly');
+    await act(async () => input('Saved preset').click());
+    const options = document.getElementById(input('Saved preset').getAttribute('aria-controls')!);
+    expect(options?.querySelector('[role="option"][aria-selected="true"]')?.textContent).toBe('Weekly');
+    await act(async () =>
+      input('Saved preset').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    );
+    await act(async () => {
+      await settings.update({ appearance: { ...appearance, primaryColor: '#445566' } });
+    });
+    expect(document.body.textContent).toContain('Current preset: Weekly · modified');
+    await click('Update preset');
+    expect(document.body.textContent).not.toContain('· modified');
+    transport.save.mockRejectedValueOnce(new Error('Settings temporarily unavailable'));
+    await choose('Saved preset', 'Night');
+    expect(input('Saved preset').value).toBe('Weekly');
+    expect(transport.state!.activePresetId).toBe('weekly');
+    const savedPresets = transport.state!.presets;
+    transport.save.mockRejectedValueOnce(new Error('Settings temporarily unavailable'));
+    await click('New preset');
+    expect(input('Saved preset').value).toBe('Weekly');
+    expect(transport.state!.appearance.primaryColor).toBe('#445566');
+    await click('New preset');
+    expect(transport.state!.activePresetId).toBeNull();
+    expect(transport.state!.appearance).toEqual(defaultAppearance);
+    expect(transport.state!.scoreboardFont).toBe('oswald');
+    expect(transport.state!.presets).toEqual(savedPresets);
+    expect(input('Preset name').value).toBe('');
+    expect(input('Saved preset').value).toBe('');
+    const enterName = async (value: string) =>
+      act(async () => {
+        const field = input('Preset name');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(field, value);
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    await enterName('Discard me');
+    await click('New preset');
+    expect(input('Preset name').value).toBe('');
+    await enterName('Fresh');
+    await act(async () => {
+      await settings.update({ appearance: { ...defaultAppearance, colorOverride: true, primaryColor: '#556677' } });
+    });
+    await click('Save preset');
+    expect(transport.state!.presets).toHaveLength(3);
+    expect(transport.state!.presets.slice(0, 2)).toEqual(savedPresets);
+    expect(transport.state!.presets.find(({ id }) => id === transport.state!.activePresetId)?.name).toBe('Fresh');
+    await act(async () => i18n.changeLanguage('es-419'));
+    expect(document.body.textContent).toContain('Apariencia en uso: Fresh');
+    expect([...document.querySelectorAll('button')].some((node) => node.textContent === 'Nueva apariencia')).toBe(true);
+    await click('Eliminar apariencia');
+    expect(transport.state!.activePresetId).toBeNull();
+    expect(transport.state!.appearance.primaryColor).toBe('#556677');
+    expect(transport.state!.presets).toEqual(savedPresets);
+    expect(document.body.textContent).toContain('Apariencia actual: Configuración personalizada');
+  } finally {
+    await view.unmount();
+    await i18n.changeLanguage('en');
+    vi.unstubAllGlobals();
+  }
+});
 
 it('recovers the font selector after initial settings reads fail and preserves saved preferences', async () => {
   await initializeI18n();

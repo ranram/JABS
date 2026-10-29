@@ -511,6 +511,19 @@ mod tests {
         contains_blocked_text_for_character, parse_runtime_allowlist,
     };
 
+    #[test]
+    fn ordinary_blocked_values_accept_exact_allowlist_exceptions() {
+        for value in ["Hell", "Hells", "HELLS"] {
+            assert!(!super::moderation_candidates_are_blocked(value, &std::collections::HashSet::new()));
+        }
+        let entries = parse_runtime_allowlist("Randy\n").unwrap();
+        assert!(super::moderation_candidates_are_blocked("Randy", &std::collections::HashSet::new()));
+        for value in ["Randy", "RANDY", "  Randy  "] {
+            assert!(!super::moderation_candidates_are_blocked(value, &entries));
+        }
+        assert!(super::moderation_candidates_are_blocked("Team Randy", &entries));
+    }
+
     // Escaped fixtures test blocked spellings without displaying slurs in the source.
     #[test]
     fn blocks_reviewed_slur_obfuscation_without_common_tag_false_positive() {

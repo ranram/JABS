@@ -1,3 +1,4 @@
+import { utf16AtMost } from './schemaText';
 import type { SelectedSetState } from './models';
 import { z } from 'zod';
 import { canonicalGameId, type GameId } from './gameProfiles';
@@ -61,7 +62,7 @@ export function setVersusStatRow(rows: VersusStat[], index: number, value?: Vers
 
 export const versusScreenStateSchema = z.object({
   stylingGameId: stylingGameIdSchema,
-  logoAssetId: z.string().trim().min(1).max(255).optional(),
+  logoAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional(),
   showBackground: z.boolean().default(true),
   showMatchBackdrop: z.boolean().default(true),
   showTournamentLogo: z.boolean(),

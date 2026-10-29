@@ -18,8 +18,12 @@ export function invalidateCatalogConsumers(recheckGameFolders = true): void {
   listeners.forEach((listener) => listener());
 }
 
-// Folder setup refreshes previews when it finishes. That update must not
-// request another setup pass; returning to the app or reloading assets should.
+export function requestGameFolderCheck(): void {
+  preparationRevision += 1;
+  listeners.forEach((listener) => listener());
+}
+
+    // Artwork updates leave game-folder setup alone. Reload assets also rechecks folders.
 export function useGamePreparationRevision(): number {
   return useSyncExternalStore(subscribe, preparationSnapshot, preparationSnapshot);
 }

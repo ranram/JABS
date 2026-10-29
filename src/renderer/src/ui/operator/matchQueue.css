@@ -1,0 +1,31 @@
+.match-queue-modal {
+  container: match-queue / inline-size;
+}
+/* The modal body has horizontal padding but no top padding. */
+.match-queue-modal > .operator-section-header[data-inset] {
+  margin-top: 0;
+}
+.match-queue-announcement:empty {
+  display: none;
+}
+
+.match-queue-row {
+  min-width: 0;
+  background: rgba(100, 151, 182, 0.12);
+}
+.match-queue-row[data-on-stream='true'],
+.match-queue-row[data-current='true'] {
+  background: rgba(52, 211, 153, 0.1);
+}
+.match-queue-row[data-up-next='true']:not([data-on-stream='true']):not([data-current='true']) {
+  background: rgba(167, 139, 250, 0.1);
+}
+.match-queue-actions {
+  padding-top: 8px;
+  border-top: 1px solid var(--operator-container-border);
+  background: rgba(100, 151, 182, 0.08);
+}
+
+.match-queue-action {
+  display: inline-flex;
+}

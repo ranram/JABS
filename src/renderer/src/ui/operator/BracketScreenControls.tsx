@@ -130,7 +130,24 @@ export function BracketScreenControls({
   }
   return (
     <Stack gap="md">
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
+        <Select
+          label={t('workspaces.styling')}
+          searchable
+          value={state.stylingGameId}
+          data={sortByLabel(profiles, (profile) => profile.styleName, locale).map((profile) => ({
+            value: profile.id,
+            label: profile.styleName
+          }))}
+          onChange={(value) => value && void settings.update({ stylingGameId: value as GameId })}
+        />
+        <OverlayLogoSelect
+          logos={logos}
+          assetId={state.logoAssetId}
+          onChange={(logoAssetId) => void settings.update({ logoAssetId })}
+        />
+      </SimpleGrid>
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <Select
           label={t('browser.phase')}
           searchable
@@ -170,7 +187,7 @@ export function BracketScreenControls({
         </Text>
       )}
 
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <TextInput
           label={t('bracketScreen.headingLabel')}
           placeholder={t('bracketScreen.title')}
@@ -186,24 +203,7 @@ export function BracketScreenControls({
           onChange={(event) => void settings.update({ eventLabel: event.currentTarget.value || undefined }, 350)}
         />
       </SimpleGrid>
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
-        <Select
-          label={t('workspaces.styling')}
-          searchable
-          value={state.stylingGameId}
-          data={sortByLabel(profiles, (profile) => profile.styleName, locale).map((profile) => ({
-            value: profile.id,
-            label: profile.styleName
-          }))}
-          onChange={(value) => value && void settings.update({ stylingGameId: value as GameId })}
-        />
-        <OverlayLogoSelect
-          logos={logos}
-          assetId={state.logoAssetId}
-          onChange={(logoAssetId) => void settings.update({ logoAssetId })}
-        />
-      </SimpleGrid>
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <Select
           label={t('appearance.startingRound', { bracket: winnersLabel })}
           placeholder={t('bracketScreen.autoRounds')}
@@ -228,7 +228,7 @@ export function BracketScreenControls({
         />
       </SimpleGrid>
 
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <Switch
           label={t('workspaces.transparentBackground')}
           checked={!state.showBackground}

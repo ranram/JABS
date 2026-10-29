@@ -164,8 +164,7 @@ export function VersusScreenControls({
   );
   return (
     <Stack gap="md">
-      {sourceLinks}
-      <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <Select
           label={t('workspaces.styling')}
           data={sortedProfiles.map((profile) => ({ value: profile.id, label: profile.styleName }))}
@@ -202,7 +201,7 @@ export function VersusScreenControls({
           onChange={(mediaMode) => void update({ mediaMode: mediaMode as PlayerMediaMode })}
         />
       </div>
-      <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
+      <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <Switch
           label={t('workspaces.transparentBackground')}
           checked={!state.showBackground}
@@ -251,7 +250,7 @@ export function VersusScreenControls({
           </Group>
           {placementOptions.length > 0 && (
             <>
-              <SimpleGrid type="container" cols={{ base: 1, '34rem': 2 }}>
+              <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
                 <Select
                   label={t('thumbnail.adjustLayer')}
                   value={selectedLayer ? `${selectedLayer.player}:${selectedLayer.layer}` : null}
@@ -296,6 +295,7 @@ export function VersusScreenControls({
         disabled={saving || refreshing}
         onChange={(patch) => void update(patch)}
       />
+      {sourceLinks}
       {historyControls}
     </Stack>
   );

@@ -1,26 +1,17 @@
 import { CharacterSelect } from './CharacterSelect';
-import {
-  Alert,
-  Button,
-  Group,
-  Modal,
-  Paper,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title
-} from '@mantine/core';
+import { Alert, Button, Group, Modal, Paper, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useMemo, type ReactNode } from 'react';
 import { bestOfOptionsForGame, scoreLimitForBestOf } from '@shared/gameProfiles';
 import { maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
-import type { SelectedSetState, SetSummary } from '@shared/models';
-import type { StartggReportReadiness } from '@shared/startggReporting';
+import type { SelectedSetState, SetSummary, ReportOutcome } from '@shared/models';
+import { startggReportReadiness, type StartggReportReadiness } from '@shared/startggReporting';
+import { useReportOutcome, ResultOutcomeButtons, reportOutcomeText } from './ResultOutcomeControls';
 import { QuickScore } from './ScoreControls';
 import { ControlWarning } from './ControlWarning';
 import { DestructiveButton } from '../DestructiveButton';
-import { phaseContext, setPhaseContext } from './operatorUtils';
+import { phaseContext, setPhaseContext, localizedReadinessReason } from './operatorUtils';
+import { OperatorIcon, ArrowCounterClockwiseIcon, CheckCircleIcon } from '../icons';
 
 type SetActionsModalProps = {
   reportingEnabled: boolean;
@@ -33,6 +24,7 @@ type SetActionsModalProps = {
   quickScoreLoading: boolean;
   characterOptions: readonly string[];
   showSendToStream?: boolean;
+  queueAction?: ReactNode;
   renderCharacterSelect?(props: CharacterSelectRenderProps): ReactNode;
   onClose(): void;
   onSendToStream(setId: string): void;
@@ -41,7 +33,7 @@ type SetActionsModalProps = {
   onChangeScore(side: 'one' | 'two', score: number): void;
   onChangeCharacters(side: 'one' | 'two', characters: string[]): void;
   onResetScores(): void;
-  onReport(): void;
+  onReport(outcome?: ReportOutcome): void;
 };
 
 export function SetActionsModal({
@@ -49,13 +41,14 @@ export function SetActionsModal({
   target,
   quickScore,
   receipt,
-  quickReadiness,
-  quickReadinessReason,
+  quickReadiness: scoreReadiness,
+  quickReadinessReason: scoreReadinessReason,
   loading,
   quickScoreLoading,
   characterOptions,
   showSendToStream = true,
   renderCharacterSelect,
+  queueAction,
   onClose,
   onSendToStream,
   onBeginQuickScore,
@@ -66,20 +59,23 @@ export function SetActionsModal({
   onReport
 }: SetActionsModalProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
+  const { outcome, choose, clear } = useReportOutcome(quickScore);
+  const quickReadiness = outcome && quickScore ? startggReportReadiness(quickScore, outcome) : scoreReadiness;
+  const quickReadinessReason = outcome ? localizedReadinessReason(quickReadiness) : scoreReadinessReason;
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const characterData = useMemo(
-    () => [...characterOptions]
-      .sort((left, right) => left.localeCompare(right, locale))
-      .map((character) => ({ value: character, label: character })),
+    () =>
+      [...characterOptions]
+        .sort((left, right) => left.localeCompare(right, locale))
+        .map((character) => ({ value: character, label: character })),
     [characterOptions, locale]
   );
 
   if (!target) return null;
 
-  const targetContext = [
-    setPhaseContext(target),
-    target.round ?? t('common:match.set', { id: target.id })
-  ].filter(Boolean).join(' · ');
+  const targetContext = [setPhaseContext(target), target.round ?? t('common:match.set', { id: target.id })]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <Modal
@@ -88,16 +84,17 @@ export function SetActionsModal({
       closeOnClickOutside={!quickScoreLoading}
       closeOnEscape={!quickScoreLoading}
       withCloseButton={!quickScoreLoading}
-      title={(
+      title={
         <Stack gap={2}>
-          <Text size="xs" c="dimmed">{targetContext}</Text>
+          <Text size="xs" c="dimmed">
+            {targetContext}
+          </Text>
           <Title order={2} size="h4" id="set-action-title">
-            {target.entrantOne?.name ?? t('operator:selector.tbd')}{' '}
-            {t('common:match.versus')}{' '}
+            {target.entrantOne?.name ?? t('operator:selector.tbd')} {t('common:match.versus')}{' '}
             {target.entrantTwo?.name ?? t('operator:selector.tbd')}
           </Title>
         </Stack>
-      )}
+      }
       aria-labelledby="set-action-title"
       centered
       size="xl"
@@ -110,7 +107,11 @@ export function SetActionsModal({
     >
       {!quickScore && !receipt ? (
         <Stack gap="md">
-          <SimpleGrid className="set-action-choices" type="container" cols={{ base: 1, '32rem': showSendToStream ? 2 : 1 }}>
+          <SimpleGrid
+            className="set-action-choices"
+            type="container"
+            cols={{ base: 1, '32rem': showSendToStream ? 2 : 1 }}
+          >
             {showSendToStream && (
               <Button
                 className="set-action-choice stream-choice"
@@ -121,8 +122,10 @@ export function SetActionsModal({
                 disabled={loading || quickScoreLoading}
                 onClick={() => onSendToStream(target.id)}
               >
-                <Stack gap={4} align="flex-start">
-                  <Text fw={700}>{t('operator:setActions.send')}</Text>
+                <Stack gap="xs" align="flex-start">
+                  <Text className="set-action-title" fw={700}>
+                    {t('operator:setActions.send')}
+                  </Text>
                   <Text className="set-action-description" size="sm" fw={400} lh={1.45}>
                     {t('operator:setActions.sendHelp')}
                   </Text>
@@ -132,7 +135,7 @@ export function SetActionsModal({
             <Button
               className="set-action-choice score-choice"
               variant="light"
-              color="orange"
+              color="cyan"
               size="lg"
               h="auto"
               py="md"
@@ -140,8 +143,8 @@ export function SetActionsModal({
               loading={quickScoreLoading}
               onClick={onBeginQuickScore}
             >
-              <Stack gap={4} align="flex-start">
-                <Text fw={700}>
+              <Stack gap="xs" align="flex-start">
+                <Text className="set-action-title" fw={700}>
                   {quickScoreLoading ? t('operator:setActions.loading') : t('operator:setActions.quick')}
                 </Text>
                 <Text className="set-action-description" size="sm" fw={400} lh={1.45}>
@@ -150,17 +153,28 @@ export function SetActionsModal({
               </Stack>
             </Button>
           </SimpleGrid>
+          {queueAction}
           <ControlWarning message={!reportingEnabled ? t('operator:startgg.reportToken') : undefined} />
           {target.state === '3' && (
-            <Alert color="yellow" w="100%" miw={0}>{t('operator:setActions.alreadyComplete')}</Alert>
+            <Alert color="yellow" w="100%" miw={0}>
+              {t('operator:setActions.alreadyComplete')}
+            </Alert>
           )}
         </Stack>
       ) : receipt ? (
-        <Alert color="green" w="100%" miw={0} style={{ overflowWrap: 'anywhere' }} title={t('operator:setActions.accepted')}>
+        <Alert
+          color="green"
+          w="100%"
+          miw={0}
+          style={{ overflowWrap: 'anywhere' }}
+          title={t('operator:setActions.accepted')}
+        >
           <Stack gap="sm">
             <Text fw={700}>{receipt}</Text>
             <Text size="sm">{t('operator:setActions.streamUnchanged')}</Text>
-            <Button onClick={onClose} w="fit-content">{t('common:actions.done')}</Button>
+            <Button onClick={onClose} w="fit-content">
+              {t('common:actions.done')}
+            </Button>
           </Stack>
         </Alert>
       ) : quickScore ? (
@@ -175,18 +189,25 @@ export function SetActionsModal({
                 value: String(bestOf),
                 label: t('common:match.bestOf', { count: bestOf })
               }))}
-              onChange={(value) => value && onChangeBestOf(Number(value))}
+              onChange={(value) => {
+                if (value) {
+                  clear();
+                  onChangeBestOf(Number(value));
+                }
+              }}
             />
             <Text size="sm" c="dimmed">
               {[
                 phaseContext(quickScore),
                 quickScore.round ?? t('operator:setActions.bracketSet'),
                 t('common:match.set', { id: quickScore.setId ?? '' })
-              ].filter(Boolean).join(' · ')}
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </Text>
           </Group>
 
-          {quickScore.gameHistory === undefined && (
+          {quickScore.gameHistory === undefined && !outcome && (
             <Alert color="yellow">{t('operator:setActions.historyWarning')}</Alert>
           )}
 
@@ -203,21 +224,35 @@ export function SetActionsModal({
               return (
                 <Stack key={side} gap="xs">
                   <QuickScore
+                    resultControls={
+                      <ResultOutcomeButtons
+                        set={quickScore}
+                        side={side}
+                        outcome={outcome}
+                        disabled={quickScoreLoading || !reportingEnabled}
+                        onChange={choose}
+                      />
+                    }
                     label={player.name}
                     score={player.score}
                     maxScore={scoreLimitForBestOf(quickScore.gameId, quickScore.bestOf)}
                     disabled={quickScoreLoading}
-                    onChange={(score) => onChangeScore(side, score)}
+                    onChange={(score) => {
+                      clear();
+                      onChangeScore(side, score);
+                    }}
                   />
-                  {renderCharacterSelect ? renderCharacterSelect({
-                    label: t('operator:setActions.charactersFor', { player: player.name }),
-                    description: t('operator:setActions.characterHelp'),
-                    options: [...unavailable, ...characterData],
-                    value: selectedCharacters,
-                    maxValues: maxCharactersForGame(quickScore.assetCatalogSlug ?? quickScore.gameId),
-                    disabled: quickScoreLoading,
-                    onChange: (characters) => onChangeCharacters(side, characters)
-                  }) : (
+                  {renderCharacterSelect ? (
+                    renderCharacterSelect({
+                      label: t('operator:setActions.charactersFor', { player: player.name }),
+                      description: t('operator:setActions.characterHelp'),
+                      options: [...unavailable, ...characterData],
+                      value: selectedCharacters,
+                      maxValues: maxCharactersForGame(quickScore.assetCatalogSlug ?? quickScore.gameId),
+                      disabled: quickScoreLoading,
+                      onChange: (characters) => onChangeCharacters(side, characters)
+                    })
+                  ) : (
                     <CharacterSelect
                       searchable
                       clearable
@@ -237,33 +272,47 @@ export function SetActionsModal({
           </SimpleGrid>
 
           <Paper className="operator-inset" withBorder p="md" w="100%" miw={0} style={{ overflowWrap: 'anywhere' }}>
-            <Text size="xs" c="dimmed">{t('operator:setActions.resultCheck')}</Text>
+            <Text size="xs" c="dimmed">
+              {t('operator:setActions.resultCheck')}
+            </Text>
             <Text fw={700}>
               {quickReadiness.ready
-                ? t('operator:setActions.winner', {
-                    winner: quickReadiness.result.winnerName,
-                    winnerScore: quickReadiness.result.winnerScore,
-                    loserScore: quickReadiness.result.loserScore
-                  })
+                ? outcome
+                  ? reportOutcomeText(quickScore, outcome)
+                  : t('operator:setActions.winner', {
+                      winner: quickReadiness.result.winnerName,
+                      winnerScore: quickReadiness.result.winnerScore,
+                      loserScore: quickReadiness.result.loserScore
+                    })
                 : quickReadinessReason}
             </Text>
             <ControlWarning message={!reportingEnabled ? t('operator:startgg.reportToken') : undefined} />
           </Paper>
 
           <Group grow preventGrowOverflow={false}>
-            <DestructiveButton disabled={quickScoreLoading} onClick={onResetScores}>
+            <DestructiveButton
+              disabled={quickScoreLoading}
+              onClick={() => {
+                clear();
+                onResetScores();
+              }}
+              leftSection={<OperatorIcon icon={ArrowCounterClockwiseIcon} />}
+            >
               {t('common:actions.resetScores')}
             </DestructiveButton>
             <Button
               data-testid="quick-report-startgg-result"
               loading={quickScoreLoading}
               disabled={!reportingEnabled || !quickReadiness.ready}
-              onClick={onReport}
+              onClick={() => onReport(outcome)}
+              leftSection={<OperatorIcon icon={CheckCircleIcon} />}
             >
               {t('operator:setActions.confirm')}
             </Button>
           </Group>
-          <Text size="xs" c="dimmed">{t('operator:setActions.safety')}</Text>
+          <Text size="xs" c="dimmed">
+            {t('operator:setActions.safety')}
+          </Text>
         </Stack>
       ) : null}
     </Modal>

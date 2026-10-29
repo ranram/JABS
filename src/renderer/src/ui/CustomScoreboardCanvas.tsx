@@ -79,6 +79,7 @@ function CustomScoreboardCanvasContent({
   }
 
   const broadcast = selectedSet?.broadcast;
+  const showSeeds = Boolean(selectedSet?.setId) && broadcast?.seedsEnabled !== false && scoreboard.visibility.seeds;
   const matchContext = [displayPhaseName(selectedSet?.phase), matchLabel, selectedSet?.station]
     .filter(Boolean)
     .join(' · ');
@@ -121,7 +122,7 @@ function CustomScoreboardCanvasContent({
       },
       {
         id: ids.seed,
-        value: scoreboard.visibility.seeds ? (player?.seed ? `Seed ${player.seed}` : 'SEED') : '',
+        value: showSeeds && player?.seed ? `Seed ${player.seed}` : '',
         className: ' is-meta'
       },
       { id: ids.score, value: String(player?.score ?? 0), className: ' is-score' }

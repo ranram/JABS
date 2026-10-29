@@ -1,0 +1,12 @@
+.operator-icon {
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.operator-icon-label {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}

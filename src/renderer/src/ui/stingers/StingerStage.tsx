@@ -7,7 +7,7 @@ import { DisplayText } from '../DisplayText';
 import { useStingerWinnerMedia } from './useStingerWinnerMedia';
 import { useStingerWinnerAnimation } from './useStingerWinnerAnimation';
 import { useAppearanceStyle } from '../appearance/AppearanceProvider';
-import { useCenteredNameFit } from '../useCenteredNameFit';
+import { useIdentityTextFit } from '../useIdentityTextFit';
 import './stingerStage.css';
 
 export function StingerStage({
@@ -171,7 +171,7 @@ export function StingerFramingPreview({
 
 function WinnerComposition({ media }: { media: ReturnType<typeof useStingerWinnerMedia> }) {
   const sponsor = media.winner?.prefix?.trim() || media.winner?.sponsor?.trim();
-  const nameRef = useCenteredNameFit(`${sponsor ?? ''} ${media.winner?.name ?? ''}`, '.stinger-name-text');
+  const nameRef = useIdentityTextFit(`${sponsor ?? ''} ${media.winner?.name ?? ''}`, '.stinger-name-text');
   if (!media.winner) return null;
   return (
     <>

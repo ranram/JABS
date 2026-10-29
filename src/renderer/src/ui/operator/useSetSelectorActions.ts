@@ -18,6 +18,9 @@ export function useSetSelectorActions({
   const actions = useRef({ open, completeSearch, loadMore });
   actions.current = { open, completeSearch, loadMore };
   const openSetFromSelector = useCallback((set: SetSummary) => actions.current.open(set), []);
+  const loadSetCatalog = useCallback(() => {
+    void actions.current.completeSearch();
+  }, []);
   const focusSetSearch = useCallback(() => {
     if (search.trim()) void actions.current.completeSearch();
   }, [search]);
@@ -31,5 +34,5 @@ export function useSetSelectorActions({
   const loadMoreSetsFromSelector = useCallback(() => {
     void actions.current.loadMore();
   }, []);
-  return { openSetFromSelector, focusSetSearch, changeSetSearch, loadMoreSetsFromSelector };
+  return { openSetFromSelector, focusSetSearch, changeSetSearch, loadMoreSetsFromSelector, loadSetCatalog };
 }

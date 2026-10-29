@@ -1,0 +1,2 @@
+# Keep the reviewed vendored source byte-identical on every build platform.
+vendor/glib/** -text

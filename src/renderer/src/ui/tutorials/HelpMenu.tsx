@@ -7,6 +7,7 @@ import { tutorialIds, type TutorialId, type TutorialWorkspace } from './tutorial
 import type { TutorialPopover } from './runTutorial';
 import { ExternalLink } from '../operator/ExternalLink';
 import { SupportDialog } from '../support/SupportDialog';
+import { OperatorIcon, QuestionIcon, BookOpenIcon, LifebuoyIcon, HeartIcon } from '../icons';
 
 const quickStartDismissalKey = 'jabs.quick-start.dismissed';
 
@@ -60,7 +61,9 @@ export function HelpMenu({ navigate }: { navigate(workspace: TutorialWorkspace):
     queueMicrotask(() => {
       if (!cancelled) void start('quickStart');
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useLayoutEffect(() => {
@@ -71,29 +74,38 @@ export function HelpMenu({ navigate }: { navigate(workspace: TutorialWorkspace):
 
   return (
     <>
-      <Menu position="bottom-end" width={260} shadow="md">
+      <Menu position="bottom-end" width={280} shadow="md">
         <Menu.Target>
           <Button
             data-tutorial="help"
             size="compact-xs"
             variant="default"
             loading={loading}
+            leftSection={<OperatorIcon icon={QuestionIcon} size={14} />}
             rightSection={<span aria-hidden="true">▾</span>}
           >
             {t('help.title')}
           </Button>
         </Menu.Target>
         <Menu.Dropdown>
-          <Menu.Item onClick={() => setSupportOpened(true)}>{t('support.title')}</Menu.Item>
+          <Menu.Item onClick={() => setSupportOpened(true)} leftSection={<OperatorIcon icon={LifebuoyIcon} />}>
+            {t('support.title')}
+          </Menu.Item>
           <Menu.Divider />
           <Menu.Label>{t('help.tutorials')}</Menu.Label>
           {tutorialIds.map((id) => (
-            <Menu.Item key={id} onClick={() => void start(id)}>
+            <Menu.Item key={id} onClick={() => void start(id)} leftSection={<OperatorIcon icon={BookOpenIcon} />}>
               {t(`help.guides.${id}`)}
             </Menu.Item>
           ))}
           <Menu.Divider />
-          <Menu.Item component={ExternalLink} href="https://ko-fi.com/ranram" underline="never" c="inherit">
+          <Menu.Item
+            component={ExternalLink}
+            href="https://ko-fi.com/ranram"
+            underline="never"
+            c="inherit"
+            leftSection={<OperatorIcon icon={HeartIcon} />}
+          >
             {t('help.supportDevelopment')}
           </Menu.Item>
         </Menu.Dropdown>

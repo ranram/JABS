@@ -15,6 +15,7 @@ describe('renderer localization catalogs', () => {
 
     expect([...spanish.keys()].sort()).toEqual([...english.keys()].sort());
     for (const [key, englishValue] of english) {
+      expect(spanish.get(key)?.trim(), key).not.toBe('');
       expect(interpolations(spanish.get(key) ?? ''), key).toEqual(interpolations(englishValue));
     }
   });

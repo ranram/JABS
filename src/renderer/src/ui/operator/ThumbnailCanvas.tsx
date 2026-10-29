@@ -1,5 +1,5 @@
 import { useAppearanceStyle } from '../appearance/AppearanceProvider';
-import { DisplayText } from '../DisplayText';
+import { ThumbnailName } from './ThumbnailName';
 import { type CSSProperties, type Ref } from 'react';
 import type { GameProfile } from '@shared/gameProfiles';
 import type { ThumbnailDraft } from '@shared/thumbnail';
@@ -187,17 +187,8 @@ function ThumbnailPlayer({
         )}
         {side === 'one' && flag}
         <div className="thumbnail-identity-copy">
-          {player.sponsor && (
-            <span className="thumbnail-sponsor-text" data-export-text>
-              <span className="thumbnail-sponsor-label">{player.sponsor}</span>
-            </span>
-          )}
           <span className="thumbnail-name-row">
-            <strong data-export-text="wrapped">
-              <span className="thumbnail-name-text">
-                <DisplayText text={player.name} />
-              </span>
-            </strong>
+            <ThumbnailName name={player.name} sponsor={player.sponsor} side={side === 'one' ? 'left' : 'right'} />
           </span>
         </div>
         {side === 'two' && flag}

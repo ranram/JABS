@@ -1,6 +1,6 @@
 import { CharacterSelect } from './CharacterSelect';
 import { PlayerNameInput } from '../players/PlayerNameInput';
-import { NumberInput } from '@mantine/core';
+import { TextInput } from '@mantine/core';
 import type { GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, GameCharacterAsset, SelectedSetState } from '@shared/models';
 import { memo, useMemo } from 'react';
@@ -10,6 +10,7 @@ import { BufferedTextInput } from './BufferedTextInput';
 import { characterTeamSelection } from '@shared/characterTeams';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
 import { CharacterOutfitSelect } from './CharacterOutfitSelect';
+import { IconLabel, UserIcon, IdentificationCardIcon } from '../icons';
 
 function normalizeXHandle(value: string): string {
   return value.trim().replace(/^@+/, '').trim();
@@ -24,140 +25,197 @@ type PlayerEditorProps = {
   characters: readonly string[];
   characterAssets: readonly GameCharacterAsset[];
   maxCharacters: number;
+  showSeed: boolean;
+  detailsOpened: boolean;
+  onDetailsChange(opened: boolean): void;
   editableFields: GameProfile['editableFields'];
   onChange(player: SelectedSetState['playerOne']): void;
 };
 
-export const PlayerEditor = memo(function PlayerEditor(props: PlayerEditorProps) {
-  const {
-    side, title, player, countries, characters, characterAssets,
-    maxCharacters, editableFields, onChange
-  } = props;
-  const { t, i18n } = useTranslation('operator');
-  const locale = i18n.resolvedLanguage ?? i18n.language;
-  const hasField = (...fields: GameProfile['editableFields']) =>
-    fields.some((field) => editableFields.includes(field));
+export const PlayerEditor = memo(
+  function PlayerEditor(props: PlayerEditorProps) {
+    const {
+      side,
+      title,
+      player,
+      countries,
+      characters,
+      characterAssets,
+      maxCharacters,
+      editableFields,
+      showSeed,
+      detailsOpened,
+      onDetailsChange,
+      onChange
+    } = props;
+    const { t, i18n } = useTranslation('operator');
+    const locale = i18n.resolvedLanguage ?? i18n.language;
+    const hasField = (...fields: GameProfile['editableFields']) =>
+      fields.some((field) => editableFields.includes(field));
 
-  const characterData = useMemo(
-    () => sortByLabel(characters, (character) => character, locale).map((value) => ({ value, label: value })),
-    [characters, locale]
-  );
-  const selectedCharacters = player.characters?.length
-    ? player.characters
-    : player.character ? [player.character] : [];
-  const unavailableCharacters = selectedCharacters.filter((character) => !characters.includes(character));
-  const visibleCharacterData = [
-    ...unavailableCharacters.map((character) => ({
-      value: character,
-      label: t('editor.unavailableCharacter', { character })
-    })),
-    ...characterData
-  ];
+    const characterData = useMemo(
+      () => sortByLabel(characters, (character) => character, locale).map((value) => ({ value, label: value })),
+      [characters, locale]
+    );
+    const selectedCharacters = player.characters?.length
+      ? player.characters
+      : player.character
+        ? [player.character]
+        : [];
+    const unavailableCharacters = selectedCharacters.filter((character) => !characters.includes(character));
+    const visibleCharacterData = [
+      ...unavailableCharacters.map((character) => ({
+        value: character,
+        label: t('editor.unavailableCharacter', { character })
+      })),
+      ...characterData
+    ];
 
-  return (
-    <fieldset className="player-editor operator-inset">
-      <legend>{title}</legend>
-      <div className="player-field-row">
-        {props.libraryGameKey ? <PlayerNameInput
-          data-testid={`editor-${side}-name`} label={t('editor.playerTag')} value={player.name}
-          gameKey={props.libraryGameKey}
-          onCommit={(name) => onChange({ ...player, name, localPlayerId: undefined, playerId: undefined })}
-          onSelectPlayer={(saved) => onChange({ ...player, ...saved })}
-        /> : <BufferedTextInput
-          data-stream-free-text={side === 'one' ? 'playerOneName' : 'playerTwoName'}
-          data-testid={`editor-${side}-name`} label={t('editor.playerTag')} value={player.name}
-          onCommit={(name) => onChange({ ...player, name })}
-        />}
-        <BufferedTextInput
-          data-stream-free-text={side === 'one' ? 'playerOnePrefix' : 'playerTwoPrefix'}
-          data-testid={`editor-${side}-prefix`}
-          label={t('editor.prefix')}
-          value={player.prefix ?? ''}
-          onCommit={(value) => onChange({ ...player, prefix: emptyToUndefined(value) })}
-        />
-      </div>
-      <div className="player-field-row">
-        {hasField('character') && (
-          <CharacterSelect
-            searchable
-            clearable
-            data-testid={`editor-${side}-character`}
-            label={t('editor.characters')}
-            data={visibleCharacterData}
-            value={selectedCharacters}
-            maxValues={maxCharacters}
-            onChange={(nextCharacters) => onChange({
-              ...player,
-              ...characterTeamSelection(nextCharacters, player)
-            })}
-          />
-        )}
-        {hasField('character') && (
-          <CharacterOutfitSelect
-            subject={player}
-            assets={characterAssets}
-            testId={`editor-${side}-character-outfit`}
-            onChange={(characterAssetId) => onChange({ ...player, characterAssetId })}
-          />
-        )}
-      </div>
-      <div className="player-field-row">
-        {hasField('country') && (
-          <DisplayFlagSelect
-            testId={`editor-${side}-country`}
-            label={t('editor.displayFlag')}
-            placeholder={t('editor.countrySearch')}
-            countries={countries}
-            country={player.country}
-            displayFlag={player.displayFlag}
-            onChange={({ country, displayFlag }) => onChange({
-              ...player,
-              country,
-              displayFlag,
-              state: country === player.country ? player.state : undefined
-            })}
-          />
-        )}
-        {hasField('xHandle') && (
+    return (
+      <fieldset className="player-editor operator-inset">
+        <legend>
+          <IconLabel icon={UserIcon} size={14}>
+            {title}
+          </IconLabel>
+        </legend>
+        <div className="player-field-row">
+          {props.libraryGameKey ? (
+            <PlayerNameInput
+              data-testid={`editor-${side}-name`}
+              label={t('editor.playerTag')}
+              value={player.name}
+              gameKey={props.libraryGameKey}
+              onCommit={(name) => onChange({ ...player, name, localPlayerId: undefined, playerId: undefined })}
+              onSelectPlayer={(saved) => onChange({ ...player, ...saved })}
+            />
+          ) : (
+            <BufferedTextInput
+              data-stream-free-text={side === 'one' ? 'playerOneName' : 'playerTwoName'}
+              data-testid={`editor-${side}-name`}
+              label={t('editor.playerTag')}
+              value={player.name}
+              onCommit={(name) => onChange({ ...player, name })}
+            />
+          )}
           <BufferedTextInput
-            data-stream-free-text={side === 'one' ? 'playerOneXHandle' : 'playerTwoXHandle'}
-            data-testid={`editor-${side}-x-handle`}
-            label={t('editor.xHandle')}
-            value={player.xHandle ?? ''}
-            onCommit={(value) => onChange({ ...player, xHandle: emptyToUndefined(normalizeXHandle(value)) })}
+            data-stream-free-text={side === 'one' ? 'playerOnePrefix' : 'playerTwoPrefix'}
+            data-testid={`editor-${side}-prefix`}
+            label={t('editor.prefix')}
+            value={player.prefix ?? ''}
+            onCommit={(value) => onChange({ ...player, prefix: emptyToUndefined(value) })}
           />
+        </div>
+        <div className="player-field-row">
+          {hasField('character') && (
+            <CharacterSelect
+              searchable
+              clearable
+              data-testid={`editor-${side}-character`}
+              label={t('editor.characters')}
+              data={visibleCharacterData}
+              value={selectedCharacters}
+              maxValues={maxCharacters}
+              onChange={(nextCharacters) =>
+                onChange({
+                  ...player,
+                  ...characterTeamSelection(nextCharacters, player)
+                })
+              }
+            />
+          )}
+          {hasField('character') && (
+            <CharacterOutfitSelect
+              subject={player}
+              assets={characterAssets}
+              testId={`editor-${side}-character-outfit`}
+              onChange={(characterAssetId) => onChange({ ...player, characterAssetId })}
+            />
+          )}
+        </div>
+        {(hasField('country', 'xHandle', 'pronouns') || (showSeed && hasField('seed'))) && (
+          <details
+            className="operator-disclosure"
+            data-testid={`editor-${side}-details`}
+            open={detailsOpened}
+            onToggle={(event) => {
+              // Tutorials can open a section directly; keep its partner in sync.
+              if (event.currentTarget.open !== detailsOpened) onDetailsChange(event.currentTarget.open);
+            }}
+          >
+            <summary
+              onClick={(event) => {
+                event.preventDefault();
+                onDetailsChange(!detailsOpened);
+              }}
+            >
+              <IconLabel icon={IdentificationCardIcon}>{t('ux.playerDetails')}</IconLabel>
+            </summary>
+            <div className="operator-disclosure-content player-extra-fields">
+              <div className="player-field-row">
+                {hasField('country') && (
+                  <DisplayFlagSelect
+                    testId={`editor-${side}-country`}
+                    label={t('editor.displayFlag')}
+                    placeholder={t('editor.countrySearch')}
+                    countries={countries}
+                    country={player.country}
+                    displayFlag={player.displayFlag}
+                    onChange={({ country, displayFlag }) =>
+                      onChange({
+                        ...player,
+                        country,
+                        displayFlag,
+                        state: country === player.country ? player.state : undefined
+                      })
+                    }
+                  />
+                )}
+                {hasField('xHandle') && (
+                  <BufferedTextInput
+                    data-stream-free-text={side === 'one' ? 'playerOneXHandle' : 'playerTwoXHandle'}
+                    data-testid={`editor-${side}-x-handle`}
+                    label={t('editor.xHandle')}
+                    value={player.xHandle ?? ''}
+                    onCommit={(value) => onChange({ ...player, xHandle: emptyToUndefined(normalizeXHandle(value)) })}
+                  />
+                )}
+              </div>
+              <div className="player-field-row">
+                {hasField('pronouns') && (
+                  <BufferedTextInput
+                    data-stream-free-text={side === 'one' ? 'playerOnePronouns' : 'playerTwoPronouns'}
+                    data-testid={`editor-${side}-pronouns`}
+                    label={t('editor.pronouns')}
+                    value={player.pronouns ?? ''}
+                    onCommit={(value) => onChange({ ...player, pronouns: emptyToUndefined(value) })}
+                  />
+                )}
+                {showSeed && hasField('seed') && (
+                  <TextInput
+                    data-testid={`editor-${side}-seed`}
+                    label={t('editor.seed')}
+                    value={player.seed ?? '—'}
+                    readOnly
+                  />
+                )}
+              </div>
+            </div>
+          </details>
         )}
-      </div>
-      <div className="player-field-row">
-        {hasField('pronouns') && (
-          <BufferedTextInput
-            data-stream-free-text={side === 'one' ? 'playerOnePronouns' : 'playerTwoPronouns'}
-            data-testid={`editor-${side}-pronouns`}
-            label={t('editor.pronouns')}
-            value={player.pronouns ?? ''}
-            onCommit={(value) => onChange({ ...player, pronouns: emptyToUndefined(value) })}
-          />
-        )}
-        {hasField('seed') && (
-          <NumberInput
-            data-testid={`editor-${side}-seed`}
-            label={t('editor.seed')}
-            min={1}
-            value={player.seed ?? ''}
-            onChange={(seed) => onChange({ ...player, seed: typeof seed === 'number' ? seed : undefined })}
-          />
-        )}
-      </div>
-    </fieldset>
-  );
-}, (previous, next) => (
-  previous.libraryGameKey === next.libraryGameKey
-  && previous.side === next.side
-  && previous.title === next.title
-  && previous.player === next.player
-  && previous.countries === next.countries
-  && previous.characters === next.characters
-  && previous.characterAssets === next.characterAssets
-  && previous.maxCharacters === next.maxCharacters
-  && previous.editableFields === next.editableFields
-));
+      </fieldset>
+    );
+  },
+  (previous, next) =>
+    previous.libraryGameKey === next.libraryGameKey &&
+    previous.side === next.side &&
+    previous.title === next.title &&
+    previous.player === next.player &&
+    previous.countries === next.countries &&
+    previous.characters === next.characters &&
+    previous.characterAssets === next.characterAssets &&
+    previous.maxCharacters === next.maxCharacters &&
+    previous.showSeed === next.showSeed &&
+    previous.detailsOpened === next.detailsOpened &&
+    previous.onDetailsChange === next.onDetailsChange &&
+    previous.editableFields === next.editableFields
+);

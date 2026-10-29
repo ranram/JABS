@@ -1,0 +1,68 @@
+.operator-section-header {
+  --section-header-background: rgba(100, 151, 182, 0.1);
+  padding: 12px max(12px, var(--section-header-inset, 0px));
+  border-bottom: 1px solid var(--operator-container-border);
+  background: var(--section-header-background);
+}
+
+/* Keep sticky dialog headers opaque while reusing the section tint. */
+.operator-section-header:is(.mantine-Modal-header, .mantine-Drawer-header) {
+  padding-inline: var(--mantine-spacing-md);
+  background:
+    linear-gradient(var(--section-header-background), var(--section-header-background)), var(--mantine-color-body);
+}
+
+/* Each overlay accordion is its own section; its control is the header row. */
+.other-overlays-workspace
+  > .mantine-Accordion-root
+  > .mantine-Accordion-item
+  > :is(.mantine-Accordion-control, .commentator-panel-header) {
+  background: rgba(100, 151, 182, 0.1);
+}
+
+.other-overlays-workspace
+  > .mantine-Accordion-root
+  > .mantine-Accordion-item
+  > :is(.mantine-Accordion-control, .commentator-panel-header):hover {
+  background: rgba(100, 151, 182, 0.16);
+}
+
+.other-overlays-workspace
+  > .mantine-Accordion-root
+  > .mantine-Accordion-item[data-active]
+  > :is(.mantine-Accordion-control, .commentator-panel-header) {
+  border-bottom: 1px solid var(--operator-container-border);
+}
+
+.other-overlays-workspace
+  > .mantine-Accordion-root
+  > .mantine-Accordion-item
+  > :is(.mantine-Accordion-control, .commentator-panel-header)
+  .operator-icon {
+  color: #b4cede;
+}
+
+.operator-section-header[data-level='3'] {
+  padding-block: 8px;
+}
+
+.operator-section-header[data-inset] {
+  margin-top: calc(-1 * var(--section-header-inset));
+  margin-inline: calc(-1 * var(--section-header-inset));
+}
+
+.operator-section-header-title {
+  overflow-wrap: anywhere;
+}
+
+.operator-section-header-title .operator-icon {
+  color: #b4cede;
+}
+
+.operator-section-header-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
+}

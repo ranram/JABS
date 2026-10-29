@@ -94,6 +94,108 @@ export const en = {
   },
   // Operator interface
   operator: {
+    ux: {
+      obsSetup: 'OBS setup',
+      automatic: 'Auto',
+      requiredNames: 'Enter the display name and both player names before saving.',
+      streamMatch: 'On stream',
+      noMatch: 'No match selected',
+      save: {
+        saved: 'Autosave on',
+        pending: 'Edits pending',
+        saving: 'Saving…',
+        blocked: 'Edits not sent'
+      },
+      result: {
+        local: 'Exhibition · No start.gg reporting',
+        reported: 'Result reported to start.gg',
+        ready: 'Ready to report to start.gg',
+        pending: 'Result not reported to start.gg'
+      },
+      scoreShortcuts: 'Score shortcuts',
+      matchDetails: 'Display name & station',
+      scoreboardAppearance: 'Scoreboard appearance',
+      playerDetails: 'Flag & player details',
+      setup: 'Tournament & API setup',
+      saveError: 'These changes have not been saved. Check the fields or try again.',
+      retrySave: 'Retry saving',
+      inspectMatch: 'Review {{one}} versus {{two}}',
+      loadingQueue: 'Loading queue…',
+      queueConnection: 'Waiting for JABS to reconnect.',
+      queueEditing: 'Waiting for you to finish editing the queue.',
+      streamEditing: 'Waiting for you to finish editing stream state.',
+      queueWorking: 'Waiting for the current action or save to finish.',
+      noPrevious: 'You are at the beginning of the queue.',
+      noNext: 'There are no more queued matches.',
+      queuePosition: 'Queue position'
+    },
+    queue: {
+      topEightAutomatic: 'Queue Top 8 automatically',
+      topEightNotDetected:
+        'JABS could not identify a single Top 8 bracket. Check the event structure or queue the matches manually.',
+      topEightConfirm: 'Send all Top 8 matches to the match queue?',
+      topEightHelp:
+        'Add the missing, unreported matches in the order shown. Existing queue entries and the match on stream stay in place. A Grand Finals reset is included when start.gg lists it.',
+      topEightAlreadyQueued: 'All detected Top 8 matches are already queued or reported.',
+      topEightYes: 'Yes, add matches',
+      topEightNo: 'No, cancel',
+
+      pausedCountdown: 'Paused · {{time}} remaining',
+      title: 'Match queue',
+      open: 'Queue ({{count}})',
+      matchCount_one: '{{count}} match',
+      matchCount_other: '{{count}} matches',
+      loadFailed: 'Could not load the match queue.',
+      actionFailed: 'Could not update the queue.',
+      chooseEvent: 'Choose an event',
+      advance: 'Advance to next match',
+      delay: 'Delay before next match (minutes)',
+      upNext: 'Up next',
+      current: 'Current',
+      reported: 'Reported',
+      reportedHelp: 'Reported to start.gg.',
+      completedHelp: 'Winner established. Result not reported to start.gg.',
+      previous: 'Previous match',
+      next: 'Next match',
+      pause: 'Pause queue',
+      resume: 'Resume',
+      start: 'Start queue',
+      clear: 'Clear queue',
+      add: 'Add match to queue',
+      queued: 'Queued · #{{position}}',
+      send: 'Send to stream',
+      remove: 'Remove',
+      moveUp: 'Move up',
+      moveDown: 'Move down',
+      moved: 'Match moved to position {{position}}.',
+      order: 'Queued matches',
+      countdown: 'Next match in {{time}}',
+      otherEvent:
+        'This queue belongs to another event. Return to that event to continue, or clear the queue to prepare a new one.',
+      emptyHelp: 'Add matches from the Set Selector. Adding a match leaves the current stream unchanged.',
+      modes: {
+        manual: 'Manual',
+        report: 'After result is reported',
+        'winner-delay': 'Delay after a winner is decided'
+      },
+      help: {
+        manual: 'Use Previous and Next to change the match on stream.',
+        report: 'Advance after start.gg confirms a result reported through JABS for the current queued match.',
+        'winner-delay':
+          'The queue waits the chosen number of minutes after the current set has a winner, then advances to the next match. Playing time does not count.'
+      },
+      status: {
+        empty: 'Queue is empty',
+        paused: 'Paused',
+        'waiting-winner': 'Waiting for winner',
+        'waiting-report': 'Waiting for result report',
+        countdown: 'Countdown',
+        'waiting-edits': 'Waiting for current edits, report, or stinger to finish',
+        'waiting-players': 'Waiting for opponents · checking this match every 15 seconds',
+        loading: 'Loading next match…',
+        finished: 'Queue finished'
+      }
+    },
     support: {
       title: 'Diagnostics & support',
       description: 'Tell us what happened and when. Export a report and attach it to your email.',
@@ -120,6 +222,7 @@ export const en = {
       guides: {
         quickStart: 'Quick Start',
         tournament: 'Run a tournament',
+        matchQueue: 'Use the Match Queue',
         exhibition: 'Run an exhibition',
         topEight: 'Create a Top 8 graphic',
         thumbnail: 'Create a YouTube thumbnail',
@@ -131,205 +234,237 @@ export const en = {
         stingers: 'Set up stingers'
       },
       steps: {
+        queueAdd: {
+          title: 'Add upcoming matches',
+          body: 'Load a start.gg tournament and choose an event. Open a match in the Set Selector and choose **Add match to queue**. Repeat for the matches you plan to stream. Adding matches **leaves the current stream unchanged**. You can also add **TBD sets** already listed in the bracket.'
+        },
+        queueOpen: {
+          title: 'Open the match queue',
+          body: 'Open **Matches → Queue**, or use Queue in Live Controls. Each queue belongs to **one event** and holds up to **100 matches**. For Top 8, choose **Queue Top 8 automatically**, review the list, and confirm with **Yes, add matches**. Adding these matches leaves the current stream and playback state unchanged.'
+        },
+        queueOrder: {
+          title: 'Read the queue',
+          body: '**Current** marks your position. **Up next** is the following match. **Completed** means a local winner is awaiting a report. **Reported** means start.gg has confirmed the result. The Queued filter in the Set Selector shows these matches in queue order.'
+        },
+        queueModes: {
+          title: 'Choose how to advance',
+          body: '**Manual** waits for your navigation. **After result is reported** advances after start.gg confirms a report submitted through JABS for Current. **Delay after a winner is decided** counts from when Current has a winner. Playing time does not count. Choosing a different mode **starts a populated queue immediately**.'
+        },
+        queuePlayback: {
+          title: 'Start, pause, and resume',
+          body: '**Start queue** skips reported matches and keeps an unreported queued match already on stream. **Pause queue** stops automation. **Resume** continues. Previous match, Next match, and Send to stream pause automatic advancement. **Clear queue** removes the entries and leaves the broadcast match visible. For **TBD opponents**, JABS checks the next set every **15 seconds** and keeps the current match on stream until it is ready.'
+        },
+        queueEdit: {
+          title: 'Reorder or remove matches',
+          body: 'Use the arrows to move upcoming matches. **Pause first** to move Current or earlier entries. **Removing Current** loads Up next and preserves the running or paused state. With **no next match**, the queue stops and leaves the broadcast visible. Removing other entries keeps Current in place.'
+        },
+        queueTiming: {
+          title: 'Set the delay',
+          body: 'For a delay, choose **1–30 minutes**. Editing minutes preserves the running or paused state and **resets an existing countdown** to that duration. Automatic advancement waits while you edit, save, report, or play a stinger. **W/L and DQ reports** skip automatic winner playback.'
+        },
+        queueSaved: {
+          title: 'Return to your queue',
+          body: 'Queue order and local scores are saved. Restarting JABS or losing the connection **stops automation**. Check Current before continuing. After a queue finishes, add more matches and use **Start** to continue with them. Clear the existing queue before preparing one for a **different event**.'
+        },
         assetFolders: {
           title: 'Find your media folders',
-          body: 'Use Open assets folder in Media, or its dropdown for a specific folder. Character folders follow the selected game. Images can be PNG, JPEG, or WebP.'
+          body: 'Open **Media → Open assets folder**, or choose a specific folder from Media. Character folders follow the **selected game**. Images can be **PNG, JPEG, or WebP**.'
         },
         assetCharacters: {
           title: 'Add character artwork',
-          body: 'Character art holds large artwork; Character portraits holds square icons. Keep each game’s files in its own folders. Replace empty character files with your artwork, keeping their names. Numbered filenames add outfits.'
+          body: '**Character art** holds large artwork. **Character portraits** holds square icons. Keep each game’s files in its own folders. Replace empty character files with your artwork, **keeping their names**. Numbered filenames add outfits.'
         },
         assetPhotos: {
           title: 'Add player photos',
-          body: 'Name photos after the player’s tag. Use Player photos for transparent cutouts and Player headshots for square scoreboard photos. Headshots take priority on scoreboards. Check each player’s photo in Players.'
+          body: 'Name photos after the **player’s tag**. Use Player photos for transparent cutouts and Player headshots for square scoreboard photos. **Headshots take priority** on scoreboards. Check each player’s photo in Players.'
         },
         assetLogos: {
           title: 'Add sponsor and tournament logos',
-          body: 'Name sponsor logos after the player’s sponsor or prefix. Tournament logos can have any name; choose the logo you want in the overlay settings.'
+          body: 'Name sponsor logos after the **player’s sponsor or prefix**. Tournament logos can have any name. **Choose the logo** you want in the overlay settings.'
         },
         assetReload: {
           title: 'Refresh your images',
-          body: 'Choose Reload assets after adding or replacing files. Then select your artwork in JABS and adjust its framing in the preview.'
+          body: 'Choose **Reload assets** after adding or replacing files. Then select your artwork in JABS and adjust its framing in the preview.'
         },
         quickWelcome: {
           title: 'Welcome to JABS!',
-          body: 'You can close this tour at any time and reopen Quick Start from Help. Let’s walk you through setting up a stream. This bar holds actions you can use across tabs; the tabs below organize your overlays and graphics.'
+          body: 'Set up a tournament or exhibition, then add your overlays to OBS. These menus work across tabs. Use **Matches** for players, the Set Selector, and the queue. You can reopen this tour from **Help → Quick Start**.'
         },
         quickTournament: {
           title: 'Organize a tournament stream',
-          body: 'Paste your start.gg tournament link and choose Load events. Select an event, narrow the list by phase or pool, then open a match and choose Send to Stream.'
+          body: 'Paste your start.gg tournament link and choose **Load events**. Select an event, narrow the list by phase or pool, then open a match and choose **Send to Stream**.'
         },
         quickExhibition: {
           title: 'Or run an exhibition',
-          body: 'Without a tournament loaded, use Edit stream state to choose a game and players. If you already loaded a tournament, choose Bracket → Options → Unload tournament first.'
+          body: 'Without a tournament loaded, use **Edit stream state** to choose a game and players. If you already loaded a tournament, choose **Bracket → Unload tournament** first.'
         },
         quickStream: {
           title: 'Prepare the match and keep score',
-          body: 'Choose players, characters, and styling in Edit stream state. Changes save automatically. Use the live controls to keep score.'
+          body: 'Choose players, characters, and styling in **Edit stream state**. Changes **save automatically**. Use the live controls to keep score.'
         },
         quickAssets: {
           title: 'Add your media assets',
-          body: 'Use Media to open the folders for character art, player photos, and logos. Add your images, then choose Reload assets to use them in overlays and graphics.'
+          body: 'Use **Media** to open the folders for character art, player photos, and logos. Add your images, then choose **Reload assets** to use them in overlays and graphics.'
         },
         quickReporting: {
           title: 'Send results to start.gg',
-          body: 'You must have reporting permission for the currently loaded tournament. Report result updates the final score on start.gg, ends the set, and advances the bracket.'
+          body: 'You must have **reporting permission** for the currently loaded tournament. **Report result** updates the final score on start.gg, ends the set, and advances the bracket.'
         },
         quickLibrary: {
           title: 'Reuse player details',
-          body: 'Open Players to save profiles, photos, and character choices for each game. Choose saved players when setting up matches to fill in their details. You can add these later.'
+          body: 'Open **Matches → Players** to save profiles, photos, and character choices for each game. Choose saved players when setting up matches to fill in their details. You can add these later.'
         },
         quickFinish: {
           title: 'Ready when you are',
-          body: 'Start with a tournament link or prepare an exhibition in Edit stream state. Help has detailed guides for each task, including artwork, custom scoreboards, and stingers. Quick Start is here whenever you want another look.'
+          body: 'Start with a tournament link or prepare an exhibition in **Edit stream state**. **Help** has detailed guides for each task, including artwork, custom scoreboards, and stingers. Quick Start is here whenever you want another look.'
         },
         tournament: {
           title: 'Load your tournament',
-          body: 'Paste the start.gg tournament link, then choose Load events. Public tournaments work without a token.'
+          body: 'Paste the start.gg tournament link, then choose **Load events**. Public tournaments work **without a token**.'
         },
         event: {
           title: 'Choose an event',
-          body: 'Select the event you are running. Phase, pool, and station filters help narrow the match list.'
+          body: 'Select the event you are running. **Phase, pool, and station filters** help narrow the match list.'
         },
         sets: {
           title: 'Send a match to stream',
-          body: 'Search for the players or round and open a match. Choose Send to Stream to load it into the overlays.'
+          body: 'Search for the players or round and open a match. Choose **Send to Stream** to load it into the overlays.'
         },
         stream: {
           title: 'Prepare the match',
-          body: 'Check the names, characters, flags, and match format. JABS checks and saves your edits before updating OBS.'
+          body: 'Check the names, characters, flags, and **match format**. JABS checks and **saves your edits** before updating OBS.'
         },
         obs: {
           title: 'Connect OBS',
-          body: 'Copy a URL from this menu into an OBS Browser Source at 1920×1080. Keep JABS running while broadcasting. For overlays that should replay their animation when you return to a scene, enable “Shutdown source when not visible” and “Refresh browser when scene becomes active”. Leave both off for Stingers.'
+          body: 'Copy a URL from this menu into an OBS Browser Source at **1920×1080**. **Keep JABS running** while broadcasting. For overlays that should replay their animation when you return to a scene, enable “Shutdown source when not visible” and “Refresh browser when scene becomes active”. **Leave both off for Stingers**.'
         },
         exhibition: {
           title: 'Start without a tournament',
-          body: 'If a tournament is loaded, use Bracket → Options → Unload tournament first. This clears the live match so you can prepare an exhibition.'
+          body: 'If a tournament is loaded, choose **Bracket → Unload tournament** first. This **clears the live match** so you can prepare an exhibition.'
         },
         game: {
           title: 'Choose the game',
-          body: 'Choose the game in Edit stream state to set the match rules and available artwork. You can choose a different scoreboard style.'
+          body: 'Choose the game in **Edit stream state** to set the match rules and available artwork. You can choose a different scoreboard style.'
         },
         players: {
           title: 'Choose the players',
-          body: 'Enter tags or choose players from the suggestions, then pick their characters and outfits. Choosing saved players fills in their details and lets you check their head-to-head history.'
+          body: 'Enter tags or choose players from the suggestions, then pick their characters and outfits. Choosing **saved players** fills in their details and lets you check their head-to-head history.'
         },
         scores: {
           title: 'Keep score locally',
-          body: 'Use the score controls as games finish. Exhibition formats include first-to matches and Topanga Rules. Local score changes are separate from reporting to start.gg.'
+          body: 'Use the score controls as games finish. Exhibition formats include first-to matches and Topanga Rules. **Local score changes are separate from reporting to start.gg**.'
         },
         topEight: {
           title: 'Prepare a Top 8 graphic',
-          body: 'Choose a game, tournament name, and headline. Load final start.gg standings or fill in the placements yourself.'
+          body: 'Choose a game, tournament name, and headline. Load **final start.gg standings** or fill in the placements yourself.'
         },
         assets: {
           title: 'Add your artwork',
-          body: 'Open a folder from Media. Name your files after the player, sponsor, or character, then choose Reload assets.'
+          body: 'Open a folder from **Media**. Name your files after the player, sponsor, or character, then choose **Reload assets**.'
         },
         placements: {
           title: 'Fill in the placements',
-          body: 'Check the eight players, sponsors, characters, outfits, and flags. You can pick saved players from the name suggestions.'
+          body: 'Check the **eight players**, sponsors, characters, outfits, and flags. You can pick **saved players** from the name suggestions.'
         },
         topEightExport: {
           title: 'Adjust and export',
-          body: 'Drag artwork in the preview to frame each player, then download the 1920×1080 PNG. The export uses your original artwork.'
+          body: 'Drag artwork in the preview to frame each player, then download the **1920×1080 PNG**. The export uses your **original artwork**.'
         },
         thumbnail: {
           title: 'Prepare a thumbnail',
-          body: 'Choose a game, tournament name, and headline. Use the match on stream or enter your own players.'
+          body: 'Choose a game, tournament name, and headline. Use the **match on stream** or enter **your own players**.'
         },
         thumbnailPlayers: {
           title: 'Set up both players',
-          body: 'Choose each player’s name, sponsor, character, outfit, and flag. Pick a saved player to fill in the details you’ve already set up.'
+          body: 'Choose each player’s name, sponsor, character, outfit, and flag. Pick a **saved player** to fill in the details you’ve already set up.'
         },
         thumbnailExport: {
           title: 'Frame your thumbnail',
-          body: 'Position the artwork in the live preview, then download the 1280×720 PNG. Character art and player photos can be moved independently.'
+          body: 'Position the artwork in the live preview, then download the **1280×720 PNG**. Character art and player photos can be **moved independently**.'
         },
         tokenPurpose: {
           title: 'When you need a token',
-          body: 'Public tournament browsing and local OBS controls work without a token. Add a token to report results or use authenticated browsing.'
+          body: 'Public tournament browsing and local OBS controls work **without a token**. Add a token to **report results** or use authenticated browsing.'
         },
         tokenCreate: {
           title: 'Create a start.gg token',
-          body: 'Follow the official instructions below to create a token in start.gg Developer Settings. Copy it when it is shown, then paste it into API access.'
+          body: 'Follow the official instructions below to create a token in start.gg **Developer Settings**. Copy it when it is shown, then paste it into **API access**.'
         },
         tokenStorage: {
           title: 'Save or use for this session',
-          body: 'Save token uses your operating system’s secure credential storage. If that storage is unavailable, Use for session keeps it in memory until JABS closes.'
+          body: '**Save token** uses your operating system’s secure credential storage. If that storage is unavailable, **Use for session** keeps it in memory **until JABS closes**.'
         },
         reporting: {
           title: 'Reporting needs permission',
-          body: 'Your start.gg account must have reporting permission for the tournament. JABS asks for confirmation and checks the current set before sending a result.'
+          body: 'Your start.gg account must have **reporting permission** for the tournament. JABS asks for **confirmation** and checks the current set before sending a result.'
         },
         library: {
           title: 'Open Players',
-          body: 'Save player details and their usual characters here so you can reuse them for future matches. Choose Next to open Players.'
+          body: 'Open **Matches → Players** to save player details and their usual characters for future matches. Choose **Next** to open the library.'
         },
         libraryFind: {
           title: 'Add a player',
-          body: 'Look up a start.gg profile, add a local player, or use a player already on stream. Import event players beside the event selector to add a tournament’s players.'
+          body: 'Look up a start.gg profile, add a local player, or use a player already on stream. **Import event players** beside the event selector to add a tournament’s players.'
         },
         librarySelect: {
           title: 'Find a saved player',
-          body: 'Search the list and select a player to edit. Their start.gg profiles help tell apart players who use the same tag.'
+          body: 'Search the list and select a player to edit. Their **start.gg profiles** help tell apart players who use the same tag.'
         },
         libraryDefaults: {
           title: 'Remember a player’s setup',
-          body: 'Set characters, outfits, and photo framing for each game, then choose Save player. In Edit stream state, changes to saved players’ flags, pronouns, social handles, and characters save automatically.'
+          body: 'Set characters, outfits, and photo framing for each game, then choose **Save player**. In Edit stream state, changes to saved players’ flags, pronouns, social handles, and characters **save automatically**.'
         },
         libraryBackup: {
           title: 'Back up your library',
-          body: 'Export library saves your players and their settings as a JSON file. Pictures stay in their folders. Import library adds players without replacing records you already have.'
+          body: '**Export library** saves your players and their settings as a JSON file. **Pictures stay in their folders**. **Import library** adds players without replacing records you already have.'
         },
         media: {
           title: 'Work in the live preview',
-          body: 'Once artwork is loaded, click an image to select it. Character + photo mode starts with the character behind the player photo.'
+          body: 'Once artwork is loaded, **click an image** to select it. **Character + photo** mode starts with the character behind the player photo.'
         },
         mediaSelect: {
           title: 'Select either image',
-          body: 'Click visible artwork to select it. Transparent areas let you reach the other image; Alt+click selects an overlapping image behind.'
+          body: 'Click visible artwork to select it. Transparent areas let you reach the other image. **Alt+click** selects an overlapping image behind.'
         },
         mediaMove: {
           title: 'Move, resize, and flip',
-          body: 'Drag to move the selected image. Arrow keys move it, Shift + arrows moves farther, + / − resizes, and F flips it.'
+          body: 'Drag to move the selected image. **Arrow keys** move it, **Shift + arrows** moves farther, **+ / −** resizes, and **F** flips it.'
         },
         mediaReset: {
           title: 'Reset one image',
-          body: 'Choose Reset position to restore the selected image’s position, size, and flip. The other image keeps its placement.'
+          body: 'Choose **Reset position** to restore the selected image’s position, size, and flip. **The other image keeps its placement**.'
         },
         scoreboard: {
           title: 'Import a scoreboard frame',
-          body: 'Choose a transparent PNG near 1920×1080, enter a name, and import it. The frame can be up to 20 MB.'
+          body: 'Choose a **transparent PNG** near **1920×1080**, enter a name, and import it. The frame can be up to **20 MB**.'
         },
         scoreboardLayout: {
           title: 'Place the live fields',
-          body: 'Choose a saved layout, then click or select a field to position it. Alt+click reaches overlapping fields. Arrow keys move a field; Shift moves it 10 pixels.'
+          body: 'Choose a saved layout, then click or select a field to position it. **Alt+click** reaches overlapping fields. **Arrow keys** move a field. Shift moves it **10 pixels**.'
         },
         scoreboardRails: {
           title: 'Add broadcast extras',
-          body: 'Enable the left, center, and right rails in the editor. Left and right rails use your broadcast text; the center rail shows match context.'
+          body: 'Enable the **left, center, and right rails** in the editor. Left and right rails use your broadcast text. The center rail shows match context.'
         },
         scoreboardSave: {
           title: 'Layouts save automatically',
-          body: 'Edits save automatically; the status beside the title shows whether they are saved. Choose Use in OBS to put this layout on air.'
+          body: 'Edits **save automatically**. The status beside the title shows whether they are saved. Choose **Use in OBS** to put this layout on air.'
         },
         stingers: {
           title: 'Choose your clips',
-          body: 'Add Perfect and Winner videos in WebM format. Winner can play automatically when the score completes the set.'
+          body: 'Add Perfect and Winner videos in **WebM** format. Winner can play **automatically** when the score completes the set.'
         },
         stingerFraming: {
           title: 'Frame the winner',
-          body: 'Use the framing preview to check the player photo, character art, and name banner. Set when the winner assets appear in your clip; this preview does not trigger OBS.'
+          body: 'Use the framing preview to check the player photo, character art, and name banner. Set when the winner assets appear in your clip. This preview **does not trigger OBS**.'
         },
         stingerObs: {
           title: 'Add the source to OBS',
-          body: 'Copy the Stingers URL into a 1920×1080 Browser Source above your other sources. Reuse it across scenes and check that it shows as active in JABS. Leave “Shutdown source when not visible” and “Refresh browser when scene becomes active” unchecked so switching scenes won’t interrupt playback.'
+          body: 'Copy the Stingers URL into a **1920×1080** Browser Source **above your other sources**. Reuse it across scenes and check that it shows as active in JABS. **Leave “Shutdown source when not visible” and “Refresh browser when scene becomes active” unchecked** so switching scenes won’t interrupt playback.'
         },
         stingerPlay: {
           title: 'Play clips from any tab',
-          body: 'Use this menu to play configured clips or stop playback. Winner needs a completed set score. Reconnect OBS source refreshes the connection when needed.'
+          body: 'Use this menu to play configured clips or stop playback. Winner needs a **completed set score**. **Reconnect OBS source** refreshes the connection when needed.'
         }
       }
     },
@@ -367,7 +502,7 @@ export const en = {
       enabled: 'Player photos in scoreboards',
       logoBackdrop: 'Tournament logo behind players',
       sponsorBackdrop: 'Sponsor logos behind players',
-      chooseLogo: 'Choose a tournament logo in <extras>Broadcast extras</extras>.',
+      chooseLogo: 'Choose a tournament logo under <extras>Logo</extras>.',
       help: 'Prepare scoreboard photos in <players>Players</players>.',
       preparation: 'Scoreboard photo',
       reload: 'Reload images',
@@ -384,17 +519,18 @@ export const en = {
     players: {
       // Library navigation
       title: 'Players',
-      add: 'Add player',
+      add: 'New player',
       closePlayer: 'Close player',
       search: 'Search tags and aliases',
-      searchPlaceholder: 'Type a player tag…',
-      count: '{{count}} saved players',
+      searchPlaceholder: 'Tag or alias…',
+      count_one: '{{count}} player registered in the player library',
+      count_other: '{{count}} players registered in the player library',
       localPlayer: 'Local player',
       gameCount: 'Games: {{count}}',
       noMatches: 'No players match this search.',
       emptyLibrary: 'Your saved players will appear here.',
       onStream: 'On stream',
-      fromStream: 'Edit saved defaults: {{name}}',
+      fromStream: 'Open player: {{name}}',
       newPlayer: 'New player',
       choosePlayer: 'Choose a player',
       choosePlayerHelp: 'Choose a saved player to edit their details, or add a player.',
@@ -408,7 +544,7 @@ export const en = {
       useImported: 'Use imported value',
       aliases: 'Other tags',
       gamesHeading: 'Game preferences',
-      game: 'Game preferences',
+      game: 'Game',
       chooseGameHelp: 'Choose a game to save this player’s characters and artwork.',
       characters: 'Characters, in team order',
       artwork: 'Character artwork',
@@ -456,7 +592,7 @@ export const en = {
       },
 
       // Event imports and library files
-      lookupLabel: 'Add from start.gg',
+      lookupLabel: 'start.gg profile',
       lookupPlaceholder: 'Profile URL or numeric player ID',
       lookupHelp: 'You can also paste the profile code after /user/.',
       lookup: 'Find player',
@@ -493,15 +629,20 @@ export const en = {
       animations: 'Play overlay animations',
       presets: 'Appearance presets',
       savedPreset: 'Saved preset',
+      currentPreset: 'Current preset: {{name}}',
+      presetModified: 'modified',
+      usingDefaults: 'Current appearance: Default settings',
+      customAppearance: 'Current appearance: Custom settings',
       choosePreset: 'Choose a preset',
       presetName: 'Preset name',
+      newPreset: 'New preset',
       savePreset: 'Save preset',
       updatePreset: 'Update preset',
       deletePreset: 'Delete preset',
       importPreset: 'Import preset',
       exportPreset: 'Export current appearance',
       presetHelp:
-        'Presets save colors, bracket names, text size, language, and the animation setting. Importing a preset applies it immediately. You can save up to 20.',
+        'Choose New preset to start from defaults, adjust the settings, then name and save it. Presets include colors, bracket names, text size, language, and animations. Imports apply immediately. You can save up to 20.',
       restoreDefaults: 'Restore defaults',
       restoreHelp: 'Restores the appearance defaults and keeps your saved presets.',
       defaultPresetName: 'My stream',
@@ -759,7 +900,7 @@ export const en = {
     },
 
     // Utility groups
-    utilityGroups: { moderation: 'Moderation', media: 'Media', bracket: 'Bracket', obs: 'OBS' },
+    utilityGroups: { moderation: 'Moderation', media: 'Media', bracket: 'Bracket', obs: 'OBS', matches: 'Matches' },
 
     // start.gg connection and bracket browser
     startgg: {
@@ -808,7 +949,8 @@ export const en = {
       logosReloaded: '{{count}} tournament logo(s) found.',
       assetsReloadFailed: 'Unable to reload the local media catalogs.',
       chooseProfile: 'Choose game profile',
-      unknownGame: 'This game uses an existing overlay profile. You can change it here; the game name and artwork stay the same.',
+      unknownGame:
+        'This game uses an existing overlay profile. You can change it here. The game name and artwork stay the same.',
       phase: 'Phase',
       allPhases: 'All phases',
       pool: 'Pool / phase group',
@@ -824,6 +966,7 @@ export const en = {
 
     // Set selection and filters
     selector: {
+      queued: 'Queued',
       open: 'Set Selector',
       pillFilters: 'Filter By:',
       pillFiltersHelp: 'Filters apply to loaded sets. Scroll to load more, or search to load every page.',
@@ -838,6 +981,7 @@ export const en = {
       total: '{{count}} total',
       bracketOrder: 'start.gg bracket order',
       dirtyWarning: 'Waiting for changes to finish saving.',
+      pendingOutcome: 'Confirm or clear the pending W/DQ result.',
       search: 'Search sets',
       searchPlaceholder: 'Player, round, station, or set ID',
       loadingAll: 'Loading every bracket page for search…',
@@ -853,6 +997,7 @@ export const en = {
       tbd: 'TBD',
       winner: 'Winner',
       loser: 'Loser',
+      disqualified: 'Disqualified',
       setPages: 'Set pages',
       loadingMore: 'Loading more sets',
       scrollMore: 'Scroll to load more',
@@ -869,6 +1014,14 @@ export const en = {
       waitSave: 'Wait for your changes to save before using these controls.',
       waitAction: 'Wait for the current action to finish.',
       title: 'Edit stream state',
+      clearPlayers: 'Clear player details',
+      clearPlayersHelp:
+        'Use Clear player details to start a local match. To report results to start.gg, load the match through Matches → Set Selector. Entering players manually will not link a match to the ongoing tournament.',
+      exhibitionTitle: 'Exhibition title',
+      exhibitionLogo: 'Exhibition logo',
+      showExhibitionLogo: 'Show exhibition logo',
+      exhibitionLogoBackdrop: 'Exhibition logo behind players',
+      chooseExhibitionLogo: 'Choose an exhibition logo under <extras>Exhibition logo</extras>.',
       description: 'Changes save automatically after JABS checks them, then update OBS.',
       unsaved: 'Unsaved',
       savePending: 'Saving shortly',
@@ -918,9 +1071,9 @@ export const en = {
 
     // Broadcast details
     broadcast: {
-      sharedLogoHelp: 'Uses the logo selected here, or the Broadcast extras logo if none is selected.',
+      showSeeds: 'Show seeds in scoreboards',
+      sharedLogoHelp: 'Uses the logo selected here, or the logo in Scoreboard appearance if none is selected.',
       sponsorLogoHelp: 'Show each player’s team or sponsor logo when available.',
-      title: 'Broadcast extras',
       enabled: '{{count}} enabled',
       optional: 'Optional rails and logo',
       showRails: 'Show lower information rails',
@@ -934,7 +1087,7 @@ export const en = {
       unavailableLogo: 'Unavailable: {{logo}}',
       chooseLogo: 'Choose logo',
       logoHint: 'Add PNG, JPEG, or WebP files to Tournament logos, then choose Reload assets.',
-      reloadLogos: 'Reload logos',
+      reloadLogos: 'Reload logos'
     },
 
     // Live match controls
@@ -993,7 +1146,20 @@ export const en = {
     },
 
     // Result reporting checks
+    outcomes: {
+      chooseWinner: 'Choose one of the players as the winner.',
+      winAction: 'Mark {{player}} as winner',
+      dqAction: 'Disqualify {{player}}',
+      winLoss: '{{winner}} wins · W/L',
+      dq: '{{winner}} wins by disqualification of {{loser}}',
+      confirmWinLoss:
+        'Report {{winner}} as winner over {{loser}} (W/L) for set {{setId}} on start.gg? Game scores and character selections will not be sent.',
+      confirmDQ:
+        'Disqualify {{loser}} and report {{winner}} as winner of set {{setId}} on start.gg? Game scores and character selections will not be sent.',
+      accepted: 'start.gg accepted the result.'
+    },
     readiness: {
+      upstreamReset: 'Reset or update the local score before reporting this result.',
       alreadyComplete: 'This set is already marked complete on start.gg.',
       setMissing: 'Load a start.gg set before reporting a result.',
       exhibitionLocalOnly: 'Exhibition scores stay in JABS and cannot be reported to start.gg.',
@@ -1125,8 +1291,7 @@ export const en = {
       invalidMatchupCount: 'Top 8 Matchups requires exactly four matches.',
       invalidBracketOrder: 'Top 8 Matchups requires two Winners matches followed by two Losers matches.',
       invalidPlayerName: 'Enter a name between 1 and 100 characters for every player.',
-      blockedCharacter:
-        'That character name contains blocked text. Choose another character.',
+      blockedCharacter: 'That character name contains blocked text. Choose another character.',
       blockedTournamentName: 'The tournament name contains blocked text.',
       blockedEventName: 'The event name contains blocked text.',
       blockedPlayerName: 'A player name contains blocked text.',
@@ -1137,6 +1302,8 @@ export const en = {
 
     // Shared game selection and character folders
     generators: {
+      ready: 'Ready to export',
+      needsDetails: 'Needs details',
       previewFailed: 'Could not update the preview.',
       game: 'Game',
       characterFileGuides: 'Replace the empty character files with your artwork, keeping the same names.',
@@ -1230,8 +1397,6 @@ export const en = {
     // YouTube thumbnail generator
     thumbnail: {
       description: 'Create a YouTube thumbnail using the stream match or your own player details.',
-      ready: 'Ready to export',
-      needsDetails: 'Needs details',
       game: 'Game',
       style: 'Composition style',
       styles: { versus: 'Versus', spotlight: 'Spotlight' },
@@ -1263,8 +1428,7 @@ export const en = {
     // Moderation controls
     moderation: {
       title: 'Moderation exceptions',
-      description:
-        'Allow complete names or field values that were blocked by mistake.',
+      description: 'Allow complete names or field values that were blocked by mistake.',
       path: 'File:',
       open: 'Edit allowlist',
       openHint: 'Edit moderation exceptions in JABS.',
@@ -1317,6 +1481,7 @@ export const en = {
       // Tournament loading and cache
       tournamentUnloaded: 'Tournament unloaded. The stream match has been cleared.',
       exhibitionGameFailed: 'Could not change the exhibition game. Try selecting it again.',
+      clearPlayersFailed: 'Could not clear the player details. Try again.',
       tournamentUnloadFailed: 'Unable to unload the tournament and clear the active stream state.',
       clearCacheConfirm:
         'Clear recent tournament history and reset the bracket browser? Your on-air match and saved match edits will be kept.',

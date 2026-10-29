@@ -1,0 +1,98 @@
+:root {
+  --operator-container-border: rgba(151, 191, 216, 0.2);
+}
+
+/* Use component variables so focus, selection, and status borders can still override them. */
+[data-mantine-color-scheme] :is(.mantine-Paper-root, .mantine-Card-root) {
+  --paper-border-color: var(--operator-container-border);
+}
+
+[data-mantine-color-scheme] :is(
+  .mantine-Popover-dropdown,
+  .mantine-Menu-dropdown,
+  .mantine-HoverCard-dropdown,
+  .mantine-Combobox-dropdown
+) {
+  --popover-border-color: var(--operator-container-border);
+}
+
+[data-mantine-color-scheme] .mantine-Tabs-root {
+  --tab-border-color: var(--operator-container-border);
+}
+
+[data-mantine-color-scheme] .mantine-Accordion-root {
+  --item-border-color: var(--operator-container-border);
+}
+
+.mantine-Divider-root {
+  --divider-color: var(--operator-container-border);
+}
+
+:is(.mantine-Fieldset-root, .mantine-Accordion-item, .mantine-Modal-header, .mantine-Drawer-header) {
+  border-color: var(--operator-container-border);
+}
+
+.mantine-Modal-content,
+.mantine-Drawer-content,
+.mantine-Dialog-root {
+  border: 1px solid var(--operator-container-border);
+}
+
+/* Panels and floating surfaces share square corners. */
+:is(
+  .mantine-Paper-root,
+  .mantine-Card-root,
+  .mantine-Fieldset-root,
+  .mantine-Accordion-item,
+  .mantine-Accordion-control,
+  .mantine-Modal-content,
+  .mantine-Modal-header,
+  .mantine-Drawer-content,
+  .mantine-Drawer-header,
+  .mantine-Dialog-root,
+  .mantine-Menu-dropdown,
+  .mantine-Popover-dropdown,
+  .mantine-HoverCard-dropdown,
+  .mantine-Combobox-dropdown,
+  .mantine-Select-dropdown,
+  .mantine-MultiSelect-dropdown,
+  .mantine-Autocomplete-dropdown,
+  .mantine-ColorInput-dropdown,
+  .mantine-Tooltip-tooltip,
+  .mantine-Alert-root,
+  .mantine-Notification-root,
+  .operator-shell .panel,
+  .operator-shell fieldset,
+  .operator-shell code,
+  .operator-inset,
+  .operator-section-header,
+  .commentator-panel-header,
+  .operator-disclosure,
+  .operator-disclosure > summary,
+  .operator-setup,
+  .hero-panel,
+  .status-card,
+  .operator-toast,
+  .broadcast-editor,
+  .quick-score-warning,
+  .quick-score-outcome,
+  .stream-save-error,
+  .set-action-dialog,
+  .set-action-choice,
+  .set-row,
+  .set-results-scroll,
+  .player-library-row,
+  .custom-scoreboard-field-controls,
+  .versus-preview-shell,
+  .top8-matchups-preview-shell,
+  .stinger-panel-preview,
+  .driver-popover.jabs-tutorial
+) {
+  border-radius: 0 !important;
+}
+
+.workspace-sticky-header,
+.mantine-Menu-dropdown {
+  border: 1px solid var(--operator-container-border);
+}
+

@@ -8,17 +8,16 @@ import { StingerStage } from './StingerStage';
 export function StingersOverlay() {
   const { state, error } = useStingers();
   const activity = useSyncExternalStore(subscribeObsSourceActivity, getObsSourceActivity);
-  const pageVisible = useSyncExternalStore(subscribeVisibility, isVisible);
-  const [clientId] = useState(() => crypto.randomUUID());
+  const [clientId, setClientId] = useState(() => crypto.randomUUID());
   const [cue, setCue] = useState<StingerCue>();
-  const [reloading, setReloading] = useState(false);
   const connection = useRef<string | undefined>(undefined);
   const attempted = useRef<string | undefined>(undefined);
   const inObs = Boolean((window as Window & { obsstudio?: unknown }).obsstudio);
   const program = activity.active === true;
-  // OBS may load an already-active page without sending a fresh activation event.
-  const visible = activity.visible ?? pageVisible;
-  const active = inObs && (program || visible) && activity.active !== false && !error && !reloading;
+  // Browser occlusion does not mean the source left OBS's scene. Until OBS
+  // reports activity, keep the loaded source eligible; confirmed Program wins.
+  const visible = activity.visible !== false;
+  const active = inObs && (program || visible) && activity.active !== false && !error;
   const currentCue = useRef(cue);
   currentCue.current = cue;
 
@@ -28,21 +27,10 @@ export function StingersOverlay() {
     const previous = connection.current;
     connection.current = id;
     if (!inObs || !previous || previous === id) return;
-    let disposed = false;
-    setReloading(true);
     setCue(undefined);
-    // Renew OBS's activity bindings as well as the data stream. Re-registering
-    // the old page alone cannot clear a stale inactive/hidden state.
-    void api
-      .stingerSource(clientId, false, false)
-      .catch(() => undefined)
-      .then(() => {
-        if (!disposed) window.location.reload();
-      });
-    return () => {
-      disposed = true;
-    };
-  }, [state?.connectionId, clientId, inObs]);
+    // A new registration retires the old owner without reloading OBS's page.
+    setClientId(crypto.randomUUID());
+  }, [state?.connectionId, inObs]);
 
   useEffect(() => {
     let disposed = false;
@@ -69,7 +57,7 @@ export function StingersOverlay() {
 
   useEffect(
     () => () => {
-      // A new page receives a new ID; a stale source cannot reclaim a consumed cue.
+      // Retire this registration on reconnect or page unload.
       void api.stingerSource(clientId, false, false).catch(() => undefined);
     },
     [clientId]
@@ -115,12 +103,4 @@ export function StingersOverlay() {
       {cue && <StingerStage key={cue.id} cue={cue} onFinish={(error) => finish(cue.id, error)} />}
     </main>
   );
-}
-
-function isVisible() {
-  return document.visibilityState !== 'hidden';
-}
-function subscribeVisibility(notify: () => void) {
-  document.addEventListener('visibilitychange', notify);
-  return () => document.removeEventListener('visibilitychange', notify);
 }
