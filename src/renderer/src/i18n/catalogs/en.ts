@@ -17,7 +17,7 @@ export const en = {
       next: 'Next',
       resetScores: 'Reset scores',
       swapPlayers: 'Swap players',
-      select: '---- Select ----'
+      select: 'Select…'
     },
     // Status labels
     status: {
@@ -49,6 +49,7 @@ export const en = {
   },
   // OBS overlays
   overlay: {
+    playerDetails: 'Player details',
     invalidTitle: 'Invalid overlay URL',
     invalidBody:
       'Use /overlay/active/main, /overlay/active/winner, /overlay/active/versus, /overlay/active/stats?player=1, /overlay/active/top-eight-matchups, /overlay/commentators, /overlay/active/bracket, or a supported fixed game route.',
@@ -83,7 +84,7 @@ export const en = {
       location: 'Location {{country}}',
       locationUnknown: 'Location unknown',
       representing: 'Representing {{sponsor}}',
-      stats: { age: 'Age', sponsor: 'Sponsor', seed: 'Seed', nickname: 'Nickname' },
+      stats: { age: 'Age', sponsor: 'Sponsor', seed: 'Seed', nickname: 'Nickname', main: 'Main', pronouns: 'Pronouns' },
       headToHead: 'Head-to-head',
       noHeadToHead: 'No head-to-head results found',
       noPlacements: 'No recent placements found',
@@ -112,7 +113,7 @@ export const en = {
         ready: 'Ready to report to start.gg',
         pending: 'Result not reported to start.gg'
       },
-      scoreShortcuts: 'Score shortcuts',
+      scoreShortcuts: 'Keyboard shortcuts',
       matchDetails: 'Display name & station',
       scoreboardAppearance: 'Scoreboard appearance',
       playerDetails: 'Flag & player details',
@@ -240,7 +241,7 @@ export const en = {
         },
         queueOpen: {
           title: 'Open the match queue',
-          body: 'Open **Matches → Queue**, or use Queue in Live Controls. Each queue belongs to **one event** and holds up to **100 matches**. For Top 8, choose **Queue Top 8 automatically**, review the list, and confirm with **Yes, add matches**. Adding these matches leaves the current stream and playback state unchanged.'
+          body: 'Open **Matches → Queue**, or choose **Queue** beside **Clear player details**. Each queue belongs to **one event** and holds up to **100 matches**; for Top 8, choose **Queue Top 8 automatically**, review the list, and confirm with **Yes, add matches**. Adding these matches leaves the current stream and playback state unchanged.'
         },
         queueOrder: {
           title: 'Read the queue',
@@ -280,7 +281,7 @@ export const en = {
         },
         assetLogos: {
           title: 'Add sponsor and tournament logos',
-          body: 'Name sponsor logos after the **player’s sponsor or prefix**. Tournament logos can have any name. **Choose the logo** you want in the overlay settings.'
+          body: 'Name sponsor logos after the **player’s team or sponsor**. Tournament logos can have any name. **Choose the logo** you want in the overlay settings.'
         },
         assetReload: {
           title: 'Refresh your images',
@@ -495,9 +496,54 @@ export const en = {
       railsHelp: 'The side rails show your broadcast text. The center rail shows match details.',
       clipSettings: 'Winner settings'
     },
+    shortcutConfirm: {
+      resetScoresTitle: 'Reset scores',
+      resetScores: 'Reset both players’ scores?',
+      clearQueue: 'Clear every match from the queue?',
+      clearPlayers: 'Clear both players’ details and scores?',
+      yes: 'Yes (Y)',
+      no: 'No (N)'
+    },
+    shortcutGuide: { navigation: 'Navigation & queue', scoring: 'Scoring', matchActions: 'Match actions' },
+    queueTicker: {
+      preview: 'Ticker preview',
+      on: 'On',
+      off: 'Off',
+      upcomingStatus: '{{count}}/{{limit}} upcoming',
+      resultsStatus_one: '{{count}} result',
+      resultsStatus_other: '{{count}} results',
+      composition: 'Size',
+      standard: 'Standard',
+      compact: 'Compact',
+      showLogo: 'Show logo',
+      logo: 'Ticker logo',
+      title: 'Queue ticker',
+      upcoming: 'Up next',
+      results: 'Recent results',
+      enabled: 'Show queue ticker',
+      count: 'Upcoming matches',
+      showResults: 'Show recent results',
+      resultsHelp: 'Shows up to three completed matches from this queue. Reset or unavailable results stay hidden.',
+      loading: 'Loading queue ticker…',
+      saveFailed: 'Could not save the ticker settings. Try again.',
+      empty: 'Add matches to the queue to show them here.'
+    },
     scoreboardPhotos: {
+      fitPreview: 'Fit preview',
+      framing: 'Photo framing',
+      contained: 'Contained',
+      extendAbove: 'Extend above (Experimental)',
+      framingHelp:
+        'Contained keeps photos inside the scoreboard. Extend above allows them past the top edge only. Each mode remembers its framing.',
+
+      saveScope: 'Apply framing to',
+      savePlayerOne: 'Player 1 side',
+      savePlayerTwo: 'Player 2 side',
+      saveBoth: 'Both sides',
+      saveScopeHelp:
+        'Apply this framing and flip to both sides, or adjust each side separately. Choose Save player to keep your changes.',
       side: 'Photo side',
-      unsupported: 'No scoreboard photo layout is available for this game.',
+      unsupported: 'This game has no scoreboard photo layout.',
       recommendedSize: 'Recommended: 512 × 512 px, head and shoulders.',
       enabled: 'Player photos in scoreboards',
       logoBackdrop: 'Tournament logo behind players',
@@ -523,8 +569,8 @@ export const en = {
       closePlayer: 'Close player',
       search: 'Search tags and aliases',
       searchPlaceholder: 'Tag or alias…',
-      count_one: '{{count}} player registered in the player library',
-      count_other: '{{count}} players registered in the player library',
+      count_one: '{{count}} saved player',
+      count_other: '{{count}} saved players',
       localPlayer: 'Local player',
       gameCount: 'Games: {{count}}',
       noMatches: 'No players match this search.',
@@ -533,7 +579,7 @@ export const en = {
       fromStream: 'Open player: {{name}}',
       newPlayer: 'New player',
       choosePlayer: 'Choose a player',
-      choosePlayerHelp: 'Choose a saved player to edit their details, or add a player.',
+      choosePlayerHelp: 'Choose a saved player to edit, or add someone new.',
 
       // Player details and saved choices
       detailsHeading: 'Player details',
@@ -572,7 +618,7 @@ export const en = {
       keepEditing: 'Keep editing',
       actionFailed: 'Could not complete this player library action.',
       searchFailed: 'Could not search your player library.',
-      loadFailed: 'Could not load the saved player. You can still enter a name.',
+      loadFailed: 'Could not load this player. Select them again or enter a name manually.',
       assetsFailed: 'Could not load character artwork. Saved choices are still available.',
       photoHelp:
         'Recommended: 1024 × 1536 px (2:3), head to waist. Enter a filename with its extension to use a specific photo.',
@@ -580,7 +626,7 @@ export const en = {
       overrideHelp: 'Your edits are kept when start.gg details refresh. Clear a field to hide its imported value.',
       fields: {
         name: 'Player tag',
-        prefix: 'Sponsor / prefix',
+        prefix: 'Team/Sponsor',
         xHandle: 'X handle',
         pronouns: 'Pronouns',
         country: 'Country code',
@@ -779,11 +825,11 @@ export const en = {
       obsSource: 'OBS Browser Source',
       resolvingObs: 'Loading the OBS URL…',
       styling: 'Style',
+      liveStyle: 'Use live match style',
       transparentBackground: 'Transparent background',
       playerStats: {
         loading: 'Loading Player Stats settings…',
         sharedSettings: 'Shared settings for Player 1 and Player 2',
-        liveStyle: 'Use live match style',
         showTournamentLogo: 'Show tournament logo',
         showPlacementLogos: 'Show placement tournament logos',
         showSponsorLogo: 'Show team/sponsor logo',
@@ -794,6 +840,8 @@ export const en = {
       },
       // Versus Screen settings
       versusScreen: {
+        framingHelp:
+          'Character framing is reused for the same game, artwork, side, and layout. Photos keep each saved player’s framing. Saved match and personal adjustments take priority.',
         showMatchBackdrop: 'Match information backdrop',
         matchBackdropHelp: 'Comparison and history rows keep their backgrounds.',
         statsHeading: 'Match comparison',
@@ -836,7 +884,7 @@ export const en = {
       // Winner and Champion settings
       resultScreen: {
         showTextBackdrop: 'Text backdrop',
-        composition: 'Composition',
+        composition: 'Size',
         classic: 'Classic',
         victory: 'Victory',
         spotlight: 'Spotlight',
@@ -855,6 +903,10 @@ export const en = {
       },
       // Overlay descriptions
       tools: {
+        queueTicker: {
+          title: 'Queue ticker',
+          description: 'Display upcoming queue matches and recent results along the bottom.'
+        },
         playerStats: {
           title: 'Player Stats',
           description: 'Show either live player with five recent placements and their current tournament run.'
@@ -1034,11 +1086,13 @@ export const en = {
       fontSettingsLoading: 'Loading font settings…',
       fontSettingsRetrying: 'Reconnecting to font settings…',
       fontSaveFailed: 'Could not save the scoreboard font. Try again.',
-      stylingDescription: 'Choose the scoreboard design. The game’s character choices stay the same.',
+      stylingDescription:
+        'Choose the scoreboard design. The game determines character choices and where player details appear.',
       detectedOverride: 'Detected from event: {{profile}}. You can override it after loading the set.',
-      matchLength: 'Match length',
+      matchLength: 'Match format',
       displayName: 'Display name',
       round: 'Round',
+      exhibitionName: 'Exhibition Name',
       roundPlaceholder: 'e.g. Winners Final',
       station: 'Station',
       stationPlaceholder: 'e.g. Stream A',
@@ -1050,7 +1104,7 @@ export const en = {
       reloadHint:
         'Refresh this set’s players, scores, status, bracket details, and head-to-head history. Use this if an unplayed set still appears complete after a reset on start.gg.',
       playerTag: 'Player tag',
-      prefix: 'Prefix',
+      prefix: 'Team/Sponsor',
       character: 'Character',
       characters: 'Characters',
       notShown: 'Not shown',
@@ -1059,7 +1113,7 @@ export const en = {
       defaultOutfit: 'Default',
       selectCharacterFirst: 'Select a character first',
       noExtraOutfits: 'No extra outfits available',
-      xHandle: 'x.com handle',
+      xHandle: 'X handle',
       state: 'State / province',
       chooseCountryFirst: 'Choose a country first',
       pronouns: 'Pronouns',
@@ -1103,6 +1157,7 @@ export const en = {
       copyObs: 'Copy overlay URL',
       copiedOverlay: 'Copied: {{overlay}}',
       overlayNames: {
+        'queue-ticker': 'Queue ticker',
         stingers: 'Stingers',
         score: 'Scoreboard',
         versus: 'Versus Screen',
@@ -1178,7 +1233,7 @@ export const en = {
     // Custom scoreboard editor
     customScoreboard: {
       font: 'Font',
-      sponsorColor: 'Sponsor color',
+      sponsorColor: 'Team/Sponsor text color',
       flagSize: 'Flag size',
       title: 'Custom Scoreboard',
       description:
@@ -1188,7 +1243,7 @@ export const en = {
       imageHelp: '1920×1080, up to 20 MB. Images up to 16 pixels off in either dimension are resized to fit.',
       import: 'Import scoreboard',
       savedScoreboards: 'Saved scoreboards',
-      none: '---- Select ----',
+      none: 'Choose a scoreboard',
       loadFailed: 'JABS could not load custom scoreboards.',
       imageLoadFailed: 'JABS could not load that scoreboard image. Try importing it again.',
       loadSetFirst: 'Send a set to stream before choosing a custom scoreboard.',
@@ -1201,12 +1256,12 @@ export const en = {
       deleted: 'Custom scoreboard deleted.',
       deleteFailed: 'JABS could not delete the custom scoreboard.',
       savedName: 'Layout name',
-      adjustRegion: 'Selected field',
+      adjustRegion: 'Selected element',
       mirrorToPlayer: 'Mirror to Player {{number}}',
       dragHelp:
-        'Drag text or images to move them. Alt+click reaches overlapping fields. Arrow keys move; Shift moves 10px.',
+        'Drag an element to move it. Alt+click selects elements underneath. Arrow keys move 1px; Shift+arrow moves 10px.',
       keyboardCanvas: 'Custom scoreboard positioning canvas',
-      alignment: 'Text alignment',
+      alignment: 'Alignment',
       textColor: 'Text color',
       autosaveHelp: 'Changes save automatically.',
       autosave: {
@@ -1221,19 +1276,21 @@ export const en = {
       useAutomatic: 'Use JABS styles',
       delete: 'Delete scoreboard',
       regions: {
+        playerOneSponsorLogo: 'Player 1 · Team/Sponsor logo',
         playerOneFlag: 'Player 1 · Flag',
-        playerOneXHandle: 'Player 1 · x.com handle',
-        playerOneName: 'Player 1 · Sponsor | name',
+        playerOneXHandle: 'Player 1 · X handle',
+        playerOneName: 'Player 1 · Name and Team/Sponsor',
         playerOnePronouns: 'Player 1 · Pronouns',
         playerOneSeed: 'Player 1 · Seed',
         playerOneScore: 'Player 1 · Score',
+        playerTwoSponsorLogo: 'Player 2 · Team/Sponsor logo',
         playerTwoFlag: 'Player 2 · Flag',
-        playerTwoXHandle: 'Player 2 · x.com handle',
-        playerTwoName: 'Player 2 · Name | sponsor',
+        playerTwoXHandle: 'Player 2 · X handle',
+        playerTwoName: 'Player 2 · Name and Team/Sponsor',
         playerTwoPronouns: 'Player 2 · Pronouns',
         playerTwoSeed: 'Player 2 · Seed',
         playerTwoScore: 'Player 2 · Score',
-        matchLabel: 'Round',
+        matchLabel: 'Match details',
         logo: 'Tournament logo',
         infoLeft: 'Lower-left rail',
         infoCenter: 'Lower-center rail',
@@ -1242,8 +1299,8 @@ export const en = {
       align: { left: 'Left', center: 'Center', right: 'Right' },
       visibility: {
         flags: 'Show flags',
-        sponsors: 'Show sponsors and prefixes',
-        xHandles: 'Show x.com handles',
+        sponsors: 'Show teams and sponsors',
+        xHandles: 'Show X handles',
         pronouns: 'Show pronouns',
         seeds: 'Show seeds',
         round: 'Show round',
@@ -1382,8 +1439,8 @@ export const en = {
       playerTag: 'Player tag',
       character: 'Character',
       characters: 'Characters',
-      sponsor: 'Sponsor / prefix',
-      xHandle: 'x.com handle',
+      sponsor: 'Team/Sponsor',
+      xHandle: 'X handle',
       country: 'Country',
       displayFlag: 'Display flag',
       validation: {

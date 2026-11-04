@@ -168,11 +168,13 @@ export function VersusScreenControls({
         <Select
           label={t('workspaces.styling')}
           data={sortedProfiles.map((profile) => ({ value: profile.id, label: profile.styleName }))}
-          value={state.stylingGameId}
+          clearable
+          clearButtonProps={{ 'aria-label': t('workspaces.liveStyle') }}
+          placeholder={t('workspaces.liveStyle')}
+          value={state.stylingGameId ?? null}
           searchable
-          allowDeselect={false}
           disabled={saving || refreshing}
-          onChange={(value) => value && void update({ stylingGameId: value as GameId })}
+          onChange={(value) => void update({ stylingGameId: value ? (value as GameId) : undefined })}
         />
         <OverlayLogoSelect
           logos={logos}
@@ -278,6 +280,9 @@ export function VersusScreenControls({
                 </Group>
               </SimpleGrid>
               <MediaControlHint showOverlapSelection />
+              <Text size="xs" c="dimmed">
+                {t('workspaces.versusScreen.framingHelp')}
+              </Text>
             </>
           )}
           <VersusPreview

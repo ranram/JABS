@@ -8,6 +8,7 @@ export type TutorialStep = {
   workspace?: TutorialWorkspace;
   openLibrary?: boolean;
   openQueue?: boolean;
+  openSelector?: boolean;
   openMenu?: 'matches' | 'assets';
   link?: string;
 };
@@ -31,13 +32,19 @@ export const tutorials = {
   ],
   tournament: [
     { id: 'tournament', target: '.tournament-lookup-row', workspace: 'bracket' },
-    { id: 'event', target: target('event') },
-    { id: 'sets', target: '.set-list' },
+    { id: 'event', target: target('event'), openSelector: true },
+    { id: 'sets', target: '.set-list', openSelector: true },
     { id: 'stream', target: '.editor-panel' },
     obs
   ],
   matchQueue: [
-    { id: 'queueAdd', target: '.set-list', fallbackTarget: '.tournament-lookup-row', workspace: 'bracket' },
+    {
+      id: 'queueAdd',
+      target: '.set-list',
+      fallbackTarget: '.tournament-lookup-row',
+      workspace: 'bracket',
+      openSelector: true
+    },
     { id: 'queueOpen', target: target('queue-open'), openMenu: 'matches' },
     { id: 'queueOrder', target: target('queue-list'), openQueue: true },
     { id: 'queueModes', target: target('queue-settings'), openQueue: true },
@@ -50,7 +57,7 @@ export const tutorials = {
     { id: 'exhibition', target: target('bracket-options'), workspace: 'bracket' },
     { id: 'game', target: '.editor-panel' },
     { id: 'players', target: '.editor-panel .player-field-row' },
-    { id: 'scores', target: '.grid-layout .preview-panel' },
+    { id: 'scores', target: '.combined-stream-panel .preview-panel' },
     obs
   ],
   topEight: [
@@ -108,6 +115,16 @@ export const tutorials = {
 
 export type TutorialId = keyof typeof tutorials;
 export const tutorialIds = [
-  'quickStart', 'tokens', 'tournament', 'matchQueue', 'exhibition', 'library', 'folders', 'media',
-  'scoreboard', 'stingers', 'topEight', 'thumbnail'
+  'quickStart',
+  'tokens',
+  'tournament',
+  'matchQueue',
+  'exhibition',
+  'library',
+  'folders',
+  'media',
+  'scoreboard',
+  'stingers',
+  'topEight',
+  'thumbnail'
 ] as const satisfies readonly TutorialId[];

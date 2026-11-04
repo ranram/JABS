@@ -24,7 +24,7 @@ query TournamentStreamQueue($slug: String!) {
 pub const PHASES: &str = r#"
 query EventPhases($eventId: ID!) {
   event(id: $eventId) {
-    phases { id name }
+    phases { id name phaseOrder phaseGroups(query: { page: 1, perPage: 1 }) { pageInfo { total } } }
   }
 }
 "#;
@@ -106,6 +106,7 @@ pub const SET_BY_ID: &str = r#"
 query SetById($setId: ID!) {
   set(id: $setId) {
     id
+    round
     displayScore
     fullRoundText
     event { id videogame { id name } tournament { name } }

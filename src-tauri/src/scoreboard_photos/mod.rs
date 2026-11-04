@@ -41,6 +41,8 @@ pub struct Photo {
     pub crop: Crop,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub placements: BTreeMap<String, SidePlacements>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub extended_placements: BTreeMap<String, SidePlacements>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
@@ -67,24 +69,37 @@ impl Photo {
             || !(0.0..=1.0).contains(&self.crop.y)
             || !self.crop.zoom.is_finite()
             || !(1.0..=5.0).contains(&self.crop.zoom)
+            || self.extended_placements.len() > 15
             || self.placements.len() > 15
-            || self.placements.iter().any(|(game, sides)| {
-                !crate::state::is_supported_game_id(game)
-                    || [&sides.left, &sides.right]
-                        .into_iter()
-                        .flatten()
-                        .any(|transform| !transform.is_valid())
-            })
+            || self.placements
+                .iter()
+                .chain(self.extended_placements.iter())
+                .any(|(game, sides)| {
+                    !crate::state::is_supported_game_id(game)
+                        || [&sides.left, &sides.right]
+                            .into_iter()
+                            .flatten()
+                            .any(|transform| !transform.is_valid())
+                })
         {
             return Err("Choose a valid local headshot and crop.".into());
         }
         Ok(())
     }
 }
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum Framing {
+    #[default]
+    Contained,
+    ExtendAbove,
+}
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Settings {
     pub enabled: bool,
+    #[serde(default)]
+    pub framing: Framing,
     #[serde(default)]
     pub logo_backdrop: bool,
     #[serde(default)]
@@ -112,6 +127,7 @@ impl PhotoStore {
             || {
                 Ok(Settings {
                     enabled: false,
+                    framing: Framing::default(),
                     logo_backdrop: false,
                     sponsor_backdrop: false,
                     updated_at: crate::database::now_rfc3339()?,

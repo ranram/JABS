@@ -1,3 +1,4 @@
+#[cfg(target_os = "linux")]
 use tauri::Manager;
 
 // Only this public verification key is embedded. The signing key stays in release CI.

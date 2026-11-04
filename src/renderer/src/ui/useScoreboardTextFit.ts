@@ -4,13 +4,10 @@ import { useLayoutEffect, useRef } from 'react';
 type ScoreboardText = {
   name: string;
   sponsor: string;
-  details?: string;
-  pronouns?: string;
-  xHandle?: string;
   themeId: string;
 };
 
-export function useScoreboardTextFit({ name, sponsor, details, pronouns, xHandle, themeId }: ScoreboardText) {
+export function useScoreboardTextFit({ name, sponsor, themeId }: ScoreboardText) {
   const {
     appearance,
     state: { scoreboardFont }
@@ -22,18 +19,19 @@ export function useScoreboardTextFit({ name, sponsor, details, pronouns, xHandle
     const identity = copy?.querySelector<HTMLElement>('.overlay-player-identity');
     const text = copy?.querySelector<HTMLElement>('.overlay-player-name');
     if (!copy || !identity || !text) return;
-    const metadata = copy.querySelector<HTMLElement>('.overlay-player-meta');
     let active = true;
 
     function fitText() {
       if (!active || !copy || !identity || !text) return;
       // Reset first so a shorter name or a taller theme can use its original size.
       text.style.removeProperty('font-size');
-      const metadataHeight = metadata?.getBoundingClientRect().height ?? 0;
-      const gap = metadataHeight > 0 ? Number.parseFloat(getComputedStyle(copy).rowGap) || 0 : 0;
-      const availableHeight = copy.clientHeight - metadataHeight - gap - 1;
+      delete text.dataset.stacked;
+      const availableHeight = copy.clientHeight - 1;
       const availableWidth = identity.clientWidth - 1;
       if (availableHeight <= 0 || availableWidth <= 0) return;
+
+      // Give long identities a smaller sponsor line before reducing the player name.
+      if (sponsor && text.scrollWidth > availableWidth / 0.85) text.dataset.stacked = 'true';
 
       // Measure full font heights, including fallback scripts, within the fixed HUD area.
       for (let pass = 0; pass < 2; pass += 1) {
@@ -56,8 +54,9 @@ export function useScoreboardTextFit({ name, sponsor, details, pronouns, xHandle
       observer.disconnect();
       document.fonts?.removeEventListener('loadingdone', fitText);
       text.style.removeProperty('font-size');
+      delete text.dataset.stacked;
     };
-  }, [name, sponsor, details, pronouns, xHandle, themeId, appearance.textSize, scoreboardFont]);
+  }, [name, sponsor, themeId, appearance.textSize, scoreboardFont]);
 
   return ref;
 }

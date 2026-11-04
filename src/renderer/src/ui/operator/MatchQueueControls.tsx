@@ -1,7 +1,13 @@
 import { currentQueueIndex } from './queuePresentation';
-import { Badge, Button, Group, Menu, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Badge, Button, Group, Menu, SimpleGrid, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import type { MatchQueue } from '@shared/matchQueue';
+import type { MatchQueue, QueueEntry } from '@shared/matchQueue';
+import { displayPhaseName } from '@shared/matchContext';
+import { PanelHeader } from '../PanelHeader';
+import './matchQueueCards.css';
+import { MatchCardSummary } from './MatchCardSummary';
+import { SetSelectorButton } from './SetSelectorButton';
+import './matchQueueControls.css';
 import { HintedButton } from './HintedButton';
 import { localizedNativeError } from '../../i18n/nativeErrors';
 import { useMatchQueue } from './matchQueueContext';
@@ -62,6 +68,7 @@ export function QueueButton({
           title={detail}
           leftSection={<OperatorIcon icon={ListNumbersIcon} />}
           rightSection={statusBadge}
+          aria-keyshortcuts="F6 Control+Shift+Q"
           onClick={queue.open}
         >
           {t('queue.open', { count: queue.state?.entries.length ?? 0 })}
@@ -86,6 +93,7 @@ export function QueueButton({
         leftSection={<OperatorIcon icon={ListNumbersIcon} size={compact ? 14 : 16} />}
         title={detail}
         rightSection={statusBadge}
+        aria-keyshortcuts="F6 Control+Shift+Q"
         onClick={queue.open}
       >
         {t('queue.open', { count: queue.state?.entries.length ?? 0 })}
@@ -144,6 +152,7 @@ export function QueuePlaybackButton() {
       variant="default"
       leftSection={<OperatorIcon icon={state.running ? PauseIcon : PlayIcon} />}
       disabled={queue.busy || (!state.running && !canResume)}
+      aria-keyshortcuts="Control+Shift+Space"
       onClick={() => void queue.act({ action: state.running ? 'pause' : 'resume' })}
     >
       {t(state.running ? 'queue.pause' : 'queue.resume')}
@@ -174,6 +183,7 @@ export function QueueNavigation({ showPlayback = true }: { showPlayback?: boolea
         reason={reason ?? (index === null || index === 0 ? t('ux.noPrevious') : undefined)}
         variant="default"
         disabled={disabled || index === null || index === 0}
+        aria-keyshortcuts="Control+Shift+P"
         onClick={() => void queue.act({ action: 'previous' })}
       >
         {t('queue.previous')}
@@ -187,6 +197,7 @@ export function QueueNavigation({ showPlayback = true }: { showPlayback?: boolea
         }
         variant="default"
         disabled={disabled || !state.entries.length || (index !== null && index >= state.entries.length - 1)}
+        aria-keyshortcuts="Control+Shift+N"
         onClick={() => void queue.act({ action: 'next' })}
       >
         {t('queue.next')}
@@ -203,7 +214,7 @@ export function MatchQueueControls() {
   const queue = useMatchQueue();
   const { t } = useTranslation(['operator', 'common']);
   const status = useQueueStatus(queue?.state);
-  if (!queue || (!queue.state?.entries.length && !queue.error)) return null;
+  if (!queue) return null;
   const state = queue.state;
   const showPlayback = state?.mode !== 'manual' && state?.cursor != null;
   const index = state ? currentQueueIndex(state, queue.liveSetId) : null;
@@ -211,27 +222,50 @@ export function MatchQueueControls() {
   const next = state?.entries[(index ?? -1) + 1];
   return (
     <Stack gap="xs" className="match-queue-inset">
-      <Group justify="space-between">
-        <Text fw={700} size="sm">
-          {t('queue.title')}
-        </Text>
-        <QueueButton />
-      </Group>
+      <PanelHeader title={t('queue.title')} icon={ListNumbersIcon} order={3} className="queue-controls-header">
+        <Group gap="xs">
+          <Badge
+            className="queue-status-pill"
+            data-running={state?.running || undefined}
+            variant="light"
+            color={state?.running ? 'teal' : 'gray'}
+            radius="xl"
+            styles={{ label: { whiteSpace: 'normal' } }}
+          >
+            {status}
+          </Badge>
+          <QueueButton />
+        </Group>
+      </PanelHeader>
       {state && state.entries.length > 0 && (
         <>
-          <Text size="xs" c="dimmed">
-            {state.status === 'waiting-edits' ? (queue.waitReason ?? status) : status}
-          </Text>
-          {current && current.setId !== queue.liveSetId && (
-            <Text size="xs">
-              {t('ux.queuePosition')}: {current.playerOne} {t('common:match.versus')} {current.playerTwo}
+          {state.status === 'waiting-edits' && queue.waitReason && (
+            <Text size="xs" c="dimmed">
+              {queue.waitReason}
             </Text>
           )}
-          {next && (
-            <Text size="xs">
-              {t('queue.upNext')}: {next.playerOne} {t('common:match.versus')} {next.playerTwo}
-            </Text>
-          )}
+          <SimpleGrid type="container" cols={{ base: 1, '34rem': current && next ? 2 : 1 }} spacing="xs">
+            {current && (
+              <QueueMatchCard
+                entry={current}
+                label={t('queue.current')}
+                kind="current"
+                position={index ?? 0}
+                onStream={current.setId === queue.liveSetId}
+                onOpen={queue.open}
+              />
+            )}
+            {next && (
+              <QueueMatchCard
+                entry={next}
+                label={t('queue.upNext')}
+                kind="next"
+                position={(index ?? -1) + 1}
+                onStream={false}
+                onOpen={queue.open}
+              />
+            )}
+          </SimpleGrid>
           <QueueNavigation showPlayback={false} />
           <SimpleGrid type="container" cols={{ base: 1, '28rem': showPlayback ? 2 : 1 }} spacing="xs">
             <QueueStartButton />
@@ -239,11 +273,68 @@ export function MatchQueueControls() {
           </SimpleGrid>
         </>
       )}
+      {state && !state.entries.length && !queue.error && !state.error && (
+        <Stack gap="xs" className="queue-match-empty operator-inset">
+          <Text size="sm" c="dimmed">
+            {t('queue.emptyHelp')}
+          </Text>
+          <Group>
+            <SetSelectorButton />
+          </Group>
+        </Stack>
+      )}
       {(queue.error || state?.error) && (
-        <Text size="xs" c="red" role="status">
+        <Text size="xs" c="red" ta="center" role="status">
           {queue.error ?? localizedNativeError(state?.error)}
         </Text>
       )}
     </Stack>
+  );
+}
+
+function QueueMatchCard({
+  entry,
+  label,
+  kind,
+  position,
+  onStream,
+  onOpen
+}: {
+  entry: QueueEntry;
+  label: string;
+  kind: 'current' | 'next';
+  position: number;
+  onStream: boolean;
+  onOpen(): void;
+}) {
+  const { t } = useTranslation('common');
+  return (
+    <UnstyledButton
+      className="queue-match-card match-queue-row operator-inset"
+      data-current={kind === 'current' || undefined}
+      data-up-next={kind === 'next' || undefined}
+      data-on-stream={onStream || undefined}
+      onClick={onOpen}
+      aria-label={`${label}: ${entry.playerOne} ${t('match.versus')} ${entry.playerTwo}`}
+    >
+      <MatchCardSummary
+        context={[displayPhaseName(entry.phase), entry.round].filter(Boolean).join(' · ')}
+        playerOne={entry.playerOne}
+        playerTwo={entry.playerTwo}
+        queuePosition={position}
+        badges={
+          <>
+            <Badge color={kind === 'current' ? 'teal' : 'violet'} variant="light">
+              {label}
+            </Badge>
+            {onStream && (
+              <Badge color="green" variant="light">
+                {t('status.onStream')}
+              </Badge>
+            )}
+          </>
+        }
+      />
+    </UnstyledButton>
   );
 }

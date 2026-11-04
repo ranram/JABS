@@ -85,10 +85,12 @@ it('advances Help guides with a real Next click without touching token fields', 
   const change = vi.fn();
   secret.addEventListener('input', change);
   const navigate = vi.fn();
-  const help = () => h(MantineProvider, { env: 'test' }, h('div', {},
-    h(MatchesMenu, { setSelectorDisabled: true, onOpenSetSelector() {} }),
-    h(HelpMenu, { navigate })
-  ));
+  const help = () =>
+    h(
+      MantineProvider,
+      { env: 'test' },
+      h('div', {}, h(MatchesMenu, { setSelectorDisabled: true, onOpenSetSelector() {} }), h(HelpMenu, { navigate }))
+    );
   const mountHelp = () => mountHook(help, true, (view) => view);
   window.localStorage.removeItem('jabs.quick-start.dismissed');
   let view = await mountHelp();
@@ -101,10 +103,14 @@ it('advances Help guides with a real Next click without touching token fields', 
   expect(isTutorialActive()).toBe(false);
   navigate.mockClear();
   await act(async () => button('Help', view.container).click());
-  const guides = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
-    .map((item) => item.textContent);
+  const guides = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].map((item) => item.textContent);
   expect(guides.slice(1, 7)).toEqual([
-    'Quick Start', 'Connect a start.gg token', 'Run a tournament', 'Use the Match Queue', 'Run an exhibition', 'Use the Player Library'
+    'Quick Start',
+    'Connect a start.gg token',
+    'Run a tournament',
+    'Use the Match Queue',
+    'Run an exhibition',
+    'Use the Player Library'
   ]);
   await act(async () => {
     [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
@@ -128,12 +134,20 @@ it('advances Help guides with a real Next click without touching token fields', 
   await act(async () => button('Help', view.container).click());
   await act(async () => {
     [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
-      .find((item) => item.textContent === 'Quick Start')!.click();
+      .find((item) => item.textContent === 'Quick Start')!
+      .click();
   });
   const titles = [
-    'Welcome to JABS!', 'When you need a token', 'Organize a tournament stream',
-    'Or run an exhibition', 'Add your media assets', 'Prepare the match and keep score', 'Send results to start.gg',
-    'Connect OBS', 'Reuse player details', 'Ready when you are'
+    'Welcome to JABS!',
+    'When you need a token',
+    'Organize a tournament stream',
+    'Or run an exhibition',
+    'Add your media assets',
+    'Prepare the match and keep score',
+    'Send results to start.gg',
+    'Connect OBS',
+    'Reuse player details',
+    'Ready when you are'
   ];
   for (const [index, title] of titles.entries()) {
     expect(document.querySelector('.jabs-tutorial .driver-popover-title')?.textContent).toBe(title);
@@ -148,7 +162,8 @@ it('advances Help guides with a real Next click without touching token fields', 
   await act(async () => button('Help', view.container).click());
   await act(async () => {
     [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
-      .find((item) => item.textContent === 'Media assets and folders')!.click();
+      .find((item) => item.textContent === 'Media assets and folders')!
+      .click();
   });
   for (let step = 0; step < 5; step++) {
     expect(document.querySelector('.jabs-tutorial')?.textContent).not.toContain(i18n.t('operator:help.missing'));
@@ -230,8 +245,8 @@ it.each(['en', 'es-419'])('walks through the queue in %s without changing matche
       t(`help.steps.${tutorials.matchQueue[index].id}.title`)
     );
     expect(popover.textContent).not.toContain(t('help.missing'));
-      expect(popover.querySelector('.driver-popover-description strong')).not.toBeNull();
-      expect(popover.querySelector('.driver-popover-description')?.textContent).not.toContain('**');
+    expect(popover.querySelector('.driver-popover-description strong')).not.toBeNull();
+    expect(popover.querySelector('.driver-popover-description')?.textContent).not.toContain('**');
     await act(async () => button(t(index === tutorials.matchQueue.length - 1 ? 'help.done' : 'help.next')).click());
   }
   expect(openQueue).toHaveBeenCalledTimes(2);
@@ -244,7 +259,9 @@ it.each(['en', 'es-419'])('walks through the queue in %s without changing matche
 
 it('waits for navigation targets, explains unavailable steps, and cancels pending work when closed', async () => {
   vi.useFakeTimers();
-  const content = fixture('<div class="tournament-lookup-row"></div>');
+  const content = fixture(
+    '<div class="tournament-lookup-row"></div><button data-tutorial="set-selector-open">Select set</button>'
+  );
   let popover: TutorialPopover | undefined;
   const navigate = vi.fn();
   stop = runTutorial({
@@ -317,8 +334,12 @@ it('opens the library without creating players and renders bold while keeping HT
   const originalTitle = t('help.steps.library.title');
   const originalBody = t('help.steps.library.body');
   i18n.addResource('en', 'operator', 'help.steps.library.title', '<img src=x onerror="alert(1)">Library');
-  i18n.addResource('en', 'operator', 'help.steps.library.body',
-    '**Players & profiles** <img src=x onerror="alert(1)"> **<svg onload="alert(1)">** <strong>literal</strong> **unfinished');
+  i18n.addResource(
+    'en',
+    'operator',
+    'help.steps.library.body',
+    '**Players & profiles** <img src=x onerror="alert(1)"> **<svg onload="alert(1)">** <strong>literal</strong> **unfinished'
+  );
   try {
     stop = runTutorial({
       id: 'library',
@@ -333,7 +354,8 @@ it('opens the library without creating players and renders bold while keeping HT
     expect(document.querySelector('.driver-popover-title')?.textContent).toContain('<img');
     const description = document.querySelector('.driver-popover-description')!;
     expect([...description.querySelectorAll('strong')].map((element) => element.textContent)).toEqual([
-      'Players & profiles', '<svg onload="alert(1)">'
+      'Players & profiles',
+      '<svg onload="alert(1)">'
     ]);
     expect(description.querySelector('img, svg, script, a')).toBeNull();
     expect(description.textContent).toBe(

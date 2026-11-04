@@ -37,7 +37,8 @@ describe('overlay presentation routing', () => {
       'stats-player-2': isPlayerStatsOverlayPath,
       'top-eight-matchups': isTopEightMatchupsOverlayPath,
       bracket: isBracketOverlayPath,
-      stingers: (path) => path === '/overlay/stingers'
+      stingers: (path) => path === '/overlay/stingers',
+      'queue-ticker': (path) => path === '/overlay/queue-ticker'
     };
     for (const [kind, resolve] of Object.entries(surfaces)) {
       const url = new URL(localOverlayUrl('http://127.0.0.1:4279', kind as LocalHandoffUrl));

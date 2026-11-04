@@ -54,7 +54,9 @@ function AnnouncementOverlayContent({
     Boolean(savedSettings && winner && (settings.showPlayerPhoto || settings.showSponsorLogo))
   );
   const winnerMedia = winner === selectedSet.playerOne ? playerMedia.playerOne : playerMedia.playerTwo;
-  const stylingProfile = resolveGameProfile(savedSettings?.stylingGameId ?? profile.id);
+  const stylingProfile = resolveGameProfile(
+    savedSettings?.stylingGameId ?? selectedSet.stylingGameId ?? selectedSet.gameId ?? profile.id
+  );
   const characterMedia = useAnnouncementCharacterMedia(
     selectedSet.assetCatalogSlug ?? selectedSet.gameId,
     savedSettings?.showCharacter ? winnerCharacters[0] : undefined,

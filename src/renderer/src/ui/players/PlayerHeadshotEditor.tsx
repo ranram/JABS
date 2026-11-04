@@ -1,5 +1,5 @@
 import { Alert, Button, Group, Paper, SegmentedControl, Stack, Text, Title } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { playerLabel, type LibraryPlayer } from '@shared/playerLibrary';
 import {
@@ -17,6 +17,7 @@ import { api } from '../../api';
 import { useCatalogRevision } from '../../hooks/useCatalogRevision';
 import { loadScoreboardPhoto, type LoadedScoreboardPhoto } from '../scoreboardPhotos/useScoreboardPhotoMedia';
 import './playerHeadshotEditor.css';
+import { PhotoFramingContext } from './PlayerPhotoFraming';
 
 type Props = {
   player: LibraryPlayer;
@@ -27,6 +28,7 @@ type Props = {
 export function PlayerHeadshotEditor({ player, selectedSet, gameKey, onChange }: Props) {
   const { t } = useTranslation('operator');
   const revision = useCatalogRevision();
+  const framing = useContext(PhotoFramingContext);
   const [loaded, setLoaded] = useState<{ key: string; image?: LoadedScoreboardPhoto }>();
   const [errorKey, setErrorKey] = useState<string>();
   const key = JSON.stringify({
@@ -67,19 +69,39 @@ export function PlayerHeadshotEditor({ player, selectedSet, gameKey, onChange }:
       : 'left';
   const [chosenSide, setChosenSide] = useState<'left' | 'right'>();
   const side = chosenSide ?? defaultSide;
+  const [saveScope, setSaveScope] = useState<'side' | 'both'>('side');
   const layout =
     gameKey !== undefined
       ? gameKey
         ? scoreboardPhotoLayout({ gameId: canonicalGameId(gameKey) ?? 'street-fighter-6', assetCatalogSlug: gameKey })
         : undefined
       : selectedSet && scoreboardPhotoLayout(selectedSet);
-  const photo = image ? { ...image, crop, placements: sameImage ? saved?.placements : undefined } : undefined;
-  const placement = photo ? scoreboardPhotoPlacement(photo, layout?.gameId, side) : defaultMediaTransform();
-  function changePlacement(next?: MediaTransform) {
+  const photo = image
+    ? {
+        ...image,
+        crop,
+        placements: sameImage ? saved?.placements : undefined,
+        extendedPlacements: sameImage ? saved?.extendedPlacements : undefined
+      }
+    : undefined;
+  const placement = photo ? scoreboardPhotoPlacement(photo, layout?.gameId, side, framing) : defaultMediaTransform();
+  function changePlacement(next?: MediaTransform, scope = saveScope) {
     if (!photo) return;
-    const placements = { ...photo.placements };
-    if (next && layout?.gameId) placements[layout.gameId] = { ...placements[layout.gameId], [side]: next };
-    onChange({ source: photo.source, assetId: photo.assetId, fingerprint: photo.fingerprint, crop, placements });
+    const field = framing === 'extendAbove' ? 'extendedPlacements' : 'placements';
+    const placements = { ...photo[field] };
+    if (next && layout?.gameId) {
+      placements[layout.gameId] =
+        scope === 'both' ? { left: { ...next }, right: { ...next } } : { ...placements[layout.gameId], [side]: next };
+    }
+    onChange({
+      source: photo.source,
+      assetId: photo.assetId,
+      fingerprint: photo.fingerprint,
+      crop,
+      placements: photo.placements,
+      extendedPlacements: photo.extendedPlacements,
+      [field]: placements
+    });
   }
   return (
     <Paper className="operator-inset" p="md" withBorder>
@@ -124,21 +146,43 @@ export function PlayerHeadshotEditor({ player, selectedSet, gameKey, onChange }:
                     { value: 'right', label: t('editor.playerTwo') }
                   ]}
                 />
+                <Stack gap={4}>
+                  <Text size="xs" fw={650}>
+                    {t('scoreboardPhotos.saveScope')}
+                  </Text>
+                  <SegmentedControl
+                    aria-label={t('scoreboardPhotos.saveScope')}
+                    value={saveScope}
+                    styles={{ label: { whiteSpace: 'normal' } }}
+                    onChange={(value) => {
+                      if (value !== 'side' && value !== 'both') return;
+                      setSaveScope(value);
+                      if (value === 'both') changePlacement(placement, value);
+                    }}
+                    data={[
+                      {
+                        value: 'side',
+                        label: t(side === 'left' ? 'scoreboardPhotos.savePlayerOne' : 'scoreboardPhotos.savePlayerTwo')
+                      },
+                      { value: 'both', label: t('scoreboardPhotos.saveBoth') }
+                    ]}
+                  />
+                  <Text size="xs" c="dimmed">
+                    {t('scoreboardPhotos.saveScopeHelp')}
+                  </Text>
+                </Stack>
                 <PlayerHeadshotPreview
-                  key={`${photo.url}:${layout.gameId}:${side}`}
+                  key={`${photo.url}:${layout.gameId}:${side}:${framing}`}
+                  framing={framing}
                   photo={photo}
                   layout={layout}
                   side={side}
                   placement={placement}
                   stylingGameId={selectedSet?.stylingGameId}
                   onChange={changePlacement}
+                  onReset={() => changePlacement(defaultMediaTransform())}
                 />
                 <MediaControlHint />
-                <Group>
-                  <Button variant="default" size="compact-sm" onClick={() => changePlacement(defaultMediaTransform())}>
-                    {t('scoreboardPhotos.reset')}
-                  </Button>
-                </Group>
               </>
             ) : (
               <Text size="sm" c="dimmed">

@@ -8,24 +8,41 @@ describe('operator draft reconciliation', () => {
     baseline.playerOne.portraitAssetId = 'old-portrait.png';
     const draft = {
       ...baseline,
+      phase: 'Custom phase',
       round: 'Grand Final',
-      playerOne: { ...baseline.playerOne, localPlayerId: '1'.repeat(32), playerId: '366108', playerPhotoAssetId: 'alpha.png', character: 'Jin', portraitAssetId: undefined, xHandle: 'alpha', displayFlag: 'JP' }
+      playerOne: {
+        ...baseline.playerOne,
+        localPlayerId: '1'.repeat(32),
+        playerId: '366108',
+        playerPhotoAssetId: 'alpha.png',
+        character: 'Jin',
+        portraitAssetId: undefined,
+        xHandle: 'alpha',
+        displayFlag: 'JP'
+      }
     };
     const live = {
       ...baseline,
-      gameHistory: [
-        { winnerId: 'alpha' },
-        { winnerId: 'bravo' },
-        { winnerId: 'alpha' }
-      ],
+      gameHistory: [{ winnerId: 'alpha' }, { winnerId: 'bravo' }, { winnerId: 'alpha' }],
       playerOne: { ...baseline.playerOne, score: 2 },
       playerTwo: { ...baseline.playerTwo, score: 1 },
       updatedAt: 'live-score-time'
     };
 
     expect(reconcileDirtyDraft(draft, baseline, live)).toMatchObject({
+      phase: 'Custom phase',
       round: 'Grand Final',
-      playerOne: { entrantId: 'alpha', localPlayerId: '1'.repeat(32), playerId: '366108', playerPhotoAssetId: 'alpha.png', character: 'Jin', portraitAssetId: undefined, xHandle: 'alpha', displayFlag: 'JP', score: 2 },
+      playerOne: {
+        entrantId: 'alpha',
+        localPlayerId: '1'.repeat(32),
+        playerId: '366108',
+        playerPhotoAssetId: 'alpha.png',
+        character: 'Jin',
+        portraitAssetId: undefined,
+        xHandle: 'alpha',
+        displayFlag: 'JP',
+        score: 2
+      },
       playerTwo: { entrantId: 'bravo', score: 1 },
       gameHistory: live.gameHistory,
       updatedAt: 'live-score-time'
@@ -34,8 +51,10 @@ describe('operator draft reconciliation', () => {
       ...draft,
       playerOne: { ...draft.playerOne, localPlayerId: undefined, playerId: undefined }
     };
-    expect(reconcileDirtyDraft(unlinked, draft, { ...live, playerOne: draft.playerOne }).playerOne)
-      .toMatchObject({ localPlayerId: undefined, playerId: undefined });
+    expect(reconcileDirtyDraft(unlinked, draft, { ...live, playerOne: draft.playerOne }).playerOne).toMatchObject({
+      localPlayerId: undefined,
+      playerId: undefined
+    });
   });
 
   it('follows entrant identity across a live player swap without undoing it', () => {

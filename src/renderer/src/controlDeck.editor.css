@@ -67,6 +67,11 @@
   grid-column: 1 / -1;
 }
 
+.bracket-station-row {
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 0.65fr) auto;
+  align-items: end;
+}
+
 .tournament-lookup-row {
   width: 100%;
   min-width: 0;
@@ -110,7 +115,7 @@
 }
 
 .broadcast-editor summary::after {
-  content: "+";
+  content: '+';
   display: grid;
   width: 20px;
   height: 20px;
@@ -124,7 +129,7 @@
 }
 
 .broadcast-editor[open] summary::after {
-  content: "−";
+  content: '−';
 }
 
 .broadcast-editor summary:hover {
@@ -191,11 +196,11 @@
   }
 }
 
-.player-editor:first-child {
+.player-editor[data-player-side='one'] {
   border-top-color: rgba(217, 255, 67, 0.42);
 }
 
-.player-editor:last-child {
+.player-editor[data-player-side='two'] {
   border-top-color: rgba(105, 231, 255, 0.42);
 }
 
@@ -247,7 +252,7 @@
 }
 
 .quick-score::before {
-  content: "";
+  content: '';
   position: absolute;
   right: 12px;
   bottom: 0;
@@ -268,7 +273,7 @@
 
 .quick-score .quick-score-value {
   color: #f8f3e8;
-  font-family: Impact, "Arial Black", sans-serif;
+  font-family: Impact, 'Arial Black', sans-serif;
   font-size: 34px;
   font-style: italic;
 }

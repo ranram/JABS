@@ -309,10 +309,15 @@ fn history_and_settings_writes_preserve_each_other_and_reject_stale_revisions() 
     assert_eq!(restored["statRows"], serde_json::json!(["seed", "age"]));
     assert_eq!(restored["showHeadToHead"], false);
     assert_eq!(restored["mediaMode"], "combined");
+    let mut extra_rows: VersusScreenState = serde_json::from_value(store.current().unwrap()).unwrap();
+    extra_rows.stat_rows = vec!["main".into(), "pronouns".into(), "seed".into(), "age".into()];
+    let with_extra_rows = store.replace(&database, extra_rows).unwrap();
+    assert_eq!(with_extra_rows["statRows"], serde_json::json!(["main", "pronouns", "seed", "age"]));
+    assert_eq!(VersusScreenStore::load(&database).unwrap().current().unwrap()["statRows"], with_extra_rows["statRows"]);
     for rows in [
         vec!["age", "age"],
         vec!["unknown"],
-        vec!["age", "seed", "sponsor", "nickname", "age"],
+        vec!["age", "seed", "sponsor", "nickname", "main"],
     ] {
         let mut invalid: VersusScreenState =
             serde_json::from_value(store.current().unwrap()).unwrap();
@@ -456,7 +461,7 @@ fn player_defaults_apply_to_exhibitions_and_new_sets_without_replacing_saved_set
     select(&store, &new_set, &alternate);
     assert_eq!(
         settings(&store).media_placements[0],
-        PlayerMediaPlacement::default()
+        PlayerMediaPlacement { character: MediaTransform::default(), photo: latest_defaults[0].photo.clone() }
     );
     assert_eq!(settings(&store).media_placements[1], latest_defaults[1]);
     select(&store, &alternate, &new_set);
@@ -466,7 +471,7 @@ fn player_defaults_apply_to_exhibitions_and_new_sets_without_replacing_saved_set
     select(&store, &new_set, &alternate);
     assert_eq!(
         settings(&store).media_placements[0],
-        PlayerMediaPlacement::default()
+        PlayerMediaPlacement { character: latest_defaults[0].character.clone(), photo: MediaTransform::default() }
     );
     select(&store, &alternate, &exhibition);
     assert_eq!(settings(&store).media_placements, latest_defaults);
@@ -515,12 +520,13 @@ fn player_defaults_apply_to_exhibitions_and_new_sets_without_replacing_saved_set
         .lock()
         .unwrap()
         .execute_batch(
-            "CREATE TRIGGER reject_default BEFORE UPDATE ON player_versus_media
+            "CREATE TRIGGER reject_default BEFORE UPDATE ON versus_character_defaults
          BEGIN SELECT RAISE(ABORT, 'test save failure'); END;",
         )
         .unwrap();
     let mut rejected = settings(&store);
     rejected.media_placements[0].character.scale = 2.2;
+    rejected.media_placements[0].photo.x = 0.6;
     assert!(store.replace(&database, rejected).is_err());
     assert_eq!(store.current().unwrap(), before_failure);
     let restarted = VersusScreenStore::load(&database).unwrap();
@@ -543,13 +549,14 @@ fn player_defaults_apply_to_exhibitions_and_new_sets_without_replacing_saved_set
         .unwrap();
     let mut edited = settings(&store);
     edited.media_placements[0].character.x = 0.3;
+    let unlinked_character = edited.media_placements[0].character.clone();
     store.replace(&database, edited).unwrap();
     restarted
         .restore_media_for_match_change(&database, &initial, &exhibition, &directory, &directory)
         .unwrap();
     assert_eq!(
         settings(&restarted).media_placements[0],
-        PlayerMediaPlacement::default()
+        PlayerMediaPlacement { character: unlinked_character, photo: MediaTransform::default() }
     );
     assert_eq!(settings(&restarted).media_placements[1], latest_defaults[1]);
     drop(restarted);

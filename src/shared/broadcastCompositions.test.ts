@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { topEightMatchupsStateSchema } from './topEightMatchups';
-import { setVersusStatRow, versusScreenStateSchema, versusStatTypes } from './versusScreen';
+import { setVersusStatRow, versusScreenStateSchema, versusStatTypes, defaultVersusStatRows } from './versusScreen';
 
 const topEightSettings = {
   stylingGameId: 'street-fighter-6',
@@ -23,15 +23,18 @@ describe('broadcast composition contracts', () => {
       updatedAt: '2026-10-15T00:00:00Z'
     };
     const settings = versusScreenStateSchema.parse(legacy);
-    expect(settings.statRows).toEqual(versusStatTypes);
+    expect(settings.statRows).toEqual(defaultVersusStatRows);
+    expect(
+      versusScreenStateSchema.parse({ ...legacy, statRows: ['main', 'pronouns', 'age', 'sponsor'] }).statRows
+    ).toEqual(['main', 'pronouns', 'age', 'sponsor']);
     expect(settings.showHeadToHead).toBe(true);
     expect(settings.showMatchBackdrop).toBe(true);
     expect(versusScreenStateSchema.parse({ ...legacy, showMatchBackdrop: false }).showMatchBackdrop).toBe(false);
-    for (const statRows of [['age', 'age'], ['unknown'], [...versusStatTypes, 'age']])
+    for (const statRows of [['age', 'age'], ['unknown'], versusStatTypes.slice(0, 5)])
       expect(versusScreenStateSchema.safeParse({ ...legacy, statRows }).success).toBe(false);
     expect(versusScreenStateSchema.parse({ ...legacy, statRows: [], showHeadToHead: false }).statRows).toEqual([]);
-    expect(setVersusStatRow([...versusStatTypes], 0, 'nickname')).toEqual(['nickname', 'sponsor', 'seed', 'age']);
-    expect(setVersusStatRow([...versusStatTypes], 1)).toEqual(['age', 'seed', 'nickname']);
+    expect(setVersusStatRow([...defaultVersusStatRows], 0, 'nickname')).toEqual(['nickname', 'sponsor', 'seed', 'age']);
+    expect(setVersusStatRow([...defaultVersusStatRows], 1)).toEqual(['age', 'seed', 'nickname']);
     expect(setVersusStatRow(['sponsor'], 1, 'age')).toEqual(['sponsor', 'age']);
     expect(setVersusStatRow(['age', 'seed'], 3, 'age')).toEqual(['seed', 'age']);
     const match = {

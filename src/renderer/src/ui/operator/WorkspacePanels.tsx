@@ -1,3 +1,5 @@
+import { QueueTickerStatus } from '../queueTicker/QueueTickerStatus';
+import { QueueTickerControls } from '../queueTicker/QueueTickerControls';
 import { Accordion, Box, Group, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +25,8 @@ import {
   TrophyIcon,
   MicrophoneIcon,
   TreeStructureIcon,
+  RowsIcon,
+  UsersFourIcon,
   MonitorIcon,
   StackIcon,
   type Icon
@@ -33,8 +37,9 @@ const overlayIcons: Record<OtherOverlayType, Icon> = {
   playerStats: UserIcon,
   winner: TrophyIcon,
   commentators: MicrophoneIcon,
-  topEightMatchups: TreeStructureIcon,
-  bracket: TreeStructureIcon
+  topEightMatchups: UsersFourIcon,
+  bracket: TreeStructureIcon,
+  queueTicker: RowsIcon
 };
 
 type OtherOverlaysPanelProps = {
@@ -85,6 +90,7 @@ export function OtherOverlaysPanel({ localBaseUrl, ...controls }: OtherOverlaysP
                   <Text fw={800} flex={1} miw={0}>
                     {t(`workspaces.tools.${overlayType}.title`)}
                   </Text>
+                  {overlayType === 'queueTicker' && <QueueTickerStatus />}
                   {(overlayType === 'versus' || overlayType === 'winner') && (
                     <Box maw="65%" miw={0}>
                       {overlayType === 'versus' ? (
@@ -176,6 +182,8 @@ function OverlayControls({
   switch (overlayType) {
     case 'playerStats':
       return <PlayerStatsControls logos={logos} profiles={profiles} />;
+    case 'queueTicker':
+      return <QueueTickerControls logos={logos} />;
     case 'bracket':
       return <BracketScreenControls eventId={selectedEventId} phases={phases} profiles={profiles} logos={logos} />;
     case 'topEightMatchups':

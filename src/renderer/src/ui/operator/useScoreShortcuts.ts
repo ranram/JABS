@@ -13,7 +13,14 @@ type ScoreShortcutsOptions = {
   onSwapCommentators(): void;
 };
 
-function isTypingTarget(target: EventTarget | null): boolean {
+// Some desktop WebViews and injected keypad events provide key without a physical code.
+export function shortcutCode(event: KeyboardEvent): string {
+  if (event.code && event.code !== 'Unidentified') return event.code;
+  if (/^[a-z]$/i.test(event.key)) return `Key${event.key.toUpperCase()}`;
+  return event.key === ' ' ? 'Space' : event.key;
+}
+
+export function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return (
     target.isContentEditable ||
@@ -23,12 +30,13 @@ function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
-function hasVisiblePopup(): boolean {
+export function hasVisiblePopup(allowedContent?: string): boolean {
   const popups = document.querySelectorAll<HTMLElement>(
     '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]'
   );
   return Array.from(popups).some(
     (popup) =>
+      !(allowedContent && (popup.matches(allowedContent) || popup.querySelector(allowedContent))) &&
       popup.getClientRects().length > 0 &&
       getComputedStyle(popup).visibility === 'visible' &&
       !popup.closest('[hidden], [aria-hidden="true"], [inert]')

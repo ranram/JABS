@@ -28,7 +28,7 @@ export function VersusStatControls({
         {t('workspaces.versusScreen.statsHelp')}
       </Text>
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
-        {Array.from({ length: showSeed ? 4 : 3 }, (_, index) => (
+        {Array.from({ length: 4 }, (_, index) => (
           <Select
             key={index}
             label={t('workspaces.versusScreen.statRow', { number: index + 1 })}
@@ -45,7 +45,8 @@ export function VersusStatControls({
               );
               const seedIndex = settings.statRows.indexOf('seed');
               // Exhibition edits retain the hidden tournament row for the next set.
-              if (!showSeed && seedIndex !== -1) statRows.splice(Math.min(seedIndex, statRows.length), 0, 'seed');
+              if (!showSeed && seedIndex !== -1 && statRows.length < 4)
+                statRows.splice(Math.min(seedIndex, statRows.length), 0, 'seed');
               onChange({ statRows });
             }}
           />

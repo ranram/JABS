@@ -1,8 +1,12 @@
-import { Combobox, TextInput, useCombobox, type TextInputProps } from '@mantine/core';
+import { Combobox, Loader, TextInput, useCombobox, type TextInputProps } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { playerLabel, presentationFields, type LibraryPlayer } from '@shared/playerLibrary';
 import { api } from '../../api';
+
+const SEARCH_DELAY_MS = 250;
+const NAME_COMMIT_DELAY_MS = 1500;
+const MAX_SEARCH_RESULTS = 10;
 
 type Props = Omit<TextInputProps, 'value' | 'onChange'> & {
   value: string;
@@ -17,23 +21,56 @@ export function PlayerNameInput({ value, gameKey, onCommit, onSelectPlayer, ...p
   const [results, setResults] = useState<LibraryPlayer[]>([]);
   const [error, setError] = useState<string>();
   const [focused, setFocused] = useState(false);
-  const picking = useRef(false);
-  const selectionRequest = useRef(0);
-  useEffect(
-    () => () => {
-      selectionRequest.current++;
-    },
-    []
-  );
-  const latest = useRef({ onCommit, onSelectPlayer, text, gameKey });
-  latest.current = { onCommit, onSelectPlayer, text, gameKey };
+  const [resolvingPlayer, setResolvingPlayer] = useState(false);
+  const focusedRef = useRef(false);
+  const commitTimer = useRef<number | undefined>(undefined);
+  const lastCommittedName = useRef(value);
+  // Blur can fire before React renders the loading state, so it also needs an immediate guard.
+  const selectionPending = useRef(false);
+  const selectionVersion = useRef(0);
+  const latest = useRef({ onCommit, onSelectPlayer, text, gameKey, value });
+  latest.current = { onCommit, onSelectPlayer, text, gameKey, value };
+  function clearCommitTimer() {
+    window.clearTimeout(commitTimer.current);
+    commitTimer.current = undefined;
+  }
+  function cancelSelection() {
+    selectionVersion.current++;
+    selectionPending.current = false;
+    clearCommitTimer();
+    setResolvingPlayer(false);
+    setError(undefined);
+  }
+  function updateText(nextText: string) {
+    latest.current.text = nextText;
+    setText(nextText);
+  }
+  function commitName() {
+    clearCommitTimer();
+    const current = latest.current;
+    if (selectionPending.current || current.text === current.value || current.text === lastCommittedName.current)
+      return;
+    lastCommittedName.current = current.text;
+    current.onCommit(current.text);
+  }
+  useEffect(() => {
+    cancelSelection();
+    return () => {
+      selectionVersion.current++;
+      clearCommitTimer();
+    };
+  }, [gameKey]);
   const combobox = useCombobox();
   useEffect(() => {
-    setText(value);
+    // Save responses can arrive after typing or selection has started.
+    if (!focusedRef.current && !selectionPending.current) {
+      lastCommittedName.current = value;
+      updateText(value);
+    }
   }, [value]);
   useEffect(() => {
     let active = true;
-    if (!focused || !text.trim()) {
+    if (!focused || !combobox.dropdownOpened || resolvingPlayer || !text.trim()) {
       setResults([]);
       return;
     }
@@ -41,67 +78,82 @@ export function PlayerNameInput({ value, gameKey, onCommit, onSelectPlayer, ...p
       void api
         .searchPlayers(text)
         .then(({ players }) => {
-          if (active) setResults(players.slice(0, 10));
+          if (active) setResults(players.slice(0, MAX_SEARCH_RESULTS));
         })
         .catch(() => {
           if (active) setResults([]);
         });
-    }, 250);
+    }, SEARCH_DELAY_MS);
     return () => {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [text, focused]);
+  }, [text, focused, resolvingPlayer, combobox.dropdownOpened]);
   useEffect(() => {
-    if (text === value) return;
-    const timer = window.setTimeout(() => {
-      if (!picking.current) latest.current.onCommit(text);
-    }, 1500);
-    return () => window.clearTimeout(timer);
-  }, [text, value]);
-  async function select(id: string) {
-    const request = ++selectionRequest.current;
-    picking.current = true;
-    const requestText = latest.current.text;
+    clearCommitTimer();
+    if (text === value || text === lastCommittedName.current || resolvingPlayer || props.disabled || props.readOnly)
+      return;
+    commitTimer.current = window.setTimeout(() => {
+      if (latest.current.text === text) commitName();
+    }, NAME_COMMIT_DELAY_MS);
+    return clearCommitTimer;
+  }, [text, value, resolvingPlayer, gameKey, props.disabled, props.readOnly]);
+  async function selectPlayer(localPlayerId: string) {
+    if (props.disabled || props.readOnly) return;
+    const requestVersion = ++selectionVersion.current;
+    selectionPending.current = true;
+    clearCommitTimer();
+    setResolvingPlayer(true);
+    setError(undefined);
     const requestGame = gameKey;
+    const isCurrentSelection = () =>
+      requestVersion === selectionVersion.current && latest.current.gameKey === requestGame;
     combobox.closeDropdown();
     try {
-      const [player] = await api.resolvePlayers([{ localPlayerId: id }], gameKey);
-      if (
-        request === selectionRequest.current &&
-        player &&
-        latest.current.text === requestText &&
-        latest.current.gameKey === requestGame
-      ) {
-        setText(player.name);
-        latest.current.onSelectPlayer(presentationFields(player));
-        setError(undefined);
+      const [player] = await api.resolvePlayers([{ localPlayerId }], requestGame);
+      if (!isCurrentSelection()) return;
+      if (!player) {
+        setError(t('players.loadFailed'));
+        return;
       }
+      // Blur and idle saves must not turn this selected profile back into a typed name.
+      lastCommittedName.current = player.name;
+      updateText(player.name);
+      latest.current.onSelectPlayer(presentationFields(player));
     } catch {
-      if (request === selectionRequest.current) setError(t('players.loadFailed'));
+      if (isCurrentSelection()) setError(t('players.loadFailed'));
     } finally {
-      if (request === selectionRequest.current) picking.current = false;
+      if (isCurrentSelection()) {
+        selectionPending.current = false;
+        setResolvingPlayer(false);
+      }
     }
   }
   return (
-    <Combobox store={combobox} onOptionSubmit={(id) => void select(id)}>
+    <Combobox store={combobox} onOptionSubmit={(id) => void selectPlayer(id)}>
       <Combobox.Target>
         <TextInput
           {...props}
           error={error}
+          aria-busy={resolvingPlayer || undefined}
+          rightSection={resolvingPlayer ? <Loader size="xs" /> : props.rightSection}
           value={text}
           onChange={(event) => {
-            setText(event.currentTarget.value);
+            cancelSelection();
+            updateText(event.currentTarget.value);
             combobox.openDropdown();
           }}
+          onClick={() => combobox.openDropdown()}
           onFocus={() => {
+            focusedRef.current = true;
             setFocused(true);
             combobox.openDropdown();
           }}
           onBlur={() => {
+            focusedRef.current = false;
             setFocused(false);
             combobox.closeDropdown();
-            if (!picking.current && text !== value) onCommit(text);
+            commitName();
           }}
         />
       </Combobox.Target>

@@ -1,9 +1,10 @@
 import { Button, Menu } from '@mantine/core';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SelectedSetState } from '@shared/models';
 import { OperatorIcon, ListChecksIcon, UsersIcon } from '../icons';
 import { useTutorialActive } from '../tutorials/tutorialActivity';
+import { PlayerLibraryLauncherContext } from '../players/PlayerLibraryLauncherContext';
 import { PlayerLibraryDialog } from '../players/PlayerLibraryModal';
 import { QueueButton } from './MatchQueueControls';
 
@@ -18,6 +19,7 @@ export function MatchesMenu({
 }) {
   const { t } = useTranslation('operator');
   const [libraryOpened, setLibraryOpened] = useState(false);
+  const openPlayers = useContext(PlayerLibraryLauncherContext);
   const tutorialActive = useTutorialActive();
   return (
     <div className="workspace-maintenance-group workspace-maintenance-matches">
@@ -42,12 +44,15 @@ export function MatchesMenu({
         <Menu.Dropdown>
           <Menu.Item
             data-tutorial="players"
-            onClick={() => setLibraryOpened(true)}
+            aria-keyshortcuts="F5"
+            onClick={() => (openPlayers ? openPlayers() : setLibraryOpened(true))}
             leftSection={<OperatorIcon icon={UsersIcon} />}
           >
             {t('players.title')}
           </Menu.Item>
           <Menu.Item
+            data-tutorial="set-selector-open"
+            aria-keyshortcuts="F7 Control+Shift+E"
             disabled={setSelectorDisabled}
             onClick={onOpenSetSelector}
             leftSection={<OperatorIcon icon={ListChecksIcon} />}

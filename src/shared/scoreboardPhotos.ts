@@ -18,6 +18,9 @@ export const headshotCropSchema = z
     zoom: z.number().finite().min(1).max(5)
   })
   .strict();
+export const photoFramingSchema = z.enum(['contained', 'extendAbove']);
+export type PhotoFraming = z.infer<typeof photoFramingSchema>;
+
 export const scoreboardPhotoSchema = z
   .object({
     source: z.enum(['headshot', 'photo']),
@@ -28,7 +31,8 @@ export const scoreboardPhotoSchema = z
       .refine((s) => !s.includes('/') && !s.includes('\\') && !s.includes('\0') && s !== '..'),
     fingerprint: z.string().regex(/^[a-f0-9]{16}$/),
     crop: headshotCropSchema,
-    placements: gamePlacementsSchema.optional()
+    placements: gamePlacementsSchema.optional(),
+    extendedPlacements: gamePlacementsSchema.optional()
   })
   .strict();
 export type ScoreboardPhoto = z.infer<typeof scoreboardPhotoSchema>;
@@ -37,6 +41,7 @@ export const defaultHeadshotCrop = (): HeadshotCrop => ({ x: 0.5, y: 0.35, zoom:
 export const scoreboardPhotoSettingsSchema = z
   .object({
     enabled: z.boolean(),
+    framing: photoFramingSchema.default('contained'),
     logoBackdrop: z.boolean().default(false),
     sponsorBackdrop: z.boolean().default(false),
     updatedAt: z.string()
@@ -81,9 +86,11 @@ export function scoreboardPhotoLayout(
 export function scoreboardPhotoPlacement(
   photo: ScoreboardPhoto,
   gameId: string | undefined,
-  side: 'left' | 'right'
+  side: 'left' | 'right',
+  framing: PhotoFraming = 'contained'
 ): MediaTransform {
-  return (gameId && photo.placements?.[gameId]?.[side]) || defaultMediaTransform();
+  const placements = framing === 'extendAbove' ? photo.extendedPlacements : photo.placements;
+  return (gameId && placements?.[gameId]?.[side]) || defaultMediaTransform();
 }
 
 export function photoPlacementTransform(box: ReturnType<typeof photoCropViewBox>, placement: MediaTransform) {
@@ -101,4 +108,21 @@ export function photoCropViewBox(width: number, height: number, aspect: number, 
     width: w,
     height: h
   };
+}
+
+/** Top of the visible cutout in scoreboard coordinates, before reserving headroom. */
+export function scoreboardPhotoTop(
+  photo: ScoreboardPhoto & { width: number; height: number; contentBounds?: { y: number } },
+  layout: ScoreboardPhotoLayout,
+  side: 'left' | 'right',
+  framing: PhotoFraming = 'extendAbove',
+  placement = scoreboardPhotoPlacement(photo, layout.gameId, side, framing)
+) {
+  const [, y, width, height] = layout.sides[side].bounds;
+  if (framing === 'contained') return y;
+  const crop = photoCropViewBox(photo.width, photo.height, width / height, photo.crop);
+  const center = crop.y + crop.height / 2;
+  const imageTop = (photo.contentBounds?.y ?? 0) * photo.height;
+  const transformedTop = center + placement.y * crop.height + placement.scale * (imageTop - center);
+  return Math.min(y, y + ((transformedTop - crop.y) * height) / crop.height);
 }

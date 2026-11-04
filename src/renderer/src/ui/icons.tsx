@@ -42,6 +42,8 @@ export { SignOutIcon } from '@phosphor-icons/react/dist/csr/SignOut';
 export { StopIcon } from '@phosphor-icons/react/dist/csr/Stop';
 export { SquaresFourIcon } from '@phosphor-icons/react/dist/csr/SquaresFour';
 export { StackIcon } from '@phosphor-icons/react/dist/csr/Stack';
+export { RowsIcon } from '@phosphor-icons/react/dist/csr/Rows';
+export { UsersFourIcon } from '@phosphor-icons/react/dist/csr/UsersFour';
 export { TreeStructureIcon } from '@phosphor-icons/react/dist/csr/TreeStructure';
 export { TrophyIcon } from '@phosphor-icons/react/dist/csr/Trophy';
 export { TrashSimpleIcon } from '@phosphor-icons/react/dist/csr/TrashSimple';

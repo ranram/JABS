@@ -453,6 +453,7 @@ it('keeps standalone games independent, follows loaded events in both generators
         tokenStorageAvailable: false,
         tokenInputReady: false,
         bracket: browser,
+        setSelector: h('div', { className: 'set-list' }),
         profiles,
         logos: [],
         countries: [],
@@ -581,12 +582,15 @@ it('keeps standalone games independent, follows loaded events in both generators
   });
   await act(async () => browser.actions.loadEvents('evo-2026'));
   await tab('bracket');
-  const profileInput = () => view.container.querySelector<HTMLInputElement>('[data-testid="selection-game-profile"]')!;
+  await act(async () => view.container.querySelector<HTMLButtonElement>('[data-tutorial="matches-menu"]')!.click());
+  await act(async () => document.querySelector<HTMLButtonElement>('[data-tutorial="set-selector-open"]')!.click());
+  const profileInput = () => document.querySelector<HTMLInputElement>('[data-testid="selection-game-profile"]')!;
   expect(profileInput().value).toBe('Street Fighter 6');
   expect(profileInput().disabled).toBe(false);
   expect(transport.characters).toHaveBeenCalledWith('vampire-savior-the-lord-of-vampire');
   await act(async () => browser.actions.setSelectionGameId('tekken-8'));
   expect(profileInput().value).toBe('Tekken 8');
+  await act(async () => document.querySelector<HTMLButtonElement>('[role=dialog] .mantine-Modal-close')!.click());
   await tab('topEight');
   expect(gameInput().value).toBe('Vampire Savior: The Lord of Vampire');
   expect(transport.characters).toHaveBeenLastCalledWith('vampire-savior-the-lord-of-vampire');

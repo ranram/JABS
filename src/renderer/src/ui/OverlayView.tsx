@@ -4,14 +4,13 @@ import { DisplayText } from './DisplayText';
 import { BracketScreen } from './BracketScreen';
 import { isBracketOverlayPath } from './overlayPresentation';
 import { useScoreboardTextFit } from './useScoreboardTextFit';
-import type { ComponentType, CSSProperties } from 'react';
+import { useState, type ComponentType, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { resolveGameProfile, type GameProfile, type OverlayTemplateId } from '@shared/gameProfiles';
 import type { PlayerState, SelectedSetState } from '@shared/models';
 import { matchPlayerName } from '@shared/matchContext';
 import { useOverlayState } from '../hooks/useOverlayState';
 import { useCommentatorState } from '../hooks/useCommentatorState';
-import { useBroadcastLogo } from '../hooks/useBroadcastLogo';
 import {
   announcementSurfaceFromOverlayPath,
   isCommentatorOverlayPath,
@@ -24,6 +23,7 @@ import { PlayerStatsOverlay } from './playerStats/PlayerStatsOverlay';
 import { isPlayerStatsOverlayPath } from './overlayPresentation';
 import { TopEightMatchupsOverlay } from './TopEightMatchupsOverlay';
 import { displayFlagLabel, displayFlagUrl, sponsorLine } from './overlayPlayerPresentation';
+import { ScoreboardDetails } from './scoreboardDetails/ScoreboardDetails';
 import { ScoreboardPlayerName } from './ScoreboardPlayerName';
 import { useLogoAssetUrl } from '../hooks/useLogoAssetUrl';
 import { BroadcastLayer, MatchChip } from './ScoreOverlayContext';
@@ -35,7 +35,10 @@ import { useOverlayEntrance } from './useOverlayEntrance';
 import { scoreboardEntrance } from './scoreboardEntrance';
 import { AnnouncementOverlay } from './AnnouncementOverlay';
 import { CatalogImage } from './CatalogImage';
+import { QueueTickerOverlay } from './queueTicker/QueueTicker';
 import { StingersOverlay } from './stingers/StingersOverlay';
+import { ScoreboardSponsors } from './scoreboardSponsors/ScoreboardSponsors';
+import { ScoreboardSponsorLogo } from './scoreboardSponsors/ScoreboardSponsorLogo';
 import { ScoreboardPlayerPhotos } from './scoreboardPhotos/ScoreboardPlayerPhotos';
 import { bundledFonts } from './fonts/bundledFonts';
 import './fonts/scoreboardFontOverride.css';
@@ -64,6 +67,7 @@ const overlayTemplates: Record<OverlayTemplateId, ComponentType<OverlayTemplateP
 };
 
 export function OverlayView() {
+  if (window.location.pathname === '/overlay/queue-ticker') return <QueueTickerOverlay />;
   if (window.location.pathname === '/overlay/stingers') return <StingersOverlay />;
   if (isBracketOverlayPath(window.location.pathname)) return <BracketScreen />;
   if (isCommentatorOverlayPath(window.location.pathname)) return <CommentatorOverlay />;
@@ -74,6 +78,7 @@ export function OverlayView() {
 }
 
 function MatchOverlayView() {
+  const [photoTopInset, setPhotoTopInset] = useState(0);
   const appearanceStyle = useAppearanceStyle();
   const {
     state: { scoreboardFont },
@@ -157,6 +162,7 @@ function MatchOverlayView() {
       style={
         {
           ...appearanceStyle,
+          '--scoreboard-photo-top': `${photoTopInset / 10.8}%`,
           ...(scoreboardFont ? { '--scoreboard-font-family': bundledFonts[scoreboardFont].family } : {})
         } as CSSProperties
       }
@@ -164,9 +170,17 @@ function MatchOverlayView() {
       data-game-id={profile.id}
       data-overlay-template={profile.overlay.template}
     >
-      <ScoreboardPlayerPhotos selectedSet={selectedSet} stylingGameId={profile.id} logoUrl={logoUrl} />
-      <Template profile={profile} selectedSet={selectedSet} />
-      <BroadcastLayer profile={profile} selectedSet={selectedSet} logoUrl={logoUrl} />
+      <ScoreboardSponsors selectedSet={selectedSet}>
+        <ScoreboardPlayerPhotos
+          selectedSet={selectedSet}
+          stylingGameId={profile.id}
+          logoUrl={logoUrl}
+          onTopInsetChange={setPhotoTopInset}
+        />
+        <Template profile={profile} selectedSet={selectedSet} />
+        <ScoreboardDetails selectedSet={selectedSet} profile={profile} topInset={photoTopInset} />
+        <BroadcastLayer profile={profile} selectedSet={selectedSet} logoUrl={logoUrl} />
+      </ScoreboardSponsors>
       {error && (
         <div className="overlay-connection-status" role="status">
           {t('common:status.reconnecting')}
@@ -180,10 +194,12 @@ function CommentatorOverlay() {
   const { appearance } = useAppearance();
   const appearanceStyle = useAppearanceStyle();
   const { state, error } = useCommentatorState();
-  const logoAssetId = useBroadcastLogo(state?.logoAssetId);
+  const { state: liveState } = useOverlayState();
+  const liveSet = liveState?.selectedSet;
+  const logoAssetId = state?.logoAssetId ?? liveSet?.broadcast?.logoAssetId;
   const logoUrl = useLogoAssetUrl(logoAssetId);
   if (!state || state.presentation === 'hidden') return <main className="overlay commentator-overlay" />;
-  const stylingProfile = resolveGameProfile(state.stylingGameId);
+  const stylingProfile = resolveGameProfile(state.stylingGameId ?? liveSet?.stylingGameId ?? liveSet?.gameId);
   return (
     <main
       className={`overlay commentator-overlay ${stylingProfile.overlay.themeClass}`}
@@ -277,16 +293,10 @@ function PlayerPlate({ player, selectedSet, side, profile }: PlayerPlateProps) {
   const { t } = useTranslation(['overlay', 'common']);
   const name = matchPlayerName(player, selectedSet);
   const sponsor = sponsorLine(player);
-  const showSeed = Boolean(selectedSet.setId) && selectedSet.broadcast?.seedsEnabled !== false;
-  const details = showSeed && player.seed !== undefined ? t('common:match.seed', { seed: player.seed }) : undefined;
   const flagUrl = displayFlagUrl(player.country, player.displayFlag);
-  const xHandle = player.xHandle ? `@${player.xHandle}` : undefined;
   const copyRef = useScoreboardTextFit({
     name,
     sponsor,
-    details,
-    pronouns: player.pronouns,
-    xHandle,
     themeId: profile.id
   });
 
@@ -305,6 +315,7 @@ function PlayerPlate({ player, selectedSet, side, profile }: PlayerPlateProps) {
         </span>
       )}
       <div className="overlay-player-copy" ref={copyRef}>
+        <ScoreboardSponsorLogo side={side} />
         <span className="overlay-player-identity">
           <strong className="overlay-player-name">
             <ScoreboardPlayerName
@@ -316,25 +327,6 @@ function PlayerPlate({ player, selectedSet, side, profile }: PlayerPlateProps) {
             />
           </strong>
         </span>
-        {(xHandle || player.pronouns || details) && (
-          <span className="overlay-player-meta">
-            {xHandle && (
-              <span className="overlay-player-x-handle">
-                <DisplayText text={xHandle} />
-              </span>
-            )}
-            {player.pronouns && (
-              <span className="overlay-player-pronouns">
-                <DisplayText text={player.pronouns} />
-              </span>
-            )}
-            {details && (
-              <span className="overlay-player-details">
-                <DisplayText text={details} />
-              </span>
-            )}
-          </span>
-        )}
       </div>
       <span
         className="overlay-player-score"

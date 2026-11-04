@@ -27,6 +27,7 @@ import { QueueNavigation, QueueStartButton, QueuePlaybackButton, useQueueStatus 
 import { localizedNativeError } from '../../i18n/nativeErrors';
 import { DestructiveButton } from '../DestructiveButton';
 import './matchQueue.css';
+import './matchQueueCards.css';
 import { QueueTopEightButton } from './QueueTopEightButton';
 
 export function MatchQueueModal() {
@@ -249,7 +250,11 @@ function MatchQueueContents() {
       <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }} data-tutorial="queue-playback">
         {!state?.running && <QueueStartButton />}
         {state?.running && <QueuePlaybackButton />}
-        <DestructiveButton disabled={disabled || !entries.length} onClick={() => void queue.act({ action: 'clear' })}>
+        <DestructiveButton
+          aria-keyshortcuts="Control+Shift+D"
+          disabled={disabled || !entries.length}
+          onClick={() => void queue.act({ action: 'clear' })}
+        >
           {t('operator:queue.clear')}
         </DestructiveButton>
       </SimpleGrid>

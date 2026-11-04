@@ -9,6 +9,7 @@ import { deferred, mountView } from '../renderer/src/hooks/hookTestHarness';
 import { api } from '../renderer/src/api';
 import { initializeI18n, i18n } from '../renderer/src/i18n';
 import { StartggPanel } from '../renderer/src/ui/operator/StartggPanel';
+import { SetSelectorButton } from '../renderer/src/ui/operator/SetSelectorButton';
 import { SetSelectorPanel } from '../renderer/src/ui/operator/SetSelectorPanel';
 import { useBracketBrowser } from '../renderer/src/ui/operator/useBracketBrowser';
 import { beginPendingWrite, usePendingWrites } from '../renderer/src/pendingWrites';
@@ -92,12 +93,14 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
     }, []);
     return h(StartggPanel, {
       bracket: browser,
-      keyboardShortcuts: { enabled: false, setEnabled() {} },
+      keyboardShortcuts: { enabled: true, setEnabled() {} },
       tokenInputRef,
       tokenConfigured: true,
       tokenStorageAvailable: true,
       tokenInputReady: false,
       profiles: Object.values(gameProfiles),
+      detectedGameId: 'street-fighter-6',
+      detectedProfile: gameProfiles['street-fighter-6'],
       activeSet: createTestOverlayState().selectedSet,
       logos: [],
       countries: [],
@@ -116,32 +119,31 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
       onMessage() {},
       onModerationApplied() {},
       onCopy() {},
-      setSelector: ({ inDialog, onClose }) =>
-        h(SetSelectorPanel, {
-          inDialog,
-          sets: browser.state.sets,
-          visibleSets: browser.state.sets,
-          assignments: [],
-          scope: browser.state.setScope,
-          scopeLabel: 'Funda Series',
-          pageInfo: browser.state.setPageInfo,
-          search: '',
-          searchLoading: false,
-          searchCatalogIsCurrent: false,
-          selectedEvent: Boolean(browser.state.selectedEventId),
-          draftDirty: false,
-          modalOpen: false,
-          loading,
-          loadingMore: false,
-          onSearchFocus() {},
-          onSearchChange() {},
-          onCancelSearch() {},
-          onOpenSet(set) {
-            onClose();
-            openSet(set);
-          },
-          onLoadMore() {}
-        })
+      children: h(SetSelectorButton),
+      setSelector: h(SetSelectorPanel, {
+        inDialog: true,
+        sets: browser.state.sets,
+        visibleSets: browser.state.sets,
+        assignments: [],
+        scope: browser.state.setScope,
+        scopeLabel: 'Funda Series',
+        pageInfo: browser.state.setPageInfo,
+        search: '',
+        searchLoading: false,
+        searchCatalogIsCurrent: false,
+        selectedEvent: Boolean(browser.state.selectedEventId),
+        draftDirty: false,
+        modalOpen: false,
+        loading,
+        loadingMore: false,
+        onSearchFocus() {},
+        onSearchChange() {},
+        onCancelSearch() {},
+        onOpenSet(set) {
+          openSet(set);
+        },
+        onLoadMore() {}
+      })
     });
   }
   const view = await mountView(() => h(MantineProvider, { env: 'test' }, h(Workspace)));
@@ -150,19 +152,7 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
     (button) => button.textContent === 'funda-series-27'
   )!;
   await act(async () => recent.click());
-  expect(view.container.querySelector('.bracket-overview-grid')).not.toBeNull();
-  expect(view.container.querySelectorAll('.set-row')).toHaveLength(10);
-  async function choose(label: string, option: string) {
-    const node = [...view.container.querySelectorAll('label')].find((node) => node.textContent === label)!;
-    await act(async () => (document.getElementById(node.htmlFor) as HTMLInputElement).click());
-    const choice = [...document.querySelectorAll('[role=option]')].find((node) => node.textContent === option)!;
-    expect(choice).toBeDefined();
-    await act(async () => (choice as HTMLElement).click());
-  }
-  await choose(i18n.t('operator:browser.phase'), 'Top 8');
-  await choose(i18n.t('operator:browser.pool'), '1');
-  expect(gateway.sets).toHaveBeenLastCalledWith({ type: 'phaseGroup', eventId: '1708357', phaseGroupId: '3453929' }, 1);
-  expect(view.container.querySelectorAll('.set-row')).toHaveLength(10);
+  expect(view.container.querySelector('.bracket-overview-grid')).toBeNull();
   async function openMatches() {
     const trigger = view.container.querySelector<HTMLButtonElement>('[data-tutorial="matches-menu"]')!;
     if (trigger.getAttribute('aria-expanded') !== 'true')
@@ -172,9 +162,37 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
       });
   }
   const selectorButton = () =>
-    [...document.querySelectorAll('button')].find((button) => button.textContent === i18n.t('operator:selector.open'))!;
-  await openMatches();
-  expect(selectorButton().disabled).toBe(true);
+    [...document.querySelectorAll<HTMLButtonElement>('[role=menuitem]')].find(
+      (button) => button.textContent === i18n.t('operator:selector.open')
+    )!;
+  const editorSelector = [...view.container.querySelectorAll('button')].find(
+    (button) => button.textContent === i18n.t('operator:selector.open')
+  )!;
+  expect(editorSelector.disabled).toBe(false);
+  await act(async () => editorSelector.click());
+  expect(document.querySelector('[role=dialog] [data-testid="event-select"]')).not.toBeNull();
+  expect(document.querySelector('[role=dialog] .bracket-workspace')?.textContent).toContain('Detected game profile');
+  expect(document.querySelectorAll('.set-row')).toHaveLength(10);
+  async function choose(label: string, option: string) {
+    const node = [...document.querySelectorAll('label')].find((node) => node.textContent === label)!;
+    await act(async () => (document.getElementById(node.htmlFor) as HTMLInputElement).click());
+    const choice = [...document.querySelectorAll('[role=option]')].find((node) => node.textContent === option)!;
+    expect(choice).toBeDefined();
+    await act(async () => (choice as HTMLElement).click());
+  }
+  await choose(i18n.t('operator:browser.phase'), 'Top 8');
+  await choose(i18n.t('operator:browser.pool'), '1');
+  expect(gateway.sets).toHaveBeenLastCalledWith({ type: 'phaseGroup', eventId: '1708357', phaseGroupId: '3453929' }, 1);
+  expect(document.querySelectorAll('.set-row')).toHaveLength(10);
+  await act(async () => (document.querySelector('[role=dialog] .mantine-Modal-close') as HTMLButtonElement).click());
+  await act(async () => {
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { code: 'KeyE', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true })
+    );
+  });
+  await act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+  expect(document.activeElement).toBe(document.querySelector('[data-testid="set-search"]'));
+  await act(async () => (document.querySelector('[role=dialog] .mantine-Modal-close') as HTMLButtonElement).click());
   const thumbnailTab = [...view.container.querySelectorAll('[role=tab]')].find(
     (node) => node.textContent === 'YouTube Thumbnail Generator'
   )!;
@@ -187,7 +205,7 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
   const dialog = [...document.querySelectorAll('[role=dialog]')].find((node) => node.querySelector('.set-list'))!;
   const title = document.getElementById(dialog.getAttribute('aria-labelledby')!);
   expect(title?.textContent).toBe('Select set');
-  expect(dialog.querySelector('h3')?.textContent).toBe('Top 8');
+  expect(dialog.querySelector('[data-testid=event-select]')).not.toBeNull();
   expect(dialog.querySelectorAll('.set-row')).toHaveLength(10);
   expect(document.querySelectorAll('.set-row')).toHaveLength(10);
   expect(gateway.sets).toHaveBeenCalledTimes(requestsBeforeOpening);
@@ -272,7 +290,8 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
   }
   await act(async () => (dialog.querySelector('.set-row') as HTMLElement).click());
   expect(openSet).toHaveBeenCalledWith(sets[0]);
-  expect(document.querySelector('[role=dialog] .set-list')).toBeNull();
+  expect(document.querySelector('[role=dialog] .set-list')).not.toBeNull();
+  await act(async () => (dialog.querySelector('.mantine-Modal-close') as HTMLButtonElement).click());
   expect(thumbnailTab.getAttribute('aria-selected')).toBe('true');
   for (const language of ['en', 'es-419']) {
     await act(async () => {
@@ -292,13 +311,14 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
   )!;
   await act(async () => (bracketTab as HTMLElement).click());
   await openMatches();
-  expect(selectorButton().disabled).toBe(true);
-  expect(view.container.querySelectorAll('.set-row')).toHaveLength(10);
-  expect(view.container.querySelector('.set-list h2')?.textContent).toBe('Select set');
-  const allEventSets = [...view.container.querySelectorAll('button')].find(
+  expect(selectorButton().disabled).toBe(false);
+  await act(async () => selectorButton().click());
+  expect(document.querySelectorAll('.set-row')).toHaveLength(10);
+  const allEventSets = [...document.querySelectorAll('button')].find(
     (button) => button.textContent === i18n.t('operator:browser.allEventSets')
   )!;
   await act(async () => allEventSets.click());
+  await act(async () => (document.querySelector('[role=dialog] .mantine-Modal-close') as HTMLButtonElement).click());
   await act(async () => (thumbnailTab as HTMLElement).click());
   await openMatches();
   await openMatches();
@@ -306,7 +326,7 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
   const eventDialog = [...document.querySelectorAll('[role=dialog]')].find((node) => node.querySelector('.set-list'))!;
   const eventTitle = document.getElementById(eventDialog.getAttribute('aria-labelledby')!);
   expect(eventTitle?.textContent).toBe('Select set');
-  expect(eventDialog.querySelector('h3')?.textContent).toBe('Funda Series');
+  expect((eventDialog.querySelector('[data-testid=event-select]') as HTMLInputElement).value).toBe('Funda Series');
   expect(gateway.events).toHaveBeenCalledOnce();
   await act(async () => (eventDialog.querySelector('.mantine-Modal-close') as HTMLButtonElement).click());
   await act(async () => (bracketTab as HTMLElement).click());

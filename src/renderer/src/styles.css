@@ -312,6 +312,7 @@ body {
 .overlay-frame {
   position: absolute;
   inset: 0;
+  top: var(--scoreboard-photo-top, 0%);
 }
 
 /* Each side uses its override; an unset override keeps the style's original colors. */
@@ -401,7 +402,6 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
   grid-area: copy;
   min-width: 0;
   height: 100%;
@@ -424,64 +424,6 @@ body {
 
 .overlay-player-right .overlay-player-identity {
   justify-content: flex-end;
-}
-
-.overlay-player-details,
-.overlay-player-pronouns,
-.overlay-player-x-handle,
-.overlay-player-meta {
-  overflow: hidden;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: calc(clamp(9px, calc(var(--hud-plate-height, 56px) * 0.21), 10px) * var(--appearance-text-scale, 1));
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  line-height: normal;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.overlay-player-meta {
-  display: flex;
-  flex-shrink: 0;
-  min-width: 0;
-  justify-content: inherit;
-  gap: 6px;
-}
-
-.overlay-player-left .overlay-player-meta {
-  justify-content: flex-start;
-}
-
-.overlay-player-right .overlay-player-meta {
-  flex-direction: row-reverse;
-  justify-content: flex-start;
-  --player-meta-separator-before: none;
-  --player-meta-separator-after: "·";
-}
-
-.overlay-player-pronouns {
-  color: rgba(255, 255, 255, 0.86);
-  flex: 0 0 auto;
-}
-
-.overlay-player-details {
-  min-width: 0;
-}
-
-.overlay-player-meta > :not(:first-child)::before {
-  content: var(--player-meta-separator-before, "·");
-  margin-right: 6px;
-}
-
-.overlay-player-meta > :not(:first-child)::after {
-  content: var(--player-meta-separator-after, none);
-  margin-left: 6px;
-}
-
-.overlay-player-x-handle {
-  color: rgba(255, 255, 255, 0.86);
-  flex: 0 0 auto;
 }
 
 .overlay-player-name {
@@ -814,7 +756,7 @@ body {
 /* Tekken 8: 4-60 px high, between portraits and the round pips. */
 .tekken-frame .overlay-player {
   border-top: var(--scoreboard-border-width) solid var(--game-accent);
-  border-bottom: var(--scoreboard-border-width) solid rgba(255, 255, 255, 0.32);
+  border-bottom: var(--scoreboard-border-width) solid var(--player-side-accent);
   border-inline: var(--scoreboard-border-width) solid var(--player-side-accent);
   background:
     repeating-linear-gradient(118deg, transparent 0 18px, rgba(255, 255, 255, 0.035) 19px 21px),
@@ -947,11 +889,7 @@ body {
   box-shadow: 0 0 0 1px var(--scoreboard-side-color, rgba(234, 49, 81, 0.72));
 }
 
-.tokon-frame .overlay-player-details,
-.tokon-frame .overlay-player-pronouns,
-.tokon-frame .overlay-player-x-handle,
-.tokon-frame .overlay-player-flag,
-.tokon-frame .overlay-player-meta {
+.tokon-frame .overlay-player-flag {
   color: rgba(21, 16, 20, 0.68);
 }
 
@@ -1082,14 +1020,6 @@ body {
   box-shadow: 0 5px 14px rgba(0, 0, 0, 0.38);
 }
 
-.tournament-ribbon-frame .overlay-player-details {
-  display: none;
-}
-
-.tournament-ribbon-frame .overlay-player-meta:not(:has(.overlay-player-x-handle, .overlay-player-pronouns)) {
-  display: none;
-}
-
 .tournament-ribbon-frame .overlay-player-name {
   flex: 1;
   font-size: calc(clamp(14px, calc(var(--hud-plate-height) * 0.4), 20px) * var(--appearance-text-scale, 1));
@@ -1202,24 +1132,7 @@ body {
 }
 
 :is(.smash-stock-frame, .kof-max-frame, .granblue-skybound-frame, .blazblue-astral-frame) .overlay-player-copy {
-  gap: 3px;
   padding-inline: 10px;
-}
-
-:is(.smash-stock-frame, .kof-max-frame, .granblue-skybound-frame, .blazblue-astral-frame) .overlay-player-meta {
-  gap: 8px;
-}
-
-:is(.smash-stock-frame, .kof-max-frame, .granblue-skybound-frame, .blazblue-astral-frame)
-  .overlay-player-meta
-  > :not(:first-child)::before {
-  margin-right: 8px;
-}
-
-:is(.smash-stock-frame, .kof-max-frame, .granblue-skybound-frame, .blazblue-astral-frame)
-  .overlay-player-meta
-  > :not(:first-child)::after {
-  margin-left: 8px;
 }
 
 .melty-moon-frame .overlay-player {

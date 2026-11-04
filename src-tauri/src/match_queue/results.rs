@@ -85,6 +85,15 @@ impl Entry {
         }
     }
 
+    pub(crate) fn completed_progress(&self, database: &Database, event_id: &str) -> Option<SelectedSet> {
+        let expected = self.result_status.as_ref()?;
+        if self.upstream_reset && *expected == ResultStatus::Reported { return None; }
+        let saved = self.saved_progress(database)?;
+        if saved.event_id.as_deref() != Some(event_id) || saved.upstream_reset == Some(true) ||
+            result_status(&saved).as_ref() != Some(expected) { return None; }
+        Some(saved)
+    }
+
     fn saved_progress(&self, database: &Database) -> Option<SelectedSet> {
         database
             .load_set_override(&self.set_id)

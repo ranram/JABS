@@ -46,10 +46,13 @@ export function CommentatorControls({ editor, logos, profiles, sourceLinks }: Co
         <Select
           label={t('workspaces.styling')}
           searchable
-          value={draft.stylingGameId}
+          clearable
+          clearButtonProps={{ 'aria-label': t('workspaces.liveStyle') }}
+          placeholder={t('workspaces.liveStyle')}
+          value={draft.stylingGameId ?? null}
           disabled={saving}
           data={sortedProfiles.map((profile) => ({ value: profile.id, label: profile.styleName }))}
-          onChange={(value) => value && void updateSettings({ stylingGameId: value as GameId })}
+          onChange={(value) => void updateSettings({ stylingGameId: value ? (value as GameId) : undefined })}
         />
         <OverlayLogoSelect
           logos={logos}

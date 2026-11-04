@@ -38,6 +38,7 @@ export function runTutorial({
   let target: HTMLElement | undefined;
   let revealedMenu: HTMLButtonElement | undefined;
   let openedQueue = false;
+  let openedSelector = false;
   const instance = driver({
     animate: false,
     overlayOpacity: 0,
@@ -89,16 +90,28 @@ export function runTutorial({
   }
   function closeOpenedQueue() {
     if (!openedQueue) return;
-    document.querySelector(queuePanel)
+    document
+      .querySelector(queuePanel)
       ?.closest('[role="dialog"]')
-      ?.querySelector<HTMLButtonElement>('.mantine-Modal-close')?.click();
+      ?.querySelector<HTMLButtonElement>('.mantine-Modal-close')
+      ?.click();
     openedQueue = false;
+  }
+  function closeOpenedSelector() {
+    if (!openedSelector) return;
+    document
+      .querySelector('[data-tutorial="set-selector"]')
+      ?.closest('[role="dialog"]')
+      ?.querySelector<HTMLButtonElement>('.mantine-Modal-close')
+      ?.click();
+    openedSelector = false;
   }
   function finish() {
     if (disposed) return;
     disposed = true;
     pending.abort();
     closeOpenedQueue();
+    closeOpenedSelector();
     closeRevealedMenu();
     document.body.classList.remove('jabs-tutorial-active');
     document.removeEventListener('keydown', keyboard, true);
@@ -133,10 +146,21 @@ export function runTutorial({
     const workspace = step.workspace ?? steps.find((item) => item.workspace)?.workspace;
     if (workspace) navigate(workspace);
     if (!step.openQueue) closeOpenedQueue();
+    if (!step.openSelector) closeOpenedSelector();
     const libraryOpen = Boolean(document.querySelector('.player-library-panel'));
     const queueOpen = Boolean(document.querySelector(queuePanel));
-    const needsMatches = (step.openLibrary && !libraryOpen) || (step.openQueue && !queueOpen);
+    const selectorOpen = Boolean(document.querySelector('[data-tutorial="set-selector"]'));
+    const needsMatches =
+      (step.openLibrary && !libraryOpen) || (step.openQueue && !queueOpen) || (step.openSelector && !selectorOpen);
     revealMenu(step.openMenu ?? (needsMatches ? 'matches' : undefined));
+    if (step.openSelector && !selectorOpen && !document.querySelector(step.target)) {
+      const launcher = await waitForTarget('[data-tutorial="set-selector-open"]', request.signal);
+      if (disposed || request.signal.aborted) return;
+      if (launcher && !(launcher as HTMLButtonElement).disabled) {
+        openedSelector = true;
+        launcher.click();
+      }
+    }
     if (step.openLibrary && !document.querySelector('.player-library-panel')) {
       const launcher = await waitForTarget('[data-tutorial="players"]', request.signal);
       if (disposed || request.signal.aborted) return;

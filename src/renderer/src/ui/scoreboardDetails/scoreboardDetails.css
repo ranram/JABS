@@ -1,0 +1,66 @@
+.scoreboard-details {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.scoreboard-detail-group {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.scoreboard-detail-group[data-player-side='right'] {
+  flex-direction: row-reverse;
+}
+.scoreboard-detail-pill {
+  --detail-unit: 1px;
+  --detail-accent: var(--game-accent, #6366f1);
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: calc(6 * var(--detail-unit));
+  min-width: 0;
+  max-width: 100%;
+  padding: calc(5 * var(--detail-unit)) calc(12 * var(--detail-unit));
+  border: var(--detail-unit) solid color-mix(in srgb, var(--detail-accent) 80%, white);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--detail-accent) 42%, #080b13);
+  color: #fff;
+  box-shadow:
+    inset calc(2 * var(--detail-unit)) calc(2 * var(--detail-unit)) 0
+      color-mix(in srgb, var(--detail-accent) 68%, white),
+    inset calc(-2 * var(--detail-unit)) calc(-2 * var(--detail-unit)) 0
+      color-mix(in srgb, var(--detail-accent) 45%, black),
+    calc(4 * var(--detail-unit)) calc(4 * var(--detail-unit)) 0 #000;
+  font-family: var(--scoreboard-font-family, var(--custom-font-family, 'JABS Barlow Condensed')), sans-serif;
+  font-size: calc(12px * var(--appearance-text-scale, 1));
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: default;
+}
+.scoreboard-detail-pill[data-player-side='right'] {
+  --detail-accent: var(--broadcast-right, var(--game-accent, #6366f1));
+}
+.scoreboard-detail-icon {
+  flex: 0 0 auto;
+  width: 1.15em;
+  height: 1.15em;
+}
+.scoreboard-detail-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.custom-scoreboard-element.is-detail {
+  overflow: visible;
+}
+.custom-scoreboard-element .scoreboard-detail-pill {
+  --detail-unit: 0.052083333cqw;
+  max-height: 100%;
+  font-family: inherit;
+  font-size: inherit;
+}

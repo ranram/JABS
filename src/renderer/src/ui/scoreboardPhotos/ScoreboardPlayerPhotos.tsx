@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode, type SVGProps } from 'react';
+import { useId, useState, useLayoutEffect, useContext, type ReactNode, type SVGProps } from 'react';
 import type { SelectedSetState } from '@shared/models';
 import { resolveGameProfile, type GameId } from '@shared/gameProfiles';
 import {
@@ -7,10 +7,13 @@ import {
   photoPlacementTransform,
   scoreboardPhotoPlacement,
   scoreboardPhotoLayout,
+  scoreboardPhotoTop,
+  type PhotoFraming,
   type PhotoProtectedArea,
   type PhotoShape,
   type ScoreboardPhotoLayout
 } from '@shared/scoreboardPhotos';
+import { ScoreboardSponsorsContext } from '../scoreboardSponsors/ScoreboardSponsors';
 import placeholderUrl from '../../assets/player_placeholder.svg';
 import { useScoreboardPhotos } from '../../hooks/useScoreboardPhotos';
 import {
@@ -28,12 +31,14 @@ export function ScoreboardPlayerPhotos({
   selectedSet,
   stylingGameId,
   logoUrl,
-  animateEntrance = true
+  animateEntrance = true,
+  onTopInsetChange
 }: {
   selectedSet?: SelectedSetState;
   stylingGameId?: GameId;
   logoUrl?: string;
   animateEntrance?: boolean;
+  onTopInsetChange?(inset: number): void;
 }) {
   const { state } = useScoreboardPhotos();
   const preparedGame =
@@ -48,10 +53,12 @@ export function ScoreboardPlayerPhotos({
       }))
     : [];
   const photos = useScoreboardPhotoMedia(players, Boolean(state?.enabled && layout));
-  const sponsorUrls = useScoreboardSponsorLogos(
+  const sharedSponsors = useContext(ScoreboardSponsorsContext);
+  const fallbackSponsorUrls = useScoreboardSponsorLogos(
     selectedSet,
-    Boolean(state?.enabled && state.sponsorBackdrop && layout)
+    Boolean(!sharedSponsors?.available && state?.enabled && state.sponsorBackdrop && layout)
   );
+  const sponsorUrls = sharedSponsors?.available ? sharedSponsors.urls : fallbackSponsorUrls;
   const backdropLogoUrl = state?.enabled && state.logoBackdrop && layout ? logoUrl : undefined;
   const logoUrls = state?.sponsorBackdrop ? sponsorUrls : [backdropLogoUrl, backdropLogoUrl];
   const leftLogoContent = useScoreboardLogoContent(logoUrls[0]);
@@ -63,12 +70,26 @@ export function ScoreboardPlayerPhotos({
     true,
     layout?.gameId
   );
+  const topInset =
+    state?.enabled && state.framing === 'extendAbove' && layout
+      ? Math.ceil(
+          Math.max(
+            0,
+            ...photos.map((photo, i) => (photo ? -scoreboardPhotoTop(photo, layout, i === 0 ? 'left' : 'right') : 0))
+          )
+        )
+      : 0;
+  useLayoutEffect(() => {
+    onTopInsetChange?.(topInset);
+  }, [onTopInsetChange, topInset]);
   if (!state?.enabled || !layout) return null;
   return (
     <svg
       ref={entranceRef}
       className="scoreboard-player-photos"
       viewBox="0 0 1920 1080"
+      style={state.framing === 'extendAbove' ? { top: `${topInset / 10.8}%`, overflow: 'visible' } : undefined}
+      data-photo-top-inset={topInset}
       aria-hidden="true"
       focusable="false"
       data-scoreboard-photo-layout={layout.maskId}
@@ -78,6 +99,7 @@ export function ScoreboardPlayerPhotos({
           <ScoreboardPhotoSide
             side={side}
             photo={photos[i]}
+            framing={state.framing}
             layout={layout}
             stylingGameId={stylingGameId ?? selectedSet?.stylingGameId ?? selectedSet?.gameId}
             logoUrl={logoUrls[i]}
@@ -107,9 +129,11 @@ export function ScoreboardPhotoSide({
   stylingGameId,
   logoUrl,
   logoContent,
-  renderImage
+  renderImage,
+  framing = 'contained'
 }: {
   side: 'left' | 'right';
+  framing?: PhotoFraming;
   photo?: LoadedScoreboardPhoto;
   layout: ScoreboardPhotoLayout;
   stylingGameId?: GameId;
@@ -129,8 +153,14 @@ export function ScoreboardPhotoSide({
     ? { x: 0, y: 0, width: image.width, height: image.height }
     : photoCropViewBox(image.width, image.height, width / height, image.crop);
   const shadowScale = crop.width / width;
+  const extendAbove = framing === 'extendAbove' && !placeholder;
+  const photoTop = extendAbove ? scoreboardPhotoTop(photo!, layout, side, framing) : y;
   return (
-    <g data-scoreboard-photo-side={side} data-placeholder={placeholder || undefined}>
+    <g
+      data-scoreboard-photo-side={side}
+      data-placeholder={placeholder || undefined}
+      data-photo-framing={extendAbove ? 'extendAbove' : 'contained'}
+    >
       <defs>
         <linearGradient
           id={`${id}-background`}
@@ -150,12 +180,15 @@ export function ScoreboardPhotoSide({
           id={`${id}-photo`}
           maskUnits="userSpaceOnUse"
           x="0"
-          y="0"
+          y={Math.min(0, photoTop)}
           width="1920"
-          height="1080"
+          height={1080 - Math.min(0, photoTop)}
           style={{ maskType: 'luminance' }}
         >
           <Shape shape={shape} fill="white" />
+          {extendAbove && (
+            <rect data-photo-extension x={x} y={photoTop} width={width} height={y - photoTop} fill="white" />
+          )}
           {layout.protectedAreas.map((area, i) => (
             <ProtectedArea key={i} area={area} />
           ))}
@@ -172,6 +205,7 @@ export function ScoreboardPhotoSide({
           width={width}
           height={height}
           viewBox={`${crop.x} ${crop.y} ${crop.width} ${crop.height}`}
+          overflow={extendAbove ? 'visible' : 'hidden'}
           preserveAspectRatio={placeholder ? 'xMidYMid meet' : 'xMidYMid slice'}
         >
           <g
@@ -187,7 +221,7 @@ export function ScoreboardPhotoSide({
                 transform={
                   placeholder
                     ? undefined
-                    : photoPlacementTransform(crop, scoreboardPhotoPlacement(photo!, layout.gameId, side))
+                    : photoPlacementTransform(crop, scoreboardPhotoPlacement(photo!, layout.gameId, side, framing))
                 }
               >
                 <image

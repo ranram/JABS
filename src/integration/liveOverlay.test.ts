@@ -38,6 +38,7 @@ vi.mock('../renderer/src/hooks/useCustomScoreboard', () => ({ useCustomScoreboar
 vi.mock('../renderer/src/api', () => ({
   api: {
     playerMedia: transport.playerMedia,
+    identityMedia: async (identities: unknown[]) => ({ matches: identities.map(() => ({})) }),
     gameCharacterAssets: transport.characterAssets,
     gameCharacterPortraitUrl: transport.portraitUrl,
     gameCharacterAssetUrl: async (_slug: string, id: string) => `data:image/png;base64,${id}`,
@@ -98,7 +99,31 @@ it('uses an overlay logo when selected and falls back to the current rails logo'
   }
 });
 
-it('shows tournament seeds only when enabled and hides exhibition seeds without deleting them', async () => {
+it('follows live styling for winner and commentators after clearing their overrides', async () => {
+  const { view, overlay } = await mountLiveOverlay();
+  overlay.selectedSet.playerOne.score = 3;
+  overlay.selectedSet.playerTwo.score = 0;
+  for (const [path, selector, settings] of [
+    ['/overlay/active/winner', '.overlay-announcement', transport.result!],
+    ['/overlay/commentators', '.commentator-overlay', transport.commentators!]
+  ] as const) {
+    window.history.replaceState(null, '', path);
+    settings.stylingGameId = undefined;
+    for (const [style, theme] of [
+      ['tekken-8', 'theme-t8'],
+      ['street-fighter-6', 'theme-sf6']
+    ] as const) {
+      overlay.selectedSet.stylingGameId = style;
+      await view.rerender(() => h(OverlayView));
+      expect(view.container.querySelector(selector)?.classList.contains(theme)).toBe(true);
+    }
+    settings.stylingGameId = 'tekken-8';
+    await view.rerender();
+    expect(view.container.querySelector(selector)?.classList.contains('theme-t8')).toBe(true);
+  }
+});
+
+it('respects tournament seed visibility and temporarily previews exhibition seeds without changing player data', async () => {
   const { view, overlay } = await mountLiveOverlay();
   const set = overlay.selectedSet;
   const scoreboard = createTestCustomScoreboard();
@@ -110,7 +135,8 @@ it('shows tournament seeds only when enabled and hides exhibition seeds without 
       frameUrl: 'frame.png'
     })
   );
-  const seedText = () => view.container.querySelector('.overlay-player-left .overlay-player-details')?.textContent;
+  const seedText = () =>
+    view.container.querySelector('.scoreboard-detail-group[data-player-side=left] [data-detail=seed]')?.textContent;
   const customSeedText = () =>
     custom.container.querySelector('[data-custom-scoreboard-region="playerOneSeed"]')?.textContent;
   expect(seedText()).toBe('Seed 3');
@@ -132,8 +158,8 @@ it('shows tournament seeds only when enabled and hides exhibition seeds without 
   set.setId = undefined;
   await view.rerender();
   await custom.rerender();
-  expect(seedText()).toBeUndefined();
-  expect(customSeedText()).toBeUndefined();
+  expect(seedText()).toBe('Seed 3');
+  expect(customSeedText()).toBe('Seed 3');
   expect(set.playerOne.seed).toBe(3);
 });
 
@@ -367,7 +393,8 @@ it('fits long scoreboard names in compact plates and restores their size when sp
   const copy = view.container.querySelector<HTMLElement>('.overlay-player-left .overlay-player-copy')!;
   const identity = copy.querySelector<HTMLElement>('.overlay-player-identity')!;
   const text = copy.querySelector<HTMLElement>('.overlay-player-name')!;
-  const metadata = copy.querySelector<HTMLElement>('.overlay-player-meta')!;
+  expect(copy.querySelector('.scoreboard-detail-pill')).toBeNull();
+  expect(copy.querySelector('.overlay-player-meta')).toBeNull();
   // This DOM simulator does not resolve nested CSS math. Model the rendered
   // font in pixels alongside the plate measurements below.
   const computedStyle = getComputedStyle;
@@ -390,10 +417,9 @@ it('fits long scoreboard names in compact plates and restores their size when sp
   vi.spyOn(text, 'scrollWidth', 'get').mockImplementation(() => Math.ceil(textWidth * scale()));
   const bounds = identity.getBoundingClientRect();
   vi.spyOn(identity, 'getBoundingClientRect').mockImplementation(() => ({ ...bounds, height: 32 * scale() + 2 }));
-  vi.spyOn(metadata, 'getBoundingClientRect').mockReturnValue({ ...bounds, height: 10 });
   await act(async () => fits.get(copy)!());
   expect(text.scrollWidth).toBeLessThanOrEqual(width);
-  expect(identity.getBoundingClientRect().height + 10 + 2).toBeLessThanOrEqual(height);
+  expect(identity.getBoundingClientRect().height).toBeLessThanOrEqual(height);
   expect(Number.parseFloat(text.style.fontSize)).toBeLessThan(originalSize);
   height = 64;
   width = 640;

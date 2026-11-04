@@ -25,6 +25,7 @@ import {
   validateTopEightDraft
 } from '@shared/topEight';
 import { api } from '../../api';
+import { normalizeXHandle } from '@shared/playerLibrary';
 import { sortByLabel } from './operatorUtils';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
 import { CharacterOutfitSelect } from './CharacterOutfitSelect';
@@ -53,11 +54,6 @@ type TopEightGeneratorProps = {
   assetCatalogRevision: number;
   countries: CountryOption[];
 };
-
-function normalizeTopEightXHandle(value: string): string | undefined {
-  const normalized = value.trim().replace(/^@+/, '').trim();
-  return normalized || undefined;
-}
 
 export function TopEightGenerator({
   controller,
@@ -556,7 +552,7 @@ export function TopEightGenerator({
                     value={entrant.xHandle ?? ''}
                     onCommit={(xHandle) =>
                       controller.setEntrant(index, {
-                        xHandle: normalizeTopEightXHandle(xHandle)
+                        xHandle: normalizeXHandle(xHandle) || undefined
                       })
                     }
                   />

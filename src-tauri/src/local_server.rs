@@ -47,6 +47,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         loop { interval.tick().await; stinger_runtime.stingers.expire(); }
     });
     tokio::spawn(crate::match_queue::engine::run(runtime.clone()));
+    tokio::spawn(crate::queue_ticker::run(runtime.clone()));
     crate::versus_history::watch(runtime.clone());
     tokio::spawn(crate::bracket_screen::run_refresh(runtime.clone()));
     let listener = tokio::net::TcpListener::from_std(listener)?;
@@ -77,6 +78,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .merge(crate::stingers::router())
         .merge(crate::match_queue::router())
         .merge(crate::scoreboard_photos::router())
+        .merge(crate::queue_ticker::router())
         .route("/api/health", get({
             let runtime = runtime.clone();
             move || health(port, runtime)
@@ -143,6 +145,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .route("/api/startgg/select-set", post(select_startgg_set))
         .merge(crate::reporting_routes::router())
         // Realtime updates and application pages
+        .route("/api/integrations/stream-deck", get(crate::stream_deck::upgrade))
         .route("/ws", get(websocket))
         .fallback(web_or_not_found)
         .with_state(runtime)
@@ -503,7 +506,7 @@ async fn identity_media(
     for identity in &body.identities {
         if let Err(error) = crate::moderation::assert_safe(&[
             ("Player name", Some(identity.name.as_str())),
-            ("Player prefix", identity.prefix.as_deref()),
+            ("Player team/sponsor", identity.prefix.as_deref()),
             ("Player sponsor", identity.sponsor.as_deref()),
         ]) {
             return secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({
@@ -1112,11 +1115,11 @@ async fn validate_moderation_text(
         "round" => "Round",
         "station" => "Station",
         "playerOneName" => "Player one name",
-        "playerOnePrefix" => "Player one prefix",
+        "playerOnePrefix" => "Player one team/sponsor",
         "playerOneSponsor" => "Player one sponsor",
         "playerOnePronouns" => "Player one pronouns",
         "playerTwoName" => "Player two name",
-        "playerTwoPrefix" => "Player two prefix",
+        "playerTwoPrefix" => "Player two team/sponsor",
         "playerTwoSponsor" => "Player two sponsor",
         "playerTwoPronouns" => "Player two pronouns",
         "infoLeft" => "Left broadcast text",

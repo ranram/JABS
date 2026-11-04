@@ -1,10 +1,16 @@
 # JABS Technical Manual
 
-Development setup is in the [README](README.md). Broadcast operation and media setup are in the [User Manual](USER_MANUAL.md).
+This manual covers development setup and architecture. Broadcast operation and media setup are in the [User Manual](USER_MANUAL.md).
 
 ## Development tools
 
-CI uses Node.js `24.22.1`, pnpm `11.18.0`, and Rust `1.97.1`. The [README](README.md#develop) lists supported versions and platform dependencies. After switching Node versions, check `node --version` and `pnpm --version` in the terminal you use to build JABS.
+Install these tools before running from source:
+
+- Node.js `24.22.1` to match CI. Later 24.x releases and versions `26.12.1` or newer are supported.
+- pnpm `11.18.0` and Rust `1.97.1` or newer.
+- The [Tauri 2 platform prerequisites](https://v2.tauri.app/start/prerequisites/). Linux also requires WebKitGTK `2.52.3` or newer.
+
+After switching Node versions, check `node --version` and `pnpm --version` in the terminal you use for JABS.
 
 Run `pnpm install --frozen-lockfile` from the repository root. This installs the project's Tauri CLI, Vite, TypeScript, and Vitest versions; global copies are unnecessary.
 
@@ -53,6 +59,7 @@ OBS keeps the JABS service address when loading an overlay in either dev or an i
 | Commentators | `/overlay/commentators` |
 | Bracket | `/overlay/active/bracket` |
 | Stingers | `/overlay/stingers` |
+| Queue ticker | `/overlay/queue-ticker` |
 
 The scoreboard route shows the selected built-in or custom layout. The result route chooses Winner or Champion from the match result; `/overlay/active/champion` remains a supported alias.
 
@@ -105,7 +112,7 @@ The Player Library stores profiles and local overrides in `players`, searchable 
 
 `set_overrides` stores each match's progress as JSON, keyed by its start.gg set ID. Returning to a match restores that progress and applies current Player Library defaults. Tournament seeds are refreshed from the imported entrants. `broadcast.seedsEnabled` controls their scoreboard visibility without deleting seed data. Exhibitions omit seed fields and seed text. Images remain in the media folders. The saved match contains their filenames.
 
-Versus placements are handled in `versus_screen.rs` and `versus_screen/media.rs`. Set adjustments are stored in `set_overrides.versus_media`, with separate layouts for character art, player photos, and their combined composition. Player defaults are stored in `player_versus_media` for each game, artwork, side, and composition. Saved set adjustments take priority over player defaults, followed by automatic positioning. Player defaults survive restarts and are not included in Player Library JSON exports.
+Versus placements are handled in `versus_screen.rs` and `versus_screen/media.rs`. Set adjustments are stored in `set_overrides.versus_media`, with separate layouts for character art, player photos, and their combined composition. `versus_character_defaults` stores character transforms by game catalog, character, resolved artwork, side, and composition, independently of player identity and photos. New photo transforms use player-specific contexts in `player_versus_media`, keyed by catalog, side, composition, and photo asset. Existing combined player records remain readable and keep priority after saved set layouts. Editing an existing personal record updates it without creating personal character overrides for new players. Only actual character edits update shared character defaults. Surface, match, photo, and character writes share one transaction. These defaults survive restarts and are not included in Player Library exports.
 
 ## Match queue
 
@@ -159,6 +166,22 @@ The operator UI sends regular heartbeats with the selected event and whether edi
 
 Saved matches expire seven days after their last edit. JABS removes expired records at startup and when selecting a match, while retaining the match currently on stream. Player profiles and overlay settings do not expire.
 
+## Top 8 qualifier labels
+
+Top 8 qualifier labels use native bracket-structure inference at match load. The cache reuses complete event catalogs, keeps at most four events (4,096 sets each), and expires after five minutes; the next match load refreshes it. Missing structure uses a bounded eight-second read with a one-minute retry backoff. No player/media data is fetched by this analysis. Only a single final phase group with a unique double-elimination path and four winners-side and four losers-side qualifying sets receives inferred labels; manual Phase and Round overrides remain independent. Overlay/ticker reads do not trigger analysis or upstream requests.
+
+## Queue ticker
+
+`queue_ticker.rs` stores ticker settings in `broadcast_surfaces` under `queue-ticker`. The guarded `/api/broadcast/queue-ticker` endpoint reads the snapshot and saves settings. The ticker follows the saved queue position, showing one to three upcoming matches and up to three recent results when enabled. Results come from validated saved progress for the same event and entrants. Swapped sides retain the correct scores; W/L and DQ outcomes use their confirmed labels. Reset or unavailable results are excluded.
+
+All clients share a native projection cache keyed by the settings revision, queue revision, and live match's `updatedAt`. Queue and overlay broadcasts trigger checks; countdown updates with unchanged versions reuse the cache without rereading saved scores. The renderer listens for `queue-ticker` events through `useRealtimeState`. OBS scrolls with CSS transforms. The operator preview renders one static copy, and the optional logo uses the existing image cache outside the moving tracks.
+
+## Stream Deck bridge
+
+The native bridge starts trusted-local admission with the desktop app. The companion Stream Deck plugin connects through the loopback WebSocket without a pairing screen or session key; explicit paired clients remain supported. Any local native process meeting the protocol and header requirements can use the allowlisted commands. Browser Origins remain rejected, and the existing Host, version, command, and confirmation guards still apply. Snapshots include the authoritative active confirmation ID, and dialog closure is broadcast separately from score and queue changes. See the [bridge protocol](docs/integrations/stream-deck.md) for connection rules, message formats, command results, and confirmation handling.
+
+Commands use the operator's existing actions and edit guards. Destructive requests open the clickable Yes/No dialog, while the native bridge shows, restores, and requests focus for the main window. Verify focus behavior and device feedback on each supported desktop platform.
+
 ## Preparing a match manually
 
 `POST /api/state/players/clear` requires the renderer action header and the current `updatedAt`. It rejects stale versions and active reports. The reset replaces both player identities, clears scores and history, and removes the start.gg reporting link while retaining game and broadcast settings. It pauses the queue without removing entries and resets Versus media placements. Persistence updates the stream without writing Player Library records or the previous set's saved progress. `useStreamSetupActions` shares the autosave pause and version-read sequence with exhibition game selection.
@@ -191,11 +214,21 @@ For saved data without `activePresetId`, the native store selects a preset only 
 
 Help tutorials are implemented in `ui/tutorials/`. Starting a guide loads Driver.js; `tutorials.ts` defines the highlighted controls and navigation, and the translation catalogs provide the text. Popovers use JABS styles and Mantine controls. Score shortcuts pause during a tour, and closing it cancels any observers waiting for the next highlighted control.
 
-Tutorial descriptions support `**bold text**`. The renderer escapes HTML before converting those markers to `<strong>`. Titles remain plain text. Links use the step's `link` property. Guides close only the menus and queue dialog they opened, leaving previously open controls in place.
+Tutorial descriptions support `**bold text**`. The renderer escapes HTML before converting those markers to `<strong>`. Titles remain plain text. Links use the step's `link` property. Guides close only the menus, queue dialog, and Set Selector they opened, leaving previously open controls in place.
+
+## Scoreboard detail pills
+
+`ScoreboardDetails` renders X handles, pronouns, and enabled tournament seeds outside built-in nameplates. `scoreboardDetailLayouts` stores mirrored 1920×1080 placements for every supported game, chosen from the game references. Gameplay context determines placement; the scoreboard style and appearance overrides determine colors. Rows start from mirrored HUD landmarks. Bending Arts uses the player-label strip; Assemble! and Double Down start at the life bars. Width limits keep long details out of adjacent meters. Photo headroom uses the actual game’s HUD bounds, with a below-HUD fallback for Strive; changing the style does not change these positions. Custom scoreboards reuse `ScoreboardDetailPill` at their saved field coordinates. Only these three fields use the scoped pill CSS.
 
 ## Scoreboard photos
 
-The `scoreboard-photos` setting enables player photos. Each player's position, scale, and flip settings are saved in `player_scoreboard_photos` for each game and side. JABS looks for a matching headshot in `player_headshots/` first, then a photo in `players/`. Older crop settings still work; replacing an image resets its framing until the user adjusts it.
+`ScoreboardSponsors` resolves both players’ matching logos once per identity/catalog revision and shares the URLs with nameplates and photo backdrops. Score, font, palette, and framing changes do not repeat identity lookups. `ScoreboardSponsorLogo` fits sampled visible artwork without cropping or stretching, beneath the identity text; missing assets leave the nameplate geometry unchanged. Custom layouts store optional `playerElements.*.sponsorLogo` bounds for independent movement, sizing, alignment, and mirroring. Layouts without those bounds derive the original name-relative position.
+
+The `scoreboard-photos` settings enable player photos and persist the global `framing` choice (`contained` by default or `extendAbove`). Each player's position, scale, and flip settings are saved in `player_scoreboard_photos` for each game and side: `placements` holds Contained framing, and `extendedPlacements` holds Extend above framing. Both maps survive player export/import. For Extend above, `scoreboardPhotoTop` calculates the visible cutout’s top from sampled alpha bounds, crop, scale, and position. The larger required inset shifts both photos and the top HUD down within the 1920×1080 source. The mask extends into negative local coordinates above each frame; sides, bottom, and protected HUD areas stay clipped. Custom frame artwork is split at the existing 780px boundary so bottom rails remain anchored. Contained uses zero inset and the original masks. JABS looks for a matching headshot in `player_headshots/` first, then a photo in `players/`. Older crop settings still work; replacing an image resets its framing until the user adjusts it.
+
+`PlayerHeadshotPreview` holds its viewport fixed while the extended photo is selected; only the cutout transform and clipping mask update during adjustment. Fit preview or blur recalculates the viewport. Drag distances use the fixed display scale rather than the changing cutout height.
+
+`PlayerHeadshotEditor` applies edits to the selected side by default. Choosing Both sides copies that side's transform to both positions for the current game and applies subsequent adjustments to both. Choosing an individual side again preserves the opposite side's transform. These edits remain in the Player Library draft until Save player persists them.
 
 Built-in and custom scoreboards use the same photo shapes from `src/shared/scoreboardPhotoLayouts.json`. Changing the scoreboard style does not move the photo panels. Games without a photo layout, including Smash Ultimate, display no photo layer and do not load photo media.
 

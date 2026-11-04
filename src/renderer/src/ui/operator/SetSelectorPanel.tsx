@@ -302,6 +302,7 @@ function SetSelectorPanelComponent({
             <TextInput
               id={searchInputId}
               data-testid="set-search"
+              data-autofocus={inDialog || undefined}
               type="search"
               aria-label={t('operator:selector.search')}
               size="xs"

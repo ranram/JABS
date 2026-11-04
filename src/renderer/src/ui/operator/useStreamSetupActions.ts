@@ -29,7 +29,7 @@ export function useStreamSetupActions({
 }: StreamSetupOptions) {
   const busy = useRef(false);
   async function run(action: (updatedAt: string) => Promise<OverlayState>, failureMessage: string) {
-    if (disabled || busy.current) return;
+    if (disabled || busy.current) return false;
     busy.current = true;
     setLoading(true);
     try {
@@ -39,8 +39,10 @@ export function useStreamSetupActions({
         const current = await api.state();
         onState(await action(current.selectedSet.updatedAt));
       });
+      return true;
     } catch (error) {
       onError(error instanceof Error ? error.message : failureMessage);
+      return false;
     } finally {
       busy.current = false;
       setLoading(false);

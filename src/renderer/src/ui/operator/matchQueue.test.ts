@@ -111,11 +111,7 @@ function Fixture() {
 }
 async function mount(liveSetId?: string, children = h(Fixture)) {
   return mountView(() =>
-    h(
-      MantineProvider,
-      { env: 'test' },
-      h(MatchQueueWorkspace, { context, liveSetId, blocked: false, children })
-    )
+    h(MantineProvider, { env: 'test' }, h(MatchQueueWorkspace, { context, liveSetId, blocked: false, children }))
   );
 }
 function button(label: string) {
@@ -128,12 +124,23 @@ it('allows a TBD set to be added from its actions without sending it to stream',
   const send = vi.fn();
   function PendingSetActions() {
     const quickScore = useQuickScoreActions({
-      startgg: {} as StartggGateway, setLoadGameId: 'street-fighter-6', selectedEventId: '456',
-      tournamentSlug: 'local', setMessage() {}, setTokenVerified() {},
-      refreshAfterReport: async () => true, readinessReason: localizedReadinessReason
+      startgg: {} as StartggGateway,
+      setLoadGameId: 'street-fighter-6',
+      selectedEventId: '456',
+      tournamentSlug: 'local',
+      setMessage() {},
+      setTokenVerified() {},
+      refreshAfterReport: async () => true,
+      readinessReason: localizedReadinessReason
     });
     useEffect(() => quickScore.open({ id: '4', state: '1' }), []);
-    return h(DashboardSetActions, { quickScore, reportingEnabled: true, loading: false, characterOptions: [], onSendToStream: send });
+    return h(DashboardSetActions, {
+      quickScore,
+      reportingEnabled: true,
+      loading: false,
+      characterOptions: [],
+      onSendToStream: send
+    });
   }
   await mount(undefined, h(PendingSetActions));
   const add = button(i18n.t('operator:queue.add'));
@@ -176,6 +183,7 @@ it('keeps existing consumers connected when the workspace module reloads', async
 it('adds without opening the queue or replacing the stream draft and protects focused edits', async () => {
   snapshot = { ...snapshot, context: undefined, entries: [], cursor: null, status: 'empty' };
   const view = await mount();
+  expect(view.container.textContent).toContain(i18n.t('operator:queue.emptyHelp'));
   const input = view.container.querySelector<HTMLInputElement>('input')!;
   const beforeFocus = transport.heartbeat.mock.calls.length;
   await act(async () => input.focus());
@@ -212,7 +220,13 @@ it('starts an unstarted queue from Live Controls and disables Start while runnin
   expect(start.disabled).toBe(false);
   expect(controls.textContent).not.toContain('Resume');
   transport.action.mockImplementationOnce(async () => {
-    snapshot = matchQueueSchema.parse({ ...snapshot, cursor: 0, running: true, status: 'waiting-players', revision: 2 });
+    snapshot = matchQueueSchema.parse({
+      ...snapshot,
+      cursor: 0,
+      running: true,
+      status: 'waiting-players',
+      revision: 2
+    });
     return snapshot;
   });
   await act(async () => start.click());
@@ -225,9 +239,12 @@ it('starts an unstarted queue from Live Controls and disables Start while runnin
   expect(document.querySelector('[role="dialog"]')).toBeNull();
 });
 
-it('opens on request, reorders with buttons, and preserves the order after a rejected move', async () => {
-  await mount();
-  await act(async () => button('Queue (3)').click());
+it('opens from a match card, reorders with buttons, and preserves the order after a rejected move', async () => {
+  const view = await mount('1');
+  expect(
+    [...view.container.querySelectorAll('.queue-match-card .match-card-player-name')].map((name) => name.textContent)
+  ).toEqual(['Player 1A', 'Player 1B', 'Player 2A', 'Player 2B']);
+  await act(async () => view.container.querySelector<HTMLButtonElement>('.queue-match-card')!.click());
   expect(document.querySelector('[role="dialog"]')).not.toBeNull();
   expect(document.querySelector('[role=dialog] [draggable=true]')).toBeNull();
   const second = document.querySelector('[data-testid="queue-entry-2"]')!;
@@ -361,7 +378,9 @@ it('pauses from the main modal row and lets earlier and current matches move wit
   expect([...dialog.querySelectorAll('button')].filter((node) => node.textContent === 'Pause queue')).toHaveLength(1);
   expect([...dialog.querySelectorAll('button')].filter((node) => node.textContent === 'Resume')).toHaveLength(0);
   expect(
-    [...view.container.querySelectorAll('.match-queue-inset button')].filter((node) => node.textContent === 'Pause queue')
+    [...view.container.querySelectorAll('.match-queue-inset button')].filter(
+      (node) => node.textContent === 'Pause queue'
+    )
   ).toHaveLength(1);
 });
 
@@ -414,7 +433,7 @@ it('shows the winner-delay explanation and translates the queue controls into Sp
   expect(document.body.textContent).toContain('Cola de partidas');
   expect(document.body.textContent).toContain('1 partida');
   expect(document.body.textContent).not.toContain('1 partidas');
-  expect(document.querySelector('.match-queue-inset')?.textContent).toContain('Player 1A vs. Player 1B');
+  expect(document.querySelector('.queue-match-card')?.getAttribute('aria-label')).toContain('Player 1A vs. Player 1B');
   expect(document.body.textContent).toContain(
     'La cola espera los minutos elegidos desde que la partida actual tiene un ganador'
   );

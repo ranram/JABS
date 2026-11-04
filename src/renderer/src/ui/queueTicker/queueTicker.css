@@ -1,0 +1,305 @@
+.queue-ticker-stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: transparent;
+  pointer-events: none;
+}
+.queue-ticker-bar {
+  --ticker-primary: var(--appearance-primary, var(--game-accent, #f7b733));
+  --ticker-secondary: var(--appearance-secondary, var(--broadcast-right, #ff554d));
+  --ticker-ink-primary: var(--appearance-on-accent, #12131a);
+  --ticker-ink-secondary: var(--appearance-on-secondary, #12131a);
+  position: absolute;
+  bottom: 20px;
+  left: 36px;
+  right: 36px;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  color: #fff;
+  background: rgba(9, 11, 17, 0.76);
+  border: 0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  font-family: 'JABS Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-size: 22px;
+  line-height: 1.1;
+}
+.queue-ticker-row {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  min-height: 132px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--ticker-primary) 13%, transparent), transparent 64%);
+}
+.queue-ticker-row + .queue-ticker-row {
+  border-top: 1px solid color-mix(in srgb, var(--ticker-secondary) 36%, transparent);
+}
+.queue-ticker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: 164px;
+  position: relative;
+  isolation: isolate;
+  padding: 18px 22px;
+  color: var(--ticker-ink-primary);
+  background: none;
+  font-family: 'JABS Bebas Neue', Impact, sans-serif;
+  font-size: 40px;
+  font-weight: 400;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  text-align: center;
+  z-index: 1;
+}
+.queue-ticker-heading::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--ticker-primary) 92%, transparent);
+  border-radius: 0;
+}
+.queue-ticker-heading > span {
+  display: block;
+  line-height: 0.9;
+  white-space: nowrap;
+}
+.queue-ticker-window {
+  container-type: inline-size;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.queue-ticker-track {
+  display: flex;
+  width: max-content;
+  height: 100%;
+}
+.queue-ticker-track[data-animate] {
+  animation: queue-ticker-travel 36s linear infinite;
+  will-change: transform;
+}
+.queue-ticker-lanes {
+  flex: 1;
+  min-width: 0;
+}
+.queue-ticker-logo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 156px;
+  padding: 14px;
+  background: rgba(9, 11, 17, 0.5);
+  border-inline-start: 1px solid rgba(255, 255, 255, 0.14);
+}
+.queue-ticker-logo img {
+  position: absolute;
+  inset: 14px;
+  display: block;
+  width: calc(100% - 28px);
+  height: calc(100% - 28px);
+  object-fit: contain;
+}
+.queue-ticker-matches {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 100cqw;
+  align-items: center;
+  justify-content: space-around;
+  gap: 16px;
+  padding: 10px 18px;
+}
+.queue-ticker-match {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) 86px minmax(max-content, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  min-width: 560px;
+  max-width: none;
+  min-height: 112px;
+  flex: 0 0 auto;
+  width: max-content;
+  padding: 14px 20px 24px;
+  border: 0;
+  background: none;
+}
+.queue-ticker-divider {
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  right: -10px;
+  z-index: 2;
+  width: 5px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 2px 0 0 rgba(0, 0, 0, 0.85);
+}
+.queue-ticker-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.queue-ticker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'JABS Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1.12;
+  padding-block: 3px;
+  transform-origin: center;
+  transform: none;
+  text-shadow: 0 2px 4px #000;
+}
+.queue-ticker-name[data-player-side='two'] {
+  padding: 5px 10px;
+  border-radius: 4px;
+  text-align: right;
+  transform-origin: center;
+  transform: none;
+  background: linear-gradient(280deg, color-mix(in srgb, var(--ticker-secondary) 36%, transparent), transparent);
+}
+.queue-ticker-duel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+.queue-ticker-separator {
+  position: relative;
+  z-index: 1;
+  justify-self: center;
+  color: var(--ticker-primary);
+  background: none;
+  font-family: 'JABS Bebas Neue', Impact, sans-serif;
+  font-size: 90px;
+  font-style: italic;
+  line-height: 0.85;
+  letter-spacing: -0.075em;
+  transform: rotate(-12deg) skewX(-6deg);
+  text-shadow:
+    4px 4px 0 color-mix(in srgb, var(--ticker-secondary) 85%, #07090f),
+    7px 8px 0 #07090f;
+  text-transform: uppercase;
+}
+.queue-ticker-score {
+  justify-self: center;
+  padding: 6px 10px;
+  color: var(--ticker-ink-secondary);
+  background: color-mix(in srgb, var(--ticker-secondary) 94%, transparent);
+  border-radius: 4px;
+  font-family: 'JABS Bebas Neue', Impact, sans-serif;
+  font-size: 36px;
+  line-height: 1;
+  transform: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.queue-ticker-round {
+  position: absolute;
+  left: 50%;
+  bottom: -22px;
+  width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  color: #e5e7eb;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.035em;
+  transform: translateX(-50%);
+}
+.queue-ticker-results {
+  --result-marker-size: 28px;
+  --result-marker-font-size: 16px;
+  min-height: 104px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--ticker-secondary) 13%, transparent), transparent 64%);
+}
+.queue-ticker-results .queue-ticker-heading {
+  color: var(--ticker-ink-secondary);
+}
+.queue-ticker-results .queue-ticker-heading::before {
+  background: color-mix(in srgb, var(--ticker-secondary) 92%, transparent);
+}
+.queue-ticker-results .queue-ticker-match {
+  min-height: 84px;
+  padding-block: 12px;
+}
+.queue-ticker-results .queue-ticker-name {
+  font-size: 32px;
+}
+.queue-ticker-name[data-winner] {
+  text-decoration: underline;
+  text-decoration-color: var(--ticker-secondary);
+  text-underline-offset: 5px;
+}
+@keyframes queue-ticker-travel {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .queue-ticker-track[data-animate] {
+    animation: none;
+    transform: none;
+    will-change: auto;
+    width: 100%;
+  }
+  .queue-ticker-matches {
+    min-width: 0;
+    flex: 1;
+  }
+  .queue-ticker-match {
+    min-width: 0;
+  }
+  .queue-ticker-matches[aria-hidden='true'] {
+    display: none;
+  }
+}
+
+.queue-ticker-bar[data-style='standard'] .queue-ticker-results .queue-ticker-player .result-marker {
+  font-family: Arial, sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0;
+  transform: none;
+}
+
+.queue-ticker-bar[data-style='standard'] .queue-ticker-player {
+  width: max-content;
+  transform: translateY(-8px) rotate(-7deg) skewX(-5deg);
+  transform-origin: center;
+}
+.queue-ticker-bar[data-style='standard'] .queue-ticker-player[data-player-side='one'] {
+  justify-self: end;
+}
+.queue-ticker-bar[data-style='standard'] .queue-ticker-player[data-player-side='two'] {
+  justify-self: start;
+}
+.queue-ticker-bar[data-style='standard'] .queue-ticker-name {
+  flex: 0 0 auto;
+}
+
+.queue-ticker-bar[data-style='standard'] .queue-ticker-name[data-player-side='one'] {
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--ticker-primary) 36%, transparent), transparent);
+}

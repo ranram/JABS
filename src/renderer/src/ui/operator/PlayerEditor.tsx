@@ -1,4 +1,5 @@
 import { CharacterSelect } from './CharacterSelect';
+import { normalizeXHandle } from '@shared/playerLibrary';
 import { PlayerNameInput } from '../players/PlayerNameInput';
 import { TextInput } from '@mantine/core';
 import type { GameProfile } from '@shared/gameProfiles';
@@ -10,11 +11,7 @@ import { BufferedTextInput } from './BufferedTextInput';
 import { characterTeamSelection } from '@shared/characterTeams';
 import { DisplayFlagSelect } from './DisplayFlagSelect';
 import { CharacterOutfitSelect } from './CharacterOutfitSelect';
-import { IconLabel, UserIcon, IdentificationCardIcon } from '../icons';
-
-function normalizeXHandle(value: string): string {
-  return value.trim().replace(/^@+/, '').trim();
-}
+import { IconLabel, UserIcon } from '../icons';
 
 type PlayerEditorProps = {
   side: 'one' | 'two';
@@ -26,8 +23,6 @@ type PlayerEditorProps = {
   characterAssets: readonly GameCharacterAsset[];
   maxCharacters: number;
   showSeed: boolean;
-  detailsOpened: boolean;
-  onDetailsChange(opened: boolean): void;
   editableFields: GameProfile['editableFields'];
   onChange(player: SelectedSetState['playerOne']): void;
 };
@@ -44,8 +39,6 @@ export const PlayerEditor = memo(
       maxCharacters,
       editableFields,
       showSeed,
-      detailsOpened,
-      onDetailsChange,
       onChange
     } = props;
     const { t, i18n } = useTranslation('operator');
@@ -72,7 +65,7 @@ export const PlayerEditor = memo(
     ];
 
     return (
-      <fieldset className="player-editor operator-inset">
+      <fieldset className="player-editor operator-inset" data-player-side={side}>
         <legend>
           <IconLabel icon={UserIcon} size={14}>
             {title}
@@ -133,74 +126,56 @@ export const PlayerEditor = memo(
           )}
         </div>
         {(hasField('country', 'xHandle', 'pronouns') || (showSeed && hasField('seed'))) && (
-          <details
-            className="operator-disclosure"
-            data-testid={`editor-${side}-details`}
-            open={detailsOpened}
-            onToggle={(event) => {
-              // Tutorials can open a section directly; keep its partner in sync.
-              if (event.currentTarget.open !== detailsOpened) onDetailsChange(event.currentTarget.open);
-            }}
-          >
-            <summary
-              onClick={(event) => {
-                event.preventDefault();
-                onDetailsChange(!detailsOpened);
-              }}
-            >
-              <IconLabel icon={IdentificationCardIcon}>{t('ux.playerDetails')}</IconLabel>
-            </summary>
-            <div className="operator-disclosure-content player-extra-fields">
-              <div className="player-field-row">
-                {hasField('country') && (
-                  <DisplayFlagSelect
-                    testId={`editor-${side}-country`}
-                    label={t('editor.displayFlag')}
-                    placeholder={t('editor.countrySearch')}
-                    countries={countries}
-                    country={player.country}
-                    displayFlag={player.displayFlag}
-                    onChange={({ country, displayFlag }) =>
-                      onChange({
-                        ...player,
-                        country,
-                        displayFlag,
-                        state: country === player.country ? player.state : undefined
-                      })
-                    }
-                  />
-                )}
-                {hasField('xHandle') && (
-                  <BufferedTextInput
-                    data-stream-free-text={side === 'one' ? 'playerOneXHandle' : 'playerTwoXHandle'}
-                    data-testid={`editor-${side}-x-handle`}
-                    label={t('editor.xHandle')}
-                    value={player.xHandle ?? ''}
-                    onCommit={(value) => onChange({ ...player, xHandle: emptyToUndefined(normalizeXHandle(value)) })}
-                  />
-                )}
-              </div>
-              <div className="player-field-row">
-                {hasField('pronouns') && (
-                  <BufferedTextInput
-                    data-stream-free-text={side === 'one' ? 'playerOnePronouns' : 'playerTwoPronouns'}
-                    data-testid={`editor-${side}-pronouns`}
-                    label={t('editor.pronouns')}
-                    value={player.pronouns ?? ''}
-                    onCommit={(value) => onChange({ ...player, pronouns: emptyToUndefined(value) })}
-                  />
-                )}
-                {showSeed && hasField('seed') && (
-                  <TextInput
-                    data-testid={`editor-${side}-seed`}
-                    label={t('editor.seed')}
-                    value={player.seed ?? '—'}
-                    readOnly
-                  />
-                )}
-              </div>
+          <div className="player-extra-fields" data-testid={`editor-${side}-details`}>
+            <div className="player-field-row">
+              {hasField('country') && (
+                <DisplayFlagSelect
+                  testId={`editor-${side}-country`}
+                  label={t('editor.displayFlag')}
+                  placeholder={t('editor.countrySearch')}
+                  countries={countries}
+                  country={player.country}
+                  displayFlag={player.displayFlag}
+                  onChange={({ country, displayFlag }) =>
+                    onChange({
+                      ...player,
+                      country,
+                      displayFlag,
+                      state: country === player.country ? player.state : undefined
+                    })
+                  }
+                />
+              )}
+              {hasField('xHandle') && (
+                <BufferedTextInput
+                  data-stream-free-text={side === 'one' ? 'playerOneXHandle' : 'playerTwoXHandle'}
+                  data-testid={`editor-${side}-x-handle`}
+                  label={t('editor.xHandle')}
+                  value={player.xHandle ?? ''}
+                  onCommit={(value) => onChange({ ...player, xHandle: emptyToUndefined(normalizeXHandle(value)) })}
+                />
+              )}
             </div>
-          </details>
+            <div className="player-field-row">
+              {hasField('pronouns') && (
+                <BufferedTextInput
+                  data-stream-free-text={side === 'one' ? 'playerOnePronouns' : 'playerTwoPronouns'}
+                  data-testid={`editor-${side}-pronouns`}
+                  label={t('editor.pronouns')}
+                  value={player.pronouns ?? ''}
+                  onCommit={(value) => onChange({ ...player, pronouns: emptyToUndefined(value) })}
+                />
+              )}
+              {showSeed && hasField('seed') && (
+                <TextInput
+                  data-testid={`editor-${side}-seed`}
+                  label={t('editor.seed')}
+                  value={player.seed ?? '—'}
+                  readOnly
+                />
+              )}
+            </div>
+          </div>
         )}
       </fieldset>
     );
@@ -215,7 +190,5 @@ export const PlayerEditor = memo(
     previous.characterAssets === next.characterAssets &&
     previous.maxCharacters === next.maxCharacters &&
     previous.showSeed === next.showSeed &&
-    previous.detailsOpened === next.detailsOpened &&
-    previous.onDetailsChange === next.onDetailsChange &&
     previous.editableFields === next.editableFields
 );

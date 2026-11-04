@@ -18,7 +18,7 @@ export function ScoreboardPlayerName({
       {sponsor && side === 'left' && (
         <span className={prefixClassName}>
           <DisplayText text={sponsor} />
-          {' | '}
+          <span className="scoreboard-name-separator"> | </span>
         </span>
       )}
       <span className={nameClassName}>
@@ -26,7 +26,7 @@ export function ScoreboardPlayerName({
       </span>
       {sponsor && side === 'right' && (
         <span className={prefixClassName}>
-          {' | '}
+          <span className="scoreboard-name-separator"> | </span>
           <DisplayText text={sponsor} />
         </span>
       )}

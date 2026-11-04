@@ -40,8 +40,9 @@ export const versusHistorySchema = z.object({
   headToHead: z.array(headToHeadSchema).max(4)
 });
 
-export const versusStatTypes = ['age', 'sponsor', 'seed', 'nickname'] as const;
+export const versusStatTypes = ['age', 'sponsor', 'seed', 'nickname', 'main', 'pronouns'] as const;
 export type VersusStat = (typeof versusStatTypes)[number];
+export const defaultVersusStatRows = ['age', 'sponsor', 'seed', 'nickname'] as const;
 const statRowsSchema = z
   .array(z.enum(versusStatTypes))
   .max(4)
@@ -61,14 +62,14 @@ export function setVersusStatRow(rows: VersusStat[], index: number, value?: Vers
 }
 
 export const versusScreenStateSchema = z.object({
-  stylingGameId: stylingGameIdSchema,
+  stylingGameId: stylingGameIdSchema.optional(),
   logoAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional(),
   showBackground: z.boolean().default(true),
   showMatchBackdrop: z.boolean().default(true),
   showTournamentLogo: z.boolean(),
   showSponsorLogos: z.boolean(),
   showHeadToHead: z.boolean().default(true),
-  statRows: statRowsSchema.default(() => [...versusStatTypes]),
+  statRows: statRowsSchema.default(() => [...defaultVersusStatRows]),
   mediaMode: z.enum(playerMediaModeIds),
   mediaPlacements: z
     .tuple([playerMediaPlacementSchema, playerMediaPlacementSchema])

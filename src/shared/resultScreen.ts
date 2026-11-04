@@ -2,13 +2,11 @@ import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, type GameId } from './gameProfiles';
 
-const stylingGameIdSchema = z.custom<GameId>(
-  (value) => typeof value === 'string' && canonicalGameId(value) === value
-);
+const stylingGameIdSchema = z.custom<GameId>((value) => typeof value === 'string' && canonicalGameId(value) === value);
 
 export const resultScreenStateSchema = z.object({
   composition: z.enum(['classic', 'victory', 'spotlight']).default('classic'),
-  stylingGameId: stylingGameIdSchema,
+  stylingGameId: stylingGameIdSchema.optional(),
   logoAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional(),
   showBackground: z.boolean().default(true),
   showTextBackdrop: z.boolean().default(false),
@@ -22,9 +20,11 @@ export const resultScreenStateSchema = z.object({
 export type ResultScreenState = z.infer<typeof resultScreenStateSchema>;
 
 export function parseResultScreenRealtime(value: unknown): ResultScreenState | undefined {
-  const message = z.object({
-    event: z.literal('result-screen-state'),
-    payload: resultScreenStateSchema
-  }).safeParse(value);
+  const message = z
+    .object({
+      event: z.literal('result-screen-state'),
+      payload: resultScreenStateSchema
+    })
+    .safeParse(value);
   return message.success ? message.data.payload : undefined;
 }

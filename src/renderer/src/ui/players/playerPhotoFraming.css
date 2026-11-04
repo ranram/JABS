@@ -1,0 +1,22 @@
+.photo-framing-choice {
+  gap: 4px;
+  padding: 4px;
+  background: var(--mantine-color-dark-9);
+  border: 1px solid var(--operator-container-border);
+}
+.photo-framing-choice-label {
+  padding: 4px 12px;
+  line-height: 18px;
+  border: 1px solid var(--mantine-color-dark-4);
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-gray-2);
+  background: var(--mantine-color-dark-7);
+}
+.photo-framing-choice-label:hover {
+  background: var(--mantine-color-dark-5);
+}
+.photo-framing-choice-label[data-active] {
+  color: white;
+  border-color: var(--mantine-primary-color-filled);
+  background: var(--mantine-primary-color-filled);
+}

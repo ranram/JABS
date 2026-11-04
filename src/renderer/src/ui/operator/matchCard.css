@@ -86,30 +86,6 @@
   overflow-wrap: anywhere;
 }
 
-.match-card-outcome {
-  display: inline-grid;
-  min-width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  padding: 0 3px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.match-card-outcome.is-winner {
-  background: #16834b;
-}
-
-.match-card-outcome.is-loser {
-  background: #bc3541;
-}
-
 .match-card-versus {
   color: #888291;
   font-size: 9px;

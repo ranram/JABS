@@ -29,7 +29,7 @@ export function StreamBroadcastControls({
 
   return (
     <Stack gap="md" data-testid="broadcast-extras">
-      <SimpleGrid type="container" cols={{ base: 1, '36rem': 3 }}>
+      <SimpleGrid className="broadcast-text-fields" type="container" cols={{ base: 1, '36rem': 3 }}>
         <BufferedTextInput
           data-stream-free-text="infoLeft"
           data-testid="editor-info-left"
@@ -49,6 +49,7 @@ export function StreamBroadcastControls({
           onCommit={(value) => onChange({ infoRight: emptyToUndefined(value) })}
         />
         <Select
+          className="broadcast-logo-select"
           id={logoSelectId}
           styles={{ input: { scrollMarginTop: 'calc(var(--workspace-header-height, 100px) + 40px)' } }}
           data-testid="editor-logo-asset"
@@ -64,19 +65,7 @@ export function StreamBroadcastControls({
           onChange={(value) => onChange({ logoAssetId: value ?? undefined })}
         />
       </SimpleGrid>
-      <SimpleGrid
-        className="scoreboard-visibility-options"
-        type="container"
-        cols={{ base: 1, '36rem': 3 }}
-      >
-        {!isExhibition && (
-          <Checkbox
-            data-testid="editor-seeds-enabled"
-            checked={broadcast?.seedsEnabled ?? true}
-            label={t('broadcast.showSeeds')}
-            onChange={(event) => onChange({ seedsEnabled: event.currentTarget.checked })}
-          />
-        )}
+      <SimpleGrid className="scoreboard-visibility-options" type="container" cols={{ base: 1, '18rem': 2, '36rem': 3 }}>
         <Checkbox
           data-testid="editor-info-bar-enabled"
           checked={broadcast?.infoBarEnabled ?? false}
@@ -95,6 +84,14 @@ export function StreamBroadcastControls({
             })
           }
         />
+        {!isExhibition && (
+          <Checkbox
+            data-testid="editor-seeds-enabled"
+            checked={broadcast?.seedsEnabled ?? true}
+            label={t('broadcast.showSeeds')}
+            onChange={(event) => onChange({ seedsEnabled: event.currentTarget.checked })}
+          />
+        )}
       </SimpleGrid>
     </Stack>
   );

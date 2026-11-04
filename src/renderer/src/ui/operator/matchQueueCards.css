@@ -1,0 +1,11 @@
+.match-queue-row {
+  min-width: 0;
+  background: rgba(100, 151, 182, 0.12);
+}
+.match-queue-row[data-on-stream='true'],
+.match-queue-row[data-current='true'] {
+  background: rgba(52, 211, 153, 0.1);
+}
+.match-queue-row[data-up-next='true']:not([data-on-stream='true']):not([data-current='true']) {
+  background: rgba(167, 139, 250, 0.1);
+}

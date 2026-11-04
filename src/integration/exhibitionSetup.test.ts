@@ -60,7 +60,7 @@ vi.mock('../renderer/src/ui/operator/StartggPanel', () => ({
       h('button', { onClick: () => void bracket.actions.loadEvents('autumn-finals') }, 'Load tournament'),
       h('button', { onClick: () => void bracket.actions.unloadTournament() }, 'Unload tournament'),
       children,
-      typeof setSelector === 'function' ? setSelector({ inDialog: false, onClose() {} }) : setSelector
+      setSelector
     )
 }));
 vi.mock('../renderer/src/api', async (importOriginal) => {
@@ -176,7 +176,39 @@ it.each([false, true])('clears the current players without saving profiles (star
   expect(fieldLabel('editor-display-name')).toBe(linked ? 'Display name' : 'Exhibition title');
   expect(fieldLabel('editor-logo-asset')).toBe(linked ? 'Logo' : 'Exhibition logo');
   expect(fieldLabel('editor-logo-enabled')).toBe(linked ? 'Show tournament / sponsor logo' : 'Show exhibition logo');
+  const columns = view.container.querySelector('.stream-control-grid')!;
+  expect(columns.children).toHaveLength(4);
+  expect(columns.children[0].querySelector('[data-testid="editor-one-name"]')).not.toBeNull();
+  expect(columns.children[1].querySelector('[data-testid="report-startgg-result"]')).not.toBeNull();
+  expect(columns.children[1].querySelector('details')).toBeNull();
+  expect(columns.children[3].classList.contains('stream-secondary-controls')).toBe(true);
+  expect(columns.children[3].querySelector('[data-testid="stream-appearance"]')).not.toBeNull();
+  expect(columns.children[1].firstElementChild?.classList.contains('stream-match-fields')).toBe(true);
+  expect(columns.children[2].querySelector('[data-testid="editor-two-name"]')).not.toBeNull();
   expect(name()).toBe('Alpha');
+  if (linked) {
+    const phase = view.container.querySelector<HTMLInputElement>('[data-testid="editor-phase"]')!;
+    const round = view.container.querySelector<HTMLInputElement>('[data-testid="editor-round"]')!;
+    expect(phase.readOnly).toBe(false);
+    for (const [field, value] of [
+      [phase, 'Top 32'],
+      [round, 'Top 8 Qualifier (W)']
+    ] as const) {
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(field, value);
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        await vi.advanceTimersByTimeAsync(1500);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200);
+      });
+    }
+    expect(live.selectedSet.phase).toBe('Top 32');
+    expect(live.selectedSet.round).toBe('Top 8 Qualifier (W)');
+    transport.save.mockClear();
+  } else {
+    expect(view.container.querySelector('[data-testid="editor-phase"]')).toBeNull();
+  }
   const clear = [...view.container.querySelectorAll('button')].find(
     (button) => button.textContent === 'Clear player details'
   )!;
@@ -266,14 +298,13 @@ it('plays best-of, first-to and Topanga exhibitions and clears the game after un
     return live;
   });
   const view = await mountView(() => h(MantineProvider, { env: 'test' }, h(OperatorDashboard)));
-  const oneDetails = view.container.querySelector<HTMLDetailsElement>('[data-testid="editor-one-details"]')!;
-  const twoDetails = view.container.querySelector<HTMLDetailsElement>('[data-testid="editor-two-details"]')!;
-  await act(async () => oneDetails.querySelector('summary')!.click());
-  expect(oneDetails.open).toBe(true);
-  expect(twoDetails.open).toBe(true);
-  await act(async () => twoDetails.querySelector('summary')!.click());
-  expect(oneDetails.open).toBe(false);
-  expect(twoDetails.open).toBe(false);
+  for (const side of ['one', 'two']) {
+    const details = view.container.querySelector(`[data-testid="editor-${side}-details"]`)!;
+    expect(details.tagName).toBe('DIV');
+    expect(details.querySelector('summary')).toBeNull();
+    expect(details.querySelector(`[data-testid="editor-${side}-country"]`)).not.toBeNull();
+    expect(details.querySelector(`[data-testid="editor-${side}-pronouns"]`)).not.toBeNull();
+  }
 
   function gameInput(labelText: string) {
     const label = [...view.container.querySelectorAll('.editor-panel label')].find(
@@ -302,6 +333,7 @@ it('plays best-of, first-to and Topanga exhibitions and clears the game after un
     await vi.advanceTimersByTimeAsync(200);
   });
   expect(leftRail.disabled).toBe(false);
+  expect(view.container.querySelector('[data-testid="editor-phase"]')).toBeNull();
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(leftRail, '!bracket');
     leftRail.dispatchEvent(new Event('input', { bubbles: true }));
@@ -391,6 +423,15 @@ it('plays best-of, first-to and Topanga exhibitions and clears the game after un
   });
   expect(live.selectedSet).toMatchObject({ matchFormat: 'topanga', bestOf: 13 });
   expect(view.container.querySelector('.preview-panel')?.textContent).toContain('Topanga Rules');
+  const rules = [...view.container.querySelectorAll<HTMLButtonElement>('button')].find(
+    (button) => button.textContent === 'Topanga Rules'
+  )!;
+  await act(async () => rules.click());
+  expect(document.body.textContent).toContain(i18n.t('common:match.topangaDescription'));
+  await act(async () => {
+    rules.click();
+    await vi.advanceTimersByTimeAsync(200);
+  });
   const reportButton = view.container.querySelector<HTMLButtonElement>('[data-testid="report-startgg-result"]')!;
   expect(reportButton.disabled).toBe(true);
   await act(async () => {

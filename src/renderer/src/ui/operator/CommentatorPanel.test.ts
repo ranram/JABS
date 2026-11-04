@@ -86,4 +86,10 @@ it('swaps the current draft from the header without toggling the accordion or di
   );
   expect(names).toContain('Updated finals');
   expect(names.indexOf('One')).toBeLessThan(names.indexOf('Two'));
+  const clearStyle = [...view.container.querySelectorAll<HTMLButtonElement>('button')].find(
+    (button) => button.getAttribute('aria-label') === i18n.t('operator:workspaces.liveStyle')
+  )!;
+  expect(clearStyle).not.toBeNull();
+  await act(async () => clearStyle.click());
+  expect(transport.save).toHaveBeenLastCalledWith(expect.objectContaining({ stylingGameId: undefined }));
 });

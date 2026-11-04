@@ -46,13 +46,13 @@ export function PlayerStatsControls({ logos, profiles }: { logos: LogoAsset[]; p
       <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <Select
           label={t('workspaces.styling')}
-          placeholder={t('workspaces.playerStats.liveStyle')}
+          placeholder={t('workspaces.liveStyle')}
           data={styles.map((profile) => ({ value: profile.id, label: profile.styleName }))}
           value={state.stylingGameId ?? null}
           searchable
           clearable
           disabled={saving}
-          clearButtonProps={{ 'aria-label': t('workspaces.playerStats.liveStyle') }}
+          clearButtonProps={{ 'aria-label': t('workspaces.liveStyle') }}
           onChange={(value) => void update({ stylingGameId: value ? (value as GameId) : undefined })}
         />
         <OverlayLogoSelect

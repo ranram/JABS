@@ -1,0 +1,47 @@
+.overlay-player-copy {
+  position: relative;
+  isolation: isolate;
+}
+.scoreboard-sponsor-logo {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  z-index: 0;
+  width: 42%;
+  max-width: 160px;
+  height: calc(100% - 8px);
+  pointer-events: none;
+  opacity: 0.95;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 65%));
+}
+.scoreboard-sponsor-logo[data-player-side='left'] {
+  right: 8px;
+}
+.scoreboard-sponsor-logo[data-player-side='right'] {
+  left: 8px;
+}
+.overlay-player-identity {
+  position: relative;
+  z-index: 1;
+}
+
+.overlay-player-name[data-stacked='true'] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  text-shadow:
+    0 1px 2px #000,
+    0 0 3px #000;
+}
+.overlay-player-right .overlay-player-name[data-stacked='true'] {
+  align-items: flex-end;
+}
+.overlay-player-name[data-stacked='true'] .overlay-player-prefix {
+  order: -1;
+  font-size: 0.65em;
+  letter-spacing: 0;
+}
+.overlay-player-name[data-stacked='true'] .scoreboard-name-separator {
+  display: none;
+}

@@ -1,6 +1,6 @@
 {
   "name": "jabs",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "JABS: Just Another Bracketing System, a local-first fighting game bracket and OBS score manager.",
   "license": "Apache-2.0",
   "type": "module",
@@ -61,7 +61,7 @@
     "happy-dom": "21.0.4",
     "prettier": "3.9.9",
     "typescript": "5.9.3",
-    "vite": "6.4.4",
+    "vite": "6.4.5",
     "vitest": "4.1.12"
   }
 }

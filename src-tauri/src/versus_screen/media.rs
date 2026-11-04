@@ -70,13 +70,43 @@ pub(super) struct MediaMatch {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct DefaultContext<'a> {
+struct LegacyPlayerContext<'a> {
     catalog: &'a str,
     side: usize,
     mode: &'a str,
     character: &'a Option<String>,
     character_asset_id: &'a Option<String>,
     photo_asset_id: &'a Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CharacterContext<'a> {
+    catalog: &'a str,
+    side: usize,
+    mode: &'a str,
+    character: &'a str,
+    character_asset_id: &'a str,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PhotoContext<'a> {
+    catalog: &'a str,
+    side: usize,
+    mode: &'a str,
+    photo_asset_id: &'a Option<String>,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct MediaLayerEdits {
+    pub character: bool,
+    pub photo: bool,
+}
+
+pub(crate) struct CharacterMediaDefault {
+    pub context: String,
+    pub payload: String,
 }
 
 pub(crate) struct PlayerMediaDefault {
@@ -89,6 +119,7 @@ pub(crate) struct PlayerMediaDefault {
 pub(super) struct MediaEdits {
     pub set_media: Option<(String, String)>,
     pub player_defaults: Vec<PlayerMediaDefault>,
+    pub character_defaults: Vec<CharacterMediaDefault>,
 }
 
 pub(super) fn same_selection(
@@ -194,7 +225,11 @@ impl MediaMatch {
         }
     }
 
-    fn default_context(&self, side: usize, mode: &str) -> Result<Option<(String, String)>, String> {
+    fn legacy_player_context(
+        &self,
+        side: usize,
+        mode: &str,
+    ) -> Result<Option<(String, String)>, String> {
         let Some(subjects) = &self.subjects else {
             return Ok(None);
         };
@@ -202,12 +237,50 @@ impl MediaMatch {
         let Some(player_id) = &subject.local_id else {
             return Ok(None);
         };
-        let context = serde_json::to_string(&DefaultContext {
+        let context = serde_json::to_string(&LegacyPlayerContext {
             catalog: &self.catalog,
             side,
             mode,
             character: &subject.character,
             character_asset_id: &subject.character_asset_id,
+            photo_asset_id: &subject.photo_asset_id,
+        })
+        .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())?;
+        Ok(Some((player_id.clone(), context)))
+    }
+
+    fn character_context(&self, side: usize, mode: &str) -> Result<Option<String>, String> {
+        let Some(subjects) = &self.subjects else {
+            return Ok(None);
+        };
+        let subject = &subjects[side];
+        let (Some(character), Some(artwork)) = (&subject.character, &subject.character_asset_id)
+        else {
+            return Ok(None);
+        };
+        serde_json::to_string(&CharacterContext {
+            catalog: &self.catalog,
+            side,
+            mode,
+            character,
+            character_asset_id: artwork,
+        })
+        .map(Some)
+        .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())
+    }
+
+    fn photo_context(&self, side: usize, mode: &str) -> Result<Option<(String, String)>, String> {
+        let Some(subjects) = &self.subjects else {
+            return Ok(None);
+        };
+        let subject = &subjects[side];
+        let Some(player_id) = &subject.local_id else {
+            return Ok(None);
+        };
+        let context = serde_json::to_string(&PhotoContext {
+            catalog: &self.catalog,
+            side,
+            mode,
             photo_asset_id: &subject.photo_asset_id,
         })
         .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())?;
@@ -236,20 +309,30 @@ impl MediaMatch {
                     continue;
                 }
             }
-            if let Some(default) = self.load_player_default(database, side, mode)? {
+            // Older player saves contain both layers and retain their original priority.
+            if let Some(default) = self.load_legacy_player_default(database, side, mode)? {
                 *placement = default;
+                continue;
+            }
+            if let Some(context) = self.character_context(side, mode)? {
+                placement.character =
+                    load_transform(database.load_character_versus_media(&context)?);
+            }
+            if let Some((player_id, context)) = self.photo_context(side, mode)? {
+                placement.photo =
+                    load_transform(database.load_player_versus_media(&player_id, &context)?);
             }
         }
         Ok(placements)
     }
 
-    fn load_player_default(
+    fn load_legacy_player_default(
         &self,
         database: &Database,
         side: usize,
         mode: &str,
     ) -> Result<Option<PlayerMediaPlacement>, String> {
-        let Some((player_id, context)) = self.default_context(side, mode)? else {
+        let Some((player_id, context)) = self.legacy_player_context(side, mode)? else {
             return Ok(None);
         };
         let Some(payload) = database.load_player_versus_media(&player_id, &context)? else {
@@ -269,7 +352,7 @@ impl MediaMatch {
         database: &Database,
         mode: &str,
         placements: &[PlayerMediaPlacement; 2],
-        edited: [bool; 2],
+        edited: [MediaLayerEdits; 2],
     ) -> Result<MediaEdits, String> {
         let mut edits = MediaEdits::default();
         if let Some(set_id) = &self.set_id {
@@ -292,22 +375,55 @@ impl MediaMatch {
                 .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())?;
             edits.set_media = Some((set_id.clone(), payload));
         }
-        for (side, was_edited) in edited.into_iter().enumerate() {
-            if !was_edited {
+        for (side, changed) in edited.into_iter().enumerate() {
+            if !changed.character && !changed.photo {
                 continue;
             }
-            if let Some((player_id, context)) = self.default_context(side, mode)? {
-                let payload = serde_json::to_string(&placements[side])
-                    .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())?;
-                edits.player_defaults.push(PlayerMediaDefault {
-                    player_id,
-                    context,
-                    payload,
-                });
+            // Update an existing personal override only when its owner actually edits it.
+            if self
+                .load_legacy_player_default(database, side, mode)?
+                .is_some()
+            {
+                if let Some((player_id, context)) = self.legacy_player_context(side, mode)? {
+                    edits.player_defaults.push(PlayerMediaDefault {
+                        player_id,
+                        context,
+                        payload: serialize_placement(&placements[side])?,
+                    });
+                }
+            }
+            if changed.character {
+                if let Some(context) = self.character_context(side, mode)? {
+                    edits.character_defaults.push(CharacterMediaDefault {
+                        context,
+                        payload: serialize_placement(&placements[side].character)?,
+                    });
+                }
+            }
+            if changed.photo {
+                if let Some((player_id, context)) = self.photo_context(side, mode)? {
+                    edits.player_defaults.push(PlayerMediaDefault {
+                        player_id,
+                        context,
+                        payload: serialize_placement(&placements[side].photo)?,
+                    });
+                }
             }
         }
         Ok(edits)
     }
+}
+
+fn serialize_placement(value: &impl Serialize) -> Result<String, String> {
+    serde_json::to_string(value)
+        .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())
+}
+
+fn load_transform(payload: Option<String>) -> MediaTransform {
+    payload
+        .and_then(|value| serde_json::from_str::<MediaTransform>(&value).ok())
+        .filter(MediaTransform::is_valid)
+        .unwrap_or_default()
 }
 
 #[derive(Deserialize, Serialize)]

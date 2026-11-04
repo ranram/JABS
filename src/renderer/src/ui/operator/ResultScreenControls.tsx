@@ -149,10 +149,13 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
         <Select
           label={t('workspaces.styling')}
           searchable
-          value={state.stylingGameId}
+          clearable
+          clearButtonProps={{ 'aria-label': t('workspaces.liveStyle') }}
+          placeholder={t('workspaces.liveStyle')}
+          value={state.stylingGameId ?? null}
           data={sortedProfiles.map((profile) => ({ value: profile.id, label: profile.styleName }))}
           disabled={saving}
-          onChange={(value) => value && void update('stylingGameId', value as GameId)}
+          onChange={(value) => void update('stylingGameId', value ? (value as GameId) : undefined)}
         />
         <OverlayLogoSelect
           logos={logos}
@@ -169,7 +172,6 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
             { value: 'spotlight', label: t('workspaces.resultScreen.spotlight') }
           ]}
           disabled={saving}
-          allowDeselect={false}
           onChange={(value) => {
             if (value === 'classic' || value === 'victory' || value === 'spotlight') void update('composition', value);
           }}

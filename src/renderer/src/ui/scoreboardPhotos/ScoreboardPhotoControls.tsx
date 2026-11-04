@@ -1,11 +1,12 @@
 import { Alert, Anchor, Checkbox, SimpleGrid, Stack, Text } from '@mantine/core';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { api } from '../../api';
 import { useScoreboardPhotos } from '../../hooks/useScoreboardPhotos';
 import { useOperatorNotifications } from '../operator/useOperatorNotifications';
 import type { SelectedSetState } from '@shared/models';
 import { scoreboardPhotoLayout, type ScoreboardPhotoSettings } from '@shared/scoreboardPhotos';
+import { PlayerLibraryLauncherContext } from '../players/PlayerLibraryLauncherContext';
 import { PlayerLibraryDialog } from '../players/PlayerLibraryModal';
 
 export function ScoreboardPhotoControls({
@@ -21,6 +22,7 @@ export function ScoreboardPhotoControls({
   const { state, setState, error } = useScoreboardPhotos();
   const [saving, setSaving] = useState(false);
   const [libraryOpened, setLibraryOpened] = useState(false);
+  const openPlayers = useContext(PlayerLibraryLauncherContext);
   const notify = useOperatorNotifications();
   async function save(patch: Partial<Pick<ScoreboardPhotoSettings, 'enabled' | 'logoBackdrop' | 'sponsorBackdrop'>>) {
     if (!state || saving) return;
@@ -39,7 +41,7 @@ export function ScoreboardPhotoControls({
         <SimpleGrid
           className="scoreboard-visibility-options scoreboard-photo-options"
           type="container"
-          cols={{ base: 1, '36rem': 3 }}
+          cols={{ base: 1, '42rem': 3 }}
         >
           <Checkbox
             label={t('scoreboardPhotos.enabled')}
@@ -54,7 +56,7 @@ export function ScoreboardPhotoControls({
                       type="button"
                       inherit
                       underline="always"
-                      onClick={() => setLibraryOpened(true)}
+                      onClick={() => (openPlayers ? openPlayers() : setLibraryOpened(true))}
                     />
                   )
                 }}

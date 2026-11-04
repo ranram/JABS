@@ -74,6 +74,12 @@ it('configures result logos and refreshes the current winner media without accep
       })
     )
   );
+  const clearStyle = resultView.container.querySelector<HTMLButtonElement>(
+    'button[aria-label="Use live match style"]'
+  )!;
+  expect(clearStyle).not.toBeNull();
+  await act(async () => clearStyle.click());
+  expect(transport.saveResult).toHaveBeenLastCalledWith(expect.objectContaining({ stylingGameId: undefined }));
   const resultLogoInput = () => {
     const label = [...resultView.container.querySelectorAll('label')].find((label) => label.textContent === 'Logo')!;
     return document.getElementById(label.htmlFor) as HTMLInputElement;

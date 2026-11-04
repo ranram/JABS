@@ -6,7 +6,7 @@
   height: 100%;
   container-type: inline-size;
   color: var(--custom-text);
-  font-family: var(--custom-font-family, "JABS Bebas Neue"), Impact, sans-serif;
+  font-family: var(--custom-font-family, 'JABS Bebas Neue'), Impact, sans-serif;
   text-transform: uppercase;
 }
 
@@ -88,8 +88,12 @@
   pointer-events: none;
 }
 
-.custom-scoreboard-editing-boundary.is-one { left: 0; }
-.custom-scoreboard-editing-boundary.is-two { right: 0; }
+.custom-scoreboard-editing-boundary.is-one {
+  left: 0;
+}
+.custom-scoreboard-editing-boundary.is-two {
+  right: 0;
+}
 .custom-scoreboard-editing-boundary.is-bottom {
   inset: auto 0 0;
   width: 100%;
@@ -107,11 +111,67 @@
   font-size: calc(var(--custom-meta-size) * var(--appearance-text-scale, 1));
 }
 
-.custom-scoreboard-element.is-flag img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.custom-scoreboard-element.is-name { font-size: calc(var(--custom-name-size) * var(--appearance-text-scale, 1)); font-weight: 800; }
-.custom-scoreboard-element.is-meta { font-size: calc(var(--custom-meta-size) * var(--appearance-text-scale, 1)); }
-.custom-scoreboard-element.is-score { font-size: calc(var(--custom-score-size) * var(--appearance-text-scale, 1)); font-weight: 800; }
-.custom-scoreboard-context { font-size: calc(var(--custom-context-size) * var(--appearance-text-scale, 1)); line-height: 1; }
-.custom-scoreboard-logo img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
-.custom-scoreboard-canvas.outline-soft { text-shadow: 0 0.08cqw 0.18cqw rgb(0 0 0 / 75%); }
-.custom-scoreboard-canvas.outline-strong { text-shadow: -0.08cqw -0.08cqw #000, 0.08cqw -0.08cqw #000, -0.08cqw 0.08cqw #000, 0.08cqw 0.08cqw #000; }
+.custom-scoreboard-element.is-flag img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.custom-scoreboard-element.is-name {
+  font-size: calc(var(--custom-name-size) * var(--appearance-text-scale, 1));
+  font-weight: 800;
+}
+.custom-scoreboard-element.is-meta {
+  font-size: calc(var(--custom-meta-size) * var(--appearance-text-scale, 1));
+}
+.custom-scoreboard-element.is-score {
+  font-size: calc(var(--custom-score-size) * var(--appearance-text-scale, 1));
+  font-weight: 800;
+}
+.custom-scoreboard-context {
+  font-size: calc(var(--custom-context-size) * var(--appearance-text-scale, 1));
+  line-height: 1;
+}
+.custom-scoreboard-logo img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.custom-scoreboard-canvas.outline-soft {
+  text-shadow: 0 0.08cqw 0.18cqw rgb(0 0 0 / 75%);
+}
+.custom-scoreboard-canvas.outline-strong {
+  text-shadow:
+    -0.08cqw -0.08cqw #000,
+    0.08cqw -0.08cqw #000,
+    -0.08cqw 0.08cqw #000,
+    0.08cqw 0.08cqw #000;
+}
+
+.custom-scoreboard-frame-top,
+.custom-scoreboard-frame-bottom {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.custom-scoreboard-frame-top {
+  clip-path: inset(0 0 27.777778% 0);
+}
+.custom-scoreboard-frame-bottom {
+  clip-path: inset(72.222222% 0 0 0);
+}
+
+.custom-scoreboard-region.is-sponsor-logo {
+  z-index: 1;
+  font-size: calc(var(--custom-meta-size) * var(--appearance-text-scale, 1));
+}
+.custom-scoreboard-region.is-sponsor-logo.is-editing {
+  z-index: 3;
+}
+.custom-scoreboard-region.is-sponsor-logo .scoreboard-sponsor-logo {
+  position: static;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}

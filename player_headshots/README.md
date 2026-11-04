@@ -1,3 +1,5 @@
 # Player headshots
 
-Use a 512×512 head-and-shoulders image named after the player tag. PNG, JPEG, and WebP are supported; other dimensions also work. Adjust framing in Players if needed.
+Add a head-and-shoulders image named after the player's tag. Use PNG, JPEG, or WebP. A size of 512×512 px is recommended, but other sizes work.
+
+Adjust the photo in **Players** and choose **Save player** to keep its framing. See [Scoreboard photos and logos](../USER_MANUAL.md#scoreboard-photos-and-logos) for per-side adjustments.

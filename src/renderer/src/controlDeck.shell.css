@@ -21,7 +21,7 @@
 
 .bracket-overview-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 2fr);
+  grid-template-columns: minmax(440px, 0.85fr) minmax(0, 2fr);
   align-items: stretch;
   gap: 18px;
 }
@@ -34,8 +34,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  /* Let the adjacent filters determine the shared row height. */
-  contain: size;
+  min-height: 0;
   container-name: set-selector;
   container-type: inline-size;
 }
@@ -45,7 +44,7 @@
 }
 
 .bracket-overview-grid .set-results-scroll {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 

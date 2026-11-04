@@ -5,7 +5,12 @@ import { api } from '../../api';
 import { useCatalogRevision } from '../../hooks/useCatalogRevision';
 import { readLogoContent, type ScoreboardLogoContent } from './scoreboardLogoBackdrop';
 
-export type LoadedScoreboardPhoto = ScoreboardPhoto & { url: string; width: number; height: number };
+export type LoadedScoreboardPhoto = ScoreboardPhoto & {
+  url: string;
+  width: number;
+  height: number;
+  contentBounds?: ScoreboardLogoContent;
+};
 
 export function useScoreboardLogoContent(url?: string) {
   const [loaded, setLoaded] = useState<{ url: string; content: ScoreboardLogoContent }>();
@@ -77,7 +82,13 @@ export async function loadScoreboardPhoto(photo: ScoreboardPhoto): Promise<Loade
   await image.decode();
   if (!image.naturalWidth || !image.naturalHeight || image.naturalWidth * image.naturalHeight > 64_000_000)
     throw new Error('Invalid player image dimensions.');
-  return { ...photo, url, width: image.naturalWidth, height: image.naturalHeight };
+  return {
+    ...photo,
+    url,
+    width: image.naturalWidth,
+    height: image.naturalHeight,
+    contentBounds: readLogoContent(image)
+  };
 }
 
 export function useScoreboardPhotoMedia(players: ScoreboardPhotoIdentity[], enabled: boolean) {

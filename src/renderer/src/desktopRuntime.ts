@@ -107,7 +107,8 @@ export type LocalHandoffUrl =
   | 'top-eight-matchups'
   | 'commentators'
   | 'bracket'
-  | 'stingers';
+  | 'stingers'
+  | 'queue-ticker';
 
 const overlayPaths: Record<LocalHandoffUrl, string> = {
   score: '/overlay/active/main',
@@ -119,7 +120,8 @@ const overlayPaths: Record<LocalHandoffUrl, string> = {
   'top-eight-matchups': '/overlay/active/top-eight-matchups',
   commentators: '/overlay/commentators',
   bracket: '/overlay/active/bracket',
-  stingers: '/overlay/stingers'
+  stingers: '/overlay/stingers',
+  'queue-ticker': '/overlay/queue-ticker'
 };
 
 export function localOverlayUrl(apiBase: string, kind: LocalHandoffUrl): string {

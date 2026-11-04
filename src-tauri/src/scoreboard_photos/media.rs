@@ -86,6 +86,7 @@ fn named_photo(
                     fingerprint,
                     crop: Crop::default(),
                     placements: Default::default(),
+                    extended_placements: Default::default(),
                 }));
         }
     }
@@ -122,6 +123,7 @@ pub(super) fn resolve_photo(
                     fingerprint,
                     crop: Crop::default(),
                     placements: Default::default(),
+                    extended_placements: Default::default(),
                 }),
             None => named_photo(runtime, &names, "photo")?,
         },
@@ -140,6 +142,7 @@ pub(super) fn resolve_photo(
         {
             photo.crop = saved.crop.clone();
             photo.placements = saved.placements.clone();
+            photo.extended_placements = saved.extended_placements.clone();
         }
     }
     Ok(Some(photo))

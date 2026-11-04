@@ -1,6 +1,6 @@
 import { imageContainsPixel, pickVisualLayer } from '../combinedMedia/imageHitTest';
 
-type Hit = { element: HTMLElement; box: DOMRect; distance: number; area: number };
+type Hit = { element: HTMLElement; box: DOMRect; distance: number; area: number; artwork: boolean };
 
 function contains(box: DOMRect, x: number, y: number): boolean {
   return box.width > 0 && box.height > 0 && x >= box.left && x < box.right && y >= box.top && y < box.bottom;
@@ -44,15 +44,19 @@ export function pickCustomScoreboardRegion(
   const hits: Hit[] = regions.map((element) => {
     const box = element.getBoundingClientRect();
     const image = element.querySelector('img');
+    const logo = element.classList.contains('is-sponsor-logo') && element.querySelector('svg');
     return {
       element,
       box,
-      ...(image
-        ? {
-            distance: contains(box, x, y) && imageContainsPixel(image, x, y) ? 0 : Infinity,
-            area: box.width * box.height
-          }
-        : textHit(element, box, x, y))
+      artwork: Boolean(image || logo),
+      ...(logo
+        ? { distance: contains(box, x, y) ? 0 : Infinity, area: box.width * box.height }
+        : image
+          ? {
+              distance: contains(box, x, y) && imageContainsPixel(image, x, y) ? 0 : Infinity,
+              area: box.width * box.height
+            }
+          : textHit(element, box, x, y))
     };
   });
   if (behind) {
@@ -65,6 +69,8 @@ export function pickCustomScoreboardRegion(
     )?.element;
   }
   // Prefer text under the pointer. If text overlaps, choose the smaller piece.
-  const visible = hits.filter((hit) => hit.distance <= 6).sort((a, b) => a.distance - b.distance || a.area - b.area);
+  const visible = hits
+    .filter((hit) => hit.distance <= 6)
+    .sort((a, b) => a.distance - b.distance || Number(a.artwork) - Number(b.artwork) || a.area - b.area);
   return visible[0]?.element ?? hits.find((hit) => hit.element === current && contains(hit.box, x, y))?.element;
 }

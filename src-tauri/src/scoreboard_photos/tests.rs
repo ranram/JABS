@@ -55,6 +55,7 @@ impl Fixture {
             fingerprint: media::source_fingerprint(&self.runtime, source, name).unwrap(),
             crop: Crop::default(),
             placements: Default::default(),
+            extended_placements: Default::default(),
         }
     }
     fn player(&self) -> crate::player_library::LibraryPlayer {
@@ -155,7 +156,14 @@ fn existing_photos_show_without_preparation_and_matching_respects_identity_and_h
     f.image("headshot", "Tag.jpg", b"\xff\xd8\xffsecond-file");
     assert!(media::resolve_photo(&f.runtime, &identity).is_err());
     fs::remove_file(f.runtime.player_headshot_directory.join("Tag.jpg")).unwrap();
-    let explicit = automatic;
+    let mut explicit = automatic;
+    explicit.extended_placements.insert(
+        "2xko".into(),
+        SidePlacements {
+            left: Some(MediaTransform { y: -0.3, ..Default::default() }),
+            right: None,
+        },
+    );
     let mut record = f.player();
     record.scoreboard_photo = Some(explicit.clone());
     f.runtime.database.library_save(record).unwrap();
@@ -174,6 +182,7 @@ fn existing_photos_show_without_preparation_and_matching_respects_identity_and_h
     );
     assert_eq!(replaced.crop, Crop::default());
     assert!(replaced.placements.is_empty());
+    assert!(replaced.extended_placements.is_empty());
     fs::remove_file(f.runtime.player_headshot_directory.join("Tag.png")).unwrap();
     assert!(
         media::resolve_photo(&f.runtime, &identity)
@@ -239,6 +248,13 @@ fn saved_framing_survives_refresh_export_import_and_reopen_and_rejects_invalid_v
             }),
         },
     );
+    photo.extended_placements.insert(
+        "2xko".into(),
+        SidePlacements {
+            left: Some(MediaTransform { y: -0.4, ..Default::default() }),
+            right: None,
+        },
+    );
     record.scoreboard_photo = Some(photo.clone());
     let saved = f.runtime.database.library_save(record).unwrap().player;
     assert!(f.runtime.database.library_save(original).is_err());
@@ -285,6 +301,9 @@ fn saved_framing_survives_refresh_export_import_and_reopen_and_rejects_invalid_v
         assert!(photo.validate().is_err());
     }
     let mut invalid = photo.clone();
+    invalid.extended_placements.get_mut("2xko").unwrap().left.as_mut().unwrap().y = -9.0;
+    assert!(invalid.validate().is_err());
+    let mut invalid = photo.clone();
     invalid
         .placements
         .insert("unknown-game".into(), SidePlacements::default());
@@ -322,16 +341,19 @@ async fn photo_settings_are_persisted_versioned_and_require_trusted_mutations() 
     let f = Fixture::new();
     let original = f.runtime.scoreboard_photos.current().unwrap();
     assert!(!original.enabled);
+    assert_eq!(original.framing, Framing::Contained);
     assert!(!original.logo_backdrop);
     assert!(!original.sponsor_backdrop);
     let legacy: Settings = serde_json::from_value(serde_json::json!({
         "enabled": true, "updatedAt": original.updated_at
     }))
     .unwrap();
+    assert_eq!(legacy.framing, Framing::Contained);
     assert!(!legacy.logo_backdrop);
     assert!(!legacy.sponsor_backdrop);
     let mut next = original.clone();
     next.enabled = true;
+    next.framing = Framing::ExtendAbove;
     next.logo_backdrop = true;
     let mut updates = f.runtime.scoreboard_photos.subscribe();
     let rejected = update(
@@ -355,6 +377,7 @@ async fn photo_settings_are_persisted_versioned_and_require_trusted_mutations() 
         .current()
         .unwrap();
     assert!(persisted.enabled);
+    assert_eq!(persisted.framing, Framing::ExtendAbove);
     assert!(persisted.logo_backdrop);
     assert!(!persisted.sponsor_backdrop);
     let message: serde_json::Value = serde_json::from_str(&updates.recv().await.unwrap()).unwrap();

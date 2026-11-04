@@ -40,7 +40,11 @@ const transport = vi.hoisted(() => ({
   save: vi.fn()
 }));
 vi.mock('../renderer/src/api', () => ({
-  api: { appearancePreferences: transport.load, updateAppearancePreferences: transport.save },
+  api: {
+    identityMedia: async (identities: unknown[]) => ({ matches: identities.map(() => ({})) }),
+    appearancePreferences: transport.load,
+    updateAppearancePreferences: transport.save
+  },
   websocketUrl: async () => 'ws://127.0.0.1:4279/ws',
   acceptCatalogMessage: () => false
 }));
@@ -265,7 +269,7 @@ it('shares appearance changes with broadcast previews and saves portable presets
     await act(async () => options.find((option) => option.textContent === name)!.click());
   }
   const fontTargets =
-    '.overlay-player-name, .overlay-player-meta, .overlay-player-score, .overlay-match-chip strong, .overlay-info-rail';
+    '.overlay-player-name, .scoreboard-detail-pill, .overlay-player-score, .overlay-match-chip strong, .overlay-info-rail';
   const originalFonts = new Map<string, string[]>();
   for (const profile of [gameProfiles['street-fighter-6'], gameProfiles['guilty-gear-strive']]) {
     transport.overlay.selectedSet.stylingGameId = profile.id;

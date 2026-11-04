@@ -1,0 +1,101 @@
+.queue-ticker-preview .queue-ticker-bar {
+  position: static;
+  width: 100%;
+  font-size: 15px;
+}
+.queue-ticker-preview .queue-ticker-row {
+  min-height: 104px;
+}
+.queue-ticker-preview .queue-ticker-heading {
+  min-width: 112px;
+  padding: 8px 12px;
+  font-size: 28px;
+}
+.queue-ticker-preview .queue-ticker-match {
+  min-width: min(100%, 460px);
+  max-width: none;
+  grid-template-columns: minmax(max-content, 1fr) 60px minmax(max-content, 1fr);
+  min-height: 100px;
+  padding: 14px 12px 25px;
+  column-gap: 7px;
+}
+.queue-ticker-preview .queue-ticker-separator {
+  font-size: 66px;
+}
+.queue-ticker-preview .queue-ticker-score {
+  font-size: 27px;
+}
+.queue-ticker-preview .queue-ticker-name,
+.queue-ticker-preview .queue-ticker-results .queue-ticker-name {
+  font-size: 27px;
+}
+.queue-ticker-preview .queue-ticker-round {
+  font-size: 13px;
+  width: 240px;
+  bottom: -19px;
+}
+
+.queue-ticker-preview .queue-ticker-track {
+  display: block;
+  width: 100%;
+}
+.queue-ticker-preview .queue-ticker-matches {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  width: 100%;
+  gap: 8px;
+  padding: 10px;
+}
+.queue-ticker-preview .queue-ticker-logo {
+  flex-basis: 96px;
+  padding: 8px;
+}
+.queue-ticker-preview .queue-ticker-logo img {
+  inset: 8px;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
+}
+
+.queue-ticker-preview .queue-ticker-divider {
+  right: -5px;
+  width: 4px;
+}
+
+.queue-ticker-settings-grid,
+.queue-ticker-content-grid {
+  display: grid;
+  gap: 12px 18px;
+  align-items: start;
+}
+.queue-ticker-settings-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+.queue-ticker-content-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-block: 6px;
+}
+@media (max-width: 760px) {
+  .queue-ticker-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.queue-ticker-logo-controls {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+@media (max-width: 1000px) {
+  .queue-ticker-logo-controls {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.queue-ticker-preview .queue-ticker-results {
+  --result-marker-size: 22px;
+  --result-marker-font-size: 13px;
+}

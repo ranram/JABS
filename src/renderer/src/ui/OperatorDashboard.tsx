@@ -444,8 +444,10 @@ export function OperatorDashboard() {
       const response = await api.setScore(side, score);
       setState(response);
       setDraftState({ value: response.selectedSet, baseline: response.selectedSet, dirty: false });
+      return true;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t('operator:messages.scoreFailed'), 'error');
+      return false;
     } finally {
       setLoading(false);
     }
@@ -461,8 +463,10 @@ export function OperatorDashboard() {
         action === 'reset' ? t('operator:messages.scoresReset') : t('operator:messages.playersSwapped'),
         'success'
       );
+      return true;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t('operator:messages.stateFailed'), 'error');
+      return false;
     } finally {
       setLoading(false);
     }
@@ -572,6 +576,13 @@ export function OperatorDashboard() {
           onTokenInputReady={setTokenInputReady}
           onSaveToken={() => void saveToken()}
           onRemoveToken={() => void removeToken()}
+          onClearPlayers={clearPlayers}
+          streamDeckControls={{
+            score: updateScore,
+            reset: () => runStateAction('reset'),
+            swap: () => runStateAction('swap'),
+            commentators: swapSavedCommentators
+          }}
           onReloadSelectedSet={() => void reloadSelectedSetFromStartgg()}
           onPatchBroadcast={patchBroadcast}
           onCustomScoreboard={(id, revision) =>
@@ -582,9 +593,9 @@ export function OperatorDashboard() {
           onMessage={setMessage}
           onModerationApplied={() => void moderation.refreshAfterModeration()}
           onCopy={(kind) => void copyHandoffUrl(kind)}
-          setSelector={({ inDialog, onClose }) => (
+          setSelector={
             <SetSelectorPanel
-              inDialog={inDialog}
+              inDialog
               sets={sets}
               visibleSets={visibleSets}
               catalogSets={searchCatalogIsCurrent ? setSearchCatalog : undefined}
@@ -607,36 +618,39 @@ export function OperatorDashboard() {
               onSearchFocus={focusSetSearch}
               onSearchChange={changeSetSearch}
               onCancelSearch={cancelSetSearch}
-              onOpenSet={(set) => {
-                onClose();
-                openSetFromSelector(set);
-              }}
+              onOpenSet={openSetFromSelector}
               onLoadMore={loadMoreSetsFromSelector}
             />
-          )}
+          }
         >
           {selectedSet && draft && (
-            <section className="grid-layout wide stream-workspace">
-              <LiveControlsPanel
-                selectedSet={selectedSet}
-                reportingEnabled={tokenConfigured}
-                reportReadiness={reportReadiness}
-                reportReadinessReason={localizedReadinessReason(reportReadiness)}
-                localBaseUrl={localBaseUrl}
-                copiedHandoff={copiedHandoff}
-                loading={loading || draftSaving}
-                draftDirty={draftDirty}
-                onScore={(side, score) => void updateScore(side, score)}
-                onReset={() => void runStateAction('reset')}
-                onSwap={() => void runStateAction('swap')}
-                shortcutsEnabled={keyboardShortcuts.enabled}
-                onReport={(outcome) => void reportStartggResult(outcome)}
-                onCopy={(kind) => void copyHandoffUrl(kind)}
-              />
+            <section className="stream-workspace combined-stream-workspace">
               <StreamEditorPanel
+                renderLiveControls={(appearance, layout) => (
+                  <LiveControlsPanel
+                    embedded
+                    beforeDetails={appearance}
+                    renderLayout={layout}
+                    selectedSet={selectedSet}
+                    reportingEnabled={tokenConfigured}
+                    reportReadiness={reportReadiness}
+                    reportReadinessReason={localizedReadinessReason(reportReadiness)}
+                    localBaseUrl={localBaseUrl}
+                    copiedHandoff={copiedHandoff}
+                    loading={loading || draftSaving}
+                    draftDirty={draftDirty}
+                    onScore={(side, score) => void updateScore(side, score)}
+                    onReset={() => void runStateAction('reset')}
+                    onSwap={() => void runStateAction('swap')}
+                    shortcutsEnabled={keyboardShortcuts.enabled}
+                    onReport={(outcome) => void reportStartggResult(outcome)}
+                    onCopy={(kind) => void copyHandoffUrl(kind)}
+                  />
+                )}
                 draft={draft}
                 clearPlayersDisabled={streamSetupDisabled}
-                onClearPlayers={() => void clearPlayers()}
+                onClearPlayers={clearPlayers}
+
                 gameSelector={
                   <GameSelect
                     tournamentLoaded={Boolean(selectedEvent?.videogame)}

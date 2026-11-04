@@ -22,14 +22,17 @@ mod player_stats;
 mod reporting_routes;
 mod result_screen;
 mod runtime;
+mod queue_ticker;
 mod scoreboard_photos;
 mod secrets;
 mod startgg;
+mod top_eight_qualifiers;
 mod startgg_characters;
 mod startgg_placements;
 mod startgg_queries;
 mod startgg_videogames;
 mod state;
+mod stream_deck;
 mod stingers;
 mod top_eight_matchups;
 mod versus_history;
@@ -278,6 +281,7 @@ pub fn run() {
             diagnostics::record(diagnostics::Event::LocalServiceStarted, diagnostics::Context::default());
             runtime.api_port.store(port, Ordering::Release);
             app.manage(runtime.clone());
+            runtime.stream_deck.start_local(app.handle().clone()).map_err(std::io::Error::other)?;
 
             tauri::async_runtime::spawn(async move {
                 if let Err(error) = local_server::serve(listener, port, runtime).await {
@@ -291,6 +295,10 @@ pub fn run() {
             app_updates::get_update_support,
             app_updates::restart_app,
             get_api_port,
+            stream_deck::stream_deck_pair,
+            stream_deck::stream_deck_unpair,
+            stream_deck::stream_deck_ack,
+            stream_deck::stream_deck_confirmation_closed,
             get_token_status,
             set_startgg_token,
             set_session_startgg_token,

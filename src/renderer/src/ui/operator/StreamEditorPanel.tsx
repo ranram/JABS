@@ -1,10 +1,12 @@
 import { Button, Group, Paper, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import { StreamSaveBadge } from './StreamSaveBadge';
+import { SetSelectorButton } from './SetSelectorButton';
+import { QueueButton } from './MatchQueueControls';
 import { DestructiveButton } from '../DestructiveButton';
 import { streamSaveStatus } from './streamStatus';
 import { PanelHeader } from '../PanelHeader';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useId, useMemo, useRef, type ReactNode } from 'react';
 import { type GameId, type GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, GameCharacterAsset, LogoAsset, SelectedSetState } from '@shared/models';
 import { PlayerEditor } from './PlayerEditor';
@@ -31,6 +33,10 @@ type StreamEditorPanelProps = {
   clearPlayersDisabled: boolean;
   onClearPlayers(): void;
   gameSelector?: ReactNode;
+  renderLiveControls?(
+    appearance: ReactNode,
+    layout: (primary: ReactNode, secondary: ReactNode) => ReactNode
+  ): ReactNode;
   profiles: GameProfile[];
   countries: CountryOption[];
   logos: LogoAsset[];
@@ -53,6 +59,7 @@ export function StreamEditorPanel({
   clearPlayersDisabled,
   onClearPlayers,
   gameSelector,
+  renderLiveControls,
   profiles,
   countries,
   logos,
@@ -75,7 +82,6 @@ export function StreamEditorPanel({
   const isExhibition = !draft.setId;
   const playerGameKey = draft.assetCatalogSlug ?? draft.gameId;
   const maxCharacters = maxCharactersForGame(playerGameKey);
-  const [playerDetailsOpened, setPlayerDetailsOpened] = useState(false);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const customScoreboard = useCustomScoreboardManifest(draft.customScoreboardId, draft.customScoreboardRevision);
   const customStyleValue = draft.customScoreboardId ? `custom-scoreboard:${draft.customScoreboardId}` : undefined;
@@ -122,15 +128,135 @@ export function StreamEditorPanel({
   if (draft.matchFormat === 'first-to') matchLengthValue = `first-to:${Math.ceil(draft.bestOf / 2)}`;
   if (draft.matchFormat === 'topanga') matchLengthValue = 'topanga:7';
 
+  const appearance = (
+    <details className="operator-disclosure" data-testid="stream-appearance">
+      <summary>
+        <IconLabel icon={SlidersHorizontalIcon}>{t('operator:ux.scoreboardAppearance')}</IconLabel>
+      </summary>
+      <Stack className="operator-disclosure-content stream-appearance-content" gap="xs">
+        <SimpleGrid type="container" cols={{ base: 1, '18rem': 2 }} spacing="xs">
+          <Select
+            data-testid="editor-game"
+            label={t('operator:editor.styling')}
+            data={profileOptions}
+            value={customStyleValue ?? draft.stylingGameId ?? draft.gameId}
+            searchable
+            allowDeselect={false}
+            onChange={(value) => value && !value.startsWith('custom-scoreboard:') && onChangeStyling(value as GameId)}
+          />
+          <BroadcastScoreboardFontSelect
+            customActive={Boolean(draft.customScoreboardId)}
+            customFont={customScoreboard?.typography.font}
+          />
+        </SimpleGrid>
+        <ScoreboardPhotoControls selectedSet={draft} logoSelectId={logoSelectId} isExhibition={isExhibition} />
+
+        <StreamBroadcastControls
+          logoSelectId={logoSelectId}
+          broadcast={draft.broadcast}
+          isExhibition={isExhibition}
+          logos={logos}
+          onChange={onPatchBroadcast}
+        />
+      </Stack>
+    </details>
+  );
+  const matchFields = (
+    <Stack gap="xs" className="stream-match-fields" data-exhibition={isExhibition || undefined}>
+      {gameSelector ?? (
+        <BufferedTextInput
+          label={t('operator:editor.detectedGame')}
+          value={draft.gameName ?? selectedProfile?.label ?? draft.gameId}
+          readOnly
+        />
+      )}
+      <Select
+        data-testid="editor-best-of"
+        label={t('operator:editor.matchLength')}
+        data={matchLengthOptions}
+        value={matchLengthValue}
+        allowDeselect={false}
+        onChange={(value) => {
+          if (!value) return;
+          const [matchFormat, length] = value.split(':') as [NonNullable<SelectedSetState['matchFormat']>, string];
+          const amount = Number(length);
+          onPatch({
+            matchFormat,
+            bestOf: matchFormat === 'best-of' ? amount : amount * 2 - 1
+          });
+        }}
+      />
+
+      {!isExhibition && (
+        <BufferedTextInput
+          data-stream-free-text="phase"
+          data-testid="editor-phase"
+          label={t('operator:browser.phase')}
+          value={draft.phase ?? ''}
+          onCommit={(value) => onPatch({ phase: emptyToUndefined(value) })}
+        />
+      )}
+      <BufferedTextInput
+        data-stream-free-text="round"
+        data-testid="editor-round"
+        label={t(isExhibition ? 'operator:editor.exhibitionName' : 'operator:editor.round')}
+        value={draft.round ?? ''}
+        placeholder={t('operator:editor.roundPlaceholder')}
+        onCommit={(value) => onPatch({ round: emptyToUndefined(value) })}
+      />
+    </Stack>
+  );
+  const matchDetails = (
+    <details className="operator-disclosure">
+      <summary>
+        <IconLabel icon={ListChecksIcon}>{t('operator:ux.matchDetails')}</IconLabel>
+      </summary>
+      <SimpleGrid className="operator-disclosure-content" type="container" cols={{ base: 1, '18rem': 2 }}>
+        <BufferedTextInput
+          data-stream-free-text="displayName"
+          data-testid="editor-display-name"
+          label={t(isExhibition ? 'operator:editor.exhibitionTitle' : 'operator:editor.displayName')}
+          value={draft.displayName}
+          onCommit={(displayName) => onPatch({ displayName })}
+        />
+        <BufferedTextInput
+          data-stream-free-text="station"
+          data-testid="editor-station"
+          label={t('operator:editor.station')}
+          value={draft.station ?? ''}
+          placeholder={t('operator:editor.stationPlaceholder')}
+          onCommit={(value) => onPatch({ station: emptyToUndefined(value) })}
+        />
+      </SimpleGrid>
+    </details>
+  );
+  const playerTwoEditor = (
+    <PlayerEditor
+      libraryGameKey={isExhibition ? playerGameKey : undefined}
+      side="two"
+      title={t('operator:editor.playerTwo')}
+      player={draft.playerTwo}
+      countries={countries}
+      characters={characters}
+      characterAssets={characterAssets}
+      showSeed={!isExhibition}
+      maxCharacters={maxCharacters}
+      editableFields={selectedProfile?.editableFields ?? []}
+      onChange={changePlayerTwo}
+    />
+  );
   return (
-    <Paper className="panel editor-panel" p="md" radius="lg" withBorder>
+    <Paper className="panel editor-panel combined-stream-panel" p="md" radius="lg" withBorder>
       <PanelHeader title={t('operator:editor.title')} icon={PencilSimpleIcon} inset="md">
         <Group gap="xs" justify="flex-end" wrap="wrap">
+          <SetSelectorButton />
+          <QueueButton />
           <DestructiveButton
             size="compact-sm"
             leftSection={<OperatorIcon icon={TrashSimpleIcon} />}
             disabled={clearPlayersDisabled}
             aria-describedby={clearPlayersHelpId}
+            aria-keyshortcuts="Control+Shift+X"
             onClick={onClearPlayers}
           >
             {t('operator:editor.clearPlayers')}
@@ -139,7 +265,7 @@ export function StreamEditorPanel({
         </Group>
       </PanelHeader>
 
-      <Stack gap="md" mt="md">
+      <Stack gap="xs" mt="xs">
         <Text id={clearPlayersHelpId} size="xs" c="dimmed">
           {t('operator:editor.clearPlayersHelp')}
         </Text>
@@ -157,77 +283,7 @@ export function StreamEditorPanel({
             </Group>
           </div>
         )}
-        <details className="operator-disclosure" data-testid="stream-appearance">
-          <summary>
-            <IconLabel icon={SlidersHorizontalIcon}>{t('operator:ux.scoreboardAppearance')}</IconLabel>
-          </summary>
-          <Stack className="operator-disclosure-content" gap="md">
-            <SimpleGrid type="container" cols={{ base: 1, '28rem': 2 }}>
-              <Select
-                data-testid="editor-game"
-                label={t('operator:editor.styling')}
-                data={profileOptions}
-                value={customStyleValue ?? draft.stylingGameId ?? draft.gameId}
-                searchable
-                allowDeselect={false}
-                onChange={(value) =>
-                  value && !value.startsWith('custom-scoreboard:') && onChangeStyling(value as GameId)
-                }
-              />
-              <BroadcastScoreboardFontSelect
-                customActive={Boolean(draft.customScoreboardId)}
-                customFont={customScoreboard?.typography.font}
-              />
-            </SimpleGrid>
-            <ScoreboardPhotoControls selectedSet={draft} logoSelectId={logoSelectId} isExhibition={isExhibition} />
-
-            <StreamBroadcastControls
-              logoSelectId={logoSelectId}
-              broadcast={draft.broadcast}
-              isExhibition={isExhibition}
-              logos={logos}
-              onChange={onPatchBroadcast}
-            />
-          </Stack>
-        </details>
-        <SimpleGrid type="container" cols={{ base: 1, '42rem': 3 }}>
-          {gameSelector ?? (
-            <BufferedTextInput
-              label={t('operator:editor.detectedGame')}
-              value={draft.gameName ?? selectedProfile?.label ?? draft.gameId}
-              readOnly
-            />
-          )}
-          <Select
-            data-testid="editor-best-of"
-            label={t('operator:editor.matchLength')}
-            description={draft.matchFormat === 'topanga' ? t('common:match.topangaDescription') : undefined}
-            inputWrapperOrder={['label', 'input', 'description', 'error']}
-            data={matchLengthOptions}
-            value={matchLengthValue}
-            allowDeselect={false}
-            onChange={(value) => {
-              if (!value) return;
-              const [matchFormat, length] = value.split(':') as [NonNullable<SelectedSetState['matchFormat']>, string];
-              const amount = Number(length);
-              onPatch({
-                matchFormat,
-                bestOf: matchFormat === 'best-of' ? amount : amount * 2 - 1
-              });
-            }}
-          />
-
-          <BufferedTextInput
-            data-stream-free-text="round"
-            data-testid="editor-round"
-            label={t('operator:editor.round')}
-            value={draft.round ?? ''}
-            placeholder={t('operator:editor.roundPlaceholder')}
-            onCommit={(value) => onPatch({ round: emptyToUndefined(value) })}
-          />
-        </SimpleGrid>
-
-        <div className="player-editor-grid">
+        <div className="stream-control-grid">
           <PlayerEditor
             libraryGameKey={isExhibition ? playerGameKey : undefined}
             side="one"
@@ -236,51 +292,36 @@ export function StreamEditorPanel({
             countries={countries}
             characters={characters}
             characterAssets={characterAssets}
-            detailsOpened={playerDetailsOpened}
-            onDetailsChange={setPlayerDetailsOpened}
             showSeed={!isExhibition}
             maxCharacters={maxCharacters}
             editableFields={selectedProfile?.editableFields ?? []}
             onChange={changePlayerOne}
           />
-          <PlayerEditor
-            libraryGameKey={isExhibition ? playerGameKey : undefined}
-            side="two"
-            title={t('operator:editor.playerTwo')}
-            player={draft.playerTwo}
-            countries={countries}
-            characters={characters}
-            characterAssets={characterAssets}
-            detailsOpened={playerDetailsOpened}
-            onDetailsChange={setPlayerDetailsOpened}
-            showSeed={!isExhibition}
-            maxCharacters={maxCharacters}
-            editableFields={selectedProfile?.editableFields ?? []}
-            onChange={changePlayerTwo}
-          />
+          {renderLiveControls ? (
+            renderLiveControls(appearance, (primary, secondary) => (
+              <>
+                <div className="stream-center-controls">
+                  {matchFields}
+                  {primary}
+                </div>
+                {playerTwoEditor}
+                <div className="stream-secondary-controls">
+                  {secondary}
+                  {matchDetails}
+                </div>
+              </>
+            ))
+          ) : (
+            <>
+              <div className="stream-center-controls">
+                {matchFields}
+                {appearance}
+                {matchDetails}
+              </div>
+              {playerTwoEditor}
+            </>
+          )}
         </div>
-        <details className="operator-disclosure">
-          <summary>
-            <IconLabel icon={ListChecksIcon}>{t('operator:ux.matchDetails')}</IconLabel>
-          </summary>
-          <SimpleGrid className="operator-disclosure-content" type="container" cols={{ base: 1, '28rem': 2 }}>
-            <BufferedTextInput
-              data-stream-free-text="displayName"
-              data-testid="editor-display-name"
-              label={t(isExhibition ? 'operator:editor.exhibitionTitle' : 'operator:editor.displayName')}
-              value={draft.displayName}
-              onCommit={(displayName) => onPatch({ displayName })}
-            />
-            <BufferedTextInput
-              data-stream-free-text="station"
-              data-testid="editor-station"
-              label={t('operator:editor.station')}
-              value={draft.station ?? ''}
-              placeholder={t('operator:editor.stationPlaceholder')}
-              onCommit={(value) => onPatch({ station: emptyToUndefined(value) })}
-            />
-          </SimpleGrid>
-        </details>
       </Stack>
     </Paper>
   );

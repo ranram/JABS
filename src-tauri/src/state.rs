@@ -331,7 +331,6 @@ impl OverlayStore {
         normalize_character_teams(&mut submitted);
         let mut current = self.state.write()
             .map_err(|_| UpdateSelectedSetError::Invalid("Local stream state is unavailable.".to_owned()))?;
-        submitted.phase = current.selected_set.phase.clone();
         submitted.tournament_name = current.selected_set.tournament_name.clone();
         submitted.phase_group = current.selected_set.phase_group.clone();
         submitted.winners_side_entrant_id = current.selected_set.winners_side_entrant_id.clone();

@@ -9,9 +9,14 @@ export const overlaySources = {
   winner: ['winner'],
   commentators: ['commentators'],
   topEightMatchups: ['top-eight-matchups'],
-  bracket: ['bracket']
+  bracket: ['bracket'],
+  queueTicker: ['queue-ticker']
 } as const satisfies Record<string, readonly PublicOverlayKind[]>;
 
 export type OtherOverlayType = keyof typeof overlaySources;
 export const otherOverlayTypes = Object.keys(overlaySources) as OtherOverlayType[];
-export const publicOverlayKinds: readonly PublicOverlayKind[] = ['score', 'stingers', ...Object.values(overlaySources).flat()];
+export const publicOverlayKinds: readonly PublicOverlayKind[] = [
+  'score',
+  'stingers',
+  ...Object.values(overlaySources).flat()
+];

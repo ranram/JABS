@@ -32,7 +32,7 @@ it('combines sponsor and player names and migrates legacy colors to shared typog
   const names = editor.view.container.querySelectorAll('.custom-scoreboard-identity');
   expect([...names].map((name) => name.textContent)).toEqual(['Team | One', 'Two | Other']);
   expect(editor.view.container.querySelector('[data-custom-scoreboard-region$=Sponsor]')).toBeNull();
-  expect(customScoreboardRegionIds.some((id) => /sponsor/i.test(id))).toBe(false);
+  expect(customScoreboardRegionIds.some((id) => id.endsWith('Sponsor'))).toBe(false);
   const saved = JSON.parse(JSON.stringify(editor.scoreboard));
   saved.playerElements.playerOne.name.color = '#cc8844';
   saved.playerElements.playerTwo.name.sponsorColor = '#4477cc';
@@ -60,6 +60,8 @@ it('combines sponsor and player names and migrates legacy colors to shared typog
 
 it('selects visible flag pixels and locks pointer or keyboard moves to the active field', async () => {
   const editor = await mountEditor();
+  editor.selectedSet.setId = 'linked-set';
+  await editor.view.rerender();
   const legacySponsor = { ...editor.scoreboard.playerElements.playerOne.sponsor };
   await editor.pointer('pointerdown', 150, 75); // Transparent flag pixels let the name underneath be selected.
   expect(editor.selected).toBe('playerOneName');
@@ -89,6 +91,46 @@ it('selects visible flag pixels and locks pointer or keyboard moves to the activ
   expect(editor.scoreboard.playerElements.playerOne.name).toMatchObject({ x: 760, y: 170 });
   expect(editor.captures.size).toBe(0);
   expect(editor.readback).toHaveBeenCalledOnce();
+});
+
+it('drags and nudges sponsor logos independently, then mirrors and serializes their bounds', async () => {
+  const editor = await mountEditor();
+  const originalName = { ...editor.scoreboard.playerElements.playerOne.name };
+  editor.scoreboard = withCustomScoreboardRegion(editor.scoreboard, 'playerOneSponsorLogo', {
+    x: 400,
+    y: 150,
+    width: 120,
+    height: 60,
+    align: 'right'
+  });
+  editor.selected = 'playerOneSponsorLogo';
+  await editor.view.rerender();
+  // Supply the SVG that appears once the sponsor artwork resolves.
+  const region = editor.view.container.querySelector('[data-custom-scoreboard-region=playerOneSponsorLogo]')!;
+  region.replaceChildren(document.createElementNS('http://www.w3.org/2000/svg', 'svg'));
+  await editor.pointer('pointerdown', 450, 170);
+  expect(editor.selected).toBe('playerOneSponsorLogo');
+  await editor.pointer('pointermove', 480, 180);
+  await editor.pointer('pointerup', 480, 180);
+  await act(async () =>
+    editor.canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }))
+  );
+  expect(customScoreboardRegion(editor.scoreboard, 'playerOneSponsorLogo')).toMatchObject({
+    x: 440,
+    y: 160,
+    width: 120,
+    height: 60
+  });
+  editor.scoreboard = mirrorCustomScoreboardRegion(editor.scoreboard, 'playerOneSponsorLogo');
+  editor.scoreboard = customScoreboardSchema.parse(JSON.parse(JSON.stringify(editor.scoreboard)));
+  expect(customScoreboardRegion(editor.scoreboard, 'playerTwoSponsorLogo')).toEqual({
+    x: 1360,
+    y: 160,
+    width: 120,
+    height: 60,
+    align: 'left'
+  });
+  expect(editor.scoreboard.playerElements.playerOne.name).toEqual(originalName);
 });
 
 it('grabs small text accurately at reduced preview sizes without saving hand jitter', async () => {

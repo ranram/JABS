@@ -1,9 +1,11 @@
 mod media;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod media_defaults_tests;
 
-pub(crate) use media::PlayerMediaDefault;
-use media::{MediaEdits, MediaMatch, default_media_placements, valid_media_placements};
+pub(crate) use media::{CharacterMediaDefault, PlayerMediaDefault};
+use media::{MediaEdits, MediaLayerEdits, MediaMatch, default_media_placements, valid_media_placements};
 pub use media::{MediaTransform, PlayerMediaPlacement};
 
 use crate::database::{Database, now_rfc3339};
@@ -13,7 +15,7 @@ use std::sync::RwLock;
 use tokio::sync::broadcast;
 
 const SURFACE_ID: &str = "versus-screen";
-const STAT_ROWS: [&str; 4] = ["age", "sponsor", "seed", "nickname"];
+const STAT_ROWS: [&str; 6] = ["age", "sponsor", "seed", "nickname", "main", "pronouns"];
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -53,8 +55,8 @@ pub struct VersusHistory {
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VersusScreenState {
-    #[serde(default = "default_styling_game_id")]
-    pub styling_game_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub styling_game_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub logo_asset_id: Option<String>,
     #[serde(default = "default_true")]
@@ -148,8 +150,9 @@ impl VersusScreenStore {
         submitted.history_loading = current.history_loading;
         submitted.history_error = current.history_error.clone();
         submitted.media_match = current.media_match.clone();
-        let edited = std::array::from_fn(|side| {
-            submitted.media_placements[side] != current.media_placements[side]
+        let edited: [MediaLayerEdits; 2] = std::array::from_fn(|side| MediaLayerEdits {
+            character: submitted.media_placements[side].character != current.media_placements[side].character,
+            photo: submitted.media_placements[side].photo != current.media_placements[side].photo,
         });
         if submitted.media_mode != current.media_mode {
             let restored = match &submitted.media_match {
@@ -157,13 +160,13 @@ impl VersusScreenStore {
                 None => default_media_placements(),
             };
             for (side, placement) in restored.into_iter().enumerate() {
-                if !edited[side] {
+                if !edited[side].character && !edited[side].photo {
                     submitted.media_placements[side] = placement;
                 }
             }
         }
         let edits = match &submitted.media_match {
-            Some(context) if edited.into_iter().any(|edited| edited) => {
+            Some(context) if edited.iter().any(|side| side.character || side.photo) => {
                 Some(context.serialize_edits(
                     database,
                     &submitted.media_mode,
@@ -311,6 +314,7 @@ impl VersusScreenStore {
             &next.updated_at,
             match_media,
             player_defaults,
+            edits.map_or(&[][..], |edits| edits.character_defaults.as_slice()),
         )?;
         *current = next;
         let _ = self.updates.send(payload.clone());
@@ -320,7 +324,7 @@ impl VersusScreenStore {
 }
 
 fn validate(state: &VersusScreenState) -> bool {
-    crate::state::is_supported_game_id(&state.styling_game_id)
+    state.styling_game_id.as_deref().is_none_or(crate::state::is_supported_game_id)
         && state
             .logo_asset_id
             .as_deref()
@@ -339,14 +343,14 @@ fn validate(state: &VersusScreenState) -> bool {
 }
 
 fn valid_stat_rows(rows: &[String]) -> bool {
-    rows.len() <= STAT_ROWS.len()
+    rows.len() <= 4
         && rows.iter().all(|row| STAT_ROWS.contains(&row.as_str()))
         && rows.iter().collect::<std::collections::HashSet<_>>().len() == rows.len()
 }
 
 fn default_state() -> Result<VersusScreenState, String> {
     Ok(VersusScreenState {
-        styling_game_id: default_styling_game_id(),
+        styling_game_id: None,
         logo_asset_id: None,
         show_background: true,
         show_match_backdrop: true,
@@ -365,12 +369,9 @@ fn default_state() -> Result<VersusScreenState, String> {
     })
 }
 
-fn default_styling_game_id() -> String {
-    "street-fighter-6".to_owned()
-}
 
 fn default_stat_rows() -> Vec<String> {
-    STAT_ROWS.map(str::to_owned).to_vec()
+    ["age", "sponsor", "seed", "nickname"].map(str::to_owned).to_vec()
 }
 
 fn default_media_mode() -> String {

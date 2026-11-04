@@ -1,4 +1,4 @@
-/* Compact operator layout: shadcn-style primitives with a restrained arcade accent. */
+/* Compact operator layout with a restrained arcade accent. */
 .operator-shell {
   --deck-panel: rgba(20, 20, 25, 0.94);
   --deck-panel-strong: rgba(13, 13, 17, 0.98);
@@ -53,6 +53,8 @@
 .operator-workspaces {
   width: 100%;
   min-width: 0;
+  border: 1px solid rgba(167, 139, 250, 0.38);
+  background: var(--deck-panel);
 }
 
 .workspace-sticky-header {
@@ -62,32 +64,59 @@
   background: var(--mantine-color-body);
 }
 
-.operator-workspaces .mantine-Tabs-list {
-  gap: 0;
+.workspace-sticky-header > .mantine-Tabs-list {
+  gap: 10px;
   align-items: stretch;
   flex-wrap: wrap;
-  padding: 0;
-  background: rgba(139, 92, 246, 0.055);
+  padding: 10px 10px 0;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.5);
+  background: rgba(8, 7, 13, 0.65);
 }
 
 .workspace-sticky-header .mantine-Tabs-list::before {
   display: none;
 }
 
-.operator-workspaces .mantine-Tabs-tab {
+.workspace-sticky-header > .mantine-Tabs-list > .mantine-Tabs-tab {
   min-height: 42px;
   align-self: stretch;
-  border: 0;
-  border-radius: 0;
-  color: #aaa5b5;
+  margin-bottom: -1px;
+  padding-inline: 16px;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 4px 4px 0 0;
+  background: #302b3d;
+  color: #e5dfef;
   font-size: 12px;
   font-weight: 800;
+  cursor: pointer;
 }
 
-.operator-workspaces .mantine-Tabs-tab[data-active] {
-  background: rgba(139, 92, 246, 0.12);
-  box-shadow: inset 0 0 0 1px #8b5cf6;
-  color: var(--deck-ink);
+.workspace-sticky-header > .mantine-Tabs-list > .mantine-Tabs-tab:hover {
+  border-color: #a78bfa;
+  background: #443451;
+  color: #fff;
+}
+
+.workspace-sticky-header > .mantine-Tabs-list > .mantine-Tabs-tab[data-active] {
+  border-color: #b99afc;
+  border-bottom-color: #48335f;
+  background: #48335f;
+  box-shadow: inset 0 3px #c4b5fd;
+  color: #fff;
+}
+
+.workspace-sticky-header > .mantine-Tabs-list > .mantine-Tabs-tab:focus-visible {
+  outline: 2px solid #e0d4ff;
+  outline-offset: -5px;
+}
+
+.operator-workspaces > .mantine-Tabs-panel {
+  padding-inline: 12px;
+  padding-bottom: 12px;
+}
+
+.operator-workspaces .combined-stream-workspace {
+  margin-top: 0;
 }
 
 .bracket-workspace,
@@ -229,7 +258,7 @@
   }
 
   .bracket-overview-grid {
-    grid-template-columns: minmax(270px, 0.75fr) minmax(0, 2fr);
+    grid-template-columns: minmax(440px, 0.85fr) minmax(0, 2fr);
   }
 
   .operator-shell .grid-layout.wide .editor-panel {
@@ -247,7 +276,7 @@
 
 @media (max-width: 980px) {
   .bracket-overview-grid .set-list {
-    height: clamp(300px, 45vh, 440px);
+    min-height: 0;
   }
 
   .bracket-overview-grid,

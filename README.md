@@ -10,6 +10,7 @@ Public brackets work without a token. Reporting results requires a start.gg toke
 
 - Browse start.gg brackets, send matches to stream, and report results.
 - Run exhibitions, including first-to matches and Topanga Rules.
+- Queue stream matches and show upcoming matches or recent results in an OBS ticker.
 - Show live scoreboards, match previews, results, player stats, brackets, and commentators in OBS.
 - Save player profiles, photos, and character choices for future matches.
 - Customize your overlays with local artwork, fonts, logos, and scoreboard frames.
@@ -59,7 +60,7 @@ Other fighting games are available through the searchable **Game** list or their
 
 ## Get started
 
-1. Load a start.gg tournament URL or slug, choose an event, and send a set to stream. For exhibitions, choose a game and enter the players directly.
+1. Load a start.gg tournament URL or slug, open **Set Selector**, and choose an event and match to send to stream. For exhibitions, choose a game and enter the players directly.
 2. Choose a source from **Copy overlay URL** in the toolbar, then paste its URL into an OBS Browser Source at `1920×1080`.
 3. Keep JABS running and update scores from **Edit stream state**.
 
@@ -67,20 +68,7 @@ Choose **Help** for in-app tutorials. The [User Manual](USER_MANUAL.md) covers a
 
 ## Develop
 
-For source builds, install:
-
-- Node.js `24.22.1` to match CI. Later 24.x releases and versions `26.12.1` or newer are also supported.
-- pnpm `11.18.0` and Rust `1.97.1` or newer.
-- The [Tauri 2 platform prerequisites](https://v2.tauri.app/start/prerequisites/). Linux also requires WebKitGTK `2.52.3` or newer.
-
-```sh
-pnpm install --frozen-lockfile
-pnpm run dev
-```
-
-The release packages run without Node.js, pnpm, or Rust installed.
-
-See the [Technical Manual](TECH_MANUAL.md) for architecture, contributor checks, and source builds.
+See the [Technical Manual](TECH_MANUAL.md#development-tools) for source setup, development commands, and contributor checks. Installed copies do not require development tools.
 
 ## License and support
 

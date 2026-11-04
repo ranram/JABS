@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Box, Button, Code, Group, Kbd, Paper, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Box, Button, Code, Group, Paper, Popover, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { scoreLimitForPlayer } from '@shared/gameProfiles';
 import type { LocalHandoffUrl } from '../../desktopRuntime';
@@ -10,6 +10,7 @@ import { useReportOutcome, ResultOutcomeButtons, reportOutcomeText } from './Res
 import { hasStreamMatch } from './streamStatus';
 import { MatchQueueControls } from './MatchQueueControls';
 import { QuickScore } from './ScoreControls';
+import { KeyboardShortcutGuide } from './KeyboardShortcutGuide';
 import { OverlayUrlMenu } from './OverlayUrlMenu';
 import { useMatchFormatLabel } from '../useMatchFormatLabel';
 import { DestructiveButton } from '../DestructiveButton';
@@ -25,6 +26,9 @@ import {
 } from '../icons';
 
 type LiveControlsPanelProps = {
+  embedded?: boolean;
+  beforeDetails?: ReactNode;
+  renderLayout?(primary: ReactNode, secondary: ReactNode): ReactNode;
   reportingEnabled: boolean;
   shortcutsEnabled: boolean;
   selectedSet: SelectedSetState;
@@ -42,6 +46,9 @@ type LiveControlsPanelProps = {
 };
 
 export function LiveControlsPanel({
+  embedded = false,
+  beforeDetails,
+  renderLayout,
   reportingEnabled,
   shortcutsEnabled,
   selectedSet,
@@ -82,20 +89,54 @@ export function LiveControlsPanel({
       : !reportDisabled
         ? 'ready'
         : 'pending';
-  return (
-    <Paper className="panel preview-panel live-controls-panel" p="md" radius="lg" withBorder>
-      <Stack gap="md">
-        <PanelHeader title={t('operator:live.title')} icon={MonitorIcon} inset="md" />
-        <Text size="xs" c="dimmed">
-          {[
-            hasStreamMatch(selectedSet)
-              ? [selectedSet.tournamentName, selectedSet.round].filter(Boolean).join(' · ') || selectedSet.gameName
-              : t('operator:ux.noMatch'),
+  const content = (
+    <Stack gap={embedded ? 'xs' : 'md'}>
+      {!embedded && <PanelHeader title={t('operator:live.title')} icon={MonitorIcon} inset="md" />}
+      <Group justify="space-between" align="baseline" gap="xs" wrap="nowrap">
+        <Text size="xs" c="dimmed" flex={1} miw={0} truncate="end">
+          {hasStreamMatch(selectedSet)
+            ? [selectedSet.tournamentName, selectedSet.round].filter(Boolean).join(' · ') || selectedSet.gameName
+            : t('operator:ux.noMatch')}
+          {' · '}
+          {selectedSet.matchFormat === 'topanga' ? (
+            <Popover width={280} position="bottom-start" withArrow shadow="md" trapFocus returnFocus>
+              <Popover.Target>
+                <Anchor
+                  component="button"
+                  type="button"
+                  size="xs"
+                  c="dimmed"
+                  underline="always"
+                  style={{ fontSize: 'inherit', lineHeight: 'inherit' }}
+                >
+                  {matchLabel}
+                </Anchor>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <Text size="sm">{t('common:match.topangaDescription')}</Text>
+              </Popover.Dropdown>
+            </Popover>
+          ) : (
             matchLabel
-          ]
-            .filter(Boolean)
-            .join(' · ')}
+          )}
         </Text>
+        <Text
+          size="xs"
+          ta="right"
+          miw={0}
+          maw="65%"
+          truncate="end"
+          c={resultStatus === 'reported' ? 'teal' : 'dimmed'}
+          role="status"
+        >
+          {outcome
+            ? reportOutcomeText(selectedSet, outcome)
+            : selectedSet.upstreamReset
+              ? reportReadinessReason
+              : t(`operator:ux.result.${resultStatus}`)}
+        </Text>
+      </Group>
+      <Stack gap="xs" className={embedded ? 'stream-score-pair' : undefined}>
         <QuickScore
           side="one"
           resultControls={
@@ -136,128 +177,108 @@ export function LiveControlsPanel({
             onScore('two', score);
           }}
         />
-        <Stack gap={6}>
-          <Tooltip
-            label={reportDisabledReason}
-            disabled={!reportDisabledReason}
-            multiline
-            w={280}
-            events={{ hover: true, focus: true, touch: true }}
+      </Stack>
+      <SimpleGrid cols={3} spacing="xs" className="stream-action-row">
+        <Button
+          variant="default"
+          disabled={loading || draftDirty}
+          onClick={onSwap}
+          leftSection={<OperatorIcon icon={ArrowsLeftRightIcon} size={14} />}
+        >
+          {t('common:actions.swapPlayers')}
+        </Button>
+        <Tooltip
+          label={reportDisabledReason}
+          disabled={!reportDisabledReason}
+          multiline
+          w={280}
+          events={{ hover: true, focus: true, touch: true }}
+        >
+          <Box
+            component="span"
+            display="block"
+            data-tutorial="report-result"
+            tabIndex={reportDisabled ? 0 : undefined}
+            aria-label={reportDisabledReason}
           >
-            <Box
-              component="span"
-              display="block"
-              data-tutorial="report-result"
-              tabIndex={reportDisabled ? 0 : undefined}
-              aria-label={reportDisabledReason}
+            <Button
+              fullWidth
+              data-testid="report-startgg-result"
+              disabled={reportDisabled}
+              onClick={() => onReport(outcome)}
+              leftSection={<OperatorIcon icon={CheckCircleIcon} size={14} />}
             >
-              <Button
-                fullWidth
-                data-testid="report-startgg-result"
-                disabled={reportDisabled}
-                onClick={() => onReport(outcome)}
-                leftSection={<OperatorIcon icon={CheckCircleIcon} />}
-              >
-                {t('operator:live.report')}
-              </Button>
-            </Box>
-          </Tooltip>
-          <Text size="xs" ta="center" c={resultStatus === 'reported' ? 'teal' : 'dimmed'} role="status">
-            {outcome
-              ? reportOutcomeText(selectedSet, outcome)
-              : selectedSet.upstreamReset
-                ? reportReadinessReason
-                : t(`operator:ux.result.${resultStatus}`)}
-          </Text>
-        </Stack>
-        <SimpleGrid cols={2}>
-          <Button
-            variant="default"
-            disabled={loading || draftDirty}
-            onClick={onSwap}
-            leftSection={<OperatorIcon icon={ArrowsLeftRightIcon} />}
-          >
-            {t('common:actions.swapPlayers')}
-          </Button>
-          <DestructiveButton
-            disabled={loading || draftDirty}
-            onClick={() => {
-              clear();
-              onReset();
-            }}
-            leftSection={<OperatorIcon icon={ArrowCounterClockwiseIcon} />}
-          >
-            {t('common:actions.resetScores')}
-          </DestructiveButton>
-        </SimpleGrid>
-        <MatchQueueControls />
-        {shortcutsEnabled && (
-          <details className="operator-disclosure">
-            <summary>
-              <IconLabel icon={KeyboardIcon}>{t('operator:ux.scoreShortcuts')}</IconLabel>
-            </summary>
-            <Stack className="operator-disclosure-content score-shortcuts" gap="xs">
-              {(['one', 'two'] as const).map((side, index) => (
-                <Group key={side} gap="sm">
-                  <ShortcutInstruction>
-                    <Kbd>{index + 1}</Kbd>
-                    <Text size="xs" c="dimmed">
-                      {t(side === 'one' ? 'operator:live.playerOnePoint' : 'operator:live.playerTwoPoint')}
-                    </Text>
-                  </ShortcutInstruction>
-                  <ShortcutInstruction>
-                    <Kbd>Shift</Kbd>
-                    <Text size="xs" c="dimmed">
-                      +
-                    </Text>
-                    <Kbd>{index + 1}</Kbd>
-                    <Text size="xs" c="dimmed">
-                      {t(
-                        side === 'one' ? 'operator:live.subtractPlayerOnePoint' : 'operator:live.subtractPlayerTwoPoint'
-                      )}
-                    </Text>
-                  </ShortcutInstruction>
-                </Group>
-              ))}
-              <ShortcutInstruction>
-                <Kbd>Ctrl+Shift+R</Kbd>
-                <Text size="xs" c="dimmed">
-                  {t('common:actions.resetScores')}
-                </Text>
-              </ShortcutInstruction>
-              <ShortcutInstruction>
-                <Kbd>Ctrl+Shift+S</Kbd>
-                <Text size="xs" c="dimmed">
-                  {t('common:actions.swapPlayers')}
-                </Text>
-              </ShortcutInstruction>
-            </Stack>
-          </details>
-        )}
+              {t('operator:live.report')}
+            </Button>
+          </Box>
+        </Tooltip>
+        <DestructiveButton
+          disabled={loading || draftDirty}
+          onClick={() => {
+            clear();
+            onReset();
+          }}
+          leftSection={<OperatorIcon icon={ArrowCounterClockwiseIcon} size={14} />}
+        >
+          {t('common:actions.resetScores')}
+        </DestructiveButton>
+      </SimpleGrid>
+    </Stack>
+  );
+  const secondary = (
+    <Stack gap="xs" className="stream-live-details">
+      <MatchQueueControls />
+      {beforeDetails}
+      {shortcutsEnabled && (
         <details className="operator-disclosure">
           <summary>
-            <IconLabel icon={MonitorIcon}>{t('operator:live.obsTitle')}</IconLabel>
+            <IconLabel icon={KeyboardIcon}>{t('operator:ux.scoreShortcuts')}</IconLabel>
           </summary>
-          <Stack gap="xs" className="operator-disclosure-content">
-            <Text size="xs" c="dimmed">
-              {t('operator:live.obsHelp')}
-            </Text>
-            <Group className="handoff-url" wrap="nowrap">
-              <Code data-testid="obs-active-url" block>
-                {overlayUrl ?? t('operator:live.resolvingObs')}
-              </Code>
-              <OverlayUrlMenu copied={copiedHandoff} disabled={!overlayUrl} onCopy={onCopy} />
-            </Group>
-          </Stack>
+          <KeyboardShortcutGuide />
         </details>
-      </Stack>
-    </Paper>
+      )}
+      <details className="operator-disclosure">
+        <summary>
+          <IconLabel icon={MonitorIcon}>{t('operator:live.obsTitle')}</IconLabel>
+        </summary>
+        <Stack gap="xs" className="operator-disclosure-content">
+          <Text size="xs" c="dimmed">
+            {t('operator:live.obsHelp')}
+          </Text>
+          <Group className="handoff-url" wrap="nowrap">
+            <Code data-testid="obs-active-url" block>
+              {overlayUrl ?? t('operator:live.resolvingObs')}
+            </Code>
+            <OverlayUrlMenu copied={copiedHandoff} disabled={!overlayUrl} onCopy={onCopy} />
+          </Group>
+        </Stack>
+      </details>
+    </Stack>
   );
-}
-function ShortcutInstruction({ children }: { children: ReactNode }) {
-  return (
-    <Group gap={6} wrap="nowrap">
-      {children}
-    </Group>
+  if (embedded && renderLayout)
+    return renderLayout(
+      <div
+        className="preview-panel live-controls-panel embedded-live-controls"
+        role="group"
+        aria-label={t('operator:live.title')}
+      >
+        {content}
+      </div>,
+      secondary
+    );
+  return embedded ? (
+    <div
+      className="preview-panel live-controls-panel embedded-live-controls"
+      role="group"
+      aria-label={t('operator:live.title')}
+    >
+      {content}
+      {secondary}
+    </div>
+  ) : (
+    <Paper className="panel preview-panel live-controls-panel" p="md" radius="lg" withBorder>
+      {content}
+      {secondary}
+    </Paper>
   );
 }

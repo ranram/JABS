@@ -1,3 +1,4 @@
+import { playerCharacters } from '@shared/characterTeams';
 import { useTranslation } from 'react-i18next';
 import type { SelectedSetState } from '@shared/models';
 import type { VersusScreenState, VersusStat } from '@shared/versusScreen';
@@ -22,6 +23,10 @@ export function useVersusDetails(
   function value(row: VersusStat, index: number): string | undefined {
     const player = players[index];
     switch (row) {
+      case 'main':
+        return playerCharacters(player)[0]?.trim() || undefined;
+      case 'pronouns':
+        return player.pronouns?.trim() || undefined;
       case 'age':
         return profiles[index]?.age?.toString();
       case 'sponsor':

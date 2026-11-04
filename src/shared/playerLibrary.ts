@@ -88,6 +88,10 @@ export const libraryPresentationSchema = z.object({
 });
 export const libraryResolveSchema = z.array(libraryPresentationSchema.nullable());
 export type LibraryIdentity = { localPlayerId?: string; playerId?: string };
+export function normalizeXHandle(value: string | undefined): string {
+  return value?.trim().replace(/^@+/, '').trim() ?? '';
+}
+
 export function playerLabel(player: LibraryPlayer): string {
   return player.overrides.name || player.imported.name;
 }

@@ -170,9 +170,7 @@ it('keeps drafts after failed saves and closes after a successful save', async (
     warnings: []
   }));
   try {
-    expect(document.querySelector('.player-library-count')?.textContent).toBe(
-      '274 players registered in the player library'
-    );
+    expect(document.querySelector('.player-library-count')?.textContent).toBe('274 saved players');
     const librarySearch = document.querySelector<HTMLInputElement>('.player-library-list input')!;
     const unfilteredReads = () => libraryUi.search.mock.calls.filter(([query]) => !query).length;
     const reads = unfilteredReads();
@@ -181,9 +179,7 @@ it('keeps drafts after failed saves and closes after a successful save', async (
       librarySearch.dispatchEvent(new Event('input', { bubbles: true }));
     });
     await act(async () => vi.advanceTimersByTimeAsync(250));
-    expect(document.querySelector('.player-library-count')?.textContent).toBe(
-      '274 players registered in the player library'
-    );
+    expect(document.querySelector('.player-library-count')?.textContent).toBe('274 saved players');
     expect(document.querySelector('.player-library-list')?.textContent).toContain('No players match this search.');
     expect(unfilteredReads()).toBe(reads);
     await act(async () => {
@@ -312,14 +308,10 @@ it('translates rejected-field notices and protects unsaved drafts on Escape', as
         await i18n.changeLanguage(language);
       });
       expect(document.querySelector('.player-library-count')?.textContent).toBe(
-        language === 'en'
-          ? '274 players registered in the player library'
-          : '274 jugadores registrados en la biblioteca de jugadores'
+        language === 'en' ? '274 saved players' : '274 jugadores guardados'
       );
       expect(i18n.t('operator:players.count', { count: 1 })).toBe(
-        language === 'en'
-          ? '1 player registered in the player library'
-          : '1 jugador registrado en la biblioteca de jugadores'
+        language === 'en' ? '1 saved player' : '1 jugador guardado'
       );
       for (const field of ['nickname', 'pronouns', 'age'] as const) {
         const label = [...document.querySelectorAll<HTMLLabelElement>('label')].find(

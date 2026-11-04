@@ -399,7 +399,9 @@
   text-overflow: ellipsis;
 }
 .versus-stat-sponsor .versus-stat-value,
-.versus-stat-nickname .versus-stat-value {
+.versus-stat-nickname .versus-stat-value,
+.versus-stat-main .versus-stat-value,
+.versus-stat-pronouns .versus-stat-value {
   font-size: calc(30px * var(--appearance-text-scale, 1));
 }
 .versus-stat-sponsor .versus-stat-value {

@@ -6,6 +6,7 @@ use tokio::sync::broadcast;
 
 pub(super) async fn websocket_session(mut socket: WebSocket, runtime: Arc<RuntimeState>) {
     let mut queue_updates = runtime.match_queue.subscribe();
+    let mut ticker_updates = runtime.queue_ticker.subscribe();
     let mut stinger_updates = runtime.stingers.subscribe();
     let mut photo_updates = runtime.scoreboard_photos.subscribe();
     let mut updates = runtime.overlay.subscribe();
@@ -30,6 +31,11 @@ pub(super) async fn websocket_session(mut socket: WebSocket, runtime: Arc<Runtim
 
     loop {
         tokio::select! {
+            update = ticker_updates.recv() => match update {
+                Ok(payload) => { if socket.send(Message::Text(payload.into())).await.is_err() { break; } },
+                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                Err(broadcast::error::RecvError::Closed) => break,
+            },
             update = queue_updates.recv() => match update {
                 Ok(payload) => { if socket.send(Message::Text(payload.into())).await.is_err() { break; } },
                 Err(broadcast::error::RecvError::Lagged(_)) => continue,

@@ -16,8 +16,8 @@ pub struct Commentator {
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommentatorState {
-    #[serde(default = "default_styling_game_id")]
-    pub styling_game_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub styling_game_id: Option<String>,
     pub tournament_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logo_asset_id: Option<String>,
@@ -36,7 +36,7 @@ impl CommentatorStore {
         let state = crate::persisted_state::restore(
             database, "commentators", database.load_broadcast_surface(SURFACE_ID)?,
             || Ok(CommentatorState {
-            styling_game_id: default_styling_game_id(),
+            styling_game_id: None,
             tournament_name: "Tournament Broadcast".to_owned(),
             logo_asset_id: None,
             commentators: vec![
@@ -90,7 +90,7 @@ impl CommentatorStore {
 }
 
 fn validate(state: &CommentatorState, logo_directory: &Path) -> Result<(), String> {
-    if !crate::state::is_supported_game_id(&state.styling_game_id) {
+    if state.styling_game_id.as_deref().is_some_and(|id| !crate::state::is_supported_game_id(id)) {
         return Err("Choose a recognized Styling game profile.".to_owned());
     }
     if state.tournament_name.trim().is_empty() || state.tournament_name.chars().count() > 80 {
@@ -125,4 +125,3 @@ fn validate(state: &CommentatorState, logo_directory: &Path) -> Result<(), Strin
     Ok(())
 }
 
-fn default_styling_game_id() -> String { "street-fighter-6".to_owned() }

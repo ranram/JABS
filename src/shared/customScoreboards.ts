@@ -8,12 +8,14 @@ export const defaultCustomScoreboardFont: CustomScoreboardFontId = 'bebas-neue';
 
 export const customScoreboardRegionIds = [
   'playerOneFlag',
+  'playerOneSponsorLogo',
   'playerOneXHandle',
   'playerOneName',
   'playerOnePronouns',
   'playerOneSeed',
   'playerOneScore',
   'playerTwoFlag',
+  'playerTwoSponsorLogo',
   'playerTwoXHandle',
   'playerTwoName',
   'playerTwoPronouns',
@@ -47,8 +49,9 @@ const regionSchema = z
 
 const playerElementRegionsSchema = z.object({
   flag: regionSchema,
-  // Preserve older layout files; the name region now owns sponsor text too.
+  // Legacy sponsor-text bounds remain readable in imported layouts; names include this text.
   sponsor: regionSchema,
+  sponsorLogo: regionSchema.optional(),
   xHandle: regionSchema.optional(),
   name: regionSchema,
   pronouns: regionSchema,
@@ -139,12 +142,14 @@ const playerRegionLocations: Partial<
   >
 > = {
   playerOneFlag: { side: 'playerOne', element: 'flag' },
+  playerOneSponsorLogo: { side: 'playerOne', element: 'sponsorLogo' },
   playerOneXHandle: { side: 'playerOne', element: 'xHandle' },
   playerOneName: { side: 'playerOne', element: 'name' },
   playerOnePronouns: { side: 'playerOne', element: 'pronouns' },
   playerOneSeed: { side: 'playerOne', element: 'seed' },
   playerOneScore: { side: 'playerOne', element: 'score' },
   playerTwoFlag: { side: 'playerTwo', element: 'flag' },
+  playerTwoSponsorLogo: { side: 'playerTwo', element: 'sponsorLogo' },
   playerTwoXHandle: { side: 'playerTwo', element: 'xHandle' },
   playerTwoName: { side: 'playerTwo', element: 'name' },
   playerTwoPronouns: { side: 'playerTwo', element: 'pronouns' },
@@ -160,6 +165,17 @@ export function customScoreboardRegion(
   if (location) {
     const side = scoreboard.playerElements[location.side];
     const region = side[location.element];
+    if (!region && location.element === 'sponsorLogo') {
+      const name = side.name;
+      const width = Math.max(20, Math.min(160, Math.round(name.width * 0.42)));
+      return clampCustomScoreboardRegion(id, {
+        x: location.side === 'playerOne' ? name.x + name.width - width - 8 : name.x + 8,
+        y: name.y,
+        width,
+        height: name.height,
+        align: location.side === 'playerOne' ? 'right' : 'left'
+      });
+    }
     return region ?? defaultPlayerElementRegion(location.side, location.element);
   }
   return scoreboard.regions[id as keyof CustomScoreboard['regions']];

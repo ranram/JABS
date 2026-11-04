@@ -253,6 +253,17 @@ it('keeps optional comparisons paired, shows unknown values honestly, and keeps 
   expect(ticker('right')).toBe('Location Honduras · Age 30');
   expect(set.playerOne).not.toHaveProperty('age');
   expect(set.playerTwo).not.toHaveProperty('nickname');
+  set.playerOne.character = 'Ryu';
+  set.playerOne.characters = ['Ken', 'Ryu'];
+  set.playerOne.pronouns = 'he/him';
+  set.playerTwo.character = 'Chun-Li';
+  settings.statRows = ['main', 'pronouns'];
+  await view.rerender();
+  expect(view.container.querySelector('.versus-stat-main')?.textContent).toBe('KenMainChun-Li');
+  expect(view.container.querySelector('.versus-stat-pronouns')?.textContent).toContain('he/him');
+  expect(ticker('left')).toContain('Main Ken');
+  expect(ticker('left')).toContain('Pronouns he/him');
+
   await view.unmount();
 });
 
@@ -274,6 +285,17 @@ beforeEach(async () => {
 it('presents exhibitions in OBS and preview while preserving media through score and appearance edits', async () => {
   const { view, exhibition, assertCards, historyButton } = await mountExhibition();
   assertCards('First to 7');
+  const clearStyle = view.container.querySelector<HTMLButtonElement>('button[aria-label="Use live match style"]')!;
+  await act(async () => clearStyle.click());
+  expect(transport.save).toHaveBeenLastCalledWith(expect.objectContaining({ stylingGameId: undefined }));
+  exhibition.stylingGameId = 'tekken-8';
+  await view.rerender();
+  expect(
+    [...view.container.querySelectorAll('.versus-overlay')].every((overlay) => overlay.classList.contains('theme-t8'))
+  ).toBe(true);
+  exhibition.stylingGameId = 'street-fighter-6';
+  await view.rerender();
+
   const backdropSwitch = () => {
     const label = [...view.container.querySelectorAll('label')].find((label) =>
       label.textContent?.startsWith('Match information backdrop')
@@ -472,7 +494,7 @@ it('loads history for linked exhibitions and hides tournament-only seed controls
     [...view.container.querySelectorAll<HTMLLabelElement>('label')].filter((label) =>
       /^Row \d$/.test(label.textContent ?? '')
     );
-  expect(rowLabels()).toHaveLength(3);
+  expect(rowLabels()).toHaveLength(4);
   await act(async () => document.getElementById(rowLabels()[0].htmlFor)!.click());
   const statOptions = [...document.querySelectorAll<HTMLElement>('[role=option]')];
   expect(statOptions.some((option) => option.textContent === 'Seed')).toBe(false);

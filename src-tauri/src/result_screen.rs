@@ -20,8 +20,8 @@ pub enum ResultComposition {
 pub struct ResultScreenState {
     #[serde(default)]
     pub composition: ResultComposition,
-    #[serde(default = "default_styling_game_id")]
-    pub styling_game_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub styling_game_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub logo_asset_id: Option<String>,
     #[serde(default = "default_true")]
@@ -49,7 +49,7 @@ impl ResultScreenStore {
             || {
                 Ok(ResultScreenState {
                     composition: ResultComposition::default(),
-                    styling_game_id: default_styling_game_id(),
+                    styling_game_id: None,
                     logo_asset_id: None,
                     show_background: true,
                     show_text_backdrop: false,
@@ -61,7 +61,7 @@ impl ResultScreenStore {
                 })
             },
             |state: &mut ResultScreenState| {
-                if crate::state::is_supported_game_id(&state.styling_game_id)
+                if state.styling_game_id.as_deref().is_none_or(crate::state::is_supported_game_id)
                     && state
                         .logo_asset_id
                         .as_deref()
@@ -102,7 +102,7 @@ impl ResultScreenStore {
         database: &Database,
         mut submitted: ResultScreenState,
     ) -> Result<Value, String> {
-        if !crate::state::is_supported_game_id(&submitted.styling_game_id) {
+        if submitted.styling_game_id.as_deref().is_some_and(|id| !crate::state::is_supported_game_id(id)) {
             return Err("Choose a recognized Styling game profile.".to_owned());
         }
         if submitted
@@ -126,9 +126,6 @@ impl ResultScreenStore {
     }
 }
 
-fn default_styling_game_id() -> String {
-    "street-fighter-6".to_owned()
-}
 fn default_true() -> bool {
     true
 }

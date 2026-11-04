@@ -7,12 +7,8 @@
   --paper-border-color: var(--operator-container-border);
 }
 
-[data-mantine-color-scheme] :is(
-  .mantine-Popover-dropdown,
-  .mantine-Menu-dropdown,
-  .mantine-HoverCard-dropdown,
-  .mantine-Combobox-dropdown
-) {
+[data-mantine-color-scheme]
+  :is(.mantine-Popover-dropdown, .mantine-Menu-dropdown, .mantine-HoverCard-dropdown, .mantine-Combobox-dropdown) {
   --popover-border-color: var(--operator-container-border);
 }
 
@@ -91,8 +87,6 @@
   border-radius: 0 !important;
 }
 
-.workspace-sticky-header,
 .mantine-Menu-dropdown {
   border: 1px solid var(--operator-container-border);
 }
-

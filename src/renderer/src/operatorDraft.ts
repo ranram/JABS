@@ -81,6 +81,7 @@ export function reconcileDirtyDraft(
   return {
     ...live,
     displayName: changed('displayName', draft, baseline, live),
+    phase: changed('phase', draft, baseline, live),
     round: changed('round', draft, baseline, live),
     station: changed('station', draft, baseline, live),
     stylingGameId: changed('stylingGameId', draft, baseline, live),

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ReportOutcome } from '@shared/models';
 import { useTranslation } from 'react-i18next';
+import { ResultMarker } from '../ResultMarker';
 import './matchCard.css';
 
 type MatchCardSummaryProps = {
@@ -39,13 +40,13 @@ export function MatchCardSummary({
       </div>
       <div className="match-card-matchup">
         <span className="match-card-player match-card-player-one">
-          {decisive && <ResultMarker mark={oneMark} />}
+          {decisive && <ResultMarker mark={oneMark} className="match-card-outcome" />}
           <span className="match-card-player-name">{playerOne}</span>
         </span>
         <span className="match-card-versus">{t('common:match.versus')}</span>
         <span className="match-card-player match-card-player-two">
           <span className="match-card-player-name">{playerTwo}</span>
-          {decisive && <ResultMarker mark={twoMark} />}
+          {decisive && <ResultMarker mark={twoMark} className="match-card-outcome" />}
         </span>
       </div>
       <div className="match-card-footer">
@@ -57,16 +58,5 @@ export function MatchCardSummary({
         )}
       </div>
     </div>
-  );
-}
-
-function ResultMarker({ mark }: { mark: 'W' | 'L' | 'DQ' }) {
-  const { t } = useTranslation('operator');
-  const winner = mark === 'W';
-  const label = t(mark === 'DQ' ? 'selector.disqualified' : winner ? 'selector.winner' : 'selector.loser');
-  return (
-    <span className={`match-card-outcome ${winner ? 'is-winner' : 'is-loser'}`} title={label} aria-label={label}>
-      {mark}
-    </span>
   );
 }

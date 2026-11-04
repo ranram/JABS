@@ -1,0 +1,60 @@
+.queue-match-card,
+.queue-match-empty {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.025);
+}
+.queue-match-card {
+  width: 100%;
+  height: 100%;
+}
+.queue-match-card:hover {
+  border-color: rgba(151, 191, 216, 0.4);
+}
+.queue-match-card:focus-visible {
+  outline: 2px solid var(--operator-accent);
+  outline-offset: 2px;
+}
+.queue-match-card .match-card-summary {
+  gap: 8px;
+  grid-template-rows: auto minmax(24px, auto) auto;
+}
+.queue-match-card .match-card-context {
+  font-weight: 650;
+}
+.queue-match-card .match-card-player {
+  font-size: 18px;
+}
+
+.match-queue-inset .queue-status-pill {
+  height: auto;
+  min-height: 24px;
+  padding: 3px 10px;
+  border: 1px solid var(--operator-container-border);
+  border-radius: 999px;
+  background: rgba(151, 191, 216, 0.12);
+  color: #c6d1dc;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.match-queue-inset .queue-status-pill[data-running] {
+  background: rgba(52, 211, 153, 0.12);
+  color: #9fe3ca;
+}
+
+.stream-secondary-controls .queue-controls-header {
+  margin-top: -12px;
+  margin-inline-start: calc(-1 * var(--mantine-spacing-md));
+  margin-inline-end: -12px;
+  padding-inline-start: var(--mantine-spacing-md);
+  padding-inline-end: 12px;
+}
+@media (max-width: 1000px) {
+  .stream-secondary-controls .queue-controls-header {
+    margin-inline-end: calc(-1 * var(--mantine-spacing-md));
+    padding-inline-end: var(--mantine-spacing-md);
+  }
+}

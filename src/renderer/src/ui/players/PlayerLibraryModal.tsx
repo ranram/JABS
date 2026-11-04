@@ -25,6 +25,7 @@ import {
 } from '../icons';
 import { PanelHeader } from '../PanelHeader';
 import './playerLibrary.css';
+import { PlayerPhotoFraming, PlayerPhotoFramingControls } from './PlayerPhotoFraming';
 
 function newPlayer(name = ''): LibraryPlayer {
   return {
@@ -75,7 +76,11 @@ export function PlayerLibraryDialog({
       trapFocus={!tutorialActive}
       closeOnEscape={!tutorialActive}
     >
-      {opened && <PlayerLibraryPanel selectedSet={selectedSet} requestClose={requestClose} closeModal={onClose} />}
+      {opened && (
+        <PlayerPhotoFraming>
+          <PlayerLibraryPanel selectedSet={selectedSet} requestClose={requestClose} closeModal={onClose} />
+        </PlayerPhotoFraming>
+      )}
     </Modal>
   );
 }
@@ -333,6 +338,7 @@ function PlayerLibraryPanel({
           }
         />
       </div>
+      <PlayerPhotoFramingControls />
       {selectedSet && (
         <Group gap="xs" className="player-library-stream-choices">
           <Text size="xs" c="dimmed">

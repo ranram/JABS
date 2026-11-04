@@ -94,6 +94,7 @@ pub async fn phases(runtime: &RuntimeState, event_id: &str) -> Result<Value, Api
     ).await?;
     let event = optional_object(data.get("event"));
     let nodes = node_list(event.and_then(|value| value.get("phases")), "event phases")?;
+    runtime.top_eight_qualifiers.observe_phases(event_id, &nodes).await;
     let phases = nodes.into_iter().filter_map(|node| {
         let object = node.as_object()?;
         let id = normalized_id(object.get("id")?)?;
@@ -293,13 +294,14 @@ pub async fn sets(runtime: &RuntimeState, input: SetsRequest<'_>) -> Result<Valu
     let parent = optional_object(data.get(root));
     let connection = optional_object(parent.and_then(|value| value.get("sets")));
     let nodes = node_list(connection.and_then(|value| value.get("nodes")), "set nodes")?;
+    let page_info = page_info(connection, input.page, per_page);
+    runtime.top_eight_qualifiers.observe_sets(input.event_id, &nodes, input.scope == "event", &page_info).await;
     let mut summaries = Vec::new();
     for node in nodes {
         if let Some(summary) = set_summary(&node)? {
             summaries.push(summary);
         }
     }
-    let page_info = page_info(connection, input.page, per_page);
     Ok(live_result(json!({ "sets": summaries, "pageInfo": page_info })))
 }
 
@@ -539,6 +541,14 @@ pub async fn selected_set(
         player_two,
         updated_at: now_rfc3339().map_err(|message| upstream(&message, "upstream"))?,
     };
+    if let (Some(event), Some(set)) = (selected_set.event_id.as_deref(), selected_set.set_id.as_deref()) {
+        if let Some(raw) = data.get("set") {
+            runtime.top_eight_qualifiers.observe_sets(event, &[raw], false, &Value::Null).await;
+        }
+        if let Some(label) = runtime.top_eight_qualifiers.label(runtime, event, set).await {
+            selected_set.round = Some(label.into());
+        }
+    }
     crate::state::censor_untrusted_selected_set(&mut selected_set);
     crate::state::validate_selected_set(&selected_set)
         .map_err(|message| invalid_response(&message))?;

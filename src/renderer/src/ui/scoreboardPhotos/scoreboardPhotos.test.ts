@@ -1,122 +1,29 @@
 // @vitest-environment happy-dom
+import { photoTransport, photo } from './scoreboardPhotoTestHarness';
 import { act, createElement as h } from 'react';
 import { MantineProvider } from '@mantine/core';
-import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { createTestOverlayState, createTestCustomScoreboard } from '@shared/testFixtures';
 import type { LibraryPlayer } from '@shared/playerLibrary';
 import type { SelectedSetState } from '@shared/models';
 import {
-  defaultHeadshotCrop,
   scoreboardPhotoLayout,
+  scoreboardPhotoTop,
   scoreboardPhotoPlacement,
   scoreboardPhotoSettingsSchema,
   scoreboardPhotoSchema,
-  type ScoreboardPhoto,
-  type ScoreboardPhotoSettings
+  type ScoreboardPhoto
 } from '@shared/scoreboardPhotos';
 import { customScoreboardRegionIds } from '@shared/customScoreboards';
-import { initializeI18n } from '../../i18n';
 import { deferred, mountView } from '../../hooks/hookTestHarness';
 import { invalidateCatalogConsumers } from '../../hooks/useCatalogRevision';
 import { ScoreboardPlayerPhotos } from './ScoreboardPlayerPhotos';
 import { CustomScoreboardCanvas } from '../CustomScoreboardCanvas';
 import { PlayerHeadshotEditor } from '../players/PlayerHeadshotEditor';
+import { PlayerPhotoFraming, PlayerPhotoFramingControls } from '../players/PlayerPhotoFraming';
 import { ScoreboardPhotoControls } from './ScoreboardPhotoControls';
 
-const transport = vi.hoisted(() => ({
-  enabled: false,
-  logoBackdrop: false,
-  sponsorBackdrop: false,
-  updatedAt: '1',
-  save: vi.fn(),
-  resolve: vi.fn(),
-  headshot: vi.fn(),
-  photo: vi.fn(),
-  identity: vi.fn(),
-  sponsor: vi.fn()
-}));
-vi.mock('../../hooks/useScoreboardPhotos', () => ({
-  useScoreboardPhotos: () => ({
-    state: { enabled: transport.enabled, logoBackdrop: transport.logoBackdrop, sponsorBackdrop: transport.sponsorBackdrop, updatedAt: transport.updatedAt },
-    setState(next: ScoreboardPhotoSettings) {
-      transport.enabled = next.enabled;
-      transport.logoBackdrop = next.logoBackdrop;
-      transport.sponsorBackdrop = next.sponsorBackdrop;
-      transport.updatedAt = next.updatedAt;
-    }
-  })
-}));
-vi.mock('../../api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../api')>();
-  return {
-    ...actual,
-    api: {
-      ...actual.api,
-      updateScoreboardPhotoSettings: transport.save,
-      resolveScoreboardPhotos: transport.resolve,
-      playerHeadshotAssetUrl: transport.headshot,
-      playerPhotoAssetUrl: transport.photo,
-      identityMedia: transport.identity,
-      sponsorLogoAssetUrl: transport.sponsor
-    }
-  };
-});
-function photo(id: string): ScoreboardPhoto {
-  return { source: 'headshot', assetId: `${id}.png`, fingerprint: '1234567890abcdef', crop: defaultHeadshotCrop() };
-}
-beforeAll(initializeI18n);
-beforeEach(() => {
-  transport.enabled = false;
-  transport.logoBackdrop = false;
-  transport.sponsorBackdrop = false;
-  transport.updatedAt = '1';
-  transport.save.mockReset().mockImplementation(async (settings) => ({ ...settings, updatedAt: '2' }));
-  transport.resolve.mockReset().mockResolvedValue({ photos: [null, null] });
-  transport.headshot.mockReset().mockImplementation(async (id: string) => `data:image/png;base64,${id}`);
-  transport.photo.mockReset().mockImplementation(async (id: string) => `data:image/png;base64,${id}`);
-  transport.identity.mockReset().mockResolvedValue({ matches: [{ sponsorLogoAssetId: 'one-square-logo.png' }, { sponsorLogoAssetId: 'two-wide-logo.png' }] });
-  transport.sponsor.mockReset().mockImplementation(async (id: string) => `data:image/png;base64,${id}`);
-  vi.stubGlobal(
-    'Image',
-    class {
-      src = '';
-      get naturalWidth() { return this.src.includes('padded-logo') ? 1080 : 600; }
-      get naturalHeight() {
-        if (this.src.includes('padded-logo')) return 1080;
-        if (this.src.includes('near-square-logo')) return 480;
-        if (this.src.includes('square-logo')) return 600;
-        if (this.src.includes('wide-')) return 200;
-        return 900;
-      }
-      async decode() {
-        if (this.src.includes('broken')) throw new Error('Bad image');
-      }
-    }
-  );
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
-    let padded = false;
-    let unreadable = false;
-    let empty = false;
-    return {
-      drawImage(image: HTMLImageElement) {
-        padded = image.src.includes('padded-logo');
-        unreadable = image.src.includes('unreadable');
-        empty = image.src.includes('empty-logo');
-      },
-      getImageData(_x: number, _y: number, width: number, height: number) {
-        if (unreadable) throw new Error('Pixel access unavailable');
-        const data = new Uint8ClampedArray(width * height * 4);
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-            if (!empty && (!padded || (x >= 47 && x < 215 && y >= 5 && y < 248))) data[(y * width + x) * 4 + 3] = 255;
-          }
-        }
-        return { data };
-      }
-    } as unknown as CanvasRenderingContext2D;
-  });
-});
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+const transport = photoTransport();
 
 it('does no photo work while disabled and uses placeholders for missing or failed photos when enabled', async () => {
   const selectedSet = createTestOverlayState('2xko').selectedSet;
@@ -129,7 +36,14 @@ it('does no photo work while disabled and uses placeholders for missing or faile
   const logoUrl = 'data:image/png;base64,wide-event-logo';
   expect(scoreboardPhotoSettingsSchema.parse({ enabled: true, updatedAt: '1' }).logoBackdrop).toBe(false);
   expect(scoreboardPhotoSettingsSchema.parse({ enabled: true, updatedAt: '1' }).sponsorBackdrop).toBe(false);
-  expect(scoreboardPhotoSettingsSchema.safeParse({ enabled: true, logoBackdrop: true, sponsorBackdrop: true, updatedAt: '1' }).success).toBe(false);
+  expect(
+    scoreboardPhotoSettingsSchema.safeParse({
+      enabled: true,
+      logoBackdrop: true,
+      sponsorBackdrop: true,
+      updatedAt: '1'
+    }).success
+  ).toBe(false);
   const pending = deferred<{ photos: Array<ScoreboardPhoto | null> }>();
   transport.resolve.mockReturnValue(pending.promise);
   const view = await mountView(() => h(ScoreboardPlayerPhotos, { selectedSet, logoUrl }));
@@ -161,7 +75,13 @@ it('does no photo work while disabled and uses placeholders for missing or faile
     )!;
   expect(logoSwitch().checked).toBe(false);
   await act(async () => logoSwitch().click());
-  expect(transport.save).toHaveBeenCalledWith({ enabled: true, logoBackdrop: true, sponsorBackdrop: false, updatedAt: '1' });
+  expect(transport.save).toHaveBeenCalledWith({
+    enabled: true,
+    framing: 'contained',
+    logoBackdrop: true,
+    sponsorBackdrop: false,
+    updatedAt: '1'
+  });
   await view.rerender();
   const logos = [...view.container.querySelectorAll('[data-scoreboard-photo-logo]')];
   expect(logos).toHaveLength(2);
@@ -180,7 +100,8 @@ it('does no photo work while disabled and uses placeholders for missing or faile
     const gameSet = { ...selectedSet, gameId, assetCatalogSlug: gameId };
     const nearSquare = gameId === 'guilty-gear-strive';
     const padded = gameId === 'street-fighter-6';
-    const bounds = padded ? { x: 47 / 256, y: 5 / 256, width: 168 / 256, height: 243 / 256 }
+    const bounds = padded
+      ? { x: 47 / 256, y: 5 / 256, width: 168 / 256, height: 243 / 256 }
       : { x: 0, y: 0, width: 1, height: 1 };
     const squareLogoUrl = `data:image/png;base64,${padded ? 'padded-logo' : nearSquare ? 'near-square-logo' : 'square-logo'}`;
     await view.rerender(() => h(ScoreboardPlayerPhotos, { selectedSet: gameSet, logoUrl: squareLogoUrl }));
@@ -209,21 +130,41 @@ it('does no photo work while disabled and uses placeholders for missing or faile
     }
   }
   expect(transport.resolve).toHaveBeenCalledTimes(1);
-  const sponsorSwitch = () => [...controls.container.querySelectorAll<HTMLInputElement>('input')].find((input) =>
-    input.closest('.mantine-Checkbox-root')?.textContent?.includes('Sponsor logos behind players'))!;
+  const sponsorSwitch = () =>
+    [...controls.container.querySelectorAll<HTMLInputElement>('input')].find((input) =>
+      input.closest('.mantine-Checkbox-root')?.textContent?.includes('Sponsor logos behind players')
+    )!;
   await act(async () => sponsorSwitch().click());
-  expect(transport.save).toHaveBeenLastCalledWith({ enabled: true, logoBackdrop: false, sponsorBackdrop: true, updatedAt: '2' });
+  expect(transport.save).toHaveBeenLastCalledWith({
+    enabled: true,
+    framing: 'contained',
+    logoBackdrop: false,
+    sponsorBackdrop: true,
+    updatedAt: '2'
+  });
   await controls.rerender();
   expect(logoSwitch().checked).toBe(false);
   expect(sponsorSwitch().checked).toBe(true);
   await act(async () => logoSwitch().click());
-  expect(transport.save).toHaveBeenLastCalledWith({ enabled: true, logoBackdrop: true, sponsorBackdrop: false, updatedAt: '2' });
+  expect(transport.save).toHaveBeenLastCalledWith({
+    enabled: true,
+    framing: 'contained',
+    logoBackdrop: true,
+    sponsorBackdrop: false,
+    updatedAt: '2'
+  });
   await controls.rerender();
   expect(sponsorSwitch().checked).toBe(false);
   await view.rerender(() => h(ScoreboardPlayerPhotos, { selectedSet }));
   expect(view.container.querySelector('[data-scoreboard-photo-logo]')).toBeNull();
   await act(async () => logoSwitch().click());
-  expect(transport.save).toHaveBeenLastCalledWith({ enabled: true, logoBackdrop: false, sponsorBackdrop: false, updatedAt: '2' });
+  expect(transport.save).toHaveBeenLastCalledWith({
+    enabled: true,
+    framing: 'contained',
+    logoBackdrop: false,
+    sponsorBackdrop: false,
+    updatedAt: '2'
+  });
   selectedSet.broadcast = { ...selectedSet.broadcast!, logoAssetId: undefined };
   await controls.rerender();
   expect(logoSwitch().disabled).toBe(true);
@@ -234,6 +175,7 @@ it('does no photo work while disabled and uses placeholders for missing or faile
   expect(controls.container.textContent).toContain('Exhibition logo behind players');
   expect(controls.container.textContent).toContain('Choose an exhibition logo under Exhibition logo.');
   transport.enabled = false;
+  transport.framing = 'contained';
   await view.rerender();
   expect(view.container.querySelector('svg')).toBeNull();
   transport.enabled = true;
@@ -348,7 +290,10 @@ it('uses selected-game geometry in custom scoreboards without exposing photo reg
   transport.logoBackdrop = true;
   const scoreboard = createTestCustomScoreboard({ id: 'custom' });
   Object.assign(scoreboard.visibility, { flags: false, round: false, bottomRails: false });
-  const selectedSet: SelectedSetState = { ...createTestOverlayState('2xko').selectedSet, stylingGameId: 'street-fighter-6' };
+  const selectedSet: SelectedSetState = {
+    ...createTestOverlayState('2xko').selectedSet,
+    stylingGameId: 'street-fighter-6'
+  };
   const move = vi.fn();
   const view = await mountView(() =>
     h(CustomScoreboardCanvas, {
@@ -378,7 +323,8 @@ it('uses selected-game geometry in custom scoreboards without exposing photo reg
     { name: selectedSet.playerOne.name, prefix: 'Team One' },
     { name: selectedSet.playerTwo.name, prefix: 'Team Two' }
   ]);
-  const logoFor = (side: string) => view.container.querySelector(`[data-scoreboard-photo-side=${side}] [data-scoreboard-photo-logo]`);
+  const logoFor = (side: string) =>
+    view.container.querySelector(`[data-scoreboard-photo-side=${side}] [data-scoreboard-photo-logo]`);
   expect(logoFor('left')?.getAttribute('href')).toContain('one-square-logo.png');
   expect(logoFor('right')?.getAttribute('href')).toContain('two-wide-logo.png');
   const layout = scoreboardPhotoLayout(selectedSet)!;
@@ -388,7 +334,11 @@ it('uses selected-game geometry in custom scoreboards without exposing photo reg
   expect(Number(logoFor('left')?.getAttribute('width'))).toBeGreaterThanOrEqual(leftWidth);
   expect(Number(logoFor('left')?.getAttribute('height'))).toBeGreaterThanOrEqual(leftHeight);
   expect(Number(logoFor('right')?.getAttribute('width'))).toBeCloseTo(Math.hypot(rightWidth, rightHeight) * 0.9);
-  const rightAngle = Number(logoFor('right')?.getAttribute('transform')?.match(/^rotate\(([-\d.]+)/)?.[1]);
+  const rightAngle = Number(
+    logoFor('right')
+      ?.getAttribute('transform')
+      ?.match(/^rotate\(([-\d.]+)/)?.[1]
+  );
   expect(rightAngle).toBeLessThan(0);
   expect(Math.tan((-rightAngle * Math.PI) / 180)).toBeCloseTo(rightHeight / rightWidth);
   for (const side of ['left', 'right']) {
@@ -461,11 +411,18 @@ it('reuses drag, keyboard, resize and flip controls and keeps framing separate f
     h(
       MantineProvider,
       {},
-      h(PlayerHeadshotEditor, {
-        player: current,
-        gameKey,
-        selectedSet: createTestOverlayState('2xko').selectedSet,
-        onChange: changed
+      h(PlayerPhotoFraming, {
+        children: h(
+          'div',
+          {},
+          h(PlayerPhotoFramingControls),
+          h(PlayerHeadshotEditor, {
+            player: current,
+            gameKey,
+            selectedSet: createTestOverlayState('2xko').selectedSet,
+            onChange: changed
+          })
+        )
       })
     )
   );
@@ -525,7 +482,7 @@ it('reuses drag, keyboard, resize and flip controls and keeps framing separate f
   gameKey = 'super-smash-bros-ultimate';
   await view.rerender();
   expect(view.container.querySelector('.headshot-framing-preview')).toBeNull();
-  expect(view.container.textContent).toContain('No scoreboard photo layout is available for this game.');
+  expect(view.container.textContent).toContain('This game has no scoreboard photo layout.');
   expect(current.scoreboardPhoto!.placements!['2xko'].right!.x).toBe(-0.012);
   const resolvedCalls = transport.resolve.mock.calls.length;
   gameKey = 'street-fighter-6';
@@ -554,4 +511,139 @@ it('reuses drag, keyboard, resize and flip controls and keeps framing separate f
     flipped: false
   });
   expect(current.scoreboardPhoto!.placements!['2xko'].left).toEqual(left);
+  const scope = () => view.container.querySelector('[aria-label="Apply framing to"]')!;
+  await act(async () => scope().querySelector<HTMLInputElement>('input[value=both]')!.click());
+  await view.rerender();
+  const both = { ...current.scoreboardPhoto!.placements!['street-fighter-6'].right! };
+  expect(current.scoreboardPhoto!.placements!['street-fighter-6'].left).toEqual(both);
+  await press('f');
+  const shared = { ...current.scoreboardPhoto!.placements!['street-fighter-6'].right! };
+  expect(shared.flipped).toBe(true);
+  expect(current.scoreboardPhoto!.placements!['street-fighter-6'].left).toEqual(shared);
+  await act(async () => scope().querySelector<HTMLInputElement>('input[value=side]')!.click());
+  await press('ArrowRight');
+  expect(current.scoreboardPhoto!.placements!['street-fighter-6'].left).toEqual(shared);
+  expect(current.scoreboardPhoto!.placements!['street-fighter-6'].right!.x).toBeGreaterThan(shared.x);
+  expect(current.scoreboardPhoto!.placements!['2xko'].left).toEqual(left);
+  expect(current.scoreboardPhoto!.crop).toEqual({ x: 0.2, y: 0.4, zoom: 2 });
+  const contained = structuredClone(current.scoreboardPhoto!.placements);
+  gameKey = '2xko';
+  await act(async () =>
+    view.container.querySelector<HTMLInputElement>('[aria-label="Photo framing"] input[value=extendAbove]')!.click()
+  );
+  expect(transport.save).toHaveBeenLastCalledWith(expect.objectContaining({ framing: 'extendAbove' }));
+  await view.rerender();
+  const extension = view.container.querySelector('[data-photo-extension]')!;
+  const [, top, width] = scoreboardPhotoLayout(createTestOverlayState('2xko').selectedSet)!.sides.right.bounds;
+  const extensionTop = Number(extension.getAttribute('y'));
+  expect(extensionTop).toBeLessThan(0);
+  expect(Number(extension.getAttribute('height'))).toBeCloseTo(top - extensionTop);
+  const previewBox = view.container
+    .querySelector('.headshot-framing-preview')!
+    .getAttribute('viewBox')!
+    .split(' ')
+    .map(Number);
+  expect(previewBox[1]).toBeLessThan(extensionTop);
+  expect(view.container.querySelector('[data-photo-frame-top]')).not.toBeNull();
+  expect(extension.getAttribute('width')).toBe(String(width));
+  expect(scoreboardPhotoPlacement(current.scoreboardPhoto!, '2xko', 'right', 'extendAbove').x).toBe(0);
+  await press('ArrowUp');
+  expect(current.scoreboardPhoto!.extendedPlacements!['2xko'].right!.y).toBeLessThan(0);
+  expect(current.scoreboardPhoto!.placements).toEqual(contained);
+  const editingPreview = view.container.querySelector<SVGSVGElement>('.headshot-framing-preview')!;
+  vi.spyOn(editingPreview, 'getBoundingClientRect').mockImplementation(
+    () =>
+      ({
+        left: 0,
+        top: 0,
+        width: Number.parseFloat(editingPreview.style.maxWidth),
+        height: 240
+      }) as DOMRect
+  );
+  const imageTarget = editable();
+  imageTarget.setPointerCapture = vi.fn();
+  imageTarget.hasPointerCapture = () => true;
+  imageTarget.releasePointerCapture = vi.fn();
+  const fixedViewBox = editingPreview.getAttribute('viewBox');
+  const beforeDrag = current.scoreboardPhoto!.extendedPlacements!['2xko'].right!.y;
+  const dragHeight = (editingPreview.getBoundingClientRect().width * 126) / 196;
+  await act(async () => {
+    imageTarget.dispatchEvent(new PointerEvent('pointerdown', { button: 0, pointerId: 2, clientY: 0, bubbles: true }));
+    imageTarget.dispatchEvent(new PointerEvent('pointermove', { pointerId: 2, clientY: -10, bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 110));
+  });
+  await view.rerender();
+  expect(editingPreview.getAttribute('viewBox')).toBe(fixedViewBox);
+  await act(async () => {
+    imageTarget.dispatchEvent(new PointerEvent('pointermove', { pointerId: 2, clientY: -20, bubbles: true }));
+    imageTarget.dispatchEvent(new PointerEvent('pointerup', { pointerId: 2, bubbles: true }));
+  });
+  await view.rerender();
+  expect(current.scoreboardPhoto!.extendedPlacements!['2xko'].right!.y).toBeCloseTo(beforeDrag - 20 / dragHeight);
+  expect(editingPreview.getAttribute('viewBox')).toBe(fixedViewBox);
+  await act(async () => imageTarget.dispatchEvent(new KeyboardEvent('keydown', { key: '+', bubbles: true })));
+  await view.rerender();
+  expect(editingPreview.getAttribute('viewBox')).toBe(fixedViewBox);
+  const fit = [...view.container.querySelectorAll('button')].find((button) => button.textContent === 'Fit preview')!;
+  await act(async () => fit.click());
+  expect(editingPreview.getAttribute('viewBox')).not.toBe(fixedViewBox);
+  const extended = structuredClone(current.scoreboardPhoto!.extendedPlacements);
+  await act(async () =>
+    view.container.querySelector<HTMLInputElement>('[aria-label="Photo framing"] input[value=contained]')!.click()
+  );
+  await view.rerender();
+  expect(view.container.querySelector('[data-photo-extension]')).toBeNull();
+  expect(current.scoreboardPhoto!.extendedPlacements).toEqual(extended);
+  expect(scoreboardPhotoPlacement(current.scoreboardPhoto!, '2xko', 'left')).toEqual(left);
+});
+
+it('reserves headroom from visible framed photos only in Extend above and restores Contained', async () => {
+  const selectedSet = createTestOverlayState('street-fighter-6').selectedSet;
+  const layout = scoreboardPhotoLayout(selectedSet)!;
+  const prepared = {
+    ...photo('one'),
+    extendedPlacements: { 'street-fighter-6': { left: { x: 0, y: -0.2, scale: 1.3, flipped: false } } }
+  };
+  transport.enabled = true;
+  transport.resolve.mockResolvedValue({ photos: [prepared, photo('two')] });
+  const inset = vi.fn();
+  const view = await mountView(() => h(ScoreboardPlayerPhotos, { selectedSet, onTopInsetChange: inset }));
+  const scoreboard = createTestCustomScoreboard();
+  scoreboard.regions.infoRight.y = 900;
+  const custom = await mountView(() => h(CustomScoreboardCanvas, { scoreboard, frameUrl: 'frame.png', selectedSet }));
+  const name = () => custom.container.querySelector<HTMLElement>('[data-custom-scoreboard-region=playerOneName]')!;
+  const bottom = () => custom.container.querySelector<HTMLElement>('[data-custom-scoreboard-region=infoRight]')!;
+  const bottomTop = bottom().style.top;
+  expect(name().style.top).toBe('0%');
+  expect(custom.container.querySelectorAll('.custom-scoreboard-frame')).toHaveLength(1);
+  const bar = () => view.container.querySelector<SVGSVGElement>('.scoreboard-player-photos')!;
+  expect(bar().dataset.photoTopInset).toBe('0');
+  expect(bar().style.top).toBe('');
+  expect(view.container.querySelector('[data-photo-extension]')).toBeNull();
+  transport.framing = 'extendAbove';
+  await view.rerender();
+  await custom.rerender();
+  const top = scoreboardPhotoTop({ ...prepared, width: 600, height: 900 }, layout, 'left');
+  expect(Number.parseFloat(name().style.top)).toBeCloseTo(Math.ceil(-top) / 10.8);
+  expect(bottom().style.top).toBe(bottomTop);
+  expect(custom.container.querySelectorAll('.custom-scoreboard-frame-top')).toHaveLength(1);
+  expect(top).toBeLessThan(0);
+  expect(inset).toHaveBeenLastCalledWith(Math.ceil(-top));
+  expect(Number.parseFloat(bar().style.top)).toBeCloseTo(Math.ceil(-top) / 10.8);
+  const extension = view.container.querySelector('[data-photo-extension]')!;
+  expect(Number(extension.getAttribute('y'))).toBeCloseTo(top);
+  expect(Number(extension.closest('mask')!.getAttribute('y'))).toBeCloseTo(top);
+  expect(scoreboardPhotoTop({ ...prepared, width: 600, height: 900, contentBounds: { y: 0.8 } }, layout, 'left')).toBe(
+    0
+  );
+  transport.framing = 'contained';
+  await view.rerender();
+  expect(inset).toHaveBeenLastCalledWith(0);
+  await custom.rerender();
+  expect(name().style.top).toBe('0%');
+  expect(bottom().style.top).toBe(bottomTop);
+  expect(custom.container.querySelectorAll('.custom-scoreboard-frame')).toHaveLength(1);
+  expect(custom.container.querySelector('.custom-scoreboard-frame-top')).toBeNull();
+  expect(bar().style.top).toBe('');
+  expect(view.container.querySelector('[data-photo-extension]')).toBeNull();
 });

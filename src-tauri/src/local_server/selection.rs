@@ -119,7 +119,6 @@ pub(super) fn apply_player_preferences(
                         fresh_player.and_then(|fresh_player| fresh_player.local_player_id.clone());
                 }
                 saved.set_id = fresh.set_id.clone();
-                saved.phase = fresh.phase.clone();
                 saved.phase_group = fresh.phase_group.clone();
                 saved.winners_side_entrant_id = fresh.winners_side_entrant_id.clone();
                 saved.event_id = fresh.event_id.clone().or(saved.event_id);
@@ -246,7 +245,8 @@ mod tests {
         saved.player_one.seed = Some(99);
         saved.player_two.seed = None;
         saved.broadcast.as_mut().unwrap().seeds_enabled = Some(false);
-        saved.phase = Some("Old phase".into());
+        saved.phase = Some("Custom phase".into());
+        saved.round = Some("My qualifier label".into());
         saved.player_one.score = 1;
         saved.game_history = None;
         saved.player_one.country = Some("JP".into());
@@ -298,7 +298,8 @@ mod tests {
         );
         assert_eq!(restored.player_two.pronouns, None);
         assert_eq!(restored.player_two.prefix.as_deref(), Some("Event sponsor"));
-        assert_eq!(restored.phase, fresh.phase);
+        assert_eq!(restored.phase.as_deref(), Some("Custom phase"));
+        assert_eq!(restored.round.as_deref(), Some("My qualifier label"));
         assert_eq!(
             database.load_set_override("123").unwrap().as_deref(),
             Some(payload.as_str())

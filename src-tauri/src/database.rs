@@ -47,6 +47,10 @@ impl Database {
                payload TEXT NOT NULL,
                updated_at TEXT NOT NULL
              );
+             CREATE TABLE IF NOT EXISTS versus_character_defaults (
+               context TEXT PRIMARY KEY NOT NULL,
+               placement TEXT NOT NULL
+             );
              CREATE TABLE IF NOT EXISTS state_recovery (
                surface_id TEXT NOT NULL,
                payload TEXT NOT NULL,
@@ -165,7 +169,7 @@ impl Database {
         payload: &str,
         updated_at: &str,
     ) -> Result<(), String> {
-        self.save_broadcast_surface_with_media(surface_id, payload, updated_at, None, &[])
+        self.save_broadcast_surface_with_media(surface_id, payload, updated_at, None, &[], &[])
     }
 
     pub fn save_broadcast_surface_with_media(
@@ -175,6 +179,7 @@ impl Database {
         updated_at: &str,
         set_media: Option<(&str, &str)>,
         player_defaults: &[crate::versus_screen::PlayerMediaDefault],
+        character_defaults: &[crate::versus_screen::CharacterMediaDefault],
     ) -> Result<(), String> {
         let mut connection = self.connection.lock()
             .map_err(|_| "Local database is unavailable.".to_owned())?;
@@ -203,6 +208,13 @@ impl Database {
                 params![default.player_id, default.context, default.payload],
             ).map_err(|_| "Unable to save match artwork settings.".to_owned())?;
         }
+        for default in character_defaults {
+            transaction.execute(
+                "INSERT INTO versus_character_defaults (context, placement) VALUES (?1, ?2)
+                 ON CONFLICT(context) DO UPDATE SET placement = excluded.placement",
+                params![default.context, default.payload],
+            ).map_err(|_| "Unable to save character artwork settings.".to_owned())?;
+        }
         transaction.commit().map_err(|_| "Unable to finish saving overlay settings.".to_owned())
     }
 
@@ -212,6 +224,14 @@ impl Database {
                 "SELECT placement FROM player_versus_media WHERE player_id = ?1 AND context = ?2",
                 params![player_id, context], |row| row.get(0),
             ).optional().map_err(|_| "Unable to read saved match artwork settings.".to_owned())
+    }
+
+    pub fn load_character_versus_media(&self, context: &str) -> Result<Option<String>, String> {
+        self.connection.lock().map_err(|_| "Local database is unavailable.".to_owned())?
+            .query_row(
+                "SELECT placement FROM versus_character_defaults WHERE context = ?1",
+                [context], |row| row.get(0),
+            ).optional().map_err(|_| "Unable to read saved character artwork settings.".to_owned())
     }
 
     pub fn load_set_versus_media(&self, set_id: &str) -> Result<Option<String>, String> {

@@ -15,7 +15,7 @@ export const es419 = {
       next: 'Siguiente',
       resetScores: 'Reiniciar marcadores',
       swapPlayers: 'Intercambiar jugadores',
-      select: '---- Seleccionar ----'
+      select: 'Seleccionar…'
     },
     // Status labels
     status: {
@@ -47,6 +47,7 @@ export const es419 = {
   },
   // OBS overlays
   overlay: {
+    playerDetails: 'Datos de jugadores',
     invalidTitle: 'URL de overlay no válida',
     invalidBody:
       'Usa /overlay/active/main, /overlay/active/winner, /overlay/active/versus, /overlay/active/stats?player=1, /overlay/active/top-eight-matchups, /overlay/commentators, /overlay/active/bracket o una ruta fija de juego compatible.',
@@ -81,7 +82,14 @@ export const es419 = {
       location: 'Ubicación {{country}}',
       locationUnknown: 'Ubicación desconocida',
       representing: 'Representando a {{sponsor}}',
-      stats: { age: 'Edad', sponsor: 'Patrocinador', seed: 'Seed', nickname: 'Apodo' },
+      stats: {
+        age: 'Edad',
+        sponsor: 'Patrocinador',
+        seed: 'Seed',
+        nickname: 'Apodo',
+        main: 'Main',
+        pronouns: 'Pronombres'
+      },
       headToHead: 'Cara a cara',
       noHeadToHead: 'No se encontraron enfrentamientos',
       noPlacements: 'No se encontraron posiciones recientes',
@@ -110,7 +118,7 @@ export const es419 = {
         ready: 'Listo para reportar a start.gg',
         pending: 'Resultado sin reportar a start.gg'
       },
-      scoreShortcuts: 'Atajos del marcador',
+      scoreShortcuts: 'Atajos de teclado',
       matchDetails: 'Nombre visible y estación',
       scoreboardAppearance: 'Apariencia del marcador',
       playerDetails: 'Bandera y datos del jugador',
@@ -239,7 +247,7 @@ export const es419 = {
         },
         queueOpen: {
           title: 'Abre la cola de partidas',
-          body: 'Abre **Partidas → Cola**, o usa Cola en Controles en vivo. Cada cola pertenece a **un evento** y admite hasta **100 partidas**. Para el Top 8, elige **Agregar el Top 8 automáticamente**, revisa la lista y confirma con **Sí, agregar partidas**. Agregar estas partidas mantiene la transmisión y el estado de la cola.'
+          body: 'Abre **Partidas → Cola**, o elige **Cola** junto a **Borrar datos de jugadores**. Cada cola pertenece a **un evento** y admite hasta **100 partidas**. Para el Top 8, elige **Agregar el Top 8 automáticamente**, revisa la lista y confirma con **Sí, agregar partidas**. Agregar estas partidas mantiene la transmisión y el estado de la cola.'
         },
         queueOrder: {
           title: 'Identifica cada estado',
@@ -279,7 +287,7 @@ export const es419 = {
         },
         assetLogos: {
           title: 'Agrega logos de patrocinadores y torneos',
-          body: 'Nombra los logos de patrocinadores con el **patrocinador o prefijo del jugador**. Los logos de torneos pueden tener cualquier nombre. **Elige el que quieras** en las opciones del overlay.'
+          body: 'Nombra los logos de patrocinadores con el **equipo o patrocinador del jugador**. Los logos de torneos pueden tener cualquier nombre. **Elige el que quieras** en las opciones del overlay.'
         },
         assetReload: {
           title: 'Actualiza las imágenes',
@@ -494,10 +502,56 @@ export const es419 = {
       railsHelp: 'Los rieles laterales muestran tu texto de transmisión. El central muestra los datos de la partida.',
       clipSettings: 'Ajustes del ganador'
     },
+    shortcutConfirm: {
+      resetScoresTitle: 'Restablecer marcador',
+      resetScores: '¿Restablecer el marcador de ambos jugadores?',
+      clearQueue: '¿Vaciar toda la cola de partidas?',
+      clearPlayers: '¿Borrar los datos de ambos jugadores y poner el marcador en cero?',
+      yes: 'Sí (Y)',
+      no: 'No (N)'
+    },
+    shortcutGuide: { navigation: 'Navegación y cola', scoring: 'Puntuación', matchActions: 'Acciones de partida' },
+    queueTicker: {
+      preview: 'Vista previa de la franja',
+      on: 'Activada',
+      off: 'Desactivada',
+      upcomingStatus: '{{count}}/{{limit}} próximas',
+      resultsStatus_one: '{{count}} resultado',
+      resultsStatus_other: '{{count}} resultados',
+      composition: 'Tamaño',
+      standard: 'Estándar',
+      compact: 'Compacto',
+      showLogo: 'Mostrar logo',
+      logo: 'Logo de la franja',
+      title: 'Franja de la cola',
+      upcoming: 'A continuación',
+      results: 'Resultados recientes',
+      enabled: 'Mostrar franja de la cola',
+      count: 'Próximas partidas',
+      showResults: 'Mostrar resultados recientes',
+      resultsHelp:
+        'Muestra hasta tres partidas terminadas de esta cola. Los resultados restablecidos o no disponibles no se muestran.',
+      loading: 'Cargando franja de la cola…',
+      saveFailed: 'No se pudieron guardar los ajustes de la franja. Inténtalo de nuevo.',
+      empty: 'Agrega partidas a la cola para mostrarlas aquí.'
+    },
     scoreboardPhotos: {
+      fitPreview: 'Ajustar vista previa',
+      framing: 'Encuadre de fotos',
+      contained: 'Dentro del marco',
+      extendAbove: 'Extender hacia arriba (Experimental)',
+      framingHelp:
+        'Dentro del marco mantiene las fotos dentro del marcador. Extender hacia arriba permite que sobresalgan solo por arriba. Cada modo conserva su encuadre.',
+
+      saveScope: 'Aplicar encuadre a',
+      savePlayerOne: 'Lado del jugador 1',
+      savePlayerTwo: 'Lado del jugador 2',
+      saveBoth: 'Ambos lados',
+      saveScopeHelp:
+        'Aplica el mismo encuadre y orientación a ambos lados o ajusta cada lado por separado. Elige Guardar jugador para conservar los cambios.',
       side: 'Lado de la foto',
-      unsupported: 'Este juego todavía no tiene un marco para fotos en el marcador.',
-      recommendedSize: 'Recomendado: 512 × 512 px, de hombros a cabeza.',
+      unsupported: 'Este juego no tiene un marco para fotos en el marcador.',
+      recommendedSize: 'Recomendado: 512 × 512 px, con cabeza y hombros visibles.',
       enabled: 'Fotos de jugadores en marcadores',
       logoBackdrop: 'Logo del torneo detrás de los jugadores',
       sponsorBackdrop: 'Logos de patrocinadores detrás de los jugadores',
@@ -522,8 +576,8 @@ export const es419 = {
       closePlayer: 'Cerrar jugador',
       search: 'Buscar tags y alias',
       searchPlaceholder: 'Tag o alias…',
-      count_one: '{{count}} jugador registrado en la biblioteca de jugadores',
-      count_other: '{{count}} jugadores registrados en la biblioteca de jugadores',
+      count_one: '{{count}} jugador guardado',
+      count_other: '{{count}} jugadores guardados',
       localPlayer: 'Jugador local',
       gameCount: 'Juegos: {{count}}',
       noMatches: 'No se encontraron jugadores con esa búsqueda.',
@@ -532,7 +586,7 @@ export const es419 = {
       fromStream: 'Abrir jugador: {{name}}',
       newPlayer: 'Nuevo jugador',
       choosePlayer: 'Elige un jugador',
-      choosePlayerHelp: 'Elige un jugador guardado para editar sus datos, o agrega uno nuevo.',
+      choosePlayerHelp: 'Elige un jugador guardado para editar sus datos o agrega uno nuevo.',
 
       // Player details and saved choices
       detailsHeading: 'Datos del jugador',
@@ -571,7 +625,7 @@ export const es419 = {
       keepEditing: 'Seguir editando',
       actionFailed: 'No se pudo completar esta acción en la biblioteca de jugadores.',
       searchFailed: 'No se pudo buscar en tu biblioteca de jugadores.',
-      loadFailed: 'No se pudo cargar el jugador guardado. Puedes escribir su nombre.',
+      loadFailed: 'No se pudo cargar este jugador. Selecciónalo de nuevo o escribe su nombre manualmente.',
       assetsFailed: 'No se pudieron cargar las ilustraciones. Las preferencias guardadas siguen disponibles.',
       photoHelp:
         'Recomendado: 1024 × 1536 px (2:3), de cabeza a cintura. Escribe el nombre del archivo con su extensión para usar una foto específica.',
@@ -580,7 +634,7 @@ export const es419 = {
         'Tus cambios se conservan cuando se actualizan los datos de start.gg. Deja un campo vacío para ocultar su valor importado.',
       fields: {
         name: 'Tag del jugador',
-        prefix: 'Patrocinador / prefijo',
+        prefix: 'Equipo/Patrocinador',
         xHandle: 'Usuario de X',
         pronouns: 'Pronombres',
         country: 'Código de país',
@@ -775,7 +829,7 @@ export const es419 = {
     workspaces: {
       stingers: 'Stingers',
       aria: 'Espacios de trabajo de JABS',
-      bracket: 'Gestión de bracket',
+      bracket: 'Manejo de bracket',
       customScoreboard: 'Marcador personalizado',
       otherOverlays: 'Overlays',
       topEight: 'Generador de Top 8',
@@ -784,11 +838,11 @@ export const es419 = {
       obsSource: 'Fuente de navegador de OBS',
       resolvingObs: 'Cargando la URL de OBS…',
       styling: 'Estilo',
+      liveStyle: 'Usar estilo de la partida en vivo',
       transparentBackground: 'Fondo transparente',
       playerStats: {
         loading: 'Cargando ajustes de estadísticas…',
         sharedSettings: 'Ajustes compartidos para Jugador 1 y Jugador 2',
-        liveStyle: 'Usar estilo de la partida en vivo',
         showTournamentLogo: 'Mostrar logo del torneo',
         showPlacementLogos: 'Mostrar logos de torneos en los resultados',
         showSponsorLogo: 'Mostrar logo del equipo o patrocinador',
@@ -817,7 +871,7 @@ export const es419 = {
       // Winner and Champion settings
       resultScreen: {
         showTextBackdrop: 'Fondo del texto',
-        composition: 'Composición',
+        composition: 'Tamaño',
         classic: 'Clásica',
         victory: 'Victoria',
         spotlight: 'Protagonista',
@@ -836,6 +890,10 @@ export const es419 = {
       },
       // Overlay descriptions
       tools: {
+        queueTicker: {
+          title: 'Franja de la cola',
+          description: 'Muestra las próximas partidas y los resultados recientes en la parte inferior.'
+        },
         playerStats: {
           title: 'Estadísticas del jugador',
           description:
@@ -882,6 +940,8 @@ export const es419 = {
       },
       // Versus Screen settings
       versusScreen: {
+        framingHelp:
+          'El encuadre del personaje se reutiliza para el mismo juego, ilustración, lado y composición. Las fotos conservan el encuadre de cada jugador guardado. Los ajustes de partida y personales tienen prioridad.',
         showMatchBackdrop: 'Fondo de la información de la partida',
         matchBackdropHelp: 'Las filas de comparación e historial conservan su fondo.',
         statsHeading: 'Comparación de jugadores',
@@ -1046,17 +1106,18 @@ export const es419 = {
       notSent: 'No enviado a OBS',
       gameProfile: 'Perfil de juego',
       detectedGame: 'Juego detectado',
-      styling: 'Estilo del Scoreboard',
+      styling: 'Estilo del marcador',
       scoreboardFont: 'Fuente del marcador',
       fontSettingsLoading: 'Cargando ajustes de fuente…',
       fontSettingsRetrying: 'Reconectando con los ajustes de fuente…',
       fontSaveFailed: 'No se pudo guardar la fuente del marcador. Inténtalo de nuevo.',
       stylingDescription:
-        'Elige el diseño del marcador. Los personajes disponibles del juego siguen siendo los mismos.',
+        'Elige el diseño del marcador. El juego determina los personajes disponibles y la ubicación de los datos de cada jugador.',
       detectedOverride: 'Detectado del evento: {{profile}}. Puedes cambiarlo después de cargar el set.',
-      matchLength: 'Duración de la partida',
+      matchLength: 'Formato de la partida',
       displayName: 'Nombre visible',
       round: 'Ronda',
+      exhibitionName: 'Nombre de la exhibición',
       roundPlaceholder: 'p. ej., Final de ganadores',
       station: 'Estación',
       stationPlaceholder: 'p. ej., Transmisión A',
@@ -1068,7 +1129,7 @@ export const es419 = {
       reloadHint:
         'Actualiza jugadores, marcadores, estado, datos del bracket e historial de Versus. Úsalo si un set sin jugar sigue apareciendo como completado después de restablecerlo en start.gg.',
       playerTag: 'Tag del jugador',
-      prefix: 'Prefijo',
+      prefix: 'Equipo/Patrocinador',
       character: 'Personaje',
       characters: 'Personajes',
       notShown: 'No mostrar',
@@ -1077,7 +1138,7 @@ export const es419 = {
       defaultOutfit: 'Predeterminado',
       selectCharacterFirst: 'Selecciona primero un personaje',
       noExtraOutfits: 'No hay atuendos extra disponibles',
-      xHandle: 'Usuario de x.com',
+      xHandle: 'Usuario de X',
       state: 'Estado / provincia',
       chooseCountryFirst: 'Elige primero un país',
       pronouns: 'Pronombres',
@@ -1121,6 +1182,7 @@ export const es419 = {
       copyObs: 'Copiar URL de overlay',
       copiedOverlay: 'URL copiada: {{overlay}}',
       overlayNames: {
+        'queue-ticker': 'Franja de la cola',
         stingers: 'Stingers',
         score: 'Scoreboard',
         versus: 'Pantalla versus',
@@ -1198,7 +1260,7 @@ export const es419 = {
     // Custom scoreboard editor
     customScoreboard: {
       font: 'Fuente',
-      sponsorColor: 'Color del patrocinador',
+      sponsorColor: 'Color del texto de equipo/patrocinador',
       flagSize: 'Tamaño de la bandera',
       title: 'Marcador personalizado',
       description:
@@ -1209,7 +1271,7 @@ export const es419 = {
         '1920×1080, hasta 20 MB. Si el ancho o el alto difieren por hasta 16 píxeles, la imagen se ajusta al tamaño.',
       import: 'Importar marcador',
       savedScoreboards: 'Marcadores guardados',
-      none: '---- Seleccionar ----',
+      none: 'Elige un marcador',
       loadFailed: 'JABS no pudo cargar los marcadores personalizados.',
       imageLoadFailed: 'JABS no pudo cargar la imagen de ese marcador. Intenta importarla de nuevo.',
       loadSetFirst: 'Envía un set a transmisión antes de elegir un marcador personalizado.',
@@ -1222,12 +1284,12 @@ export const es419 = {
       deleted: 'Marcador personalizado eliminado.',
       deleteFailed: 'JABS no pudo eliminar el marcador personalizado.',
       savedName: 'Nombre del diseño',
-      adjustRegion: 'Campo seleccionado',
+      adjustRegion: 'Elemento seleccionado',
       mirrorToPlayer: 'Reflejar al jugador {{number}}',
       dragHelp:
-        'Arrastra el texto o las imágenes para moverlos. Alt+clic alcanza campos superpuestos. Las flechas mueven; Mayús mueve 10 px.',
+        'Arrastra un elemento para moverlo. Alt+clic selecciona el que está debajo. Las flechas mueven 1 px; Mayús+flecha, 10 px.',
       keyboardCanvas: 'Área para posicionar el marcador personalizado',
-      alignment: 'Alineación del texto',
+      alignment: 'Alineación',
       textColor: 'Color del texto',
       autosaveHelp: 'Los cambios se guardan automáticamente.',
       autosave: {
@@ -1242,19 +1304,21 @@ export const es419 = {
       useAutomatic: 'Usar estilos de JABS',
       delete: 'Eliminar marcador',
       regions: {
+        playerOneSponsorLogo: 'Jugador 1 · Logo de equipo/patrocinador',
         playerOneFlag: 'Jugador 1 · Bandera',
-        playerOneXHandle: 'Jugador 1 · Usuario de x.com',
-        playerOneName: 'Jugador 1 · Patrocinador | nombre',
+        playerOneXHandle: 'Jugador 1 · Usuario de X',
+        playerOneName: 'Jugador 1 · Nombre y equipo/patrocinador',
         playerOnePronouns: 'Jugador 1 · Pronombres',
         playerOneSeed: 'Jugador 1 · Seed',
         playerOneScore: 'Jugador 1 · Puntaje',
+        playerTwoSponsorLogo: 'Jugador 2 · Logo de equipo/patrocinador',
         playerTwoFlag: 'Jugador 2 · Bandera',
-        playerTwoXHandle: 'Jugador 2 · Usuario de x.com',
-        playerTwoName: 'Jugador 2 · Nombre | patrocinador',
+        playerTwoXHandle: 'Jugador 2 · Usuario de X',
+        playerTwoName: 'Jugador 2 · Nombre y equipo/patrocinador',
         playerTwoPronouns: 'Jugador 2 · Pronombres',
         playerTwoSeed: 'Jugador 2 · Seed',
         playerTwoScore: 'Jugador 2 · Puntaje',
-        matchLabel: 'Ronda',
+        matchLabel: 'Datos de la partida',
         logo: 'Logo del torneo',
         infoLeft: 'Riel inferior izquierdo',
         infoCenter: 'Riel inferior central',
@@ -1263,8 +1327,8 @@ export const es419 = {
       align: { left: 'Izquierda', center: 'Centro', right: 'Derecha' },
       visibility: {
         flags: 'Mostrar banderas',
-        sponsors: 'Mostrar patrocinadores y prefijos',
-        xHandles: 'Mostrar usuarios de x.com',
+        sponsors: 'Mostrar equipos y patrocinadores',
+        xHandles: 'Mostrar usuarios de X',
         pronouns: 'Mostrar pronombres',
         seeds: 'Mostrar seeds',
         round: 'Mostrar ronda',
@@ -1408,8 +1472,8 @@ export const es419 = {
       playerTag: 'Tag del jugador',
       character: 'Personaje',
       characters: 'Personajes',
-      sponsor: 'Patrocinador / prefijo',
-      xHandle: 'Usuario de x.com',
+      sponsor: 'Equipo/Patrocinador',
+      xHandle: 'Usuario de X',
       country: 'País',
       displayFlag: 'Bandera mostrada',
       validation: {

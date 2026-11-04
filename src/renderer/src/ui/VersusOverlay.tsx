@@ -61,7 +61,7 @@ function VersusPresentationContent({
 }: PresentationProps) {
   const { t } = useTranslation('common');
   const appearanceStyle = useAppearanceStyle();
-  const profile = resolveGameProfile(settings.stylingGameId);
+  const profile = resolveGameProfile(settings.stylingGameId ?? selectedSet.stylingGameId ?? selectedSet.gameId);
   const mode = versusPresentationMode(selectedSet);
   const profiles = useVersusProfiles(mode === 'waiting' ? undefined : selectedSet);
   const history = historyForMatch(settings, selectedSet);
