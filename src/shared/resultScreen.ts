@@ -1,3 +1,4 @@
+import { artworkFramingSchema } from './artworkFraming';
 import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, type GameId } from './gameProfiles';
@@ -5,6 +6,7 @@ import { canonicalGameId, type GameId } from './gameProfiles';
 const stylingGameIdSchema = z.custom<GameId>((value) => typeof value === 'string' && canonicalGameId(value) === value);
 
 export const resultScreenStateSchema = z.object({
+  artworkFraming: artworkFramingSchema.default({}),
   composition: z.enum(['classic', 'victory', 'spotlight']).default('classic'),
   stylingGameId: stylingGameIdSchema.optional(),
   logoAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional(),

@@ -16,6 +16,7 @@ import { useVersusProfiles } from './versus/useVersusProfiles';
 import { useVersusDetails } from './versus/useVersusDetails';
 import { VersusFrame } from './versus/VersusFrame';
 import './versusOverlay.css';
+import './versus/versusCompact.css';
 
 export function VersusOverlay() {
   const { state: overlayState, error: overlayError } = useOverlayState();
@@ -78,12 +79,12 @@ function VersusPresentationContent({
     selectedSet.playerTwo.entrantId
   ]);
   const entranceRef = useOverlayEntrance(versusEntrance, !controls.preview && mode !== 'waiting', mediaReady, key);
-  const className = `overlay versus-overlay ${profile.overlay.themeClass}${mode === 'exhibition' ? ' versus-exhibition' : ''}${settings.showBackground ? '' : ' is-transparent-background'}${controls.preview ? ' versus-preview-canvas' : ''}`;
+  const className = `overlay versus-overlay ${profile.overlay.themeClass}${settings.informationLayout === 'compact' ? ' versus-compact' : ''}${mode === 'exhibition' ? ' versus-exhibition' : ''}${settings.showBackground ? '' : ' is-transparent-background'}${controls.preview ? ' versus-preview-canvas' : ''}`;
   if (mode === 'waiting') return <main className={className} />;
   return (
     <main className={className} ref={entranceRef} style={appearanceStyle}>
       <div className="versus-atmosphere" />
-      <VersusFrame tickers={tickers} preview={controls.preview} />
+      <VersusFrame tickers={tickers} preview={controls.preview} showRails={settings.showScrollingRails} />
       <VersusPlayer
         key={mediaInteractionKey(selectedSet.playerOne, [
           0,

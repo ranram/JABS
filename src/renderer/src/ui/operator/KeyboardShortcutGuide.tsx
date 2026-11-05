@@ -31,7 +31,9 @@ export function KeyboardShortcutGuide() {
         ['Ctrl+Shift+S', t('common:actions.swapPlayers')],
         ['Ctrl+Shift+R', t('common:actions.resetScores')],
         ['Ctrl+Shift+D', t('operator:queue.clear')],
-        ['Ctrl+Shift+X', t('operator:editor.clearPlayers')]
+        ['Ctrl+Shift+X', t('operator:editor.clearPlayers')],
+        ['Ctrl+P', t('operator:stingers.playClip', { name: t('operator:stingers.perfect') })],
+        ['Ctrl+W', t('operator:stingers.playClip', { name: t('operator:stingers.winner') })]
       ]
     }
   ];

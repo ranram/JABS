@@ -92,6 +92,7 @@ export function StingersOverlay() {
     (cueId: string, failure?: string) => {
       const playing = currentCue.current;
       if (!playing || playing.id !== cueId) return;
+      currentCue.current = undefined;
       setCue(undefined);
       void api.finishStinger(clientId, cueId, failure).catch(() => undefined);
     },

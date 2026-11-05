@@ -1,3 +1,4 @@
+import type { StingerKind, StingerPlaybackResult } from '@shared/stingers';
 import type { SelectedSetState } from '@shared/models';
 import { scoreLimitForPlayer } from '@shared/gameProfiles';
 import type { StreamDeckCommand, StreamDeckResult } from '@shared/streamDeck';
@@ -18,14 +19,16 @@ export type StreamDeckContext = {
   selectorAvailable: boolean;
   openSelector(): void;
   openPlayers(): void;
+  playStinger?(kind: StingerKind): Promise<StingerPlaybackResult>;
   queue?: QueueController;
   confirmation: ReturnType<typeof useWorkspaceShortcuts>;
   controls?: StreamDeckMatchControls;
 };
 
-/** Receives logical commands, never synthetic key events or plugin code. */
+/** Dispatch Stream Deck actions through the operator controls. */
 export function createStreamDeckExecutor(current: () => StreamDeckContext) {
-  let pending: { id: string; kind: 'queue' | 'players' | 'scores'; version?: string; revision?: number } | undefined;
+  let pending:
+    { id: string; kind: 'queue' | 'players' | 'scores' | 'stinger'; version?: string; revision?: number } | undefined;
   return async (command: StreamDeckCommand): Promise<StreamDeckResult> => {
     const context = current();
     const { selectedSet: set, queue, controls, confirmation } = context;
@@ -40,10 +43,10 @@ export function createStreamDeckExecutor(current: () => StreamDeckContext) {
         confirmation.cancel();
         return 'completed';
       }
-      if (
-        context.blocked ||
-        (reviewed.kind === 'queue' ? queue?.state?.revision !== reviewed.revision : set?.updatedAt !== reviewed.version)
-      ) {
+      const queueChanged = reviewed.kind === 'queue' && queue?.state?.revision !== reviewed.revision;
+      const matchChanged =
+        (reviewed.kind === 'players' || reviewed.kind === 'scores') && set?.updatedAt !== reviewed.version;
+      if (context.blocked || queueChanged || matchChanged) {
         confirmation.cancel();
         return 'blocked';
       }
@@ -66,6 +69,16 @@ export function createStreamDeckExecutor(current: () => StreamDeckContext) {
       return 'completed';
     }
     if (context.blocked || isTypingTarget(document.activeElement)) return 'blocked';
+    if (action === 'stinger-perfect' || action === 'stinger-winner') {
+      if (!context.playStinger || (action === 'stinger-winner' && (!set || command.expectedVersion !== set.updatedAt)))
+        return 'blocked';
+      const result = await context.playStinger(action === 'stinger-perfect' ? 'perfect' : 'winner');
+      if (result !== 'unconfigured') return result;
+      const latest = current().confirmation;
+      if (!latest.requestRemoteConfirmation(action, command.id)) return 'blocked';
+      pending = { id: command.id, kind: 'stinger' };
+      return 'confirmation-required';
+    }
     if (action.startsWith('queue-') || action === 'clear-queue') {
       if (
         !queue?.state ||

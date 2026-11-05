@@ -189,7 +189,7 @@ export const api = {
   scoreboardPhotoSettings: () => request('/api/scoreboard-photos', undefined, { decoder: scoreboardPhotoSettingsSchema }),
   updateScoreboardPhotoSettings: (settings: ScoreboardPhotoSettings) => request('/api/scoreboard-photos', { method: 'PUT', body: JSON.stringify(settings) }, { decoder: scoreboardPhotoSettingsSchema }),
   resolveScoreboardPhotos: (players: ScoreboardPhotoIdentity[]) => request('/api/scoreboard-photos/resolve', { method: 'POST', body: JSON.stringify({ players }) }, { decoder: resolvedScoreboardPhotosSchema, trackPendingWrite: false }),
-  playerHeadshotAssetUrl: (id: string) => catalogRasterUrl(`/assets/player-headshots/${encodeURIComponent(id)}`),
+  playerHeadshotAssetUrl: (id: string) => catalogRasterUrl(`/assets/player-headshots/${encodeURIComponent(id)}`, true),
   stingers: () => stingerRequest('/api/broadcast/stingers'),
   updateStingers: (settings: StingerSettings) => request('/api/broadcast/stingers', { method: 'PUT', body: JSON.stringify(settings) }, { decoder: stingerStateSchema }),
   importStinger: (kind: StingerKind, file: File) => request(`/api/broadcast/stingers/video/${kind}?name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file }, { decoder: stingerStateSchema }),
@@ -289,18 +289,18 @@ export const api = {
   sponsorLogoAssetUrl: (assetId: string) =>
     catalogRasterUrl(`/assets/sponsor-logos/${encodeURIComponent(assetId)}`, true),
   playerPhotoAssetUrl: (assetId: string) =>
-    catalogRasterUrl(`/assets/player-photos/${encodeURIComponent(assetId)}`),
+    catalogRasterUrl(`/assets/player-photos/${encodeURIComponent(assetId)}`, true),
   gameCharacterAssets: (gameId: string) =>
     request<{ assets: GameCharacterAsset[] }>(
       `/api/assets/game-characters?gameId=${encodeURIComponent(gameId)}`
     ),
   gameCharacterAssetUrl: (gameId: string, assetId: string) =>
     catalogRasterUrl(
-      `/assets/game-characters/${encodeURIComponent(gameId)}/${encodeURIComponent(assetId)}`
+      `/assets/game-characters/${encodeURIComponent(gameId)}/${encodeURIComponent(assetId)}`, true
     ),
   gameCharacterPortraitUrl: (gameId: string, assetId: string) =>
     catalogRasterUrl(
-      `/assets/game-character-portraits/${encodeURIComponent(gameId)}/${encodeURIComponent(assetId)}`
+      `/assets/game-character-portraits/${encodeURIComponent(gameId)}/${encodeURIComponent(assetId)}`, true
     ),
   customScoreboards: () => request(
     '/api/custom-scoreboards', undefined, { decoder: customScoreboardListSchema }

@@ -56,6 +56,10 @@ fn commands_are_allowlisted_and_acknowledgments_cannot_complete_other_requests()
     .unwrap();
     assert!(request.action.needs_match());
     assert!(Action::ClearQueue.needs_queue());
+    for (action, needs_match) in [("stinger-perfect", false), ("stinger-winner", true)] {
+        let request: Request = serde_json::from_value(serde_json::json!({"id":2,"action":action})).unwrap();
+        assert_eq!(request.action.needs_match(), needs_match);
+    }
     let bridge = Bridge::default();
     let (reply, receive) = oneshot::channel();
     bridge

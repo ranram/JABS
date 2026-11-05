@@ -26,6 +26,7 @@ const transport = vi.hoisted(() => ({
   characters: vi.fn(),
   photo: vi.fn(),
   artwork: vi.fn(),
+  sponsorLogo: vi.fn(),
   save: vi.fn(),
   importVideo: vi.fn(),
   mediaPlay: vi.fn(),
@@ -56,6 +57,7 @@ vi.mock('../../api', () => ({
     identityMedia: transport.identity,
     gameCharacterAssets: transport.characters,
     playerPhotoAssetUrl: transport.photo,
+    sponsorLogoAssetUrl: transport.sponsorLogo,
     gameCharacterAssetUrl: transport.artwork
   }
 }));
@@ -97,6 +99,7 @@ beforeEach(() => {
   transport.characters.mockResolvedValue({ assets: [] });
   transport.photo.mockResolvedValue('data:image/png;base64,photo');
   transport.artwork.mockResolvedValue('data:image/png;base64,character');
+  transport.sponsorLogo.mockResolvedValue('data:image/png;base64,sponsor');
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(function (this: HTMLMediaElement) {
     transport.mediaPlay();
     Object.defineProperty(this, 'paused', { configurable: true, value: false });
@@ -161,7 +164,11 @@ it('claims only on Program activation, plays once, and clears video and audio on
   transport.snapshot = { ...transport.snapshot, cue: { ...transport.snapshot.cue!, claimed: true } };
   await view.rerender();
   expect(transport.mediaPlay).toHaveBeenCalledTimes(1);
-  await act(async () => view.container.querySelector('video')!.dispatchEvent(new Event('ended')));
+  await act(async () => {
+    const video = view.container.querySelector('video')!;
+    video.dispatchEvent(new Event('ended'));
+    video.dispatchEvent(new Event('ended'));
+  });
   expect(transport.finish).toHaveBeenCalledWith(expect.any(String), 'cue-one', undefined);
   expect(view.container.querySelector('video')).toBeNull();
   expect(transport.mediaPause).toHaveBeenCalled();
@@ -315,7 +322,9 @@ it('renews registration in place after reconnect without replaying a claimed cue
 });
 
 it('waits for the captured winner media and reveals it at the configured time', async () => {
-  const identity = deferred<{ matches: { playerPhotoAssetId: string }[] }>();
+  const preparedPhoto = deferred<string>();
+  transport.photo.mockReturnValue(preparedPhoto.promise);
+  const identity = deferred<{ matches: { playerPhotoAssetId: string; sponsorLogoAssetId?: string }[] }>();
   transport.identity.mockReturnValue(identity.promise);
   const selected = createTestOverlayState().selectedSet;
   selected.playerOne.score = 2;
@@ -334,7 +343,11 @@ it('waits for the captured winner media and reveals it at the configured time', 
   };
   const view = await mountView(() => h(StingerStage, { cue: winnerCue, onFinish: vi.fn() }));
   expect(transport.mediaPlay).not.toHaveBeenCalled();
-  await act(async () => identity.resolve({ matches: [{ playerPhotoAssetId: 'player.png' }] }));
+  await act(async () =>
+    identity.resolve({ matches: [{ playerPhotoAssetId: 'player.png', sponsorLogoAssetId: 'fsg.png' }] })
+  );
+  expect(transport.mediaPlay).not.toHaveBeenCalled();
+  await act(async () => preparedPhoto.resolve('data:image/png;base64,photo'));
   expect(transport.mediaPlay).toHaveBeenCalledTimes(1);
   expect(view.container.querySelector<HTMLElement>('.stinger-winner')!.style.visibility).toBe('hidden');
   await act(async () => {
@@ -346,16 +359,26 @@ it('waits for the captured winner media and reveals it at the configured time', 
   expect(view.container.querySelector<HTMLElement>('.stinger-winner')!.style.visibility).toBe('visible');
   expect(view.container.querySelector('.stinger-name')!.textContent).toContain('Captured winner');
   expect(view.container.querySelector('.stinger-name-prefix')!.textContent).toBe('FSG');
+  expect(view.container.querySelector('.stinger-sponsor-logo')?.getAttribute('src')).toBe(
+    'data:image/png;base64,sponsor'
+  );
+  expect(transport.sponsorLogo).toHaveBeenCalledWith('fsg.png');
+  await act(async () => view.container.querySelector('.stinger-sponsor-logo')!.dispatchEvent(new Event('error')));
+  expect(view.container.querySelector<HTMLElement>('.stinger-sponsor-logo')!.style.display).toBe('none');
+  expect(view.container.querySelector('.stinger-name-tag')!.textContent).toBe('Captured winner');
+
   expect(view.container.querySelector('.stinger-name-tag')!.textContent).toBe('Captured winner');
   expect(view.container.querySelector('.stinger-name')!.textContent).not.toContain('|');
   expect(view.container.querySelector('.stinger-stage')!.classList.contains('theme-sf6')).toBe(true);
+  expect(view.container.querySelector('.stinger-stage')!.classList.contains('stinger-cinematic')).toBe(true);
   expect(view.container.querySelector('.stinger-photo')!.getAttribute('src')).toBe('data:image/png;base64,photo');
   expect(view.container.querySelector('.stinger-character')!.getAttribute('src')).toBe(
     'data:image/png;base64,character'
   );
 });
 
-it('stages the winner assets on the video clock, fits the actual clip, and cancels movement on stop', async () => {
+it('keeps winner details through the selected duration, follows the playback clock, and cancels on stop', async () => {
+  vi.spyOn(performance, 'now').mockImplementation(() => Date.now());
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   Object.defineProperty(reducedMotion, 'matches', { configurable: true, value: true });
   vi.spyOn(window, 'matchMedia').mockReturnValue(reducedMotion);
@@ -424,7 +447,33 @@ it('stages the winner assets on the video clock, fits the actual clip, and cance
   await act(async () => video.dispatchEvent(new Event('durationchange')));
   const active = animations.slice(-3);
   expect(animations.slice(0, -3).every((animation) => animation.cancel.mock.calls.length === 1)).toBe(true);
-  expect(active.map(({ options }) => options.duration)).toEqual([7000, 7000, 7000]);
+  expect(active.map(({ options }) => options.duration)).toEqual([9000, 9000, 9000]);
+  for (const animation of active) {
+    const offsets = animation.frames.map((frame) => frame.offset as number);
+    expect(offsets).toEqual([...offsets].sort((a, b) => a - b));
+    const settled = animation.frames.find(
+      (frame) => typeof frame.transform === 'string' && frame.transform.startsWith('translate3d(0, 0, 0)')
+    )!;
+    const settledAt = (settled.offset as number) * Number(animation.options.duration);
+    expect(settledAt).toBeGreaterThanOrEqual(2199);
+    expect(settledAt).toBeLessThanOrEqual(2251);
+  }
+  expect(active.every((animation) => animation.frames.every((frame) => frame.opacity === 1))).toBe(true);
+  const photoAnimation = active.find((animation) => animation.element.classList.contains('stinger-photo'))!;
+  const characterAnimation = active.find((animation) => animation.element.classList.contains('stinger-character'))!;
+  const nameAnimation = active.find((animation) => animation.element.classList.contains('stinger-name'))!;
+  expect(photoAnimation.frames[0].transform).toMatch(/^translate3d\(-/);
+  expect(characterAnimation.frames[0].transform).toMatch(/^translate3d\([0-9]/);
+  for (const animation of [photoAnimation, characterAnimation]) {
+    expect(animation.frames[0].filter).toContain('brightness(0)');
+    expect(animation.frames.some((frame) => String(frame.filter).includes('invert(0.22)'))).toBe(true);
+    expect(animation.frames.some((frame) => String(frame.filter).includes('invert(1)'))).toBe(false);
+    expect(animation.frames.some((frame) => String(frame.transform).includes('scale(1.035)'))).toBe(true);
+    expect(animation.frames.at(-2)!.filter).not.toContain('brightness(0)');
+  }
+  expect(nameAnimation.frames[0].transform).toMatch(/^translate3d\(0, -/);
+  expect(nameAnimation.frames.every((frame) => frame.filter === undefined)).toBe(true);
+  expect(nameAnimation.frames.every((frame) => !String(frame.transform).includes('rotate'))).toBe(true);
   await move(1);
   expect(layer.style.visibility).toBe('visible');
   await move(3);
@@ -442,16 +491,49 @@ it('stages the winner assets on the video clock, fits the actual clip, and cance
   await move(7.8);
   expect(active.every((animation) => animation.currentTime === 6800)).toBe(true);
   await move(8);
+  expect(layer.style.visibility).toBe('visible');
+  await act(async () => video.dispatchEvent(new Event('ended')));
+  expect(finished).not.toHaveBeenCalled();
+  await act(async () => vi.advanceTimersByTimeAsync(1900));
+  expect(layer.style.visibility).toBe('visible');
+  await act(async () => vi.advanceTimersByTimeAsync(100));
   expect(layer.style.visibility).toBe('hidden');
+  expect(finished).toHaveBeenCalledWith();
 
-  // A user duration shorter than the video also sets the fade boundary.
+  // A user duration shorter than the video also sets the exit boundary.
   Object.defineProperty(video, 'duration', { configurable: true, value: 20 });
   await act(async () => video.dispatchEvent(new Event('durationchange')));
   expect(animations.slice(-3).map(({ options }) => options.duration)).toEqual([9000, 9000, 9000]);
+  for (const animation of animations.slice(-3)) {
+    const exitOffset = animation.frames.at(-2)!.offset as number;
+    expect(exitOffset * Number(animation.options.duration) + 1000).toBeCloseTo(8000);
+  }
+
   await move(10);
   expect(finished).toHaveBeenCalledWith();
 
+  // A 60-second limit holds every detail until its two-second exit at 58 seconds.
+  Object.defineProperty(video, 'duration', { configurable: true, value: 120 });
+  winnerCue.settings.winner.durationSeconds = 60;
+  await view.rerender();
+  await act(async () => video.dispatchEvent(new Event('durationchange')));
+  const minute = animations.slice(-3);
+  expect(minute.map(({ options }) => options.duration)).toEqual([59000, 59000, 59000]);
+  for (const animation of minute) {
+    const exitOffset = animation.frames.at(-2)!.offset as number;
+    expect(exitOffset * Number(animation.options.duration) + 1000).toBeCloseTo(58000);
+  }
+  await move(57.9);
+  expect(layer.style.visibility).toBe('visible');
+  expect(minute.every((animation) => animation.currentTime === 56900)).toBe(true);
+  await move(58);
+  expect(minute.every((animation) => animation.currentTime === 57000)).toBe(true);
+  await move(60);
+  expect(layer.style.visibility).toBe('hidden');
+
   // Late reveals in short clips must keep their keyframes ordered and bounded.
+  winnerCue.settings.winner.durationSeconds = 1.2;
+  await view.rerender();
   await move(0, 'seeking');
   await act(async () => video.dispatchEvent(new Event('seeked')));
   Object.defineProperty(video, 'duration', { configurable: true, value: 1.2 });
@@ -481,6 +563,8 @@ it('stages the winner assets on the video clock, fits the actual clip, and cance
   await view.rerender();
   expect(layer.style.visibility).toBe('visible');
   Object.defineProperty(video, 'duration', { configurable: true, value: 0.5 });
+  winnerCue.settings.winner.durationSeconds = 0.5;
+  await view.rerender();
   await act(async () => video.dispatchEvent(new Event('durationchange')));
   expect(layer.style.visibility).toBe('hidden');
   expect(animations).toHaveLength(animatedCount);

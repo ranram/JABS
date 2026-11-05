@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 
-/** Fit only the match body; the full-height bezel, rails and bottom footer never scale. */
+/** Fit the match body while keeping the footer and decorative frame at their original scale. */
 export function useVersusCardFit() {
   const ref = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
@@ -8,6 +8,7 @@ export function useVersusCardFit() {
     const body = card?.querySelector<HTMLElement>('.versus-match-body');
     const footer = card?.querySelector<HTMLElement>('.versus-match-footer');
     if (!card || !body || !footer) return;
+    const overlay = card.closest<HTMLElement>('.versus-overlay');
     const heights = new Map<Element, number>();
     let appliedScale = 1;
     const fit = () => {
@@ -25,7 +26,12 @@ export function useVersusCardFit() {
       // Otherwise media reloads can restart a loop between name width and height.
       const bodyHeight = naturalBodyHeight(body, card.clientWidth) + pixels(getComputedStyle(body).marginBottom);
       const footerHeight = heights.get(footer) ?? footer.offsetHeight;
-      const frameHeight = heights.get(card) ?? card.offsetHeight;
+      const compactOverlay = overlay?.classList.contains('versus-compact') ? overlay : undefined;
+      const frameHeight = compactOverlay
+        ? Math.min(compactOverlay.clientHeight, Math.ceil(bodyHeight + footerHeight + inset))
+        : (heights.get(card) ?? card.offsetHeight);
+      if (compactOverlay) compactOverlay.style.setProperty('--versus-card-height', `${frameHeight}px`);
+      else overlay?.style.removeProperty('--versus-card-height');
       const available = frameHeight - inset - footerHeight;
       if (available <= 0) return;
       // Reserve a pixel for browser rounding above the pinned footer.
@@ -48,7 +54,10 @@ export function useVersusCardFit() {
     observer.observe(footer);
     observer.observe(card);
     fit();
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      overlay?.style.removeProperty('--versus-card-height');
+    };
   }, []);
   return ref;
 }

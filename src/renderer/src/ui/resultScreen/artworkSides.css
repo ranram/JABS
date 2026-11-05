@@ -1,0 +1,45 @@
+.victory:not(.player-stats)[data-player='2'] .victory-hero {
+  inset: -20px -30px 0 48%;
+}
+.victory[data-player='2'] .victory-hero.has-both .victory-character-art {
+  left: auto;
+  right: -10%;
+}
+.victory[data-player='2'] .victory-player-photo {
+  left: auto;
+  right: 8%;
+}
+.victory[data-player='2'] .victory-hero.has-both .victory-player-photo {
+  left: auto;
+  right: 48%;
+}
+.victory[data-player='2'] .victory-copy {
+  left: var(--victory-copy-right);
+  right: auto;
+}
+.victory:not(.player-stats)[data-player='2'] .victory-logo {
+  left: calc(var(--victory-copy-right) + var(--victory-copy-width) / 2);
+}
+.victory[data-player='2'] .victory-portraits {
+  left: auto;
+  right: 60px;
+}
+.overlay-announcement[data-player='2'] .announcement-composition {
+  grid-template-columns: minmax(760px, 1.18fr) minmax(620px, 0.82fr);
+  grid-template-areas: 'subject copy';
+}
+.overlay-announcement[data-player='2'] .announcement-character-art {
+  right: auto;
+  left: -5%;
+}
+.overlay-announcement[data-player='2'] .announcement-subject.has-character.has-photo .announcement-character-art {
+  left: -10%;
+}
+.overlay-announcement[data-player='2'] .announcement-player-photo {
+  right: auto;
+  left: 8%;
+}
+.overlay-announcement[data-player='2'] .announcement-subject.has-character.has-photo .announcement-player-photo {
+  left: auto;
+  right: 15%;
+}

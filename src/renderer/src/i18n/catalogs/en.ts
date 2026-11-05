@@ -778,11 +778,13 @@ export const en = {
       formats: 'WebM · VP8/VP9 video, optional Opus/Vorbis audio · Up to 256 MB.',
       useDuration: 'Limit playback duration',
       duration: 'Duration (seconds)',
+      durationHelp: 'Winner details stay until this time. Shorter videos hold their last frame. The exit starts 2 seconds before the end.',
       playBroadcast: 'Play in OBS',
       playClip: 'Play {{name}}',
       playingClip: 'Playing: {{name}}',
       queuedClip: 'Starting: {{name}}',
       configure: 'Configure stingers',
+      configureMissing: 'No {{name}} stinger is configured. Open Stingers setup now?',
       noClips: 'No videos configured yet.',
       unavailable: 'Waiting for the stinger connection.',
       preview: 'Preview here',
@@ -803,7 +805,7 @@ export const en = {
       layerHelp: 'Place the video in front of or behind the winner assets. Use a transparent video in front.',
       playbackSettings: 'Winner playback settings',
       framing: 'Winner framing · 1920×1080',
-      framingHelp: 'Prepare your animation around these fixed regions. This preview never triggers OBS.',
+      framingHelp: 'Prepare your video around the image and name guides. Single-image layouts expand automatically. This preview does not trigger OBS.',
       previewPlayer: 'Preview player',
       playerOne: 'Player 1',
       playerTwo: 'Player 2',
@@ -821,6 +823,7 @@ export const en = {
       otherOverlays: 'Overlays',
       topEight: 'Top 8 Generator',
       thumbnail: 'YouTube Thumbnail Generator',
+      overlayCharactersTitle: 'Live characters',
       otherOverlaysTitle: 'OBS Overlays',
       obsSource: 'OBS Browser Source',
       resolvingObs: 'Loading the OBS URL…',
@@ -840,8 +843,13 @@ export const en = {
       },
       // Versus Screen settings
       versusScreen: {
+        failedTitle: 'Unable to update Versus Screen',
+        failed: 'Versus Screen settings could not be saved.',
+        showScrollingRails: 'Show scrolling rails',
+        informationLayout: 'Information layout',
+        informationLayouts: { standard: 'Standard', compact: 'Compact' },
         framingHelp:
-          'Character framing is reused for the same game, artwork, side, and layout. Photos keep each saved player’s framing. Saved match and personal adjustments take priority.',
+          'Standard and Compact save separate framing. Character position and size mirror across sides for the same game and artwork. Each side keeps its own flip, and photos keep each saved player’s framing.',
         showMatchBackdrop: 'Match information backdrop',
         matchBackdropHelp: 'Comparison and history rows keep their backgrounds.',
         statsHeading: 'Match comparison',
@@ -861,7 +869,7 @@ export const en = {
         historyEntries: 'results loaded',
         startggProfileError: 'Choose a game and link both players to their start.gg profiles.',
         obsCurrent: 'OBS is up to date',
-        obsPending: 'OBS will update in 1 second…',
+        obsPending: 'Updating OBS…',
         loadingScreenSettings: 'Loading Versus Screen settings…'
       },
       // Commentator settings
@@ -1386,6 +1394,15 @@ export const en = {
     },
 
     // Artwork positioning
+    artworkFraming: {
+      title: 'Image framing',
+      help: 'Click to select an image. Ctrl+click selects artwork behind it. Character position and size mirror across sides, with flip saved separately. Photos keep their own framing.',
+      photo: 'Player photo',
+      character: 'Character',
+      size: 'Size',
+      flip: 'Flip',
+      reset: 'Reset selected image',
+    },
     mediaControls: {
       click: 'Click',
       combinedEditingHelp: 'Select image behind',

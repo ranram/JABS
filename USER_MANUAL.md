@@ -101,6 +101,8 @@ Enable shortcuts in Settings. Match-changing shortcuts pause while you type. Sco
 | `F5` | Open Players |
 | `F6` | Open the match queue |
 | `F7` | Open Set Selector with search focused |
+| `Ctrl+P` | Play the Perfect stinger |
+| `Ctrl+W` | Play the Winner stinger |
 | `Ctrl+Shift+N` | Load the next queued match |
 | `Ctrl+Shift+P` | Load the previous queued match |
 | `Ctrl+Shift+Space` | Pause or resume queue automation |
@@ -127,17 +129,27 @@ To use your own OBS background, enable **Transparent background** for the overla
 
 For animated overlays that should start fresh when you return to their scene, enable **Shutdown source when not visible** and **Refresh browser when scene becomes active** in OBS's Browser Source properties. These settings unload the hidden page and reload it when activated. Leave them off for sources you want to keep running between scenes, including Stingers.
 
+### Frame Player Stats and Winner & Champion images
+
+Open the overlay’s settings and use **Image framing**. Player Stats shows both players together, with Player 2 on the right. Winner & Champion becomes editable once there is a winner and shows only that player.
+
+Click an image to select it, or use **Ctrl+click** to reach artwork behind it. Drag to move, use **+ / −** to resize, and press **F** to flip. **Adjust visual layer** selects an image by name. **Reset position** resets only the selected image. Images can scale up to 800% if needed.
+
+Character position and size mirror across sides for the same artwork. Flip stays separate for each side, and photos keep each player’s own framing. Each screen and composition saves separate framing for photos alone, characters alone, and both together. Player 2 appears on the opposite side in the preview and OBS.
+
 ### Stingers
 
-Add your Perfect and Winner videos under **Stingers** in WebM format. Use **Winner framing** to check how the player's photo, character art, and name fit your video. This preview stays inside JABS and does not trigger OBS. Winner playback requires a completed set and can start automatically.
+Add your Perfect and Winner videos under **Stingers** in WebM format. Winner playback needs a completed set and can start automatically. Use **Winner framing** to check the photo, character, sponsor logo, and name against your video. This preview stays inside JABS.
+
+Enable **Limit playback duration** to keep winner details on screen for the selected duration. They slide out during the final two seconds. If the video ends sooner, its last frame stays behind the details until the duration finishes.
 
 To try it first, use the [sample Winner stinger](examples/stingers/Winner-Placeholder.webm).
 
-Place the Stingers Browser Source above your other OBS sources and reuse it in the scenes where you want playback. Enable **Control audio via OBS** to mix its sound in OBS.
+Place the Stingers Browser Source above the graphics it should cover and reuse it across scenes. Enable **Control audio via OBS** to mix its sound in OBS. Hiding the source or leaving its active scene stops playback.
 
-Place the Stingers source above any graphics it should cover. Hiding it or leaving its active scene stops playback.
+Use the toolbar’s **Stingers** menu to play or stop clips from any tab. With keyboard shortcuts enabled, **Ctrl+P** plays Perfect and **Ctrl+W** plays Winner. If a clip is missing, JABS offers to open setup. Both actions are also supported by the Stream Deck integration.
 
-The toolbar's **Stingers** menu lets you play or stop configured clips from any tab. If playback loses its connection, check that the source is in the active OBS scene, then choose **Reconnect OBS source**. If OBS failed to load the overlay page, use **Refresh cache of current page** in that Browser Source's properties first.
+If playback loses its connection, check that the source is in the active OBS scene and choose **Reconnect OBS source**. If OBS failed to load the page, first use **Refresh cache of current page** in that Browser Source’s properties.
 
 ### Queue ticker
 
@@ -198,13 +210,19 @@ Open **Media → Open assets folder**, or choose a specific folder from **Media*
 
 Use PNG, JPEG, or WebP. For player photos, a transparent `1024×1536` cutout works well; for scoreboard headshots, use `512×512`. Headshots take priority over regular photos on scoreboards.
 
+Transparent margins around character art and player photos are trimmed for display. Original files stay unchanged. If older framing looks too large, use **Reset position** and adjust the image again.
+
+Use the character and outfit selectors at the top of **Overlays** to update the current match. They stay visible while you scroll. For saved players, these choices also update their defaults for that game. Each overlay keeps its own image framing.
+
+In **Overlays → Versus Screen**, choose **Standard** or **Compact** under **Information layout**. Compact uses a narrower panel that starts at the top and ends below its content. Each layout remembers its own display settings and image framing. Standard is the default and keeps existing framing. Turn off **Show scrolling rails** to hide the side bands.
+
 Selecting a game may create empty character files. Replace these with your artwork. Numbered filenames such as `Mario-1.png` and `Mario-2.png` add outfits. See [Game artwork](game-assets/README.md) for naming details.
 
 In Versus Screen, Top 8 Generator, and YouTube Thumbnail Generator, drag either the photo or character art to move it. Click a visible part of the image to select it, or use `Alt+click` when images overlap. **Reset position** restores the selected image's position and size.
 
 With an image selected, arrow keys move it, `Shift` + arrows moves it farther, `+` / `-` resizes it, and `F` flips it.
 
-Versus Screen remembers character framing for each game, artwork or outfit, side, and photo/character layout. Other players using that artwork inherit its position, size, and flip. Photo framing stays with each saved player. Saved match layouts and personal adjustments take priority.
+Versus Screen remembers character framing for each game, artwork or outfit, and photo/character layout. Position and size mirror across player sides. Flip stays independent for each side. Other players using that artwork inherit its framing. Photo framing stays with each saved player. Saved match layouts and personal adjustments take priority.
 
 ## Custom scoreboards
 

@@ -28,6 +28,8 @@ vi.mock('../renderer/src/api', async (original) => {
       gameCharacterAssets: async () => ({ assets: [] }),
       resolvePlayerMedia: async () => ({ subjects: [] }),
       playerMedia: async () => ({ playerOne: {}, playerTwo: {} }),
+      identityMedia: (identities: Parameters<typeof actual.api.identityMedia>[0]) => identities.length
+        ? Promise.resolve({ matches: identities.map(() => ({})) }) : actual.api.identityMedia(identities),
       videogames: async () => ({ games: [], cached: false }),
       eventStandings: async () => {
         throw new Error('Not final');

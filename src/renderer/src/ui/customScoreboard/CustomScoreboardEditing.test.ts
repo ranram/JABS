@@ -20,6 +20,9 @@ import { CustomScoreboardBroadcastExtras } from '../operator/CustomScoreboardBro
 import { CustomScoreboardRegionControls } from './CustomScoreboardRegionControls';
 
 vi.mock('../../hooks/useScoreboardPhotos', () => ({ useScoreboardPhotos: () => ({ state: { enabled: false } }) }));
+vi.mock('../../api', () => ({
+  api: { identityMedia: async (identities: unknown[]) => ({ matches: identities.map(() => ({})) }) }
+}));
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();

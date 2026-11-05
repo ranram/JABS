@@ -1,0 +1,27 @@
+.operator-shell .panel.other-overlays-workspace {
+  overflow: visible;
+}
+
+.overlay-characters {
+  position: sticky;
+  top: var(--workspace-header-height, 100px);
+  z-index: 10;
+  margin-bottom: var(--mantine-spacing-sm);
+  background: var(--mantine-color-body);
+  border-color: var(--mantine-color-default-border);
+}
+
+.overlay-character-player {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr);
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
+}
+
+.overlay-character-player .mantine-InputWrapper-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--mantine-font-size-xs);
+}

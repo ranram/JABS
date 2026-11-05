@@ -30,6 +30,8 @@ pub struct PlayerStatsSettings {
     show_player_photo: bool,
     #[serde(default = "default_true")]
     show_character: bool,
+    #[serde(default)]
+    artwork_framing: crate::artwork_framing::ArtworkFraming,
     updated_at: String,
 }
 
@@ -54,6 +56,7 @@ impl SettingsStore {
                     show_sponsor_logo: true,
                     show_player_photo: true,
                     show_character: true,
+                    artwork_framing: Default::default(),
                     updated_at: now_rfc3339()?,
                 })
             },
@@ -104,6 +107,9 @@ fn unavailable() -> String {
     "Player Stats settings are unavailable.".into()
 }
 fn validate(settings: &PlayerStatsSettings) -> Result<(), String> {
+    if !crate::artwork_framing::valid(&settings.artwork_framing) {
+        return Err("Invalid image framing.".into());
+    }
     if settings
         .logo_asset_id
         .as_deref()
@@ -164,6 +170,9 @@ mod tests {
         settings.show_player_photo = false;
         settings.show_character = false;
         settings.show_placement_logos = false;
+        settings.artwork_framing.insert("character-context".into(), crate::versus_screen::MediaTransform {
+            x: 0.25, y: -0.3, scale: 6.0, flipped: true,
+        });
         settings.logo_asset_id = Some("local.png".into());
         settings.styling_game_id = Some("tekken-8".into());
         let saved = store.replace(&database, settings).unwrap();
@@ -174,6 +183,13 @@ mod tests {
             SettingsStore::load(&database).unwrap().current().unwrap(),
             saved
         );
+        let mut legacy = initial.clone();
+        legacy.as_object_mut().unwrap().remove("artworkFraming");
+        assert!(serde_json::from_value::<PlayerStatsSettings>(legacy).unwrap().artwork_framing.is_empty());
+        let mut bad_framing: PlayerStatsSettings = serde_json::from_value(saved.clone()).unwrap();
+        bad_framing.artwork_framing.get_mut("character-context").unwrap().scale = 8.1;
+        assert!(store.replace(&database, bad_framing).is_err());
+        assert_eq!(store.current().unwrap(), saved);
         let stale = serde_json::from_value(initial).unwrap();
         assert_eq!(
             store.replace(&database, stale).unwrap_err(),

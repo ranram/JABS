@@ -97,16 +97,14 @@ it('shows populated pills with the X icon first and respects tournament seed vis
   set.broadcast.seedsEnabled = true;
   set.setId = undefined;
   await view.rerender();
-  expect(view.container.querySelector('[data-detail=seed]')?.textContent).toBe('Seed 17');
+  expect(view.container.querySelector('[data-detail=seed]')).toBeNull();
   expect(set.playerOne.seed).toBe(17);
-  set.playerOne.xHandle = ' ';
-  set.playerOne.pronouns = '';
-  await view.rerender();
-  expect([...view.container.querySelectorAll('[data-detail=seed]')].map((pill) => pill.textContent)).toEqual([
-    'Seed 17',
-    'Seed 2'
-  ]);
   expect(set.playerTwo.seed).toBeUndefined();
+  // Resume a tournament with both sides populated to check mirrored placement.
+  set.setId = 'linked';
+  set.playerTwo.pronouns = 'they/them';
+  await view.rerender();
+  expect([...view.container.querySelectorAll('[data-detail=seed]')].map((pill) => pill.textContent)).toEqual(['Seed 17']);
   const groups = [...view.container.querySelectorAll<HTMLElement>('.scoreboard-detail-group')];
   expect(groups[0].style.left).toBe(groups[1].style.right);
   expect(groups[0].style.width).toBe(groups[1].style.width);

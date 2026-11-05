@@ -24,10 +24,16 @@ describe('broadcast composition contracts', () => {
     };
     const settings = versusScreenStateSchema.parse(legacy);
     expect(settings.statRows).toEqual(defaultVersusStatRows);
+    expect(settings.informationLayout).toBe('standard');
+    const compact = versusScreenStateSchema.parse({ ...settings, informationLayout: 'compact' });
+    expect(compact.informationLayout).toBe('compact');
+    expect(compact.mediaPlacements).toEqual(settings.mediaPlacements);
+    expect(versusScreenStateSchema.safeParse({ ...legacy, informationLayout: 'unknown' }).success).toBe(false);
     expect(
       versusScreenStateSchema.parse({ ...legacy, statRows: ['main', 'pronouns', 'age', 'sponsor'] }).statRows
     ).toEqual(['main', 'pronouns', 'age', 'sponsor']);
     expect(settings.showHeadToHead).toBe(true);
+    expect(settings.showScrollingRails).toBe(true);
     expect(settings.showMatchBackdrop).toBe(true);
     expect(versusScreenStateSchema.parse({ ...legacy, showMatchBackdrop: false }).showMatchBackdrop).toBe(false);
     for (const statRows of [['age', 'age'], ['unknown'], versusStatTypes.slice(0, 5)])

@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { stingerFraming, stingerLimits, type StingerCue } from '@shared/stingers';
+import { stingerFraming, winnerStingerFraming, stingerLimits, type StingerCue } from '@shared/stingers';
 import type { SelectedSetState } from '@shared/models';
 import { resolveGameProfile } from '@shared/gameProfiles';
 import { api } from '../../api';
 import { DisplayText } from '../DisplayText';
+import { CatalogImage } from '../CatalogImage';
 import { useStingerWinnerMedia } from './useStingerWinnerMedia';
 import { useStingerWinnerAnimation } from './useStingerWinnerAnimation';
+import { useStingerPlaybackClock } from './useStingerPlaybackClock';
 import { useAppearanceStyle } from '../appearance/AppearanceProvider';
 import { useIdentityTextFit } from '../useIdentityTextFit';
 import './stingerStage.css';
@@ -27,8 +29,13 @@ export function StingerStage({
   const [url, setUrl] = useState<string>();
   const media = useStingerWinnerMedia(cue.kind === 'winner' ? cue.selectedSet : undefined);
   const clip = cue.settings[cue.kind];
-  const winnerRef = useStingerWinnerAnimation(
+  const clock = useStingerPlaybackClock(
     video,
+    clip.durationSeconds,
+    cue.kind === 'winner' && clip.durationSeconds !== undefined
+  );
+  const winnerRef = useStingerWinnerAnimation(
+    clock,
     cue.kind === 'winner' && media.ready,
     cue.settings.mediaDelaySeconds,
     clip.durationSeconds
@@ -84,53 +91,28 @@ export function StingerStage({
   }, [cue.expiresAt]);
 
   useEffect(() => {
-    const currentVideo = video.current;
-    if (!currentVideo) return;
-    const element = currentVideo;
-    const limit = clip.durationSeconds ?? stingerLimits.durationSeconds;
-    let running = !element.paused;
+    const availableClock = clock.current;
+    if (!availableClock) return;
+    const playback = availableClock;
     let timer: ReturnType<typeof setTimeout> | undefined;
     function sync() {
       clearTimeout(timer);
-      const remaining = limit - element.currentTime;
-      if (remaining <= 0) finish.current();
-      else if (running && element.playbackRate > 0)
-        timer = setTimeout(sync, Math.max(16, (remaining * 1000) / element.playbackRate));
+      const remaining = (playback.duration() - playback.time()) * 1000;
+      if (playback.finished() || remaining <= 0) finish.current();
+      else if (playback.running() && playback.rate() > 0)
+        timer = setTimeout(sync, Math.max(16, remaining / playback.rate()));
     }
-    function play() {
-      running = true;
-      sync();
-    }
-    function pause() {
-      running = false;
-      clearTimeout(timer);
-    }
-    const events: Array<[string, () => void]> = [
-      ['playing', play],
-      ['pause', pause],
-      ['waiting', pause],
-      ['seeking', pause],
-      [
-        'seeked',
-        () => {
-          running = !element.paused;
-          sync();
-        }
-      ],
-      ['ratechange', sync],
-      ['timeupdate', sync]
-    ];
-    for (const [event, listener] of events) element.addEventListener(event, listener);
+    const unsubscribe = playback.subscribe(sync);
     sync();
     return () => {
       clearTimeout(timer);
-      for (const [event, listener] of events) element.removeEventListener(event, listener);
+      unsubscribe();
     };
-  }, [clip.durationSeconds]);
+  }, [clock, clip.durationSeconds, cue.kind]);
 
   return (
     <div
-      className={`stinger-stage ${themeClass}${cue.settings.videoLayer === 'foreground' ? ' stinger-video-foreground' : ''}`}
+      className={`stinger-stage ${themeClass}${cue.kind === 'winner' && url && media.ready ? ' stinger-cinematic' : ''}${cue.settings.videoLayer === 'foreground' ? ' stinger-video-foreground' : ''}`}
       style={appearanceStyle}
     >
       <video
@@ -139,7 +121,6 @@ export function StingerStage({
         muted={muted}
         playsInline
         preload="auto"
-        onEnded={() => finish.current()}
         onError={() => finish.current('playback-failed')}
       />
       {cue.kind === 'winner' && media.ready && (
@@ -162,26 +143,31 @@ export function StingerFramingPreview({
   const appearanceStyle = useAppearanceStyle();
   const themeClass = resolveGameProfile(selectedSet?.gameId).overlay.themeClass;
   return (
-    <div className={`stinger-stage ${themeClass}`} style={appearanceStyle}>
+    <div className={`stinger-stage stinger-cinematic ${themeClass}`} style={appearanceStyle}>
       <WinnerComposition media={media} />
-      <FramingGuides labels={labels} />
+      <FramingGuides
+        labels={labels}
+        framing={media.winner ? winnerStingerFraming(Boolean(media.photo), Boolean(media.character)) : stingerFraming}
+        visible={media.winner ? { photo: Boolean(media.photo), character: Boolean(media.character) } : undefined}
+      />
     </div>
   );
 }
 
 function WinnerComposition({ media }: { media: ReturnType<typeof useStingerWinnerMedia> }) {
+  const framing = winnerStingerFraming(Boolean(media.photo), Boolean(media.character));
   const sponsor = media.winner?.prefix?.trim() || media.winner?.sponsor?.trim();
   const nameRef = useIdentityTextFit(`${sponsor ?? ''} ${media.winner?.name ?? ''}`, '.stinger-name-text');
   if (!media.winner) return null;
   return (
     <>
-      {media.photo && (
-        <img className="stinger-photo" src={media.photo} alt="" style={regionStyle(stingerFraming.photo)} />
-      )}
       {media.character && (
-        <img className="stinger-character" src={media.character} alt="" style={regionStyle(stingerFraming.character)} />
+        <img className="stinger-character" src={media.character} alt="" style={regionStyle(framing.character)} />
       )}
-      <div className="stinger-name" style={regionStyle(stingerFraming.name)}>
+      {media.photo && <img className="stinger-photo" src={media.photo} alt="" style={regionStyle(framing.photo)} />}
+
+      <div className="stinger-name" style={regionStyle(framing.name)}>
+        {media.sponsorLogo && <CatalogImage className="stinger-sponsor-logo" src={media.sponsorLogo} />}
         <strong ref={nameRef} className="stinger-name-row">
           <span className="stinger-name-text">
             {sponsor && (
@@ -201,16 +187,26 @@ function WinnerComposition({ media }: { media: ReturnType<typeof useStingerWinne
   );
 }
 
-function FramingGuides({ labels }: { labels: [string, string, string] }) {
+function FramingGuides({
+  labels,
+  framing,
+  visible
+}: {
+  labels: [string, string, string];
+  framing: ReturnType<typeof winnerStingerFraming>;
+  visible?: { photo: boolean; character: boolean };
+}) {
   return (
     <>
-      {Object.entries(stingerFraming).map(([name, region], index) => (
-        <div className="stinger-guide" key={name} style={regionStyle(region)}>
-          <span>
-            {labels[index]} · {region.x}, {region.y} · {region.width}×{region.height}
-          </span>
-        </div>
-      ))}
+      {Object.entries(framing).map(([name, region], index) =>
+        visible && name !== 'name' && !visible[name as 'photo' | 'character'] ? null : (
+          <div className="stinger-guide" key={name} style={regionStyle(region)}>
+            <span style={{ position: 'absolute', top: region.y < 0 ? `${(-region.y / region.height) * 100}%` : 0 }}>
+              {labels[index]} · {region.x}, {region.y} · {region.width}×{region.height}
+            </span>
+          </div>
+        )
+      )}
     </>
   );
 }

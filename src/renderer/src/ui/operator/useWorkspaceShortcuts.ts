@@ -1,3 +1,4 @@
+import type { StingerKind, StingerPlaybackResult } from '@shared/stingers';
 import { useEffect, useState } from 'react';
 import type { MatchQueue } from '@shared/matchQueue';
 import type { QueueController } from './matchQueueContext';
@@ -5,12 +6,16 @@ import { currentQueueIndex } from './queuePresentation';
 import { hasVisiblePopup, isTypingTarget, shortcutCode } from './useScoreShortcuts';
 import { isTutorialActive } from '../tutorials/tutorialActivity';
 
+export type ShortcutConfirmationKind = 'queue' | 'players' | 'scores' | 'stinger-perfect' | 'stinger-winner';
+
 type Options = {
   enabled: boolean;
   navigationBlocked: boolean;
   selectorAvailable: boolean;
   onOpenSelector(): void;
   onOpenPlayers?(): void;
+  onPlayStinger?(kind: StingerKind): Promise<StingerPlaybackResult>;
+  onConfigureStingers?(): void;
   onClearPlayers?(): void | boolean | Promise<void | boolean>;
   onResetScores?(): void | boolean | Promise<void | boolean>;
   queue?: QueueController;
@@ -35,12 +40,14 @@ export function useWorkspaceShortcuts({
   selectorAvailable,
   onOpenSelector,
   onOpenPlayers,
+  onPlayStinger,
+  onConfigureStingers,
   onClearPlayers,
   onResetScores,
   queue
 }: Options) {
   const [confirmation, setConfirmation] = useState<{
-    kind: 'queue' | 'players' | 'scores';
+    kind: ShortcutConfirmationKind;
     revision?: number;
     remoteId?: string;
   }>();
@@ -55,6 +62,10 @@ export function useWorkspaceShortcuts({
   async function confirm(): Promise<boolean> {
     if (!confirmation || navigationBlocked) return false;
     setConfirmation(undefined);
+    if (confirmation.kind === 'stinger-perfect' || confirmation.kind === 'stinger-winner') {
+      onConfigureStingers?.();
+      return Boolean(onConfigureStingers);
+    }
     if (confirmation.kind === 'players') return (await onClearPlayers?.()) !== false;
     if (confirmation.kind === 'scores') return (await onResetScores?.()) !== false;
     if (
@@ -67,11 +78,12 @@ export function useWorkspaceShortcuts({
       return queue.act({ action: 'clear' });
     return false;
   }
-  function requestRemoteConfirmation(kind: 'queue' | 'players' | 'scores', remoteId: string) {
+  function requestRemoteConfirmation(kind: ShortcutConfirmationKind, remoteId: string) {
     if (confirming || navigationBlocked) return false;
     if (kind === 'queue' && (!canModifyQueue(queue) || !queue.state.entries.length)) return false;
     if (kind === 'players' && !onClearPlayers) return false;
     if (kind === 'scores' && !onResetScores) return false;
+    if (kind.startsWith('stinger-') && !onConfigureStingers) return false;
     setConfirmation({ kind, revision: queue?.state?.revision, remoteId });
     return true;
   }
@@ -82,6 +94,30 @@ export function useWorkspaceShortcuts({
       if (launcher && code === 'F6') code = 'KeyQ';
       if (launcher && code === 'F7') code = 'KeyE';
       const alreadyHandled = event.defaultPrevented;
+      const stinger = event.ctrlKey && !event.shiftKey && (code === 'KeyP' || code === 'KeyW');
+      if (enabled && stinger && onPlayStinger && !event.altKey && !event.metaKey) {
+        // Block the browser's print/close action even when playback is temporarily unavailable.
+        event.preventDefault();
+        if (
+          alreadyHandled ||
+          confirming ||
+          event.repeat ||
+          event.isComposing ||
+          navigationBlocked ||
+          isTutorialActive() ||
+          isTypingTarget(event.target) ||
+          hasVisiblePopup('[data-tutorial="queue-panel"], [data-tutorial="set-selector"]')
+        )
+          return;
+        const kind = code === 'KeyP' ? 'perfect' : 'winner';
+        void onPlayStinger(kind).then((result) => {
+          if (result === 'unconfigured')
+            setConfirmation(
+              (current) => current ?? { kind: kind === 'perfect' ? 'stinger-perfect' : 'stinger-winner' }
+            );
+        });
+        return;
+      }
       if (enabled && launcher && code === 'F5' && !event.altKey && !event.metaKey && onOpenPlayers)
         event.preventDefault();
       if (
@@ -141,7 +177,17 @@ export function useWorkspaceShortcuts({
     }
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [enabled, navigationBlocked, selectorAvailable, onOpenSelector, onOpenPlayers, onClearPlayers, queue, confirming]);
+  }, [
+    enabled,
+    navigationBlocked,
+    selectorAvailable,
+    onOpenSelector,
+    onOpenPlayers,
+    onClearPlayers,
+    onPlayStinger,
+    queue,
+    confirming
+  ]);
   return {
     confirmation: confirmation?.kind,
     confirmationId: confirmation?.remoteId,

@@ -22,6 +22,8 @@ type Props = {
   photoFallback?: string;
   placement: PlayerMediaPlacement;
   selected?: MediaLayerKind;
+  className?: string;
+  clampTransform?(transform: MediaTransform): MediaTransform;
   onSelect(layer: MediaLayerKind): void;
   onChange(layer: MediaLayerKind, transform: MediaTransform): void;
 };
@@ -36,6 +38,8 @@ export function CombinedMediaEditor({
   photoFallback,
   placement,
   selected,
+  className,
+  clampTransform = clampMediaTransform,
   onSelect,
   onChange
 }: Props) {
@@ -109,7 +113,7 @@ export function CombinedMediaEditor({
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) finishDrag();
       }}
-      className={`player-media-layers is-combined combined-media-editor${characterUrl ? ' has-character' : ''}${dragging ? ' is-dragging' : ''}`}
+      className={`${className ?? `player-media-layers is-combined${characterUrl ? ' has-character' : ''}`} combined-media-editor${dragging ? ' is-dragging' : ''}`}
       onPointerDownCapture={(event) => {
         if (event.button !== 0 || event.currentTarget.closest('fieldset[disabled]')) return;
         event.stopPropagation();
@@ -118,7 +122,7 @@ export function CombinedMediaEditor({
         const images = [
           ...event.currentTarget.querySelectorAll<HTMLImageElement>('img.keyboard-adjustable-media')
         ].reverse();
-        const image = pickMediaImage(images, event.clientX, event.clientY, event.altKey);
+        const image = pickMediaImage(images, event.clientX, event.clientY, event.ctrlKey || event.altKey);
         if (!image) return;
         const layer = image.parentElement?.dataset.layer;
         if (layer !== 'character' && layer !== 'photo') return;
@@ -147,7 +151,7 @@ export function CombinedMediaEditor({
         }
         pendingPreview.current = {
           layer: current.layer,
-          transform: clampMediaTransform({
+          transform: clampTransform({
             ...current.start,
             x: current.start.x + (event.clientX - current.x) / (current.width * mediaOffsetWidthRatio),
             y: current.start.y + (event.clientY - current.y) / (current.width * mediaOffsetHeightRatio)
@@ -172,6 +176,7 @@ export function CombinedMediaEditor({
             <div key={layer} className="combined-media-layer" data-layer={layer}>
               <AdjustableMediaImage
                 src={src}
+                clampTransform={clampTransform}
                 fallbackSrc={layer === 'photo' ? photoFallback : undefined}
                 controlsRef={imageControls[layer]}
                 className={

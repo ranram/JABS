@@ -61,6 +61,8 @@ OBS keeps the JABS service address when loading an overlay in either dev or an i
 | Stingers | `/overlay/stingers` |
 | Queue ticker | `/overlay/queue-ticker` |
 
+Player Stats and Winner/Champion save bounded `artworkFraming` maps by game, composition, visible layers, and artwork identity. Character geometry mirrors between sides while flips stay independent. Photo keys prefer start.gg IDs and still read older local-player keys. Winner/Champion writes reject stale settings revisions.
+
 The scoreboard route shows the selected built-in or custom layout. The result route chooses Winner or Champion from the match result; `/overlay/active/champion` remains a supported alias.
 
 ## start.gg requests
@@ -98,7 +100,7 @@ The database, imported custom scoreboards, and stinger videos are stored in Taur
 
 ### Stinger playback
 
-Stinger settings are saved in SQLite. Playback requests stay in memory, and each request is assigned to one active OBS source to prevent duplicate playback. The source at `/overlay/stingers` plays WebM videos, with support for loading portions of a file. Users convert videos before importing them and control audio levels in OBS. Shared framing settings are defined in `src/shared/stingers.ts`.
+Stinger settings are saved in SQLite. Playback requests stay in memory, and each request is assigned to one active OBS source to prevent duplicate playback. The source at `/overlay/stingers` plays WebM videos, with support for loading portions of a file. Users convert videos before importing them and control audio levels in OBS. Winner framing regions are defined in `src/shared/stingers.ts`. `useStingerPlaybackClock` drives both the reveal animation and completion. With a Winner duration selected, it continues from the last video frame until that duration and starts the exit two seconds before the end.
 
 A source covering the Stingers browser must not make it appear disconnected. JABS uses OBS activity signals to decide whether it can play, because browser visibility can change when sources overlap. A loaded source remains eligible until OBS first reports its activity. An explicit inactive signal disables it, and confirmed activity in Program takes priority over visibility.
 
@@ -112,7 +114,11 @@ The Player Library stores profiles and local overrides in `players`, searchable 
 
 `set_overrides` stores each match's progress as JSON, keyed by its start.gg set ID. Returning to a match restores that progress and applies current Player Library defaults. Tournament seeds are refreshed from the imported entrants. `broadcast.seedsEnabled` controls their scoreboard visibility without deleting seed data. Exhibitions omit seed fields and seed text. Images remain in the media folders. The saved match contains their filenames.
 
-Versus placements are handled in `versus_screen.rs` and `versus_screen/media.rs`. Set adjustments are stored in `set_overrides.versus_media`, with separate layouts for character art, player photos, and their combined composition. `versus_character_defaults` stores character transforms by game catalog, character, resolved artwork, side, and composition, independently of player identity and photos. New photo transforms use player-specific contexts in `player_versus_media`, keyed by catalog, side, composition, and photo asset. Existing combined player records remain readable and keep priority after saved set layouts. Editing an existing personal record updates it without creating personal character overrides for new players. Only actual character edits update shared character defaults. Surface, match, photo, and character writes share one transaction. These defaults survive restarts and are not included in Player Library exports.
+Versus framing is handled by `versus_screen.rs` and its `media` and `layout_settings` modules. Match adjustments live in `set_overrides.versus_media`. Reusable character transforms live in `versus_character_defaults`, keyed by game catalog, character, resolved artwork, side, and composition. Photo transforms belong to each player and use catalog, side, composition, and photo asset keys in `player_versus_media`.
+
+Standard retains the original framing keys. Compact uses a `compact:` composition scope. The Versus surface stores each layout’s display preferences and framing context, restored atomically when switching layouts. Matching character position and size mirror across sides, while flips and player photos stay independent. Other overlays keep their own settings and framing stores.
+
+Saved match layouts take priority over reusable defaults. Older combined player records remain readable and keep their priority, but only edits by their owner update them. New character edits update shared defaults. Surface, match, photo, and character writes share one transaction. Framing survives restarts and is not included in Player Library exports.
 
 ## Match queue
 
@@ -178,9 +184,9 @@ All clients share a native projection cache keyed by the settings revision, queu
 
 ## Stream Deck bridge
 
-The native bridge starts trusted-local admission with the desktop app. The companion Stream Deck plugin connects through the loopback WebSocket without a pairing screen or session key; explicit paired clients remain supported. Any local native process meeting the protocol and header requirements can use the allowlisted commands. Browser Origins remain rejected, and the existing Host, version, command, and confirmation guards still apply. Snapshots include the authoritative active confirmation ID, and dialog closure is broadcast separately from score and queue changes. See the [bridge protocol](docs/integrations/stream-deck.md) for connection rules, message formats, command results, and confirmation handling.
+The native bridge starts trusted-local admission with the desktop app. The companion Stream Deck plugin connects through the loopback WebSocket without a pairing screen or session key; explicit paired clients remain supported. Any local native process meeting the protocol and header requirements can use the allowlisted commands. Browser Origins remain rejected, and the existing Host, version, command, and confirmation guards still apply. Snapshots include the authoritative active confirmation ID, and dialog closure is broadcast separately from score and queue changes. Connection handling is defined in [the WebSocket transport](src-tauri/src/stream_deck/socket.rs), and renderer message schemas are in [streamDeck.ts](src/shared/streamDeck.ts).
 
-Commands use the operator's existing actions and edit guards. Destructive requests open the clickable Yes/No dialog, while the native bridge shows, restores, and requests focus for the main window. Verify focus behavior and device feedback on each supported desktop platform.
+Commands use the operator's existing actions and edit guards. `stinger-perfect` and `stinger-winner` use the same playback action as Ctrl+P and Ctrl+W. Winner requires the current match version. Missing clips open the setup confirmation, which also accepts the bridge’s confirm and cancel commands. Destructive requests open the clickable Yes/No dialog, while the native bridge shows, restores, and requests focus for the main window. Verify focus behavior and device feedback on each supported desktop platform.
 
 ## Preparing a match manually
 

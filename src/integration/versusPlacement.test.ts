@@ -103,3 +103,40 @@ it.each(['game', 'player', 'artwork', 'composition'] as const)(
     expect(transport.preview!.settings.mediaPlacements[0].character).toEqual(defaultMediaTransform());
   }
 );
+
+it('uses each information layout’s restored framing and ignores stale drag callbacks', async () => {
+  await initializeI18n();
+  const activeSet = createTestOverlayState('street-fighter-6').selectedSet;
+  transport.settings = versusScreenStateSchema.parse({
+    mediaMode: 'combined',
+    showTournamentLogo: false,
+    showSponsorLogos: false,
+    updatedAt: activeSet.updatedAt
+  });
+  transport.settings.mediaPlacements[0].character = { x: 0.2, y: -0.1, scale: 1.7, flipped: true };
+  transport.settings.mediaPlacements[1].photo = { x: -0.3, y: 0.1, scale: 1.2, flipped: false };
+  const framing = {
+    standard: structuredClone(transport.settings.mediaPlacements),
+    compact: structuredClone(transport.settings.mediaPlacements)
+  };
+  framing.compact[0].character.scale = 1.1;
+  framing.compact[1].photo.x = 0.25;
+  transport.save.mockImplementation(async (settings: VersusScreenState) => {
+    transport.settings = { ...settings, mediaPlacements: framing[settings.informationLayout] };
+    return transport.settings;
+  });
+  const view = await mountView(() =>
+    h(MantineProvider, null, h(VersusScreenControls, { activeSet, profiles: [], logos: [] }))
+  );
+  for (const layout of ['compact', 'standard'] as const) {
+    const previousDrag = transport.preview!.onPlacementChange;
+    const input = view.container.querySelector<HTMLInputElement>(`input[value="${layout}"]`)!;
+    expect(input).not.toBeNull();
+    await act(async () => input.click());
+    expect(transport.save.mock.lastCall?.[0].informationLayout).toBe(layout);
+    expect(transport.preview!.settings.informationLayout).toBe(layout);
+    expect(transport.preview!.settings.mediaPlacements).toEqual(framing[layout]);
+    await act(async () => previousDrag(0, 'character', { ...defaultMediaTransform(), scale: 2.4 }));
+    expect(transport.preview!.settings.mediaPlacements).toEqual(framing[layout]);
+  }
+});

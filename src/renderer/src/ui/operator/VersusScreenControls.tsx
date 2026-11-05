@@ -21,16 +21,12 @@ import { sortByLabel } from './operatorUtils';
 import { MediaControlHint } from './MediaControlHint';
 import { OverlayLogoSelect } from './OverlayLogoSelect';
 import { VersusStatControls } from './VersusStatControls';
-import { VersusCharacterControls } from './VersusCharacterControls';
-import type { CharacterCatalogOptions } from './useCharacterCatalogOptions';
 
 type VersusScreenControlsProps = {
   activeSet?: SelectedSetState;
   profiles: GameProfile[];
   logos: LogoAsset[];
-  characterCatalog?: CharacterCatalogOptions;
   pendingChanges?: boolean;
-  onPatch?(patch: Partial<SelectedSetState>): void;
   sourceLinks?: ReactNode;
 };
 
@@ -38,12 +34,18 @@ export function VersusScreenControls({
   activeSet,
   profiles,
   logos,
-  characterCatalog,
   pendingChanges,
-  onPatch,
   sourceLinks
 }: VersusScreenControlsProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
+  function notify(error: unknown) {
+    notifications.show({
+      color: 'red',
+      title: t('workspaces.versusScreen.failedTitle'),
+      message: error instanceof Error ? error.message : t('workspaces.versusScreen.failed')
+    });
+  }
+
   const { state, saving, update, reload } = useSettingsDraft({
     load: api.versusScreenState,
     save: api.updateVersusScreenState,
@@ -66,6 +68,7 @@ export function VersusScreenControls({
     activeSet?.assetCatalogSlug ?? activeSet?.gameId,
     activeSet?.videogameId,
     state?.mediaMode,
+    state?.informationLayout,
     [activeSet?.playerOne, activeSet?.playerTwo].map((player) => [
       player?.localPlayerId,
       player?.playerId,
@@ -82,6 +85,7 @@ export function VersusScreenControls({
 
   function updatePlacement(player: 0 | 1, layer: MediaLayerKind, transform: MediaTransform) {
     if (
+      latestPlacementContext.current !== placementContext ||
       refreshing ||
       (state?.mediaMode !== 'combined' && layer !== (state?.mediaMode === 'photo' ? 'photo' : 'character'))
     )
@@ -188,9 +192,21 @@ export function VersusScreenControls({
           {t('workspaces.tools.versus.next')}
         </Text>
       )}
-      {activeSet && mode !== 'waiting' && characterCatalog && onPatch && (
-        <VersusCharacterControls activeSet={activeSet} catalog={characterCatalog} onPatch={onPatch} />
-      )}
+      <div>
+        <Text fw={700} size="sm" mb={6}>
+          {t('workspaces.versusScreen.informationLayout')}
+        </Text>
+        <SegmentedControl
+          fullWidth
+          value={state.informationLayout}
+          data={(['standard', 'compact'] as const).map((value) => ({
+            value,
+            label: t(`workspaces.versusScreen.informationLayouts.${value}`)
+          }))}
+          disabled={saving || refreshing}
+          onChange={(value) => void update({ informationLayout: value as 'standard' | 'compact' })}
+        />
+      </div>
       <div>
         <Text fw={700} size="sm" mb={6}>
           {t('thumbnail.mediaMode')}
@@ -230,6 +246,12 @@ export function VersusScreenControls({
           checked={state.showSponsorLogos}
           disabled={saving || refreshing}
           onChange={(event) => void update({ showSponsorLogos: event.currentTarget.checked })}
+        />
+        <Switch
+          label={t('workspaces.versusScreen.showScrollingRails')}
+          checked={state.showScrollingRails}
+          disabled={saving || refreshing}
+          onChange={(event) => void update({ showScrollingRails: event.currentTarget.checked })}
         />
         <Switch
           label={t('workspaces.versusScreen.showHeadToHead')}
@@ -324,12 +346,4 @@ export function VersusScreenStatus({ activeSet }: { activeSet?: SelectedSetState
       {activeSet.playerTwo.name}
     </Text>
   );
-}
-
-function notify(error: unknown) {
-  notifications.show({
-    color: 'red',
-    title: 'Versus Screen unavailable',
-    message: error instanceof Error ? error.message : 'JABS could not update the Versus Screen.'
-  });
 }

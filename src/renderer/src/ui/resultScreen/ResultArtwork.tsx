@@ -1,5 +1,8 @@
+import { CombinedMediaEditor } from '../combinedMedia/CombinedMediaEditor';
+import { clampArtworkTransform } from '@shared/artworkFraming';
 import type { CharacterPortrait } from '../../characterPortraits';
-import { CatalogImage } from '../CatalogImage';
+import { FramedArtworkImage } from './FramedArtworkImage';
+import type { MediaLayerKind, MediaTransform, PlayerMediaPlacement } from '@shared/mediaPlacement';
 import { CharacterPortraitStrip } from '../CharacterPortraitStrip';
 import playerPlaceholder from '../../assets/player_placeholder.svg';
 
@@ -9,18 +12,59 @@ export function ResultArtwork({
   photoUrl,
   photoFallbackUrl = playerPlaceholder,
   portraits = [],
-  shadow = false
+  shadow = false,
+  placement,
+  editing
 }: {
   characterUrl?: string;
   photoUrl?: string;
   photoFallbackUrl?: string;
   portraits?: CharacterPortrait[];
   shadow?: boolean;
+  placement?: PlayerMediaPlacement;
+  editing?: {
+    selected?: MediaLayerKind;
+    label: string;
+    onSelect(layer: MediaLayerKind): void;
+    onChange(layer: MediaLayerKind, transform: MediaTransform): void;
+  };
 }) {
   return (
-    <div className={`victory-hero${characterUrl && photoUrl ? ' has-both' : ''}`} aria-hidden="true">
-      {characterUrl && <SubjectArtwork src={characterUrl} kind="character" shadow={shadow} />}
-      {photoUrl && <SubjectArtwork src={photoUrl} fallbackSrc={photoFallbackUrl} kind="photo" shadow={shadow} />}
+    <div
+      className={`victory-hero${characterUrl && photoUrl ? ' has-both' : ''}${placement ? ' has-framing' : ''}`}
+      aria-hidden={editing ? undefined : true}
+    >
+      {editing && placement ? (
+        <CombinedMediaEditor
+          name={editing.label}
+          characterUrl={characterUrl}
+          photoUrl={photoUrl}
+          characterClass="victory-character-art"
+          photoClass="victory-player-photo"
+          photoFallback={photoFallbackUrl}
+          placement={placement}
+          selected={editing.selected}
+          onSelect={editing.onSelect}
+          onChange={editing.onChange}
+          className="artwork-combined-editor"
+          clampTransform={clampArtworkTransform}
+        />
+      ) : (
+        <>
+          {characterUrl && (
+            <SubjectArtwork src={characterUrl} kind="character" shadow={shadow} transform={placement?.character} />
+          )}
+          {photoUrl && (
+            <SubjectArtwork
+              src={photoUrl}
+              fallbackSrc={photoFallbackUrl}
+              kind="photo"
+              shadow={shadow}
+              transform={placement?.photo}
+            />
+          )}
+        </>
+      )}
       {portraits.length > 0 && (
         <CharacterPortraitStrip
           portraits={portraits}
@@ -37,26 +81,35 @@ function SubjectArtwork({
   src,
   kind,
   shadow,
-  fallbackSrc
+  fallbackSrc,
+  transform
 }: {
   src: string;
   kind: 'character' | 'photo';
   shadow: boolean;
   fallbackSrc?: string;
+  transform?: MediaTransform;
 }) {
   const className = kind === 'character' ? 'victory-character-art' : 'victory-player-photo';
   const entrance = `victory-${kind}`;
   return (
     <>
       {shadow && (
-        <CatalogImage
+        <FramedArtworkImage
           className={`${className} victory-shadow`}
           src={src}
           fallbackSrc={fallbackSrc}
           entrance={`${entrance}-shadow`}
+          transform={transform}
         />
       )}
-      <CatalogImage className={className} src={src} fallbackSrc={fallbackSrc} entrance={entrance} />
+      <FramedArtworkImage
+        className={className}
+        src={src}
+        fallbackSrc={fallbackSrc}
+        entrance={entrance}
+        transform={transform}
+      />
     </>
   );
 }

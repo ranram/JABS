@@ -225,6 +225,36 @@ impl MediaMatch {
         }
     }
 
+    fn effective_mode<'a>(&self, side: usize, mode: &'a str) -> &'a str {
+        if matches!(mode, "combined" | "compact:combined")
+            && self.subjects.as_ref().is_some_and(|subjects| subjects[side].character_asset_id.is_none()) {
+            if mode.starts_with("compact:") { "compact:photo" } else { "photo" }
+        } else {
+            mode
+        }
+    }
+
+    pub(super) fn same_layout(&self, other: &Self, side: usize, mode: &str) -> bool {
+        self.effective_mode(side, mode) == other.effective_mode(side, mode)
+    }
+
+    pub(super) fn unchanged_layers(&self, other: &Self, side: usize) -> MediaLayerEdits {
+        match (&self.subjects, &other.subjects) {
+            (Some(left), Some(right)) => {
+                let left = &left[side];
+                let right = &right[side];
+                MediaLayerEdits {
+                    character: left.identity == right.identity
+                        && left.character == right.character
+                        && left.character_asset_id == right.character_asset_id,
+                    photo: left.identity == right.identity
+                        && left.photo_asset_id == right.photo_asset_id,
+                }
+            }
+            _ => MediaLayerEdits { character: true, photo: true },
+        }
+    }
+
     fn legacy_player_context(
         &self,
         side: usize,
@@ -250,10 +280,14 @@ impl MediaMatch {
     }
 
     fn character_context(&self, side: usize, mode: &str) -> Result<Option<String>, String> {
+        self.character_context_for_side(side, side, mode)
+    }
+
+    fn character_context_for_side(&self, subject_side: usize, side: usize, mode: &str) -> Result<Option<String>, String> {
         let Some(subjects) = &self.subjects else {
             return Ok(None);
         };
-        let subject = &subjects[side];
+        let subject = &subjects[subject_side];
         let (Some(character), Some(artwork)) = (&subject.character, &subject.character_asset_id)
         else {
             return Ok(None);
@@ -261,7 +295,7 @@ impl MediaMatch {
         serde_json::to_string(&CharacterContext {
             catalog: &self.catalog,
             side,
-            mode,
+            mode: self.effective_mode(subject_side, mode),
             character,
             character_asset_id: artwork,
         })
@@ -280,11 +314,34 @@ impl MediaMatch {
         let context = serde_json::to_string(&PhotoContext {
             catalog: &self.catalog,
             side,
-            mode,
+            mode: self.effective_mode(side, mode),
             photo_asset_id: &subject.photo_asset_id,
         })
         .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())?;
         Ok(Some((player_id.clone(), context)))
+    }
+
+    pub(super) fn mirror_character_edits(
+        &self,
+        placements: &mut [PlayerMediaPlacement; 2],
+        framing_changed: [bool; 2],
+    ) {
+        let Some(subjects) = &self.subjects else { return; };
+        if subjects[0].character.is_none()
+            || subjects[0].character != subjects[1].character
+            || subjects[0].character_asset_id != subjects[1].character_asset_id
+        {
+            return;
+        }
+        for side in 0..2 {
+            if framing_changed[side] {
+                let source = placements[side].character.clone();
+                let target = &mut placements[1 - side].character;
+                target.x = -source.x;
+                target.y = source.y;
+                target.scale = source.scale;
+            }
+        }
     }
 
     pub(super) fn restore_placements(
@@ -298,7 +355,7 @@ impl MediaMatch {
                 && saved
                     .media_mode
                     .as_deref()
-                    .is_none_or(|saved_mode| saved_mode == mode)
+                    .map_or(!mode.starts_with("compact:"), |saved_mode| saved_mode == mode)
                 && valid_media_placements(&saved.placements)
         });
         let mut placements = default_media_placements();
@@ -353,6 +410,7 @@ impl MediaMatch {
         mode: &str,
         placements: &[PlayerMediaPlacement; 2],
         edited: [MediaLayerEdits; 2],
+        framing_changed: [bool; 2],
     ) -> Result<MediaEdits, String> {
         let mut edits = MediaEdits::default();
         if let Some(set_id) = &self.set_id {
@@ -362,7 +420,7 @@ impl MediaMatch {
                     && saved
                         .media_mode
                         .as_deref()
-                        .is_some_and(|saved_mode| saved_mode != mode)
+                        .map_or(mode.starts_with("compact:"), |saved_mode| saved_mode != mode)
                     && valid_media_placements(&saved.placements)
             });
             let saved = SavedMatchMedia {
@@ -397,6 +455,22 @@ impl MediaMatch {
                     edits.character_defaults.push(CharacterMediaDefault {
                         context,
                         payload: serialize_placement(&placements[side].character)?,
+                    });
+                }
+            }
+            if framing_changed[side] {
+                if let Some(context) = self.character_context_for_side(side, 1 - side, mode)? {
+                    let mut mirrored = load_transform(database.load_character_versus_media(&context)?);
+                    mirrored.x = -placements[side].character.x;
+                    mirrored.y = placements[side].character.y;
+                    mirrored.scale = placements[side].character.scale;
+                    // A visible matching character may have its own flip edited in this save.
+                    if self.character_context(1 - side, mode)?.as_ref() == Some(&context) {
+                        mirrored.flipped = placements[1 - side].character.flipped;
+                    }
+                    edits.character_defaults.push(CharacterMediaDefault {
+                        context,
+                        payload: serialize_placement(&mirrored)?,
                     });
                 }
             }

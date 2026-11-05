@@ -36,23 +36,27 @@
   object-fit: contain;
   object-position: center bottom;
   transform-origin: center bottom;
+  filter: drop-shadow(0 0.65cqw 0.7cqw rgb(0 0 0 / 55%));
+}
+.stinger-photo {
+  z-index: 2;
+}
+.stinger-character {
+  z-index: 1;
 }
 .stinger-name {
+  z-index: 3;
+  transform-origin: center;
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
   min-width: 0;
   margin: 0;
-  padding: 0.416667cqw 1.25cqw;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--stinger-primary) 30%, #080d17) 0%,
-    color-mix(in srgb, var(--stinger-secondary) 28%, #080d17) 100%
-  );
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  padding: 0.625cqw 1.875cqw;
+  gap: 1.25cqw;
   font:
-    italic 400 calc(3.75cqw * var(--appearance-text-scale, 1)) / 1.1 'JABS Anton',
+    400 calc(6.7cqw * var(--appearance-text-scale, 1)) / 1.1 'JABS Anton',
     Impact,
     sans-serif;
   color: #fff;
@@ -60,15 +64,17 @@
   text-transform: uppercase;
   white-space: nowrap;
   text-shadow:
-    0 2px 5px #000,
-    0 0 12px #000;
-  overflow: hidden;
+    0 0.2cqw 0.3cqw #000,
+    0 0.6cqw 1.2cqw #000;
+  overflow: visible;
 }
 .stinger-name-row {
+  flex: 0 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
   height: 100%;
   min-width: 0;
   font: inherit;
@@ -85,7 +91,7 @@
 }
 .stinger-guide {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   border: 1px dashed #45e8ff;
   color: #fff;
   font: 600 1cqw / 1.2 sans-serif;
@@ -99,4 +105,31 @@
   width: 1920px;
   height: 1080px;
   background: transparent;
+}
+
+.stinger-sponsor-logo {
+  flex: 0 0 auto;
+  width: 9cqw;
+  height: 5.75cqw;
+  object-fit: contain;
+  filter: drop-shadow(0 0.25cqw 0.4cqw #000);
+}
+
+.stinger-stage.stinger-cinematic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgb(0 0 0 / 85%) 0% 3.2%, transparent 12% 88%, rgb(0 0 0 / 85%) 96.8% 100%),
+    linear-gradient(
+      to right,
+      rgb(0 0 0 / 55%) 0%,
+      rgb(0 0 0 / 18%) 4%,
+      transparent 13% 87%,
+      rgb(0 0 0 / 18%) 96%,
+      rgb(0 0 0 / 55%) 100%
+    ),
+    radial-gradient(ellipse at center, transparent 60%, rgb(0 0 0 / 12%) 82%, rgb(0 0 0 / 38%) 100%);
 }

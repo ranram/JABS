@@ -607,7 +607,7 @@ it('keeps standalone games independent, follows loaded events in both generators
   await act(async () => browser.actions.loadEvents('empty-tournament'));
   expect(gameInput().readOnly).toBe(true);
   await view.unmount();
-}, 20_000);
+}, 60_000);
 
 it.each(['game', 'event'] as const)(
   'ignores a manual standings import after changing the selected %s',

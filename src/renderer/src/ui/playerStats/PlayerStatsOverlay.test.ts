@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { artworkFramingKeys } from '@shared/artworkFraming';
 import noFlag from '../../assets/Flag_of_None.webp';
 import { act, createElement as h } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -77,6 +78,8 @@ it('selects either stream slot, shows five placing logos and the run, and never 
   Object.assign(state.selectedSet.playerTwo, { name: 'KNEE', prefix: 'DRX', playerId: 'two', country: 'KR' });
   transport.state = state;
   transport.settings = playerStatsSettingsSchema.parse({ updatedAt: '2026-10-15T00:00:00Z' });
+  const framingKey = artworkFramingKeys(state.selectedSet, state.selectedSet.playerOne, 'stats').character;
+  transport.settings.artworkFraming[framingKey] = { x: 0.1, y: -0.2, scale: 4, flipped: true };
   function stats(slot: 1 | 2): PlayerStats {
     return playerStatsSchema.parse({
       context: statsContext(state.selectedSet, slot),
@@ -118,6 +121,8 @@ it('selects either stream slot, shows five placing logos and the run, and never 
   expect(view.container.querySelector('.stats-player-flag')?.getAttribute('alt')).toBe('DO');
   expect(view.container.querySelector('.stats-player-flag')?.getAttribute('src')).toBe(displayFlagUrl('DO', undefined));
   expect(view.container.querySelectorAll('.stats-placement-list li')).toHaveLength(5);
+  expect(view.container.querySelector<HTMLElement>('.victory-character-art')?.style.transform).toContain('scale(4)');
+  expect(view.container.querySelector<HTMLElement>('.victory-player-photo')?.style.transform).toContain('scale(1)');
   expect(view.container.querySelectorAll('.stats-placement-logo')).toHaveLength(5);
   expect(view.container.querySelector('.stats-placement-logo.is-placeholder')?.getAttribute('src')).toBe(questionMark);
   const secondLogo = view.container.querySelectorAll('.stats-placement-logo')[1];

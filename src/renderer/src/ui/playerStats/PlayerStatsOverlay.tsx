@@ -1,3 +1,5 @@
+import '../resultScreen/artworkSides.css';
+import { artworkFramingKeys, artworkPlacement, artworkFramingLayout } from '@shared/artworkFraming';
 import { useTranslation } from 'react-i18next';
 import { statsPlayerFromSearch, type StatsPlayer } from '@shared/playerStats';
 import { resolveGameProfile } from '@shared/gameProfiles';
@@ -55,10 +57,7 @@ function PlayerStatsScreen({ slot }: { slot: StatsPlayer }) {
   const sponsor = player?.prefix?.trim() || player?.sponsor?.trim();
   const flagUrl = displayFlagUrl(player?.country, player?.displayFlag);
   const hasArtwork = Boolean(characterUrl || photoUrl);
-  const nameRef = useVictoryTextFit(
-    settings ? JSON.stringify([sponsor, name, Boolean(flagUrl)]) : '',
-    hasArtwork
-  );
+  const nameRef = useVictoryTextFit(settings ? JSON.stringify([sponsor, name, Boolean(flagUrl)]) : '', hasArtwork);
   // Scores and network refreshes update the content without replaying the entrance.
   const key = JSON.stringify([slot, selected?.eventId, player?.entrantId, player?.playerId, player?.name]);
   const entrance = useOverlayEntrance(statsEntrance, Boolean(player && settings), ready && logo.ready, key);
@@ -74,7 +73,25 @@ function PlayerStatsScreen({ slot }: { slot: StatsPlayer }) {
       ) : (
         <section className={`victory-composition${hasArtwork ? '' : ' stats-type-led'}`} aria-label={t('stats.title')}>
           {logo.url && <CatalogImage className="victory-logo" src={logo.url} entrance="stats-logo" />}
-          <ResultArtwork characterUrl={characterUrl} photoUrl={photoUrl} photoFallbackUrl={playerPlaceholder} />
+          <ResultArtwork
+            characterUrl={characterUrl}
+            photoUrl={photoUrl}
+            photoFallbackUrl={playerPlaceholder}
+            placement={
+              selected
+                ? artworkPlacement(
+                    settings.artworkFraming,
+                    artworkFramingKeys(
+                      selected,
+                      player,
+                      artworkFramingLayout('stats', Boolean(characterUrl), Boolean(photoUrl)),
+                      artwork,
+                      slot === 1 ? 0 : 1
+                    )
+                  )
+                : undefined
+            }
+          />
           <header className={`stats-identity${flagUrl ? ' has-flag' : ''}`} data-entrance="stats-identity">
             <span className="stats-eyebrow">{t('stats.title')}</span>
             {flagUrl && (

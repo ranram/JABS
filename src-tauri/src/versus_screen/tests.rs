@@ -184,8 +184,16 @@ fn history_and_settings_writes_preserve_each_other_and_reject_stale_revisions() 
     let store = VersusScreenStore::load(&database).unwrap();
     let stale = store.current().unwrap();
     assert_eq!(stale["showMatchBackdrop"], true);
+    assert_eq!(stale["informationLayout"], "standard");
     let mut legacy = stale.clone();
     legacy.as_object_mut().unwrap().remove("showMatchBackdrop");
+    legacy.as_object_mut().unwrap().remove("informationLayout");
+    assert_eq!(
+        serde_json::from_value::<VersusScreenState>(legacy.clone())
+            .unwrap()
+            .information_layout,
+        "standard"
+    );
     assert!(
         serde_json::from_value::<VersusScreenState>(legacy)
             .unwrap()
@@ -263,6 +271,7 @@ fn history_and_settings_writes_preserve_each_other_and_reject_stale_revisions() 
         crate::persisted_state::STALE_SETTINGS
     );
     let reset = store.reset_media_placements(&database).unwrap();
+    assert_eq!(reset["informationLayout"], "standard");
     assert_eq!(reset["showBackground"], false);
     assert_eq!(reset["showMatchBackdrop"], false);
     assert_eq!(reset["logoAssetId"], "local.png");
@@ -490,10 +499,14 @@ fn player_defaults_apply_to_exhibitions_and_new_sets_without_replacing_saved_set
     let mut swapped = exhibition.clone();
     std::mem::swap(&mut swapped.player_one, &mut swapped.player_two);
     select(&store, &exhibition, &swapped);
-    assert_eq!(
-        settings(&store).media_placements,
-        default_media_placements()
-    );
+    let mut mirrored_defaults = default_media_placements();
+    mirrored_defaults[1].character = MediaTransform {
+        x: -latest_defaults[0].character.x,
+        y: latest_defaults[0].character.y,
+        scale: latest_defaults[0].character.scale,
+        flipped: false,
+    };
+    assert_eq!(settings(&store).media_placements, mirrored_defaults);
     select(&store, &swapped, &exhibition);
     assert_eq!(settings(&store).media_placements, latest_defaults);
     let mut replacement = exhibition.clone();

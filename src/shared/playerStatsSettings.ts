@@ -1,8 +1,10 @@
+import { artworkFramingSchema } from './artworkFraming';
 import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, type GameId } from './gameProfiles';
 
 export const playerStatsSettingsSchema = z.object({
+  artworkFraming: artworkFramingSchema.default({}),
   // Unset choices follow the live match style and rails logo independently.
   stylingGameId: z.custom<GameId>((value) => typeof value === 'string' && canonicalGameId(value) === value).optional(),
   logoAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional(),

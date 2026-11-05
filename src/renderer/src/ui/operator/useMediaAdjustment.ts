@@ -25,6 +25,7 @@ type Options<T extends MediaElement> = {
   preview(transform: MediaTransform): void;
   dragSize?(element: T): { width: number; height: number };
   interactionKey?: string;
+  clampTransform?(transform: MediaTransform): MediaTransform;
 };
 
 export function useMediaAdjustment<T extends MediaElement>(options: Options<T>) {
@@ -109,7 +110,7 @@ export function useMediaAdjustment<T extends MediaElement>(options: Options<T>) 
   }, [elementRef]);
 
   function preview(next: MediaTransform) {
-    liveTransform.current = clampMediaTransform(next);
+    liveTransform.current = (latest.current.clampTransform ?? clampMediaTransform)(next);
     pendingTransform.current = liveTransform.current;
     latest.current.preview(liveTransform.current);
     if (saveTimer.current !== undefined) window.clearTimeout(saveTimer.current);

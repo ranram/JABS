@@ -48,7 +48,7 @@ it('fits dense content and smaller viewports without scaling the frame or bottom
   const view = await mountHook(useVersusCardFit, false, (ref) =>
     h(
       'main',
-      { style: visible ? undefined : { display: 'none' } },
+      { className: 'versus-overlay', style: visible ? undefined : { display: 'none' } },
       h(
         'section',
         { ref, className: 'versus-center-card', style: { height: frameHeight, border: '1px solid' } },
@@ -102,5 +102,22 @@ it('fits dense content and smaller viewports without scaling the frame or bottom
   resize();
   expect(card.style.height).toBe('1080px');
   expect(card.style.getPropertyValue('--versus-body-scale')).toBe('1');
+  stage.classList.add('versus-compact');
+  resize();
+  expect(stage.style.getPropertyValue('--versus-card-height')).toBe('754px');
+  height = 300;
+  await view.rerender();
+  stage.classList.add('versus-compact');
+  resize();
+  expect(stage.style.getPropertyValue('--versus-card-height')).toBe('360px');
+  height = 1500;
+  await view.rerender();
+  stage.classList.add('versus-compact');
+  resize();
+  expect(stage.style.getPropertyValue('--versus-card-height')).toBe('1078px');
+  expect(Number(card.style.getPropertyValue('--versus-body-scale'))).toBeLessThan(1);
+  stage.classList.remove('versus-compact');
+  resize();
+  expect(stage.style.getPropertyValue('--versus-card-height')).toBe('');
   await view.unmount();
 });

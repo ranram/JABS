@@ -242,3 +242,18 @@ it('blocks during local dialogs and typing but resumes after those guards clear'
   input.remove();
   expect(await execute(command('score-p1-up'))).toBe('completed');
 });
+
+it('plays stingers through shared controls and uses native confirmations to offer setup for missing clips', async () => {
+  const { context, execute, command } = fixture();
+  const play = vi.fn<() => Promise<'completed' | 'unconfigured'>>(async () => 'completed');
+  context.playStinger = play;
+  expect(await execute(command('stinger-perfect'))).toBe('completed');
+  expect(play).toHaveBeenLastCalledWith('perfect');
+  expect(await execute(command('stinger-winner', { expectedVersion: 'stale' }))).toBe('blocked');
+  play.mockResolvedValueOnce('unconfigured');
+  const request = command('stinger-winner');
+  expect(await execute(request)).toBe('confirmation-required');
+  expect(context.confirmation.requestRemoteConfirmation).toHaveBeenLastCalledWith('stinger-winner', request.id);
+  expect(await execute(command('confirm', { confirmationId: request.id }))).toBe('completed');
+  expect(context.confirmation.confirm).toHaveBeenCalledOnce();
+});

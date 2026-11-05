@@ -1,10 +1,11 @@
 import { useLayoutEffect, useRef, type RefObject } from 'react';
-import { stingerFraming, stingerLimits } from '@shared/stingers';
+import { winnerStingerFraming } from '@shared/stingers';
+import type { StingerPlaybackClock } from './useStingerPlaybackClock';
 import { useAppearance } from '../appearance/AppearanceProvider';
 
 /** Keep the winner reveal on the video's clock, including stalls and seeks. */
 export function useStingerWinnerAnimation(
-  videoRef: RefObject<HTMLVideoElement | null>,
+  clockRef: RefObject<StingerPlaybackClock | null>,
   ready: boolean,
   mediaDelaySeconds: number,
   durationSeconds?: number
@@ -14,14 +15,12 @@ export function useStingerWinnerAnimation(
 
   useLayoutEffect(() => {
     const stage = rootRef.current;
-    const element = videoRef.current;
-    if (!stage || !element || !ready) return;
+    const availableClock = clockRef.current;
+    if (!stage || !availableClock || !ready) return;
+    const clock = availableClock;
     const root = stage;
-    const video = element;
     const start = mediaDelaySeconds * 1000;
     let end = 0;
-    let running = !video.paused && !video.seeking;
-    let started = running;
     let animations: Animation[] = [];
     let boundary: ReturnType<typeof setTimeout> | undefined;
 
@@ -36,57 +35,57 @@ export function useStingerWinnerAnimation(
 
     function sync() {
       clearTimeout(boundary);
-      const time = video.currentTime * 1000;
-      const visible = started && time >= start && time < end && !video.ended;
+      const time = clock.time() * 1000;
+      const visible = clock.started() && time >= start && time < end && !clock.finished();
       root.style.visibility = visible ? 'visible' : 'hidden';
       for (const animation of animations) {
         animation.currentTime = Math.max(0, Math.min(end - start, time - start));
-        animation.playbackRate = video.playbackRate;
-        if (running && visible) animation.play();
+        animation.playbackRate = clock.rate();
+        if (clock.running() && visible) animation.play();
         else animation.pause();
       }
-      if (running && time < end && video.playbackRate > 0) {
+      if (clock.running() && time < end && clock.rate() > 0) {
         const next = time < start ? Math.min(start, end) : end;
-        boundary = setTimeout(sync, Math.max(16, (next - time) / video.playbackRate));
+        boundary = setTimeout(sync, Math.max(16, (next - time) / clock.rate()));
       }
     }
 
     function rebuild() {
       clearAnimations();
-      const naturalDuration =
-        Number.isFinite(video.duration) && video.duration > 0 ? video.duration : stingerLimits.durationSeconds;
-      end = Math.min(naturalDuration, durationSeconds ?? stingerLimits.durationSeconds) * 1000;
+      end = clock.duration() * 1000;
       const duration = end - start;
       if (duration > 0 && appearance.entranceAnimations) {
         try {
-          const tempo = Math.min(1, duration / 4200);
-          const fadeStart = duration - Math.min(650, duration * 0.2);
-          // Begin just beyond the canvas edges, regardless of the subject's size.
-          const photo = stingerFraming.photo;
-          const character = stingerFraming.character;
-          const photoSlide = -((photo.x + photo.width + 64) / photo.width) * 100;
-          const characterSlide = ((1920 - character.x + 64) / character.width) * 100;
+          const exitStart = duration - Math.min(2000, duration * 0.45);
+          const tempo = Math.min(1, exitStart / 3000);
+          const framing = winnerStingerFraming(
+            Boolean(root.querySelector('.stinger-photo')),
+            Boolean(root.querySelector('.stinger-character'))
+          );
+          const photoSlide = -((framing.photo.x + framing.photo.width + 64) / framing.photo.width) * 100;
+          const characterSlide = ((1920 - framing.character.x + 64) / framing.character.width) * 100;
+          const nameSlide = -((framing.name.y + framing.name.height + 64) / framing.name.height) * 100;
           const subjects = [
             {
               selector: '.stinger-photo',
-              delay: 0,
-              entrance: 2000,
-              from: `translate3d(${photoSlide}%, 0, 0) scale(0.96)`,
-              scale: 1.035
+              delay: 450,
+              entrance: 1800,
+              from: `translate3d(${photoSlide}%, 0, 0)`,
+              rest: 'translate3d(0, 0, 0)'
             },
             {
               selector: '.stinger-character',
-              delay: 240,
+              delay: 0,
               entrance: 2200,
-              from: `translate3d(${characterSlide}%, 0, 0) scale(0.96)`,
-              scale: 1.045
+              from: `translate3d(${characterSlide}%, 0, 0)`,
+              rest: 'translate3d(0, 0, 0)'
             },
             {
               selector: '.stinger-name',
-              delay: 650,
-              entrance: 1000,
-              from: 'translate3d(0, -25%, 0) scale(0.98)',
-              scale: 1
+              delay: 800,
+              entrance: 1400,
+              from: `translate3d(0, ${nameSlide}%, 0)`,
+              rest: 'translate3d(0, 0, 0)'
             }
           ];
           for (const subject of subjects) {
@@ -94,15 +93,59 @@ export function useStingerWinnerAnimation(
             if (!element) continue;
             const delay = subject.delay * tempo;
             const settled = delay + subject.entrance * tempo;
+            const image = subject.selector !== '.stinger-name';
+            const baseFilter = getComputedStyle(element).filter || 'none';
+            const silhouette = image ? `brightness(0) ${baseFilter === 'none' ? '' : baseFilter}`.trim() : undefined;
+            const filter = image ? baseFilter : undefined;
+            const revealTempo = Math.min(tempo, (exitStart - settled) / 500);
+            const highlight = `brightness(0) invert(0.22) ${baseFilter === 'none' ? '' : baseFilter}`.trim();
             const frames: Keyframe[] = [
-              { offset: 0, opacity: 0, transform: subject.from },
-              ...(delay ? [{ offset: delay / duration, opacity: 0, transform: subject.from }] : []),
-              { offset: settled / duration, opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' },
-              { offset: fadeStart / duration, opacity: 1, transform: `scale(${subject.scale})` },
-              { offset: 1, opacity: 0, transform: `scale(${subject.scale === 1 ? 1 : subject.scale + 0.005})` }
+              { offset: 0, opacity: 1, transform: subject.from, filter: silhouette },
+              ...(delay ? [{ offset: delay / duration, opacity: 1, transform: subject.from, filter: silhouette }] : []),
+              // Hold the silhouette, then use one artwork highlight before the color reveal.
+              {
+                offset: settled / duration,
+                opacity: 1,
+                transform: subject.rest,
+                filter: silhouette,
+                easing: 'steps(1, end)'
+              },
+              ...(image
+                ? [
+                    {
+                      offset: (settled + 180 * revealTempo) / duration,
+                      opacity: 1,
+                      transform: subject.rest,
+                      filter: silhouette,
+                      easing: 'steps(1, end)'
+                    },
+                    {
+                      offset: (settled + 181 * revealTempo) / duration,
+                      opacity: 1,
+                      transform: `${subject.rest} scale(1.035)`,
+                      filter: highlight,
+                      easing: 'steps(1, end)'
+                    },
+                    {
+                      offset: (settled + 330 * revealTempo) / duration,
+                      opacity: 1,
+                      transform: `${subject.rest} scale(1.035)`,
+                      filter,
+                      easing: 'cubic-bezier(0.16, 0.8, 0.2, 1)'
+                    },
+                    { offset: (settled + 470 * revealTempo) / duration, opacity: 1, transform: subject.rest, filter }
+                  ]
+                : []),
+              {
+                offset: exitStart / duration,
+                opacity: 1,
+                transform: subject.rest,
+                filter,
+                easing: 'cubic-bezier(0.55, 0, 0.8, 0.45)'
+              },
+              { offset: 1, opacity: 1, transform: subject.from, filter }
             ];
-            // Ease the entrance, then let the push-in and shared fade run steadily.
-            frames[delay ? 1 : 0].easing = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+            frames[delay ? 1 : 0].easing = 'cubic-bezier(0.22, 0.55, 0.3, 1)';
             const animation = element.animate(frames, { duration, fill: 'both' });
             void animation.finished.catch(() => undefined);
             animation.pause();
@@ -115,42 +158,15 @@ export function useStingerWinnerAnimation(
       }
       sync();
     }
-    function play() {
-      started = true;
-      running = true;
-      sync();
-    }
-    function pause() {
-      running = false;
-      sync();
-    }
-    const events: Array<[string, () => void]> = [
-      ['playing', play],
-      ['waiting', pause],
-      ['pause', pause],
-      ['seeking', pause],
-      [
-        'seeked',
-        () => {
-          running = !video.paused;
-          sync();
-        }
-      ],
-      ['ended', pause],
-      ['timeupdate', sync],
-      ['ratechange', sync],
-      ['loadedmetadata', rebuild],
-      ['durationchange', rebuild]
-    ];
-    for (const [event, listener] of events) video.addEventListener(event, listener);
+    const unsubscribe = clock.subscribe((durationChanged) => (durationChanged ? rebuild() : sync()));
     rebuild();
     return () => {
       clearTimeout(boundary);
-      for (const [event, listener] of events) video.removeEventListener(event, listener);
+      unsubscribe();
       clearAnimations();
       root.style.visibility = 'hidden';
     };
-  }, [videoRef, ready, mediaDelaySeconds, durationSeconds, appearance.entranceAnimations]);
+  }, [clockRef, ready, mediaDelaySeconds, durationSeconds, appearance.entranceAnimations]);
 
   return rootRef;
 }

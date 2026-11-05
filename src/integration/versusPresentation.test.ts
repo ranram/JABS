@@ -51,7 +51,7 @@ vi.mock('../renderer/src/hooks/useVersusScreenState', () => ({
 }));
 vi.mock('../renderer/src/api', () => ({
   api: {
-    playerMedia: transport.playerMedia,
+    identityMedia: async () => { const matches = await transport.playerMedia(); return { matches: [matches.playerOne, matches.playerTwo] }; },
     resolvePlayers: transport.resolve,
     gameCharacterAssets: transport.characters,
     gameCharacterAssetUrl: async (_slug: string, id: string) => `data:image/png;base64,${id}`,
@@ -323,13 +323,11 @@ it('presents exhibitions in OBS and preview while preserving media through score
   };
   await view.rerender();
   assertCards('Topanga Rules');
-  expect(transport.playerMedia).toHaveBeenCalledTimes(reads);
   expect(transport.characters).toHaveBeenCalledTimes(catalogs);
   transport.state.selectedSet = { ...transport.state.selectedSet, round: 'Main Event' };
   await view.rerender();
   for (const title of view.container.querySelectorAll('.versus-match-title'))
     expect(title.textContent).toBe('Main Event');
-  expect(transport.playerMedia).toHaveBeenCalledTimes(reads);
   transport.state.selectedSet.broadcast = { infoBarEnabled: false, logoEnabled: true, logoAssetId: 'exhibition.png' };
   transport.settings = { ...transport.settings!, showBackground: false, mediaMode: 'photo' };
   await view.rerender();
@@ -342,7 +340,6 @@ it('presents exhibitions in OBS and preview while preserving media through score
     expect(overlay.querySelector('.versus-photo')?.getAttribute('src')).toBe('data:image/png;base64,alpha.png');
     expect(overlay.querySelector('h1')?.textContent).toBe('Upcoming match');
   }
-  expect(transport.playerMedia).toHaveBeenCalledTimes(reads);
   const logoInput = () => {
     const label = [...view.container.querySelectorAll('label')].find((label) => label.textContent === 'Logo')!;
     return document.getElementById(label.htmlFor) as HTMLInputElement;

@@ -791,11 +791,13 @@ export const es419 = {
       formats: 'WebM · Video VP8/VP9, audio Opus/Vorbis opcional · Hasta 256 MB.',
       useDuration: 'Limitar la duración',
       duration: 'Duración (segundos)',
+      durationHelp: 'Los datos del ganador permanecen hasta este momento. Los videos más cortos conservan su último fotograma. La salida empieza 2 segundos antes del final.',
       playBroadcast: 'Reproducir en OBS',
       playClip: 'Reproducir {{name}}',
       playingClip: 'Reproduciendo: {{name}}',
       queuedClip: 'Iniciando: {{name}}',
       configure: 'Configurar stingers',
+      configureMissing: 'No hay un stinger de {{name}} configurado. ¿Quieres abrir la configuración de Stingers?',
       noClips: 'Aún no hay videos configurados.',
       unavailable: 'Esperando la conexión de stingers.',
       preview: 'Vista previa aquí',
@@ -816,7 +818,7 @@ export const es419 = {
       layerHelp: 'Usa un video transparente si va delante.',
       playbackSettings: 'Ajustes de reproducción del ganador',
       framing: 'Encuadre del ganador · 1920×1080',
-      framingHelp: 'Prepara tu animación alrededor de estas regiones fijas. Esta vista previa no activa OBS.',
+      framingHelp: 'Prepara tu video con las guías de imágenes y nombre. Si solo hay una imagen, ocupa más espacio. Esta vista previa no activa OBS.',
       previewPlayer: 'Jugador de vista previa',
       playerOne: 'Jugador 1',
       playerTwo: 'Jugador 2',
@@ -834,6 +836,7 @@ export const es419 = {
       otherOverlays: 'Overlays',
       topEight: 'Generador de Top 8',
       thumbnail: 'Generador de miniaturas de YouTube',
+      overlayCharactersTitle: 'Personajes de la partida',
       otherOverlaysTitle: 'Overlays para OBS',
       obsSource: 'Fuente de navegador de OBS',
       resolvingObs: 'Cargando la URL de OBS…',
@@ -940,8 +943,13 @@ export const es419 = {
       },
       // Versus Screen settings
       versusScreen: {
+        failedTitle: 'No se pudo actualizar la pantalla versus',
+        failed: 'No se pudo guardar la configuración de la pantalla versus.',
+        showScrollingRails: 'Mostrar bandas de texto en movimiento',
+        informationLayout: 'Diseño de la información',
+        informationLayouts: { standard: 'Estándar', compact: 'Compacto' },
         framingHelp:
-          'El encuadre del personaje se reutiliza para el mismo juego, ilustración, lado y composición. Las fotos conservan el encuadre de cada jugador guardado. Los ajustes de partida y personales tienen prioridad.',
+          'Estándar y Compacto guardan encuadres separados. La posición y el tamaño del personaje se reflejan entre lados para el mismo juego e ilustración. Cada lado conserva su propia opción de voltear la imagen. Las fotos mantienen el encuadre de cada jugador guardado.',
         showMatchBackdrop: 'Fondo de la información de la partida',
         matchBackdropHelp: 'Las filas de comparación e historial conservan su fondo.',
         statsHeading: 'Comparación de jugadores',
@@ -961,7 +969,7 @@ export const es419 = {
         historyEntries: 'resultados cargados',
         startggProfileError: 'Elige un juego y vincula a ambos jugadores con sus perfiles de start.gg.',
         obsCurrent: 'OBS está actualizado',
-        obsPending: 'OBS se actualizará en 1 segundo…',
+        obsPending: 'Actualizando OBS…',
         loadingScreenSettings: 'Cargando configuración de la pantalla versus…'
       }
     },
@@ -1416,6 +1424,15 @@ export const es419 = {
     },
 
     // Artwork positioning
+    artworkFraming: {
+      title: 'Encuadre de imágenes',
+      help: 'Haz clic para elegir una imagen. Ctrl+clic selecciona la ilustración detrás. La posición y el tamaño del personaje se reflejan entre lados, pero cada lado conserva su propia opción de voltear. Cada foto mantiene su encuadre.',
+      photo: 'Foto del jugador',
+      character: 'Personaje',
+      size: 'Tamaño',
+      flip: 'Voltear',
+      reset: 'Restablecer imagen seleccionada',
+    },
     mediaControls: {
       click: 'Clic',
       combinedEditingHelp: 'Seleccionar imagen de atrás',

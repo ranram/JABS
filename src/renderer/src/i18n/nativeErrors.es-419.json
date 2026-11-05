@@ -387,5 +387,6 @@
   "The next queued set is already complete. Review it before sending it to stream.": "La siguiente partida de la cola ya terminó. Revísala antes de enviarla a transmisión.",
   "Wait for the current result report before changing matches.": "Espera a que termine el reporte actual antes de cambiar de partida.",
   "The live match changed while loading the queue. Review it before continuing.": "La partida en transmisión cambió mientras se cargaba la cola. Revísala antes de continuar.",
-  "This queued match is already complete. Use Next match to continue.": "Esta partida de la cola ya terminó. Usa Siguiente partida para continuar."
+  "This queued match is already complete. Use Next match to continue.": "Esta partida de la cola ya terminó. Usa Siguiente partida para continuar.",
+  "Invalid image framing.": "El encuadre de la imagen no es válido."
 }

@@ -25,6 +25,7 @@ const logos = [
 vi.mock('../renderer/src/api', () => ({
   api: {
     playerMedia: transport.playerMedia,
+    identityMedia: async () => { const matches = await transport.playerMedia(); return { matches: [matches.playerOne, matches.playerTwo] }; },
     gameCharacterAssets: transport.characters,
     gameCharacterAssetUrl: async (_slug: string, id: string) => `data:image/png;base64,${id}`,
     playerPhotoAssetUrl: async (id: string) => `data:image/png;base64,${id}`,
@@ -98,6 +99,8 @@ it('configures result logos and refreshes the current winner media without accep
   expect(transport.result!.logoAssetId).toBeUndefined();
   expect(resultLogoInput().placeholder).toBe('Use rails logo');
 
+  expect(transport.playerMedia).not.toHaveBeenCalled();
+  expect(transport.characters).not.toHaveBeenCalled();
   // Manual Player 2 winners have no entrant IDs. Reload must check their own new files.
   const playerTwoWinner = {
     ...exhibition,

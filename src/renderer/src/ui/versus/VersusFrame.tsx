@@ -6,7 +6,15 @@ import { useAppearance } from '../appearance/AppearanceProvider';
 const tickerPixelsPerSecond = 28;
 const minimumTickerDurationSeconds = 18;
 
-export function VersusFrame({ tickers, preview }: { tickers: [string, string]; preview?: boolean }) {
+export function VersusFrame({
+  tickers,
+  preview,
+  showRails = true
+}: {
+  tickers: [string, string];
+  preview?: boolean;
+  showRails?: boolean;
+}) {
   const { appearance } = useAppearance();
   const { active } = useSyncExternalStore(subscribeObsSourceActivity, getObsSourceActivity);
   const [hidden, setHidden] = useState(document.hidden);
@@ -17,16 +25,18 @@ export function VersusFrame({ tickers, preview }: { tickers: [string, string]; p
   }, []);
   return (
     <>
-      <div className="versus-frame" aria-hidden="true">
+      <div className={`versus-frame${showRails ? '' : ' is-without-rails'}`} aria-hidden="true">
         <div className="versus-frame-border" data-entrance="frame" />
       </div>
-      <div
-        className={`versus-rails${preview || hidden || active === false || !appearance.entranceAnimations ? ' is-paused' : ''}`}
-      >
-        {tickers.map(
-          (text, index) => text && <BorderTicker key={index} text={text} side={index === 0 ? 'left' : 'right'} />
-        )}
-      </div>
+      {showRails && (
+        <div
+          className={`versus-rails${preview || hidden || active === false || !appearance.entranceAnimations ? ' is-paused' : ''}`}
+        >
+          {tickers.map(
+            (text, index) => text && <BorderTicker key={index} text={text} side={index === 0 ? 'left' : 'right'} />
+          )}
+        </div>
+      )}
     </>
   );
 }

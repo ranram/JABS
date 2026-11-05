@@ -1,0 +1,25 @@
+.artwork-framing-canvas {
+  container-type: inline-size;
+}
+.artwork-framing-canvas .artwork-preview-subject {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  background: transparent;
+  pointer-events: none;
+}
+.artwork-framing-canvas .announcement-composition {
+  width: 100%;
+  height: 100%;
+}
+.artwork-combined-editor {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+.artwork-framing-canvas .victory-copy,
+.artwork-framing-canvas .stats-identity,
+.artwork-framing-canvas .announcement-copy {
+  pointer-events: none;
+}

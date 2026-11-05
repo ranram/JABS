@@ -1,3 +1,4 @@
+import type { ShortcutConfirmationKind } from './useWorkspaceShortcuts';
 import { useEffect } from 'react';
 import { Button, Group, Modal, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
@@ -15,12 +16,17 @@ export function ShortcutConfirmation({
   onConfirm,
   onCancel
 }: {
-  kind?: 'queue' | 'players' | 'scores';
+  kind?: ShortcutConfirmationKind;
   onConfirm(): void;
   onCancel(): void;
 }) {
   const { t } = useTranslation('operator');
-  const copy = confirmationCopy[kind ?? 'players'];
+  const configuringStinger = kind === 'stinger-perfect' || kind === 'stinger-winner';
+  const copy = confirmationCopy[kind === 'queue' || kind === 'scores' ? kind : 'players'];
+  const title = configuringStinger ? t('stingers.configure') : t(copy.title);
+  const message = configuringStinger
+    ? t('stingers.configureMissing', { name: t(kind === 'stinger-perfect' ? 'stingers.perfect' : 'stingers.winner') })
+    : t(copy.message);
   useEffect(() => {
     if (!kind) return;
     function handle(event: KeyboardEvent) {
@@ -40,13 +46,17 @@ export function ShortcutConfirmation({
     return () => window.removeEventListener('keydown', handle);
   }, [kind, onConfirm, onCancel]);
   return (
-    <Modal opened={Boolean(kind)} onClose={onCancel} title={t(copy.title)} size="sm" closeOnClickOutside={false}>
-      <Text size="sm">{t(copy.message)}</Text>
+    <Modal opened={Boolean(kind)} onClose={onCancel} title={title} size="sm" closeOnClickOutside={false}>
+      <Text size="sm">{message}</Text>
       <Group justify="flex-end" mt="md">
         <Button variant="default" data-autofocus onClick={onCancel}>
           {t('shortcutConfirm.no')}
         </Button>
-        <DestructiveButton onClick={onConfirm}>{t('shortcutConfirm.yes')}</DestructiveButton>
+        {configuringStinger ? (
+          <Button onClick={onConfirm}>{t('shortcutConfirm.yes')}</Button>
+        ) : (
+          <DestructiveButton onClick={onConfirm}>{t('shortcutConfirm.yes')}</DestructiveButton>
+        )}
       </Group>
     </Modal>
   );

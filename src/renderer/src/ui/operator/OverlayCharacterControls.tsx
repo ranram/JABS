@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Paper, SimpleGrid, Stack, Text } from '@mantine/core';
+import { SimpleGrid } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { characterTeamSelection, maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
 import type { PlayerState, SelectedSetState } from '@shared/models';
@@ -8,7 +8,7 @@ import { CharacterOutfitSelect } from './CharacterOutfitSelect';
 import type { CharacterCatalogOptions } from './useCharacterCatalogOptions';
 import { sortByLabel } from './operatorUtils';
 
-export function VersusCharacterControls({
+export function OverlayCharacterControls({
   activeSet,
   catalog,
   onPatch
@@ -28,7 +28,7 @@ export function VersusCharacterControls({
     onPatch({ [side]: { ...activeSet[side], ...patch } });
   }
   return (
-    <SimpleGrid type="container" cols={{ base: 1, '38rem': 2 }}>
+    <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
       {(['playerOne', 'playerTwo'] as const).map((side) => {
         const player = activeSet[side];
         const selected = playerCharacters(player);
@@ -36,29 +36,22 @@ export function VersusCharacterControls({
           .filter((value) => !catalog.characters.includes(value))
           .map((value) => ({ value, label: t('editor.unavailableCharacter', { character: value }) }));
         return (
-          <Paper className="operator-inset" key={side} p="sm" radius="md" withBorder>
-            <Stack gap="xs">
-              <Text fw={700} size="sm">
-                {t(`editor.${side}`)} · {player.name}
-              </Text>
-              <SimpleGrid type="container" cols={{ base: 1, '28rem': 2 }}>
-                <CharacterSelect
-                  data-testid={`versus-${side}-character`}
-                  label={t('editor.characters')}
-                  data={[...unavailable, ...characters]}
-                  value={selected}
-                  maxValues={maxCharacters}
-                  onChange={(values) => changePlayer(side, characterTeamSelection(values, player))}
-                />
-                <CharacterOutfitSelect
-                  testId={`versus-${side}-outfit`}
-                  subject={player}
-                  assets={catalog.assets}
-                  onChange={(characterAssetId) => changePlayer(side, { characterAssetId })}
-                />
-              </SimpleGrid>
-            </Stack>
-          </Paper>
+          <div className="overlay-character-player" key={side}>
+            <CharacterSelect
+              data-testid={`overlay-${side}-character`}
+              label={`${t(`editor.${side}`)} · ${player.name}`}
+              data={[...unavailable, ...characters]}
+              value={selected}
+              maxValues={maxCharacters}
+              onChange={(values) => changePlayer(side, characterTeamSelection(values, player))}
+            />
+            <CharacterOutfitSelect
+              testId={`overlay-${side}-outfit`}
+              subject={player}
+              assets={catalog.assets}
+              onChange={(characterAssetId) => changePlayer(side, { characterAssetId })}
+            />
+          </div>
         );
       })}
     </SimpleGrid>

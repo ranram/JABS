@@ -26,6 +26,8 @@ pub enum Action {
     OpenPlayers,
     OpenQueue,
     OpenSelector,
+    StingerPerfect,
+    StingerWinner,
     QueueNext,
     QueuePrevious,
     QueueToggle,
@@ -45,6 +47,7 @@ impl Action {
                 | Self::SwapPlayers
                 | Self::ResetScores
                 | Self::ClearPlayers
+                | Self::StingerWinner
         )
     }
     fn needs_queue(self) -> bool {

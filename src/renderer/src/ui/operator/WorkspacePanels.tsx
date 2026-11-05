@@ -7,6 +7,8 @@ import type { LogoAsset, SelectedSetState, StartggPhase } from '@shared/models';
 import type { GameProfile } from '@shared/gameProfiles';
 import { OperatorDisclosure } from './OperatorDisclosure';
 import '../panelHeader.css';
+import './overlayCharacters.css';
+import { OverlayCharacterControls } from './OverlayCharacterControls';
 import { CommentatorPanel } from './CommentatorPanel';
 import { ResultScreenControls, ResultScreenStatus } from './ResultScreenControls';
 import { VersusScreenControls, VersusScreenStatus } from './VersusScreenControls';
@@ -66,6 +68,8 @@ export function OtherOverlaysPanel({ localBaseUrl, ...controls }: OtherOverlaysP
     i18n.resolvedLanguage ?? i18n.language
   );
 
+  const characterSet = controls.streamDraft ?? controls.activeSet;
+
   return (
     <Paper className="panel other-overlays-workspace" p="md" radius="lg" withBorder>
       <Title order={2} size="h4" mb="lg">
@@ -74,6 +78,22 @@ export function OtherOverlaysPanel({ localBaseUrl, ...controls }: OtherOverlaysP
         </IconLabel>
       </Title>
 
+      {controls.characterCatalog && controls.onPatchStream && characterSet && (
+        <Paper
+          component="section"
+          className="overlay-characters"
+          p="xs"
+          radius="sm"
+          withBorder
+          aria-label={t('workspaces.overlayCharactersTitle')}
+        >
+          <OverlayCharacterControls
+            activeSet={characterSet}
+            catalog={controls.characterCatalog}
+            onPatch={controls.onPatchStream}
+          />
+        </Paper>
+      )}
       <Accordion variant="separated" radius="md" chevronPosition="right">
         {sortedTypes.map((overlayType) =>
           overlayType === 'commentators' ? (
@@ -165,9 +185,7 @@ function OverlayControls({
   logos,
   activeSet,
   streamDraft,
-  characterCatalog,
   streamPending,
-  onPatchStream,
   profiles,
   assetCatalogSlug,
   selectedEventId,
@@ -181,7 +199,7 @@ function OverlayControls({
 }): ReactElement {
   switch (overlayType) {
     case 'playerStats':
-      return <PlayerStatsControls logos={logos} profiles={profiles} />;
+      return <PlayerStatsControls activeSet={activeSet} logos={logos} profiles={profiles} />;
     case 'queueTicker':
       return <QueueTickerControls logos={logos} />;
     case 'bracket':
@@ -205,9 +223,7 @@ function OverlayControls({
         <VersusScreenControls
           sourceLinks={sourceLinks}
           activeSet={streamDraft ?? activeSet}
-          characterCatalog={characterCatalog}
           pendingChanges={streamPending}
-          onPatch={onPatchStream}
           logos={logos}
           profiles={profiles}
         />

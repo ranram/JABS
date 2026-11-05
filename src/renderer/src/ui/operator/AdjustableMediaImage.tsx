@@ -9,6 +9,7 @@ export type { MediaImageControls } from './useMediaAdjustment';
 
 type AdjustableMediaImageProps = {
   controlsRef?: Ref<MediaImageControls>;
+  clampTransform?(transform: MediaTransform): MediaTransform;
   src: string;
   fallbackSrc?: string;
   className: string;
@@ -23,6 +24,7 @@ type AdjustableMediaImageProps = {
 
 export function AdjustableMediaImage({
   controlsRef,
+  clampTransform,
   src,
   fallbackSrc,
   className,
@@ -39,6 +41,7 @@ export function AdjustableMediaImage({
   const imageRef = useRef<HTMLImageElement>(null);
   const { dragging, ...controls } = useMediaAdjustment({
     elementRef: imageRef,
+    clampTransform,
     controlsRef,
     transform,
     selected,

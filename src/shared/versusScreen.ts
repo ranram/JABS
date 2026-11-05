@@ -64,11 +64,13 @@ export function setVersusStatRow(rows: VersusStat[], index: number, value?: Vers
 export const versusScreenStateSchema = z.object({
   stylingGameId: stylingGameIdSchema.optional(),
   logoAssetId: z.string().trim().min(1).refine(utf16AtMost(255)).optional(),
+  informationLayout: z.enum(['standard', 'compact']).default('standard'),
   showBackground: z.boolean().default(true),
   showMatchBackdrop: z.boolean().default(true),
   showTournamentLogo: z.boolean(),
   showSponsorLogos: z.boolean(),
   showHeadToHead: z.boolean().default(true),
+  showScrollingRails: z.boolean().default(true),
   statRows: statRowsSchema.default(() => [...defaultVersusStatRows]),
   mediaMode: z.enum(playerMediaModeIds),
   mediaPlacements: z

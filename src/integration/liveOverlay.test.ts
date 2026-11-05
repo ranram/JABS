@@ -123,7 +123,7 @@ it('follows live styling for winner and commentators after clearing their overri
   }
 });
 
-it('respects tournament seed visibility and temporarily previews exhibition seeds without changing player data', async () => {
+it('respects tournament seed visibility and hides exhibition seeds without changing player data', async () => {
   const { view, overlay } = await mountLiveOverlay();
   const set = overlay.selectedSet;
   const scoreboard = createTestCustomScoreboard();
@@ -158,8 +158,8 @@ it('respects tournament seed visibility and temporarily previews exhibition seed
   set.setId = undefined;
   await view.rerender();
   await custom.rerender();
-  expect(seedText()).toBe('Seed 3');
-  expect(customSeedText()).toBe('Seed 3');
+  expect(seedText()).toBeUndefined();
+  expect(customSeedText()).toBeUndefined();
   expect(set.playerOne.seed).toBe(3);
 });
 

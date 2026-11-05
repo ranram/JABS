@@ -1,17 +1,29 @@
+import { updateArtworkFraming } from '@shared/artworkFraming';
+import { useVersusMedia } from '../useVersusMedia';
 import { useEffect, useMemo } from 'react';
 import { Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
-import type { LogoAsset } from '@shared/models';
+import { ArtworkFramingControls } from './ArtworkFramingControls';
+import type { LogoAsset, SelectedSetState } from '@shared/models';
 import { api } from '../../api';
 import { usePlayerStatsSettings } from '../../hooks/usePlayerStatsSettings';
 import { useSettingsDraft } from '../../hooks/useSettingsDraft';
 import { OverlayLogoSelect } from './OverlayLogoSelect';
 import { sortByLabel } from './operatorUtils';
 
-export function PlayerStatsControls({ logos, profiles }: { logos: LogoAsset[]; profiles: GameProfile[] }) {
+export function PlayerStatsControls({
+  logos,
+  profiles,
+  activeSet
+}: {
+  logos: LogoAsset[];
+  profiles: GameProfile[];
+  activeSet?: SelectedSetState;
+}) {
   const { t, i18n } = useTranslation('operator');
+  const { media, ready } = useVersusMedia(activeSet);
   const { state, saving, update, reload } = useSettingsDraft({
     load: api.playerStatsSettings,
     save: api.updatePlayerStatsSettings,
@@ -79,6 +91,21 @@ export function PlayerStatsControls({ logos, profiles }: { logos: LogoAsset[]; p
           />
         ))}
       </SimpleGrid>
+      {activeSet && (
+        <ArtworkFramingControls
+          activeSet={activeSet}
+          framing={state.artworkFraming}
+          stylingGameId={state.stylingGameId}
+          layout="stats"
+          showCharacter={state.showCharacter}
+          showPhoto={state.showPlayerPhoto}
+          media={media}
+          ready={ready}
+          onChange={(key, transform, mirroredKey) =>
+            void update((current) => ({ ...current, artworkFraming: updateArtworkFraming(current.artworkFraming, key, transform, mirroredKey) }))
+          }
+        />
+      )}
     </Stack>
   );
 }

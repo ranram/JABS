@@ -11,6 +11,8 @@ export const streamDeckActions = [
   'open-players',
   'open-queue',
   'open-selector',
+  'stinger-perfect',
+  'stinger-winner',
   'queue-next',
   'queue-previous',
   'queue-toggle',

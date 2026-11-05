@@ -1,3 +1,4 @@
+import { useStingerPlaybackActions } from '../stingers/useStingerPlaybackActions';
 import { useTutorialActive } from '../tutorials/tutorialActivity';
 import { ImportEventPlayers } from '../players/ImportEventPlayers';
 import { useStreamDeck } from '../../integrations/useStreamDeck';
@@ -183,6 +184,13 @@ export function StartggPanel({
   }, [tournamentLoaded]);
   const closeSetSelector = () => setSetSelectorOpen(false);
   const queue = useContext(MatchQueueContext);
+  const playStinger = useStingerPlaybackActions();
+  function configureStingers() {
+    queue?.close();
+    setSetSelectorOpen(false);
+    setPlayersOpen(false);
+    setWorkspace('stingers');
+  }
   const shortcutConfirmation = useWorkspaceShortcuts({
     enabled: keyboardShortcuts.enabled,
     navigationBlocked: loading || Boolean(streamPending),
@@ -196,7 +204,9 @@ export function StartggPanel({
     queue,
     onOpenPlayers: () => setPlayersOpen(true),
     onClearPlayers,
-    onResetScores: streamDeckControls?.reset
+    onResetScores: streamDeckControls?.reset,
+    onPlayStinger: playStinger,
+    onConfigureStingers: configureStingers
   });
   useStreamDeck({
     selectedSet: activeSet,
@@ -211,7 +221,8 @@ export function StartggPanel({
     openPlayers: () => setPlayersOpen(true),
     queue,
     confirmation: shortcutConfirmation,
-    controls: streamDeckControls
+    controls: streamDeckControls,
+    playStinger
   });
   const selectedEvent = events.find((event) => String(event.id) === selectedEventId);
   const locale = i18n.resolvedLanguage ?? i18n.language;
@@ -396,7 +407,7 @@ export function StartggPanel({
             onClearCache={bracket.actions.clearCachedBracketData}
             onModerationApplied={onModerationApplied}
             onCopy={onCopy}
-            onConfigureStingers={() => setWorkspace('stingers')}
+            onConfigureStingers={configureStingers}
             onTutorialWorkspace={setWorkspace}
             onOpenSetSelector={() => setSetSelectorOpen(true)}
             setSelectorDisabled={!tournamentLoaded || !setSelector}

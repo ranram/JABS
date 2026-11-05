@@ -1,3 +1,5 @@
+import { artworkFramingKeys, artworkPlacement, artworkFramingLayout } from '@shared/artworkFraming';
+import { FramedArtworkImage } from './resultScreen/FramedArtworkImage';
 import { useAppearanceStyle, withBroadcastLanguage } from './appearance/AppearanceProvider';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,7 +31,7 @@ const resultEntrances = {
   spotlight: spotlightEntrance
 };
 
-type PlayerMediaUrls = { sponsorLogoUrl?: string; playerPhotoUrl?: string };
+type PlayerMediaUrls = { sponsorLogoUrl?: string; playerPhotoUrl?: string; photoAssetId?: string };
 type OverlayMediaUrls = { playerOne: PlayerMediaUrls; playerTwo: PlayerMediaUrls; ready: boolean };
 
 function AnnouncementOverlayContent({
@@ -67,6 +69,21 @@ function AnnouncementOverlayContent({
   const photoUrl = settings.showPlayerPhoto
     ? (winnerMedia.playerPhotoUrl ?? (playerMedia.ready ? playerPlaceholder : undefined))
     : undefined;
+  const placement = winner
+    ? artworkPlacement(
+        settings.artworkFraming,
+        artworkFramingKeys(
+          selectedSet,
+          winner,
+          artworkFramingLayout(composition, Boolean(characterUrl), Boolean(photoUrl)),
+          {
+            characterAssetId: characterMedia.artworkAssetId,
+            photoAssetId: winnerMedia.photoAssetId
+          },
+          winner === selectedSet.playerOne ? 0 : 1
+        )
+      )
+    : undefined;
   const sponsorLogoUrl = settings.showSponsorLogo ? winnerMedia.sponsorLogoUrl : undefined;
   const { url: resultLogoUrl, ready: logoReady } = useLogoAsset(
     savedSettings?.showTournamentLogo ? (savedSettings.logoAssetId ?? selectedSet.broadcast?.logoAssetId) : undefined
@@ -100,6 +117,7 @@ function AnnouncementOverlayContent({
         ref={entranceRef}
         style={appearanceStyle}
         className={`overlay victory${composition === 'spotlight' ? ' spotlight' : ''} ${stylingProfile.overlay.themeClass}${settings.showBackground ? '' : ' is-transparent-background'}${settings.showTextBackdrop ? ' has-text-backdrop' : ''}`}
+        data-player={winner === selectedSet.playerTwo ? 2 : 1}
         data-announcement-surface="result"
         data-announcement-composition={composition}
         data-announcement-kind={presentation?.kind ?? 'winner'}
@@ -117,6 +135,7 @@ function AnnouncementOverlayContent({
             photoUrl={photoUrl}
             sponsorLogoUrl={sponsorLogoUrl}
             logoUrl={resultLogoUrl}
+            placement={placement}
             portraits={characterPortraits}
           />
         )}
@@ -135,6 +154,7 @@ function AnnouncementOverlayContent({
       style={appearanceStyle}
       className={`overlay overlay-announcement overlay-announcement-${presentation?.kind ?? 'winner'} ${stylingProfile.overlay.themeClass}${settings.showBackground ? '' : ' is-transparent-background'}`}
       data-game-id={profile.id}
+      data-player={winner === selectedSet.playerTwo ? 2 : 1}
       data-announcement-surface="result"
       data-announcement-composition="classic"
       data-announcement-kind={presentation?.kind}
@@ -151,10 +171,16 @@ function AnnouncementOverlayContent({
               </span>
             )}
             {characterUrl && (
-              <CatalogImage className="announcement-character-art" src={characterUrl} entrance="result-character" />
+              <FramedArtworkImage
+                className="announcement-character-art"
+                src={characterUrl}
+                entrance="result-character"
+                transform={placement?.character}
+              />
             )}
             {photoUrl && (
-              <CatalogImage
+              <FramedArtworkImage
+                transform={placement?.photo}
                 className="announcement-player-photo"
                 src={photoUrl}
                 fallbackSrc={playerPlaceholder}
@@ -203,6 +229,7 @@ function AnnouncementOverlayContent({
 
 const defaultResultScreenSettings: ResultScreenState = {
   composition: 'classic',
+  artworkFraming: {},
   stylingGameId: 'street-fighter-6',
   showBackground: true,
   showTextBackdrop: false,
@@ -219,12 +246,14 @@ function useAnnouncementCharacterMedia(
   portraitCharacters: string[]
 ): {
   characterUrl?: string;
+  artworkAssetId?: string;
   characterPortraits: CharacterPortrait[];
   hasCatalogMedia: boolean;
   ready: boolean;
 } {
   const [media, setMedia] = useState<{
     characterUrl?: string;
+    artworkAssetId?: string;
     characterPortraits: CharacterPortrait[];
     hasCatalogMedia: boolean;
     key: string;
@@ -255,7 +284,8 @@ function useAnnouncementCharacterMedia(
           selectedAssetId ? api.gameCharacterAssetUrl(gameId, selectedAssetId) : undefined,
           loadCharacterPortraits(gameId, selectedPortraits, assets)
         ]);
-        if (active) setMedia({ key, characterUrl, characterPortraits, hasCatalogMedia });
+        if (active)
+          setMedia({ key, artworkAssetId: selectedAssetId, characterUrl, characterPortraits, hasCatalogMedia });
       })
       .catch(() => {
         if (active)
@@ -307,7 +337,7 @@ function usePlayerMediaUrls(selectedSet: SelectedSetState | undefined, enabled: 
             match.sponsorLogoAssetId ? api.sponsorLogoAssetUrl(match.sponsorLogoAssetId) : undefined,
             match.playerPhotoAssetId ? api.playerPhotoAssetUrl(match.playerPhotoAssetId) : undefined
           ]);
-          return { sponsorLogoUrl, playerPhotoUrl };
+          return { sponsorLogoUrl, playerPhotoUrl, photoAssetId: match.playerPhotoAssetId };
         };
         const [playerOne, playerTwo] = await Promise.all([
           resolvePlayerMedia(matches.playerOne),

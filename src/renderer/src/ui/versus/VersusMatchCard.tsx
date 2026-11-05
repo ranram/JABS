@@ -29,6 +29,7 @@ export function VersusMatchCard({
 }) {
   const { t } = useTranslation('overlay');
   const format = useMatchFormatLabel(set);
+  const game = set.gameName?.trim() || resolveGameProfile(set.gameId).label;
   const cardRef = useVersusCardFit();
   const players = [set.playerOne, set.playerTwo];
   const showLogos = settings.showSponsorLogos && media.every((entry) => Boolean(entry.sponsorUrl));
@@ -84,7 +85,7 @@ export function VersusMatchCard({
       </div>
       <footer className="versus-match-footer" data-entrance="format">
         <span className="versus-match-game">
-          <DisplayText text={set.gameName?.trim() || resolveGameProfile(set.gameId).label} />
+          <DisplayText text={game} />
         </span>
         <span className="versus-match-separator" aria-hidden="true">
           ·

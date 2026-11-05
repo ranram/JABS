@@ -1,16 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { updateArtworkFraming } from '@shared/artworkFraming';
+import { useVersusMedia } from '../useVersusMedia';
+import { useSettingsDraft } from '../../hooks/useSettingsDraft';
+import { ArtworkFramingControls } from './ArtworkFramingControls';
+import { useMemo } from 'react';
 import { Badge, Group, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { sortByLabel } from './operatorUtils';
 import { OverlayLogoSelect } from './OverlayLogoSelect';
 import type { ResultScreenState } from '@shared/resultScreen';
-import type { GameCharacterAsset, LogoAsset, OverlayMediaMatches, SelectedSetState } from '@shared/models';
+import type { LogoAsset, SelectedSetState } from '@shared/models';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
-import { selectedCharacterAssetId } from '@shared/characterAssets';
-import { playerPortraitCharacters } from '@shared/characterTeams';
 import { api } from '../../api';
-import { useCatalogRevision } from '../../hooks/useCatalogRevision';
 import { announcementPresentation } from '../announcementPresentation';
 
 type ResultScreenControlsProps = {
@@ -21,11 +22,19 @@ type ResultScreenControlsProps = {
 
 export function ResultScreenControls({ activeSet, logos, profiles }: ResultScreenControlsProps) {
   const { t, i18n } = useTranslation(['operator', 'common']);
-  const [state, setState] = useState<ResultScreenState>();
-  const [playerMedia, setPlayerMedia] = useState<{ key: string; matches: OverlayMediaMatches }>();
-  const [characterCatalog, setCharacterCatalog] = useState<{ slug: string; assets: GameCharacterAsset[] }>();
-  const catalogRevision = useCatalogRevision();
-  const [saving, setSaving] = useState(false);
+  const {
+    state,
+    saving,
+    update: updateDraft
+  } = useSettingsDraft({
+    load: api.resultScreenState,
+    save: api.updateResultScreenState,
+    onError: (error) =>
+      notifyError(error, t('workspaces.resultScreen.failedTitle'), t('workspaces.resultScreen.failed'))
+  });
+  const currentResult = activeSet ? announcementPresentation(activeSet) : undefined;
+  const winner = currentResult?.winner;
+  const { media, ready } = useVersusMedia(winner ? activeSet : undefined);
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const sortedProfiles = useMemo(
     () => sortByLabel(profiles, (profile) => profile.styleName, locale),
@@ -33,103 +42,15 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
   );
   const selectedLogo = state?.logoAssetId ?? activeSet?.broadcast?.logoAssetId;
   const logoAvailable = logos.some(({ id }) => id === selectedLogo);
-  const currentResult = activeSet ? announcementPresentation(activeSet) : undefined;
-  const winner = currentResult?.winner;
-  // Scores and styling do not change which files match these players.
-  const identityKey =
-    activeSet && winner
-      ? JSON.stringify([
-          activeSet.setId,
-          activeSet.eventId,
-          activeSet.playerOne.name,
-          activeSet.playerOne.prefix,
-          activeSet.playerOne.sponsor,
-          activeSet.playerTwo.name,
-          activeSet.playerTwo.prefix,
-          activeSet.playerTwo.sponsor
-        ])
-      : undefined;
-  const gameSlug = winner && activeSet ? (activeSet.assetCatalogSlug ?? activeSet.gameId) : undefined;
-  // Manual players may share empty entrant IDs. Use the player identified by the result.
-  const winnerMedia =
-    identityKey && playerMedia?.key === identityKey && activeSet
-      ? winner === activeSet.playerOne
-        ? playerMedia.matches.playerOne
-        : playerMedia.matches.playerTwo
-      : undefined;
-  const characterAssets = characterCatalog?.slug === gameSlug ? (characterCatalog?.assets ?? []) : [];
-  const hasCharacterArtwork = Boolean(winner && selectedCharacterAssetId(winner, characterAssets));
-  const hasTeamPortraits = Boolean(
-    winner &&
-    playerPortraitCharacters(winner).some((character) =>
-      characterAssets.some((asset) => asset.character === character && asset.portraitAssetId)
-    )
-  );
+  const winnerMedia = winner === activeSet?.playerTwo ? media[1] : media[0];
   const availability = {
-    playerPhoto: Boolean(winnerMedia?.playerPhotoAssetId),
-    sponsorLogo: Boolean(winnerMedia?.sponsorLogoAssetId),
-    character: hasCharacterArtwork || hasTeamPortraits
+    playerPhoto: Boolean(winnerMedia.photoUrl),
+    sponsorLogo: Boolean(winnerMedia.sponsorUrl),
+    character: Boolean(winnerMedia.characterUrl || winnerMedia.characterPortraits?.length)
   };
 
-  useEffect(() => {
-    void api
-      .resultScreenState()
-      .then(setState)
-      .catch((error) =>
-        notifyError(error, t('workspaces.resultScreen.failedTitle'), t('workspaces.resultScreen.failed'))
-      );
-  }, [t]);
-
-  useEffect(() => {
-    let active = true;
-    if (!identityKey) {
-      return () => {
-        active = false;
-      };
-    }
-    void api
-      .playerMedia()
-      .then((matches) => {
-        if (active) setPlayerMedia({ key: identityKey, matches });
-      })
-      .catch(() => {
-        if (active) setPlayerMedia({ key: identityKey, matches: { playerOne: {}, playerTwo: {} } });
-      });
-    return () => {
-      active = false;
-    };
-  }, [identityKey, catalogRevision]);
-
-  useEffect(() => {
-    let active = true;
-    if (!gameSlug)
-      return () => {
-        active = false;
-      };
-    void api
-      .gameCharacterAssets(gameSlug)
-      .then(({ assets }) => {
-        if (active) setCharacterCatalog({ slug: gameSlug, assets });
-      })
-      .catch(() => {
-        if (active) setCharacterCatalog({ slug: gameSlug, assets: [] });
-      });
-    return () => {
-      active = false;
-    };
-  }, [gameSlug, catalogRevision]);
-
-  async function update<K extends keyof Omit<ResultScreenState, 'updatedAt'>>(key: K, value: ResultScreenState[K]) {
-    if (!state || saving) return;
-    setSaving(true);
-    try {
-      const next = await api.updateResultScreenState({ ...state, [key]: value });
-      setState(next);
-    } catch (error) {
-      notifyError(error, t('workspaces.resultScreen.failedTitle'), t('workspaces.resultScreen.failed'));
-    } finally {
-      setSaving(false);
-    }
+  function update<K extends keyof Omit<ResultScreenState, 'updatedAt'>>(key: K, value: ResultScreenState[K]) {
+    return updateDraft({ [key]: value } as Pick<ResultScreenState, K>);
   }
 
   if (!state)
@@ -210,6 +131,25 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
           />
         )}
       </SimpleGrid>
+      {activeSet && (
+        <ArtworkFramingControls
+          activeSet={activeSet}
+          framing={state.artworkFraming}
+          stylingGameId={state.stylingGameId}
+          layout={state.composition}
+          winnerSide={winner ? (winner === activeSet.playerOne ? 0 : 1) : undefined}
+          showCharacter={state.showCharacter}
+          showPhoto={state.showPlayerPhoto}
+          media={media}
+          ready={ready}
+          onChange={(key, transform, mirroredKey) =>
+            void updateDraft((current) => ({
+              ...current,
+              artworkFraming: updateArtworkFraming(current.artworkFraming, key, transform, mirroredKey)
+            }))
+          }
+        />
+      )}
     </Stack>
   );
 }

@@ -1,4 +1,6 @@
 mod media;
+mod layout_settings;
+use layout_settings::{LayoutSettings, media_scope};
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
@@ -61,12 +63,16 @@ pub struct VersusScreenState {
     pub logo_asset_id: Option<String>,
     #[serde(default = "default_true")]
     pub show_background: bool,
+    #[serde(default = "default_information_layout")]
+    pub information_layout: String,
     #[serde(default = "default_true")]
     pub show_match_backdrop: bool,
     pub show_tournament_logo: bool,
     pub show_sponsor_logos: bool,
     #[serde(default = "default_true")]
     pub show_head_to_head: bool,
+    #[serde(default = "default_true")]
+    pub show_scrolling_rails: bool,
     #[serde(default = "default_stat_rows")]
     pub stat_rows: Vec<String>,
     #[serde(default = "default_media_mode")]
@@ -84,6 +90,8 @@ pub struct VersusScreenState {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub history_error: Option<String>,
     pub updated_at: String,
+    #[serde(default)]
+    layout_settings: std::collections::BTreeMap<String, LayoutSettings>,
 }
 
 pub struct VersusScreenStore {
@@ -99,6 +107,11 @@ impl VersusScreenStore {
             database.load_broadcast_surface(SURFACE_ID)?,
             default_state,
             |state: &mut VersusScreenState| {
+                // Before layout isolation, Compact used Standard's framing records.
+                if state.layout_settings.is_empty() && state.information_layout == "compact" {
+                    state.layout_settings.insert("standard".into(), LayoutSettings::capture(state));
+                    state.media_placements = default_media_placements();
+                }
                 if validate(state) {
                     Ok(())
                 } else {
@@ -145,18 +158,46 @@ impl VersusScreenStore {
             .write()
             .map_err(|_| "Versus Screen settings are unavailable.".to_owned())?;
         crate::persisted_state::check_revision(&submitted.updated_at, &current.updated_at)?;
+        submitted.layout_settings = current.layout_settings.clone();
         submitted.history = current.history.clone();
         submitted.history_match = current.history_match.clone();
         submitted.history_loading = current.history_loading;
         submitted.history_error = current.history_error.clone();
         submitted.media_match = current.media_match.clone();
+        if submitted.information_layout != current.information_layout {
+            let outgoing = LayoutSettings::capture(&current);
+            if let Some(saved) = current.layout_settings.get(&submitted.information_layout) {
+                saved.apply(&mut submitted);
+            } else {
+                // A new layout inherits display choices, with fresh artwork framing.
+                outgoing.apply(&mut submitted);
+                submitted.media_placements = default_media_placements();
+            }
+            if let Some(context) = &current.media_match {
+                submitted.media_placements = context.restore_placements(database, &media_scope(&submitted))?;
+                if let Some(saved) = current.layout_settings.get(&submitted.information_layout) {
+                    saved.preserve_matching_framing(&mut submitted);
+                }
+            }
+            submitted.layout_settings.insert(current.information_layout.clone(), outgoing);
+            return self.save_settings(database, &mut current, submitted, None);
+        }
+        let framing_changed = std::array::from_fn(|side| {
+            let next = &submitted.media_placements[side].character;
+            let previous = &current.media_placements[side].character;
+            next.x != previous.x || next.y != previous.y || next.scale != previous.scale
+        });
+        if let Some(context) = &submitted.media_match {
+            context.mirror_character_edits(&mut submitted.media_placements, framing_changed);
+        }
         let edited: [MediaLayerEdits; 2] = std::array::from_fn(|side| MediaLayerEdits {
             character: submitted.media_placements[side].character != current.media_placements[side].character,
             photo: submitted.media_placements[side].photo != current.media_placements[side].photo,
         });
+        let scope = media_scope(&submitted);
         if submitted.media_mode != current.media_mode {
             let restored = match &submitted.media_match {
-                Some(context) => context.restore_placements(database, &submitted.media_mode)?,
+                Some(context) => context.restore_placements(database, &scope)?,
                 None => default_media_placements(),
             };
             for (side, placement) in restored.into_iter().enumerate() {
@@ -169,9 +210,10 @@ impl VersusScreenStore {
             Some(context) if edited.iter().any(|side| side.character || side.photo) => {
                 Some(context.serialize_edits(
                     database,
-                    &submitted.media_mode,
+                    &scope,
                     &submitted.media_placements,
                     edited,
+                    framing_changed,
                 )?)
             }
             _ => None,
@@ -262,13 +304,23 @@ impl VersusScreenStore {
         }
         let context =
             MediaMatch::resolve(database, artwork_directory, photo_directory, selected_set)?;
-        let mut placements = context.restore_placements(database, &current.media_mode)?;
-        if let Some(previous) = &current.media_match {
-            if context.same_set(previous) {
-                for (side, placement) in placements.iter_mut().enumerate() {
-                    if context.same_subject(previous, side) {
-                        *placement = current.media_placements[side].clone();
-                    }
+        let scope = media_scope(&current);
+        let mut placements = context.restore_placements(database, &scope)?;
+        let previous_context = match &current.media_match {
+            Some(previous) => previous.clone(),
+            None => MediaMatch::resolve(database, artwork_directory, photo_directory, previous_set)?,
+        };
+        if context.same_set(&previous_context) {
+            for (side, placement) in placements.iter_mut().enumerate() {
+                if !context.same_layout(&previous_context, side, &scope) {
+                    continue;
+                }
+                let unchanged = context.unchanged_layers(&previous_context, side);
+                if unchanged.character {
+                    placement.character = current.media_placements[side].character.clone();
+                }
+                if unchanged.photo {
+                    placement.photo = current.media_placements[side].photo.clone();
                 }
             }
         }
@@ -324,6 +376,19 @@ impl VersusScreenStore {
 }
 
 fn validate(state: &VersusScreenState) -> bool {
+    state.layout_settings.len() <= 2
+        && state.layout_settings.iter().all(|(layout, settings)| {
+            matches!(layout.as_str(), "standard" | "compact") && {
+                let mut candidate = state.clone();
+                candidate.layout_settings.clear();
+                settings.apply(&mut candidate);
+                validate_active(&candidate)
+            }
+        })
+        && validate_active(state)
+}
+
+fn validate_active(state: &VersusScreenState) -> bool {
     state.styling_game_id.as_deref().is_none_or(crate::state::is_supported_game_id)
         && state
             .logo_asset_id
@@ -333,6 +398,7 @@ fn validate(state: &VersusScreenState) -> bool {
             state.media_mode.as_str(),
             "character" | "photo" | "combined"
         )
+        && matches!(state.information_layout.as_str(), "standard" | "compact")
         && valid_stat_rows(&state.stat_rows)
         && valid_media_placements(&state.media_placements)
         && state.history.as_ref().is_none_or(|history| {
@@ -353,10 +419,12 @@ fn default_state() -> Result<VersusScreenState, String> {
         styling_game_id: None,
         logo_asset_id: None,
         show_background: true,
+        information_layout: default_information_layout(),
         show_match_backdrop: true,
         show_tournament_logo: true,
         show_sponsor_logos: true,
         show_head_to_head: true,
+        show_scrolling_rails: true,
         stat_rows: default_stat_rows(),
         media_mode: default_media_mode(),
         media_placements: default_media_placements(),
@@ -366,12 +434,17 @@ fn default_state() -> Result<VersusScreenState, String> {
         history_loading: false,
         history_error: None,
         updated_at: now_rfc3339()?,
+        layout_settings: Default::default(),
     })
 }
 
 
 fn default_stat_rows() -> Vec<String> {
     ["age", "sponsor", "seed", "nickname"].map(str::to_owned).to_vec()
+}
+
+fn default_information_layout() -> String {
+    "standard".to_owned()
 }
 
 fn default_media_mode() -> String {

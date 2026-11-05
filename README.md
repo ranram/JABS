@@ -27,7 +27,7 @@ Download a package for your operating system from [Releases](https://github.com/
 
 <table>
   <tr>
-    <td width="50%"><strong>Bracket and stream controls</strong><br><img src="screenshots/StreamState.png" alt="JABS bracket and stream controls"></td>
+    <td width="50%"><strong>Bracket and stream controls</strong><br><img src="screenshots/StreamState.png?v=1.6.2" alt="JABS bracket and stream controls"></td>
     <td width="50%"><strong>Versus Screen</strong><br><img src="screenshots/VersusScreen.png" alt="JABS Versus Screen preview"></td>
   </tr>
   <tr>

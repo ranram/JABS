@@ -2,7 +2,7 @@ import type { MediaTransform } from '@shared/mediaPlacement';
 
 export type MediaCoordinateSpace = 'preview' | 'overlay';
 
-export const mediaCanvasSelector = '.thumbnail-canvas, .top8-canvas, .versus-preview-canvas';
+export const mediaCanvasSelector = '.thumbnail-canvas, .top8-canvas, .versus-preview-canvas, .artwork-framing-canvas';
 
 // Saved offsets are relative to half the stage width and the full stage height.
 // Preview canvases scale the same 1920×1080 stage using container-width units.

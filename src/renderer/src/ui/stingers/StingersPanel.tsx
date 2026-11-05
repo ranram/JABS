@@ -201,6 +201,7 @@ export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: Selecte
                       {clip.durationSeconds !== undefined && (
                         <NumberInput
                           label={t('stingers.duration')}
+                          description={kind === 'winner' ? t('stingers.durationHelp') : undefined}
                           min={0.5}
                           max={stingerLimits.durationSeconds}
                           step={0.5}

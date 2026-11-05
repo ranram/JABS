@@ -4,14 +4,13 @@
 }
 .scoreboard-sponsor-logo {
   position: absolute;
-  top: 4px;
-  bottom: 4px;
+  top: -25%;
   z-index: 0;
   width: 42%;
   max-width: 160px;
-  height: calc(100% - 8px);
+  height: 150%;
   pointer-events: none;
-  opacity: 0.95;
+  opacity: 0.45;
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 65%));
 }
 .scoreboard-sponsor-logo[data-player-side='left'] {

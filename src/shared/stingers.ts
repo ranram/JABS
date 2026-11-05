@@ -9,6 +9,7 @@ export const stingerLimits = {
 
 export const stingerKindSchema = z.enum(['perfect', 'winner']);
 export type StingerKind = z.infer<typeof stingerKindSchema>;
+export type StingerPlaybackResult = 'completed' | 'unconfigured' | 'blocked' | 'failed';
 const videoSchema = z.object({ id: z.string().regex(/^[a-z0-9-]+\.webm$/), name: z.string() });
 export const stingerClipSchema = z.object({
   video: videoSchema.optional(),
@@ -49,7 +50,15 @@ export function parseStingerRealtime(value: unknown): StingerState | undefined {
 
 // These canvas coordinates are also used by the operator's framing preview.
 export const stingerFraming = {
-  photo: { x: 440, y: 180, width: 480, height: 680 },
-  character: { x: 920, y: 160, width: 640, height: 700 },
-  name: { x: 0, y: 24, width: 1920, height: 88 }
+  photo: { x: 100, y: 80, width: 880, height: 960 },
+  character: { x: 790, y: -30, width: 1130, height: 1110 },
+  name: { x: 96, y: 40, width: 1728, height: 172 }
 } as const;
+
+export function winnerStingerFraming(photo: boolean, character: boolean) {
+  return {
+    photo: photo && !character ? { x: 430, y: 60, width: 1060, height: 990 } : stingerFraming.photo,
+    character: character && !photo ? { x: 260, y: -30, width: 1400, height: 1110 } : stingerFraming.character,
+    name: stingerFraming.name
+  };
+}

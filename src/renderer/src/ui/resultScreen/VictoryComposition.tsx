@@ -1,3 +1,5 @@
+import './artworkSides.css';
+import type { PlayerMediaPlacement } from '@shared/mediaPlacement';
 import { useTranslation } from 'react-i18next';
 import type { PlayerState } from '@shared/models';
 import type { CharacterPortrait } from '../../characterPortraits';
@@ -19,6 +21,7 @@ type Props = {
   sponsorLogoUrl?: string;
   logoUrl?: string;
   portraits: CharacterPortrait[];
+  placement?: PlayerMediaPlacement;
 };
 
 export function VictoryComposition({
@@ -31,7 +34,8 @@ export function VictoryComposition({
   photoUrl,
   sponsorLogoUrl,
   logoUrl,
-  portraits
+  portraits,
+  placement
 }: Props) {
   const { t } = useTranslation('overlay');
   const sponsor = winner.prefix?.trim() || winner.sponsor?.trim();
@@ -90,7 +94,7 @@ export function VictoryComposition({
         )}
       </div>
 
-      <ResultArtwork characterUrl={characterUrl} photoUrl={photoUrl} portraits={portraits} shadow={!spotlight} />
+      <ResultArtwork characterUrl={characterUrl} photoUrl={photoUrl} portraits={portraits} shadow={!spotlight} placement={placement} />
     </section>
   );
 }

@@ -14,6 +14,7 @@
 }
 
 .stats-placement-logo.is-placeholder {
+  object-fit: contain;
   filter: brightness(0) invert(0.65);
 }
 
@@ -222,7 +223,7 @@
 .stats-placement-logo {
   width: 100px;
   height: 48px;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .stats-placement-mark {
@@ -388,4 +389,39 @@
   z-index: -1;
   background: rgba(17, 17, 17, 0.92);
   pointer-events: none;
+}
+
+.player-stats[data-player='2'] .victory-hero {
+  inset: 140px -30px 160px 56%;
+}
+.player-stats[data-player='2'] .stats-identity {
+  left: auto;
+  right: 60px;
+  text-align: right;
+}
+.player-stats[data-player='2'] .stats-results {
+  left: var(--stats-column-right);
+  right: var(--stats-column-left);
+}
+.player-stats[data-player='2'] .victory-logo {
+  left: calc((var(--stats-column-right) + 100% - var(--stats-column-left)) / 2);
+}
+.player-stats[data-player='2'] .stats-identity.has-flag {
+  grid-template-columns: minmax(0, 1fr) 140px;
+}
+.player-stats[data-player='2'] .stats-player-flag,
+.player-stats[data-player='2'] .stats-identity.has-flag .stats-sponsor-logo {
+  grid-column: 2;
+}
+.player-stats[data-player='2'] .stats-identity.has-flag .victory-name {
+  grid-column: 1;
+  padding-left: 18px;
+  padding-right: 0;
+}
+.player-stats[data-player='2'] .stats-identity.has-flag .stats-player-context {
+  grid-template-columns: minmax(0, 1fr) 140px;
+}
+.player-stats[data-player='2'] .stats-identity.has-flag .stats-player-context > span {
+  grid-column: 1;
+  grid-row: 1;
 }

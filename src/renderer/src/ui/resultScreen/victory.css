@@ -247,3 +247,7 @@
 .victory.has-text-backdrop .victory-copy {
   background: rgba(16, 20, 25, 0.92);
 }
+
+.victory-hero.has-framing {
+  overflow: hidden;
+}

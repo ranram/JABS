@@ -294,3 +294,36 @@ it('requires Y/N confirmation for clearing the queue or player details and rejec
   expect(onClearPlayers).toHaveBeenCalledOnce();
   await view.unmount();
 });
+
+it('plays Ctrl+P and Ctrl+W, offers setup for missing clips, and blocks repeat and typing playback', async () => {
+  const play = vi.fn<() => Promise<'completed' | 'unconfigured'>>(async () => 'completed');
+  const configure = vi.fn();
+  const hook = await mountHook(() =>
+    useWorkspaceShortcuts({
+      enabled: true,
+      navigationBlocked: false,
+      selectorAvailable: false,
+      onOpenSelector() {},
+      onPlayStinger: play,
+      onConfigureStingers: configure
+    })
+  );
+  await act(async () => expect(press('KeyP', { shiftKey: false }).defaultPrevented).toBe(true));
+  expect(play).toHaveBeenLastCalledWith('perfect');
+  play.mockResolvedValueOnce('unconfigured');
+  await act(async () => expect(press('KeyW', { shiftKey: false }).defaultPrevented).toBe(true));
+  expect(play).toHaveBeenLastCalledWith('winner');
+  expect(hook.current.confirmation).toBe('stinger-winner');
+  await act(async () => {
+    await hook.current.confirm();
+  });
+  expect(configure).toHaveBeenCalledOnce();
+  const count = play.mock.calls.length;
+  await act(async () => press('KeyW', { shiftKey: false, repeat: true }));
+  const input = document.createElement('input');
+  document.body.append(input);
+  await act(async () => expect(press('KeyP', { shiftKey: false }, input).defaultPrevented).toBe(true));
+  expect(play).toHaveBeenCalledTimes(count);
+  input.remove();
+  await hook.unmount();
+});

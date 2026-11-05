@@ -32,6 +32,8 @@ pub struct ResultScreenState {
     pub show_player_photo: bool,
     pub show_sponsor_logo: bool,
     pub show_character: bool,
+    #[serde(default)]
+    pub artwork_framing: crate::artwork_framing::ArtworkFraming,
     pub updated_at: String,
 }
 
@@ -57,11 +59,13 @@ impl ResultScreenStore {
                     show_player_photo: true,
                     show_sponsor_logo: true,
                     show_character: true,
+                    artwork_framing: Default::default(),
                     updated_at: now_rfc3339()?,
                 })
             },
             |state: &mut ResultScreenState| {
-                if state.styling_game_id.as_deref().is_none_or(crate::state::is_supported_game_id)
+                if crate::artwork_framing::valid(&state.artwork_framing)
+                    && state.styling_game_id.as_deref().is_none_or(crate::state::is_supported_game_id)
                     && state
                         .logo_asset_id
                         .as_deref()
@@ -102,6 +106,9 @@ impl ResultScreenStore {
         database: &Database,
         mut submitted: ResultScreenState,
     ) -> Result<Value, String> {
+        if !crate::artwork_framing::valid(&submitted.artwork_framing) {
+            return Err("Invalid image framing.".into());
+        }
         if submitted.styling_game_id.as_deref().is_some_and(|id| !crate::state::is_supported_game_id(id)) {
             return Err("Choose a recognized Styling game profile.".to_owned());
         }
@@ -112,14 +119,14 @@ impl ResultScreenStore {
         {
             return Err("Choose a valid logo file.".to_owned());
         }
+        let mut current = self.state.write()
+            .map_err(|_| "Winner/Champion settings are unavailable.".to_owned())?;
+        crate::persisted_state::check_revision(&submitted.updated_at, &current.updated_at)?;
         submitted.updated_at = now_rfc3339()?;
         let payload = serde_json::to_string(&submitted)
             .map_err(|_| "Unable to serialize Winner/Champion settings.".to_owned())?;
         database.save_broadcast_surface(SURFACE_ID, &payload, &submitted.updated_at)?;
-        *self
-            .state
-            .write()
-            .map_err(|_| "Winner/Champion settings are unavailable.".to_owned())? = submitted;
+        *current = submitted;
         let _ = self.updates.send(payload.clone());
         serde_json::from_str(&payload)
             .map_err(|_| "Unable to serialize Winner/Champion settings.".to_owned())
@@ -143,6 +150,8 @@ mod tests {
         assert_eq!(legacy["showTextBackdrop"], false);
         assert!(legacy.get("logoAssetId").is_none());
         let mut old_payload = legacy.clone();
+        old_payload.as_object_mut().unwrap().remove("artworkFraming");
+        assert!(serde_json::from_value::<ResultScreenState>(old_payload.clone()).unwrap().artwork_framing.is_empty());
         old_payload.as_object_mut().unwrap().remove("composition");
         old_payload.as_object_mut().unwrap().remove("showTextBackdrop");
         assert!(!serde_json::from_value::<ResultScreenState>(old_payload.clone()).unwrap().show_text_backdrop);
@@ -156,11 +165,27 @@ mod tests {
         invalid["composition"] = serde_json::json!("unsupported");
         assert!(serde_json::from_value::<ResultScreenState>(invalid).is_err());
         let mut settings: ResultScreenState = serde_json::from_value(legacy).unwrap();
+        settings.artwork_framing.insert("character-context".into(), crate::versus_screen::MediaTransform {
+            x: -0.2, y: 0.1, scale: 5.0, flipped: false,
+        });
+        settings.artwork_framing.insert("photo-context".into(), crate::versus_screen::MediaTransform {
+            x: 0.3, y: -0.1, scale: 3.0, flipped: true,
+        });
+        let mut bad_framing = settings.clone();
+        bad_framing.artwork_framing.get_mut("photo-context").unwrap().x = 2.1;
+        assert!(store.replace(&database, bad_framing).is_err());
         settings.composition = ResultComposition::Victory;
         settings.show_text_backdrop = true;
         settings.logo_asset_id = Some("local.png".into());
-        store.replace(&database, settings.clone()).unwrap();
-        assert_eq!(ResultScreenStore::load(&database).unwrap().current().unwrap()["showTextBackdrop"], true);
+        let stale = settings.clone();
+        let saved = store.replace(&database, settings.clone()).unwrap();
+        assert_eq!(store.replace(&database, stale).unwrap_err(), crate::persisted_state::STALE_SETTINGS);
+        assert_eq!(store.current().unwrap(), saved);
+        settings = serde_json::from_value(saved).unwrap();
+        let restored = ResultScreenStore::load(&database).unwrap().current().unwrap();
+        assert_eq!(restored["artworkFraming"]["character-context"]["scale"], 5.0);
+        assert_eq!(restored["artworkFraming"]["photo-context"]["scale"], 3.0);
+        assert_eq!(restored["showTextBackdrop"], true);
         assert_eq!(
             ResultScreenStore::load(&database)
                 .unwrap()
@@ -177,7 +202,7 @@ mod tests {
         );
         settings.composition = ResultComposition::Spotlight;
         settings.show_text_backdrop = false;
-        store.replace(&database, settings.clone()).unwrap();
+        settings = serde_json::from_value(store.replace(&database, settings.clone()).unwrap()).unwrap();
         assert_eq!(ResultScreenStore::load(&database).unwrap().current().unwrap()["showTextBackdrop"], false);
         assert_eq!(
             ResultScreenStore::load(&database)

@@ -1,0 +1,124 @@
+/* Narrowing the panel reveals more artwork without resizing the image layers. */
+.versus-overlay.versus-compact {
+  --versus-panel-width: 576px;
+  --versus-rail-width: 16px;
+}
+
+.versus-compact .versus-center-card {
+  justify-content: flex-start;
+  height: var(--versus-card-height, 100%);
+}
+
+.versus-compact .versus-frame,
+.versus-compact .versus-rails {
+  height: var(--versus-card-height, 100%);
+}
+
+.versus-compact .versus-match-body {
+  margin-bottom: 0;
+}
+
+.versus-compact .versus-logo-tab {
+  width: 144px;
+  height: 76px;
+  padding: 8px 14px;
+  margin-bottom: 4px;
+}
+
+.versus-compact .versus-match-heading h1 {
+  margin: 6px 0 4px;
+  font-size: calc(34px * var(--appearance-text-scale, 1));
+}
+
+.versus-compact .versus-match-title {
+  font-size: calc(16px * var(--appearance-text-scale, 1));
+}
+
+.versus-compact .versus-names {
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.versus-compact .versus-names::before,
+.versus-compact .versus-names::after {
+  width: calc(50% - 8px);
+}
+
+.versus-compact .versus-identity {
+  height: 62px;
+}
+
+.versus-compact .versus-name-row {
+  font-size: calc(38px * var(--appearance-text-scale, 1));
+}
+
+.versus-compact .versus-stat-row {
+  grid-template-columns: minmax(0, 1fr) 136px minmax(0, 1fr);
+  gap: 8px;
+  height: 42px;
+}
+
+.versus-compact .versus-stat-value {
+  padding: 5px;
+  font-size: calc(24px * var(--appearance-text-scale, 1));
+}
+
+.versus-compact .versus-stat-label {
+  font-size: calc(16px * var(--appearance-text-scale, 1));
+}
+
+.versus-compact .versus-player-sponsor-logo {
+  width: 32px;
+  height: 28px;
+}
+
+.versus-compact .versus-stat-sponsor .versus-stat-value:has(.versus-player-sponsor-logo) {
+  padding-inline: 42px;
+}
+
+.versus-compact .versus-h2h {
+  margin-top: 10px;
+}
+
+.versus-compact .versus-h2h h2 {
+  font-size: calc(16px * var(--appearance-text-scale, 1));
+  margin-bottom: 4px;
+}
+
+.versus-compact .versus-h2h-row {
+  grid-template-columns: 36px 30px minmax(0, 1fr) 30px 36px;
+  min-height: 40px;
+  gap: 8px;
+}
+
+.versus-compact .versus-h2h-outcome {
+  font-size: calc(30px * var(--appearance-text-scale, 1));
+}
+
+.versus-compact .versus-h2h-row > strong {
+  font-size: calc(23px * var(--appearance-text-scale, 1));
+}
+
+.versus-compact .versus-h2h-event > span {
+  font-size: calc(16px * var(--appearance-text-scale, 1));
+}
+
+.versus-compact .versus-h2h-event > small {
+  font-size: calc(14px * var(--appearance-text-scale, 1));
+}
+
+.versus-compact .versus-ticker-track,
+.versus-compact .versus-ticker-cycle {
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.versus-compact .versus-match-footer {
+  min-height: 32px;
+  box-sizing: border-box;
+  align-items: center;
+  padding: 6px 8px;
+  gap: 8px;
+  font-size: calc(15px * var(--appearance-text-scale, 1));
+  line-height: 1.2;
+}
