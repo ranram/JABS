@@ -92,13 +92,9 @@ export function QueueTopEightButton() {
             {plan?.map((set) => (
               <li key={set.id}>
                 {set.round}
-                {(set.entrantOne || set.entrantTwo) && (
-                  <>
-                    {set.round && ' · '}
-                    {set.entrantOne?.name ?? t('selector.tbd')} {t('common:match.versus')}{' '}
-                    {set.entrantTwo?.name ?? t('selector.tbd')}
-                  </>
-                )}
+                {set.round && ' · '}
+                {set.entrantOne?.name ?? t('selector.tbd')} {t('common:match.versus')}{' '}
+                {set.entrantTwo?.name ?? t('selector.tbd')}
               </li>
             ))}
           </ol>

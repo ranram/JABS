@@ -11,7 +11,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-it('selects visible pixels, locks each drag, and preserves independent placements within bounds', async () => {
+it('drags the selected media layer within its bounds', async () => {
   const { captures, readback } = mockMediaCanvas();
   let placement = defaultPlayerMediaPlacement();
   const render = vi.fn();

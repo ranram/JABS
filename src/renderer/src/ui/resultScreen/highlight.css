@@ -1,0 +1,159 @@
+.victory.highlight {
+  --highlight-accent: var(--appearance-primary, var(--game-accent, #f7b733));
+  background: radial-gradient(ellipse at 50% 35%, #25202d, #08090c 76%);
+}
+
+.victory.highlight[data-player='2'] {
+  --highlight-accent: var(--appearance-secondary, var(--broadcast-right, #ff554d));
+}
+
+.highlight-composition,
+.highlight-stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.highlight-subjects {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.highlight-sponsor-backdrop {
+  position: absolute;
+  z-index: 0;
+  left: 80px;
+  top: 20px;
+  width: 1760px;
+  height: 1040px;
+  object-fit: contain;
+  opacity: 0.35;
+}
+
+.highlight-impact {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 55%,
+    color-mix(in srgb, var(--highlight-accent) 20%, white),
+    transparent 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+.highlight-event-logo {
+  position: absolute;
+  z-index: 4;
+  top: 48px;
+  left: 48px;
+  width: 220px;
+  height: 140px;
+  object-fit: contain;
+}
+
+.victory.highlight[data-player] .highlight-subjects .victory-hero {
+  inset: 0;
+  overflow: visible;
+}
+
+.victory.highlight[data-player] .highlight-subjects .victory-hero .victory-character-art,
+.victory.highlight[data-player] .highlight-subjects .victory-hero .victory-player-photo {
+  right: auto;
+  bottom: auto;
+  object-fit: contain;
+  object-position: center top;
+  transform-origin: center 35%;
+  filter: drop-shadow(0 0 5px var(--highlight-accent))
+    drop-shadow(0 0 16px color-mix(in srgb, var(--highlight-accent) 60%, transparent)) drop-shadow(0 12px 18px #0009);
+}
+
+.victory.highlight[data-player] .highlight-subjects .victory-hero .victory-player-photo {
+  left: var(--highlight-photo-x);
+  top: var(--highlight-photo-y);
+  width: var(--highlight-photo-width);
+  height: var(--highlight-photo-height);
+}
+
+.victory.highlight[data-player] .highlight-subjects .victory-hero .victory-character-art {
+  left: var(--highlight-character-x);
+  top: var(--highlight-character-y);
+  width: var(--highlight-character-width);
+  height: var(--highlight-character-height);
+}
+
+.highlight-copy {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  text-align: center;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.highlight-title {
+  position: absolute;
+  left: 60px;
+  top: 740px;
+  width: 1800px;
+  height: 300px;
+  font:
+    italic 300px/1 'JABS Anton',
+    Impact,
+    sans-serif;
+  letter-spacing: -0.015em;
+  color: var(--highlight-accent);
+  -webkit-text-stroke: 2px color-mix(in srgb, var(--highlight-accent) 65%, white);
+  text-shadow:
+    3px 4px 0 #25151a,
+    6px 8px 0 #25151a,
+    10px 13px 0 #25151a,
+    14px 18px 0 #08090c,
+    0 0 28px color-mix(in srgb, var(--highlight-accent) 45%, transparent);
+  transform: rotate(-7deg);
+  transform-origin: center;
+}
+
+.highlight-name {
+  position: absolute;
+  top: 40px;
+  left: 300px;
+  width: 1320px;
+  height: 150px;
+  display: grid;
+  place-items: center;
+  font:
+    700 calc(112px * var(--appearance-text-scale, 1))/1.1 'JABS Oswald',
+    sans-serif;
+  color: white;
+  white-space: nowrap;
+  text-shadow:
+    0 4px 8px #000,
+    0 12px 22px #000;
+}
+
+.highlight-name-text {
+  display: inline-block;
+}
+
+.highlight-sponsor-name {
+  color: var(--highlight-accent);
+}
+
+.highlight-confetti {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.victory.highlight.is-transparent-background {
+  background: transparent;
+}

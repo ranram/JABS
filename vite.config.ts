@@ -9,6 +9,10 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5173,
     strictPort: true,
+    watch: {
+      // Avoid caching an empty stylesheet while an editor is still saving it.
+      awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 25 }
+    },
     // OBS keeps the native page address; hot updates connect directly to Vite.
     hmr: { clientPort: 5173 }
   },

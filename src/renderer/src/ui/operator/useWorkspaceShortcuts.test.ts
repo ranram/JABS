@@ -64,7 +64,7 @@ afterEach(() => {
   setTutorialActive(false);
 });
 
-it('opens workspaces and manually navigates every queue mode, respecting current position and queue boundaries', async () => {
+it('navigates queued matches within the current queue bounds', async () => {
   const queue = controller();
   const onOpenSelector = vi.fn();
   const options = { enabled: true, navigationBlocked: false, selectorAvailable: true, onOpenSelector, queue };
@@ -157,7 +157,7 @@ it('opens Players, queue and selector while editing without allowing match chang
   }
 });
 
-it('keeps edit guards and ignores repeats, typing and unrelated dialogs while allowing navigation from the queue', async () => {
+it('blocks unsafe shortcuts while editing', async () => {
   const queue = controller();
   const options = { enabled: true, navigationBlocked: false, selectorAvailable: true, onOpenSelector: vi.fn(), queue };
   const hook = await mountHook(() => useWorkspaceShortcuts(options));

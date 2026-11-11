@@ -6,8 +6,10 @@
   inset: 0;
   width: 1920px;
   height: 1080px;
-  background: transparent;
   pointer-events: none;
+}
+.artwork-framing-canvas .artwork-preview-subject.player-stats {
+  background: transparent;
 }
 .artwork-framing-canvas .announcement-composition {
   width: 100%;

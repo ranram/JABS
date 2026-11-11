@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
 import { act, createElement as h } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { mountHook } from '../../hooks/hookTestHarness';
-import { useVersusNameFit } from './useVersusNameFit';
+import { mountHook } from '../hooks/hookTestHarness';
+import { useIdentityTextFit } from './useIdentityTextFit';
 
 const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts');
 const appearance = vi.hoisted(() => ({ textSize: 'default' }));
-vi.mock('../appearance/AppearanceProvider', () => ({ useAppearance: () => ({ appearance }) }));
+vi.mock('./appearance/AppearanceProvider', () => ({ useAppearance: () => ({ appearance }) }));
 afterEach(() => {
   if (originalFonts) Object.defineProperty(document, 'fonts', originalFonts);
   else Reflect.deleteProperty(document, 'fonts');
@@ -14,7 +14,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it('fits the whole centered name in both dimensions and grows or shrinks again with text size, identity and slot changes', async () => {
+it('refits identities after edits, resizing, text-size changes and font loading', async () => {
   let identity = 'SPONSOR | A Very Long Player Name';
   let width = 180;
   let glyphWidth = 0.3;
@@ -60,7 +60,7 @@ it('fits the whole centered name in both dimensions and grows or shrinks again w
     return this.scrollHeight;
   });
   const view = await mountHook(
-    () => useVersusNameFit(identity),
+    () => useIdentityTextFit(identity, '.versus-name-text'),
     false,
     (ref) => h('strong', { ref, className: 'versus-name-row' }, h('span', { className: 'versus-name-text' }, identity))
   );

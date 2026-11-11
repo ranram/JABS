@@ -51,7 +51,10 @@ vi.mock('../renderer/src/hooks/useVersusScreenState', () => ({
 }));
 vi.mock('../renderer/src/api', () => ({
   api: {
-    identityMedia: async () => { const matches = await transport.playerMedia(); return { matches: [matches.playerOne, matches.playerTwo] }; },
+    identityMedia: async () => {
+      const matches = await transport.playerMedia();
+      return { matches: [matches.playerOne, matches.playerTwo] };
+    },
     resolvePlayers: transport.resolve,
     gameCharacterAssets: transport.characters,
     gameCharacterAssetUrl: async (_slug: string, id: string) => `data:image/png;base64,${id}`,
@@ -71,7 +74,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-it('keeps optional comparisons paired, shows unknown values honestly, and keeps library metadata out of live edits', async () => {
+it('keeps Versus comparisons tied to the current match', async () => {
   await initializeI18n();
   await i18n.changeLanguage('en');
   const set = createTestOverlayState('tekken-8').selectedSet;
@@ -282,7 +285,7 @@ beforeEach(async () => {
   });
 });
 
-it('presents exhibitions in OBS and preview while preserving media through score and appearance edits', async () => {
+it('preserves exhibition media through score and appearance edits', async () => {
   const { view, exhibition, assertCards, historyButton } = await mountExhibition();
   assertCards('First to 7');
   const clearStyle = view.container.querySelector<HTMLButtonElement>('button[aria-label="Use live match style"]')!;

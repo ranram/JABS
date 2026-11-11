@@ -54,6 +54,7 @@ impl Fixture {
             asset_id: name.into(),
             fingerprint: media::source_fingerprint(&self.runtime, source, name).unwrap(),
             crop: Crop::default(),
+            auto_frame: Some(true),
             placements: Default::default(),
             extended_placements: Default::default(),
         }
@@ -157,6 +158,12 @@ fn existing_photos_show_without_preparation_and_matching_respects_identity_and_h
     assert!(media::resolve_photo(&f.runtime, &identity).is_err());
     fs::remove_file(f.runtime.player_headshot_directory.join("Tag.jpg")).unwrap();
     let mut explicit = automatic;
+    // Older saved crops have no automatic-framing flag and keep their manual viewport.
+    explicit.auto_frame = None;
+    explicit.crop.zoom = 1.8;
+    let legacy = serde_json::to_value(&explicit).unwrap();
+    assert!(legacy.get("autoFrame").is_none());
+    assert_eq!(serde_json::from_value::<Photo>(legacy).unwrap(), explicit);
     explicit.extended_placements.insert(
         "2xko".into(),
         SidePlacements {
@@ -181,6 +188,7 @@ fn existing_photos_show_without_preparation_and_matching_respects_identity_and_h
         f.player().scoreboard_photo.unwrap().fingerprint
     );
     assert_eq!(replaced.crop, Crop::default());
+    assert_eq!(replaced.auto_frame, Some(true));
     assert!(replaced.placements.is_empty());
     assert!(replaced.extended_placements.is_empty());
     fs::remove_file(f.runtime.player_headshot_directory.join("Tag.png")).unwrap();

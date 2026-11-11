@@ -31,6 +31,7 @@ export const scoreboardPhotoSchema = z
       .refine((s) => !s.includes('/') && !s.includes('\\') && !s.includes('\0') && s !== '..'),
     fingerprint: z.string().regex(/^[a-f0-9]{16}$/),
     crop: headshotCropSchema,
+    autoFrame: z.boolean().optional(),
     placements: gamePlacementsSchema.optional(),
     extendedPlacements: gamePlacementsSchema.optional()
   })
@@ -38,6 +39,36 @@ export const scoreboardPhotoSchema = z
 export type ScoreboardPhoto = z.infer<typeof scoreboardPhotoSchema>;
 export type HeadshotCrop = z.infer<typeof headshotCropSchema>;
 export const defaultHeadshotCrop = (): HeadshotCrop => ({ x: 0.5, y: 0.35, zoom: 1 });
+export type PhotoBounds = { x: number; y: number; width: number; height: number };
+type FramedPhoto = ScoreboardPhoto & {
+  width: number;
+  height: number;
+  contentBounds?: PhotoBounds;
+  focusBounds?: PhotoBounds;
+};
+
+/** Share automatic framing between the editor and OBS.
+ * The viewport can extend outside the image so square portraits fit wide panels.
+ */
+export function scoreboardPhotoViewBox(
+  photo: Pick<FramedPhoto, 'crop' | 'autoFrame' | 'width' | 'height' | 'contentBounds' | 'focusBounds'>,
+  aspect: number
+) {
+  if (!photo.autoFrame) return photoCropViewBox(photo.width, photo.height, aspect, photo.crop);
+  const bounds = photo.focusBounds ?? photo.contentBounds ?? { x: 0, y: 0, width: 1, height: 1 };
+  const visibleWidth = bounds.width * photo.width;
+  const visibleHeight = bounds.height * photo.height;
+  const fill = photo.focusBounds ? 0.96 : 0.92;
+  const width = Math.max(visibleWidth, visibleHeight * aspect) / fill;
+  const height = width / aspect;
+  return {
+    x: (bounds.x + bounds.width / 2) * photo.width - width / 2,
+    // Align silhouette crops with the top of the hair.
+    y: bounds.y * photo.height - (photo.focusBounds ? 0 : height * 0.04),
+    width,
+    height
+  };
+}
 export const scoreboardPhotoSettingsSchema = z
   .object({
     enabled: z.boolean(),
@@ -112,7 +143,7 @@ export function photoCropViewBox(width: number, height: number, aspect: number, 
 
 /** Top of the visible cutout in scoreboard coordinates, before reserving headroom. */
 export function scoreboardPhotoTop(
-  photo: ScoreboardPhoto & { width: number; height: number; contentBounds?: { y: number } },
+  photo: FramedPhoto,
   layout: ScoreboardPhotoLayout,
   side: 'left' | 'right',
   framing: PhotoFraming = 'extendAbove',
@@ -120,7 +151,7 @@ export function scoreboardPhotoTop(
 ) {
   const [, y, width, height] = layout.sides[side].bounds;
   if (framing === 'contained') return y;
-  const crop = photoCropViewBox(photo.width, photo.height, width / height, photo.crop);
+  const crop = scoreboardPhotoViewBox(photo, width / height);
   const center = crop.y + crop.height / 2;
   const imageTop = (photo.contentBounds?.y ?? 0) * photo.height;
   const transformedTop = center + placement.y * crop.height + placement.scale * (imageTop - center);

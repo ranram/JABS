@@ -330,6 +330,19 @@ export function CustomScoreboardPanel({
                                 }
                               />
                             ))}
+                            <Switch
+                              label={t('customScoreboard.sponsorThemeColors')}
+                              checked={draft.typography.sponsorColor === undefined}
+                              onChange={(event) =>
+                                setDraft({
+                                  ...draft,
+                                  typography: {
+                                    ...draft.typography,
+                                    sponsorColor: event.currentTarget.checked ? undefined : draft.typography.textColor
+                                  }
+                                })
+                              }
+                            />
                           </SimpleGrid>
 
                           <SimpleGrid cols={2}>
@@ -363,13 +376,15 @@ export function CustomScoreboardPanel({
                                 setDraft({ ...draft, typography: { ...draft.typography, textColor } })
                               }
                             />
-                            <ColorInput
-                              label={t('customScoreboard.sponsorColor')}
-                              value={draft.typography.sponsorColor ?? draft.typography.textColor}
-                              onChange={(sponsorColor) =>
-                                setDraft({ ...draft, typography: { ...draft.typography, sponsorColor } })
-                              }
-                            />
+                            {draft.typography.sponsorColor !== undefined && (
+                              <ColorInput
+                                label={t('customScoreboard.sponsorColor')}
+                                value={draft.typography.sponsorColor}
+                                onChange={(sponsorColor) =>
+                                  setDraft({ ...draft, typography: { ...draft.typography, sponsorColor } })
+                                }
+                              />
+                            )}
                             {(['nameSize', 'metaSize', 'scoreSize', 'contextSize'] as const).map((field) => (
                               <NumberInput
                                 key={field}

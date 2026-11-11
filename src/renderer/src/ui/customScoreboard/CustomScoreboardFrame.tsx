@@ -6,7 +6,6 @@ export function CustomScoreboardFrame({ frameUrl, inset }: Props) {
       className="custom-scoreboard-frame"
       src={frameUrl}
       draggable={false}
-      data-entrance="custom-frame"
       style={top ? { top: `${inset / 10.8}%` } : undefined}
       alt=""
       aria-hidden="true"

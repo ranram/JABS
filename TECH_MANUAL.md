@@ -61,7 +61,17 @@ OBS keeps the JABS service address when loading an overlay in either dev or an i
 | Stingers | `/overlay/stingers` |
 | Queue ticker | `/overlay/queue-ticker` |
 
-Player Stats and Winner/Champion save bounded `artworkFraming` maps by game, composition, visible layers, and artwork identity. Character geometry mirrors between sides while flips stay independent. Photo keys prefer start.gg IDs and still read older local-player keys. Winner/Champion writes reject stale settings revisions.
+Player Stats and Winner/Champion save bounded `artworkFraming` maps by game, composition, visible layers, and artwork identity. Classic, Victory and Spotlight use fixed left-side artwork and right-side copy in OBS and the editor. Their character geometry carries across winners with the same horizontal direction. Other layouts retain mirrored framing. Flips stay independent, and photo keys prefer start.gg IDs while still reading older local-player keys. Winner/Champion writes reject stale settings revisions.
+
+Highlight uses the same Winner/Champion route and settings. `highlightLayout` groups artwork at the center with a large translucent sponsor backdrop. Decoded artwork carries its visible-top fraction and aspect ratio. Unedited characters use those measurements to align the cutout near the lower edge of the name. The automatic offset uses the existing placement coordinates so the first edit does not jump. Saved manual geometry keeps priority. A single visible subject is centered. Hiding the name gives artwork more vertical space. Subjects extend behind foreground titles and banners. Only the full 1920×1080 stage clips them. The framing editor uses the same composition as OBS.
+
+Highlight reuses the scoreboard’s bounded alpha sample and silhouette estimate for 640×900 display copies in an eight-entry cache. Photos retain the torso below the estimated head. Tall character art uses a focused fit only when its silhouette yields a narrow focus region. Broad effects and ambiguous shapes keep the whole-art fit. Native photo resolution prefers headshots.
+
+Subject entrances animate only transform and opacity, with a static glow. The Winner stinger keeps its own reveal in `winnerSubjectKeyframes`. Saved placement transforms remain in effect. The name row uses bundled Oswald. Sponsor text, title and glow share the winning side’s accent, including appearance overrides in OBS and the framing editor. The name and title have separate `showIdentity` and `showWinnerTitle` flags, both defaulting to true.
+
+Highlight artwork strikes into place over 220 ms. The staggered sequence ends with the title and confetti at 2.8 seconds. Brief stage shakes and sharp warm flashes mark the landings, with the strongest hit on the title. `highlightImpacts` derives landing times from the entrance cues and skips hidden elements. These effects use transform and opacity, respect the global animation delay and switch, and cancel when the source leaves Program.
+
+Optional confetti preloads before its cue and plays once per result or OBS activation. Hidden sources pause it. The bundled asset, `src/renderer/src/assets/overlays/confetti.webm`, is derived from `examples/confetti.webm` at 1280×720, retaining 60 fps and alpha. The original reference stays unchanged. `showConfetti` defaults to false.
 
 The scoreboard route shows the selected built-in or custom layout. The result route chooses Winner or Champion from the match result; `/overlay/active/champion` remains a supported alias.
 
@@ -130,7 +140,7 @@ Each visit to a queued match has a separate report token. A delayed response fro
 
 While paused, every entry can move. The queue finds Current by set ID after reordering, so the live match and remaining delay stay the same. While running, only entries after Current can move. The UI disables the arrows for entries that cannot move.
 
-A queued set can have TBD opponents. Refreshing the selector fills in names as start.gg resolves them. The queue also fetches each set before putting it on stream, so unresolved opponents never replace the live match.
+A queued set can have TBD opponents. Automatic Top 8 queue detection follows advancement links even when all opening entrants are unknown. It still requires a unique, complete path of real sets and rejects duplicate known entrants. The Top 8 Matchups graphic retains its eight-entrant requirement. Refreshing the selector fills in names as start.gg resolves them. The queue also fetches each set before putting it on stream, so unresolved opponents never replace the live match.
 
 If the next set is still TBD, `match_queue/engine/waiting.rs` keeps the current match on screen and checks only the waiting set every 15 seconds. It uses the existing queue timer and request limit, and waits for editing, reporting, or stinger playback to finish. Pausing, restarting, disconnecting, inactivity, or changing the live match cancels the wait. Each request records the queue revision it started with, so an old failure cannot pause a newer queue action.
 
@@ -210,7 +220,13 @@ Some read operations use POST, including asset checks, player-media lookups, and
 
 ## Fonts and appearance presets
 
+Appearance stores `entranceDelayMs` as an integer from 0 to 30000, defaulting to 0 for older settings and presets. Settings displays seconds. `useOverlayEntrance` holds entrance elements hidden during the wait and cancels pending playback when the source becomes inactive or unmounts. Delay edits do not restart an entrance already playing. Custom scoreboard frames and labels share a 2.4-second upward slide and fade. Photos sit between those layers and keep their usual slide and silhouette reveal, with the same global delay. Highlight confetti includes the same delay before its celebration cue. Stingers retain their separate video-clock timing.
+
+Broadcast text size defaults to `large` in both the native preferences and shared schema. The saved value `default` retains the smaller size for existing settings and presets. New presets and Restore defaults use the larger size.
+
 Font IDs are defined in `src/shared/fonts.ts`; font declarations and selectors are in `ui/fonts/`. The `scoreboardFont` preference controls built-in scoreboards and their rails. It is stored separately from the `appearance` object used by presets and exports. Custom scoreboards save their own choice in `typography.font`.
+
+Custom scoreboard sponsor text follows the theme’s primary and secondary colors when `typography.sponsorColor` is absent. A saved color overrides both sides. The canvas applies the selected styling game’s theme in OBS and the editor, with appearance color overrides taking precedence over theme defaults.
 
 Appearance preferences store `activePresetId` beside the appearance values. Applying, saving, or importing a preset writes its identity and values together. Edits keep that identity and display a modified label. Clearing the selection or deleting the preset clears its identity without changing the appearance. New preset and Restore defaults clear the identity and restore appearance defaults. Both keep the saved presets and the separate scoreboard font.
 
@@ -230,7 +246,15 @@ Tutorial descriptions support `**bold text**`. The renderer escapes HTML before 
 
 `ScoreboardSponsors` resolves both players’ matching logos once per identity/catalog revision and shares the URLs with nameplates and photo backdrops. Score, font, palette, and framing changes do not repeat identity lookups. `ScoreboardSponsorLogo` fits sampled visible artwork without cropping or stretching, beneath the identity text; missing assets leave the nameplate geometry unchanged. Custom layouts store optional `playerElements.*.sponsorLogo` bounds for independent movement, sizing, alignment, and mirroring. Layouts without those bounds derive the original name-relative position.
 
-The `scoreboard-photos` settings enable player photos and persist the global `framing` choice (`contained` by default or `extendAbove`). Each player's position, scale, and flip settings are saved in `player_scoreboard_photos` for each game and side: `placements` holds Contained framing, and `extendedPlacements` holds Extend above framing. Both maps survive player export/import. For Extend above, `scoreboardPhotoTop` calculates the visible cutout’s top from sampled alpha bounds, crop, scale, and position. The larger required inset shifts both photos and the top HUD down within the 1920×1080 source. The mask extends into negative local coordinates above each frame; sides, bottom, and protected HUD areas stay clipped. Custom frame artwork is split at the existing 780px boundary so bottom rails remain anchored. Contained uses zero inset and the original masks. JABS looks for a matching headshot in `player_headshots/` first, then a photo in `players/`. Older crop settings still work; replacing an image resets its framing until the user adjusts it.
+Photo settings live in `scoreboard-photos`. The global `framing` mode is `contained` or `extendAbove`. Player records keep independent game/side transforms in `placements` and `extendedPlacements`. Both maps survive export and import. Headshots take priority over regular photos.
+
+Native resolution marks new or replaced files `autoFrame: true`. The renderer loads the original image and reuses its bounded 256-pixel alpha sample to estimate the head and shoulders. Opaque images, ambiguous shapes, and close headshots keep the whole-photo fit. Other overlays continue using trimmed display copies.
+
+`scoreboardPhotoViewBox` shares the crop between the editor, OBS, and headroom calculation. Silhouette crops use 96% fill and align with the top of the hair. The fallback uses 92% fill with 4% top clearance. Viewports can extend outside the source image so square photos fit wide panels. Focus bounds stay in decoded media metadata. Existing manual crops keep priority, and automatic framing needs no player save to reach OBS.
+
+**Auto frame** writes the automatic-framing flag and resets the active mode’s selected placements in one update. Replaced files discard stale crops and placements in both the editor and OBS. Keep original and trimmed raster cache entries separate.
+
+For Extend above, `scoreboardPhotoTop` calculates headroom from visible alpha, crop, and placement. Both photos and the top HUD move down to make room. Masks open above the frames while preserving side, bottom, and HUD clipping. Custom frame artwork stays split at 780px so bottom rails remain anchored. Contained uses the original masks with no inset.
 
 `PlayerHeadshotPreview` holds its viewport fixed while the extended photo is selected; only the cutout transform and clipping mask update during adjustment. Fit preview or blur recalculates the viewport. Drag distances use the fixed display scale rather than the changing cutout height.
 
@@ -259,7 +283,21 @@ cargo install cargo-audit --version 0.22.2 --locked
 cargo audit --file src-tauri/Cargo.lock
 ```
 
-Unit tests sit beside the feature they cover; workflow tests live in `src/integration/`. Useful regressions check saved data, validation, responses arriving out of order, and user actions. Shared controls need thorough coverage once, followed by short integration checks in the screens that use them. `createTestCustomScoreboard` provides a standard layout fixture; migration tests use explicit older inputs. Database paging tests need only enough records to cross a page boundary.
+Tests live beside the feature they cover. A few operator workflows span features and live in `src/integration/`.
+
+| Behavior | Start here |
+| --- | --- |
+| Scoring and reporting | `src/shared/startggReporting.test.ts`, native `state.rs` and `reporting_routes/tests.rs` |
+| Queue advancement and resets | Native `match_queue/tests.rs` and `match_queue/engine.rs` |
+| Player data and saved preferences | Native `player_library/tests.rs`, `appearance_preferences.rs`, and the matching renderer draft tests |
+| Photo framing | `ui/scoreboardPhotos/photoFraming.test.ts`, `scoreboardPhotoSilhouette.test.ts`, native `scoreboard_photos/tests.rs` |
+| Shared text fitting | `ui/useIdentityTextFit.test.ts` |
+| Local API and credential security | `localApiTransport.test.ts`, native local-server, secrets, and Stream Deck tests |
+| Translation contracts | `i18n/i18n.test.ts` and `i18n/nativeErrors.test.ts` |
+
+Before adding a case, find the feature’s existing tests. Keep coverage of failed saves, stale replies, persisted data, parsing, validation, and security boundaries. Test a shared control once. Screen tests should check its wiring without repeating the same sizing or mouse-event cases. Avoid fixed CSS values and tests of framework behavior.
+
+Use the existing fixtures for routine setup. Migration tests need explicit older data. Paging tests need only enough records to cross a page boundary.
 
 ## Diagnostics and native error text
 

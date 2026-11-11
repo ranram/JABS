@@ -107,6 +107,7 @@ function MatchOverlayView() {
     );
   }
   const profile = resolveGameProfile(presentation.gameId);
+  const effectiveScoreboardFont = scoreboardFont ?? (profile.id === 'marvel-tokon' ? 'inter' : undefined);
   const Template = overlayTemplates[presentation.template];
   const logoUrl = useLogoAssetUrl(selectedSet?.broadcast?.logoAssetId);
   const customScoreboard = useCustomScoreboard(selectedSet?.customScoreboardId, selectedSet?.customScoreboardRevision);
@@ -163,10 +164,12 @@ function MatchOverlayView() {
         {
           ...appearanceStyle,
           '--scoreboard-photo-top': `${photoTopInset / 10.8}%`,
-          ...(scoreboardFont ? { '--scoreboard-font-family': bundledFonts[scoreboardFont].family } : {})
+          ...(effectiveScoreboardFont
+            ? { '--scoreboard-font-family': bundledFonts[effectiveScoreboardFont].family }
+            : {})
         } as CSSProperties
       }
-      data-scoreboard-font={scoreboardFont}
+      data-scoreboard-font={effectiveScoreboardFont}
       data-game-id={profile.id}
       data-overlay-template={profile.overlay.template}
     >

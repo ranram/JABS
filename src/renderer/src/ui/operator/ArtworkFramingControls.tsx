@@ -10,6 +10,7 @@ import {
 } from '@shared/artworkFraming';
 import { defaultMediaTransform, type MediaLayerKind, type MediaTransform } from '@shared/mediaPlacement';
 import type { SelectedSetState } from '@shared/models';
+import type { ResultScreenState } from '@shared/resultScreen';
 import { resolveGameProfile } from '@shared/gameProfiles';
 import type { SubjectMedia } from '../useVersusMedia';
 import { ArtworkFramingSubject } from './ArtworkFramingSubject';
@@ -18,6 +19,7 @@ import playerPlaceholder from '../../assets/player_placeholder.svg';
 import '../resultScreen/victory.css';
 import '../resultScreen/spotlight.css';
 import '../resultScreen/artworkSides.css';
+import '../resultScreen/highlight.css';
 import '../playerStats/playerStats.css';
 import './versusPreview.css';
 import './artworkFramingControls.css';
@@ -28,22 +30,26 @@ export function ArtworkFramingControls({
   layout,
   showCharacter,
   showPhoto,
+  showBackground = true,
   media,
   ready,
   winnerSide,
   stylingGameId,
+  highlightSettings,
   onChange
 }: {
   activeSet: SelectedSetState;
   framing: ArtworkFraming;
-  layout: 'stats' | 'classic' | 'victory' | 'spotlight';
+  layout: 'stats' | 'classic' | 'victory' | 'spotlight' | 'highlight';
   showCharacter: boolean;
   showPhoto: boolean;
+  showBackground?: boolean;
   media: [SubjectMedia, SubjectMedia];
   ready: boolean;
   winnerSide?: 0 | 1;
   stylingGameId?: SelectedSetState['stylingGameId'];
-  onChange(key: string, transform: MediaTransform, mirroredKey?: string): void;
+  highlightSettings?: Pick<ResultScreenState, 'showIdentity' | 'showWinnerTitle' | 'showSponsorLogo'>;
+  onChange(key: string, transform: MediaTransform, mirroredKey?: string, mirrorX?: boolean): void;
 }) {
   const { t } = useTranslation('operator');
   const [selected, setSelected] = useState<{ side: 0 | 1; layer: MediaLayerKind }>();
@@ -88,7 +94,12 @@ export function ArtworkFramingControls({
     const visible = visibleArtwork(side);
     if (!(layer === 'character' ? visible.characterUrl : visible.photoUrl)) return;
     const keys = framingKeys(side);
-    onChange(keys[layer], clampArtworkTransform(transform), layer === 'character' ? keys.mirroredCharacter : undefined);
+    onChange(
+      keys[layer],
+      clampArtworkTransform(transform),
+      layer === 'character' ? keys.mirroredCharacter : undefined,
+      keys.mirrorX
+    );
   }
   const options = sides.flatMap((side) => {
     const player = side === 0 ? activeSet.playerOne : activeSet.playerTwo;
@@ -138,7 +149,10 @@ export function ArtworkFramingControls({
         </Group>
       </SimpleGrid>
       <MediaControlHint showOverlapSelection behindModifier="Ctrl" />
-      <div ref={shell} className="versus-preview-shell artwork-framing-shell">
+      <div
+        ref={shell}
+        className={`versus-preview-shell artwork-framing-shell${showBackground ? '' : ' is-transparent-preview'}`}
+      >
         <div className="versus-preview-stage artwork-framing-canvas" style={{ transform: `scale(${scale})` }}>
           {sides.map((side) => {
             const player = side === 0 ? activeSet.playerOne : activeSet.playerTwo;
@@ -147,14 +161,18 @@ export function ArtworkFramingControls({
             return (
               <ArtworkFramingSubject
                 key={JSON.stringify([side, keys.character, keys.photo])}
-                name={player.name}
+                player={player}
                 side={side}
                 layout={layout}
+                showBackground={showBackground}
                 theme={
                   resolveGameProfile(stylingGameId ?? activeSet.stylingGameId ?? activeSet.gameId).overlay.themeClass
                 }
                 characterUrl={visible.characterUrl}
+                characterFrame={media[side].characterFrame}
                 photoUrl={visible.photoUrl}
+                sponsorUrl={media[side].sponsorUrl}
+                highlightSettings={highlightSettings}
                 placement={artworkPlacement(framing, keys)}
                 selected={selection?.side === side ? selection.layer : undefined}
                 onSelect={(layer) => setSelected({ side, layer })}

@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
-import type { ScoreboardPhoto, ScoreboardPhotoIdentity } from '@shared/scoreboardPhotos';
+import type { PhotoBounds, ScoreboardPhoto, ScoreboardPhotoIdentity } from '@shared/scoreboardPhotos';
 import type { IdentityMediaInput, SelectedSetState } from '@shared/models';
 import { api } from '../../api';
 import { useCatalogRevision } from '../../hooks/useCatalogRevision';
 import { readLogoContent, type ScoreboardLogoContent } from './scoreboardLogoBackdrop';
+import { estimatePortraitFocus } from './scoreboardPhotoSilhouette';
 
 export type LoadedScoreboardPhoto = ScoreboardPhoto & {
   url: string;
   width: number;
   height: number;
   contentBounds?: ScoreboardLogoContent;
+  focusBounds?: PhotoBounds;
 };
 
 export function useScoreboardLogoContent(url?: string) {
@@ -74,20 +76,26 @@ export function useScoreboardSponsorLogos(set: SelectedSetState | undefined, ena
 }
 
 export async function loadScoreboardPhoto(photo: ScoreboardPhoto): Promise<LoadedScoreboardPhoto> {
+  // Measure alpha bounds from the original image.
   const url = await (photo.source === 'headshot'
-    ? api.playerHeadshotAssetUrl(photo.assetId)
-    : api.playerPhotoAssetUrl(photo.assetId));
+    ? api.playerHeadshotAssetUrl(photo.assetId, false)
+    : api.playerPhotoAssetUrl(photo.assetId, false));
   const image = new Image();
   image.src = url;
   await image.decode();
   if (!image.naturalWidth || !image.naturalHeight || image.naturalWidth * image.naturalHeight > 64_000_000)
     throw new Error('Invalid player image dimensions.');
+  let focusBounds: PhotoBounds | undefined;
+  const contentBounds = readLogoContent(image, (pixels, width, height) => {
+    focusBounds = estimatePortraitFocus(pixels, width, height);
+  });
   return {
     ...photo,
     url,
     width: image.naturalWidth,
     height: image.naturalHeight,
-    contentBounds: readLogoContent(image)
+    contentBounds,
+    focusBounds
   };
 }
 

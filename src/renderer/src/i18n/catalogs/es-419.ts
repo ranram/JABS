@@ -551,7 +551,8 @@ export const es419 = {
         'Aplica el mismo encuadre y orientación a ambos lados o ajusta cada lado por separado. Elige Guardar jugador para conservar los cambios.',
       side: 'Lado de la foto',
       unsupported: 'Este juego no tiene un marco para fotos en el marcador.',
-      recommendedSize: 'Recomendado: 512 × 512 px, con cabeza y hombros visibles.',
+      recommendedSize:
+        'Usa una foto de cabeza y hombros. No necesitas cambiarle el tamaño ni agregar márgenes transparentes.',
       enabled: 'Fotos de jugadores en marcadores',
       logoBackdrop: 'Logo del torneo detrás de los jugadores',
       sponsorBackdrop: 'Logos de patrocinadores detrás de los jugadores',
@@ -562,6 +563,7 @@ export const es419 = {
       imageFailed: 'No se pudo cargar esta imagen. Revisa el archivo y recarga.',
       changed: 'Esta imagen cambió. Revisa el encuadre antes de confirmar.',
       confirmImage: 'Usar imagen actual',
+      autoFrame: 'Encuadrar automáticamente',
       reset: 'Restablecer encuadre',
       saveFailed: 'No se pudo guardar la configuración de fotos. Recarga e inténtalo de nuevo.',
       loadFailed: 'No se pudo cargar la configuración de fotos.',
@@ -678,11 +680,14 @@ export const es419 = {
       colorHelp:
         'Al desactivar esta opción, vuelven los colores del estilo elegido. Las imágenes que agregaste conservan sus colores originales.',
       textSize: 'Tamaño del texto en overlays',
-      defaultText: 'Normal',
-      largeText: 'Más grande',
+      smallText: 'Más pequeño',
+      largeText: 'Más grande (predeterminado)',
       broadcastLanguage: 'Idioma de OBS',
       followLanguage: 'El mismo que JABS',
       animations: 'Reproducir animaciones de overlays',
+      animationDelay: 'Retraso de animaciones (segundos)',
+      animationDelayHelp:
+        'Los overlays esperan este tiempo antes de entrar en OBS. Los stingers usan sus propios tiempos.',
       presets: 'Apariencias guardadas',
       savedPreset: 'Apariencia guardada',
       currentPreset: 'Apariencia en uso: {{name}}',
@@ -791,7 +796,8 @@ export const es419 = {
       formats: 'WebM · Video VP8/VP9, audio Opus/Vorbis opcional · Hasta 256 MB.',
       useDuration: 'Limitar la duración',
       duration: 'Duración (segundos)',
-      durationHelp: 'Los datos del ganador permanecen hasta este momento. Los videos más cortos conservan su último fotograma. La salida empieza 2 segundos antes del final.',
+      durationHelp:
+        'Los datos del ganador permanecen hasta este momento. Los videos más cortos conservan su último fotograma. La salida empieza 2 segundos antes del final.',
       playBroadcast: 'Reproducir en OBS',
       playClip: 'Reproducir {{name}}',
       playingClip: 'Reproduciendo: {{name}}',
@@ -818,7 +824,8 @@ export const es419 = {
       layerHelp: 'Usa un video transparente si va delante.',
       playbackSettings: 'Ajustes de reproducción del ganador',
       framing: 'Encuadre del ganador · 1920×1080',
-      framingHelp: 'Prepara tu video con las guías de imágenes y nombre. Si solo hay una imagen, ocupa más espacio. Esta vista previa no activa OBS.',
+      framingHelp:
+        'Prepara tu video con las guías de imágenes y nombre. Si solo hay una imagen, ocupa más espacio. Esta vista previa no activa OBS.',
       previewPlayer: 'Jugador de vista previa',
       playerOne: 'Jugador 1',
       playerTwo: 'Jugador 2',
@@ -873,11 +880,14 @@ export const es419 = {
       },
       // Winner and Champion settings
       resultScreen: {
-        showTextBackdrop: 'Fondo del texto',
-        composition: 'Tamaño',
+        composition: 'Diseño',
         classic: 'Clásica',
         victory: 'Victoria',
         spotlight: 'Protagonista',
+        highlight: 'Highlight',
+        showIdentity: 'Mostrar nombre del jugador',
+        showWinnerTitle: 'Mostrar título de ganador o campeón',
+        showConfetti: 'Mostrar confeti',
         loading: 'Cargando ajustes…',
         currentWinner: 'Ganador actual',
         winner: 'Ganador del set',
@@ -1269,6 +1279,7 @@ export const es419 = {
     customScoreboard: {
       font: 'Fuente',
       sponsorColor: 'Color del texto de equipo/patrocinador',
+      sponsorThemeColors: 'Usar colores del tema para equipo/patrocinador',
       flagSize: 'Tamaño de la bandera',
       title: 'Marcador personalizado',
       description:
@@ -1431,7 +1442,7 @@ export const es419 = {
       character: 'Personaje',
       size: 'Tamaño',
       flip: 'Voltear',
-      reset: 'Restablecer imagen seleccionada',
+      reset: 'Restablecer imagen seleccionada'
     },
     mediaControls: {
       click: 'Clic',

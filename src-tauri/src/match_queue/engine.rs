@@ -675,7 +675,7 @@ mod transition_tests {
     }
 
     #[test]
-    fn removing_current_loads_up_next_and_preserves_running_or_paused_state() {
+    fn removing_current_advances_then_finishes_without_clearing_the_broadcast() {
         for (mode, running) in [
             (Mode::Manual, false),
             (Mode::Report, false),
@@ -715,6 +715,16 @@ mod transition_tests {
                 Some("200")
             );
             assert!(!r.match_queue.inner.lock().unwrap().reported);
+            let live = r.overlay.current().unwrap();
+            for id in ["50", "200"] {
+                let revision = r.match_queue.current().unwrap().revision;
+                assert!(prepare_navigation(&r, revision, "remove", Some(id)).unwrap().is_none());
+            }
+            let finished = r.match_queue.current().unwrap();
+            assert!(finished.entries.is_empty());
+            assert!(!finished.running);
+            assert!(finished.cursor.is_none());
+            assert_eq!(r.overlay.current().unwrap(), live);
         }
     }
 
@@ -751,31 +761,6 @@ mod transition_tests {
             Some("100")
         );
         assert!(prepare_navigation(&r, revision, "remove", Some("100")).is_err());
-    }
-
-    #[test]
-    fn removing_the_last_entry_stops_without_clearing_the_broadcast() {
-        let r = runtime();
-        {
-            let mut inner = r.match_queue.inner.lock().unwrap();
-            inner.snapshot.cursor = Some(0);
-            inner.snapshot.running = true;
-            inner.snapshot.mode = Mode::Report;
-        }
-        let revision = r.match_queue.current().unwrap().revision;
-        assert!(
-            prepare_navigation(&r, revision, "remove", Some("100"))
-                .unwrap()
-                .is_none()
-        );
-        let result = r.match_queue.current().unwrap();
-        assert!(result.entries.is_empty());
-        assert!(!result.running);
-        assert!(result.cursor.is_none());
-        assert_eq!(
-            r.overlay.selected_set().unwrap().set_id.as_deref(),
-            Some("100")
-        );
     }
 
     #[test]

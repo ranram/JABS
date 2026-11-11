@@ -51,7 +51,10 @@ export function parseTopEightMatchupsRealtime(value: unknown): TopEightMatchupsS
 }
 
 /** Finds the four sets where eight entrants enter the final double-elimination subtree. */
-export function detectTopEightOpeningSets(sets: readonly SetSummary[]): SetSummary[] | undefined {
+export function detectTopEightOpeningSets(
+  sets: readonly SetSummary[],
+  { allowUnresolved = false }: { allowUnresolved?: boolean } = {}
+): SetSummary[] | undefined {
   const byId = new Map(sets.map((set) => [set.id, set]));
   const candidates = sets.filter((set) =>
     (set.prerequisites?.length ?? 0) === 2
@@ -80,8 +83,12 @@ export function detectTopEightOpeningSets(sets: readonly SetSummary[]): SetSumma
     ));
     if (losersOpening.some((set) => !set)) continue;
     const opening = [...winnersSemifinals, ...losersOpening] as SetSummary[];
-    const entrants = new Set(opening.flatMap((set) => [set.entrantOne?.id, set.entrantTwo?.id].filter(Boolean)));
-    if (entrants.size === 8) detected.push(opening);
+    const entrantIds = opening.flatMap((set) => [set.entrantOne?.id, set.entrantTwo?.id].filter(Boolean));
+    if (
+      new Set(opening.map(({ id }) => id)).size === 4 &&
+      new Set(entrantIds).size === entrantIds.length &&
+      (allowUnresolved || entrantIds.length === 8)
+    ) detected.push(opening);
   }
   if (detected.length === 0) return undefined;
   const latestPhaseOrder = Math.max(...detected.map((opening) => opening[0]?.phaseOrder ?? -1));

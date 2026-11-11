@@ -5,7 +5,10 @@ const maximumFillAspectRatio = 4 / 3;
 export type ScoreboardLogoContent = { aspectRatio: number; x: number; y: number; width: number; height: number };
 
 /** Measure visible artwork without retaining a full-size pixel buffer. Bounds are fractions of the source image. */
-export function readLogoContent(image: HTMLImageElement): ScoreboardLogoContent {
+export function readLogoContent(
+  image: HTMLImageElement,
+  analyzeSample?: (pixels: Uint8ClampedArray, width: number, height: number) => void
+): ScoreboardLogoContent {
   const fullImage = { aspectRatio: image.naturalWidth / image.naturalHeight, x: 0, y: 0, width: 1, height: 1 };
   const canvas = document.createElement('canvas');
   const scale = Math.min(1, logoSampleSize / Math.max(image.naturalWidth, image.naturalHeight));
@@ -16,6 +19,7 @@ export function readLogoContent(image: HTMLImageElement): ScoreboardLogoContent 
     if (!context) return fullImage;
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
     const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    analyzeSample?.(pixels, canvas.width, canvas.height);
     let left = canvas.width;
     let top = canvas.height;
     let right = -1;

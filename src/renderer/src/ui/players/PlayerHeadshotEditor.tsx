@@ -59,7 +59,6 @@ export function PlayerHeadshotEditor({ player, selectedSet, gameKey, onChange }:
   const image = loaded?.key === requestKey ? loaded.image : undefined;
   const saved = player.scoreboardPhoto;
   const sameImage = Boolean(image && saved && image.source === saved.source && image.assetId === saved.assetId);
-  const crop = sameImage && saved ? saved.crop : defaultHeadshotCrop();
   const stale = sameImage && image?.fingerprint !== saved?.fingerprint;
   const opponent = selectedSet?.playerTwo;
   const defaultSide =
@@ -76,16 +75,23 @@ export function PlayerHeadshotEditor({ player, selectedSet, gameKey, onChange }:
         ? scoreboardPhotoLayout({ gameId: canonicalGameId(gameKey) ?? 'street-fighter-6', assetCatalogSlug: gameKey })
         : undefined
       : selectedSet && scoreboardPhotoLayout(selectedSet);
+  const currentImage = sameImage && !stale;
+  const crop = currentImage && saved ? saved.crop : defaultHeadshotCrop();
   const photo = image
     ? {
         ...image,
         crop,
-        placements: sameImage ? saved?.placements : undefined,
-        extendedPlacements: sameImage ? saved?.extendedPlacements : undefined
+        autoFrame: currentImage ? saved?.autoFrame : true,
+        placements: currentImage ? saved?.placements : undefined,
+        extendedPlacements: currentImage ? saved?.extendedPlacements : undefined
       }
     : undefined;
   const placement = photo ? scoreboardPhotoPlacement(photo, layout?.gameId, side, framing) : defaultMediaTransform();
-  function changePlacement(next?: MediaTransform, scope = saveScope) {
+  function changePlacement(
+    next?: MediaTransform,
+    scope = saveScope,
+    cropSettings?: Pick<ScoreboardPhoto, 'crop' | 'autoFrame'>
+  ) {
     if (!photo) return;
     const field = framing === 'extendAbove' ? 'extendedPlacements' : 'placements';
     const placements = { ...photo[field] };
@@ -98,10 +104,15 @@ export function PlayerHeadshotEditor({ player, selectedSet, gameKey, onChange }:
       assetId: photo.assetId,
       fingerprint: photo.fingerprint,
       crop,
+      autoFrame: photo.autoFrame,
+      ...cropSettings,
       placements: photo.placements,
       extendedPlacements: photo.extendedPlacements,
       [field]: placements
     });
+  }
+  function autoFrame() {
+    changePlacement(defaultMediaTransform(), saveScope, { crop: defaultHeadshotCrop(), autoFrame: true });
   }
   return (
     <Paper className="operator-inset" p="md" withBorder>
@@ -181,6 +192,7 @@ export function PlayerHeadshotEditor({ player, selectedSet, gameKey, onChange }:
                   stylingGameId={selectedSet?.stylingGameId}
                   onChange={changePlacement}
                   onReset={() => changePlacement(defaultMediaTransform())}
+                  onAutoFrame={autoFrame}
                 />
                 <MediaControlHint />
               </>

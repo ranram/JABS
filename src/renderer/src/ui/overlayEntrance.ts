@@ -13,6 +13,7 @@ export type EntranceCue = {
   boundary?: 'screen' | 'parent';
   ease?: string;
   revealDelay?: number;
+  keyframes?(root: HTMLElement | SVGSVGElement): Keyframe[];
 };
 
 export function playOverlayEntrance(root: HTMLElement | SVGSVGElement, cues: readonly EntranceCue[]) {
@@ -48,7 +49,10 @@ export function playOverlayEntrance(root: HTMLElement | SVGSVGElement, cues: rea
     return [{ cue, target, base, filter, x, y, scale, opacity: Number(style.opacity) || 1 }];
   });
   const animations: WAAPIAnimation[] = [];
+  const nativeAnimations = new Set<Animation>();
   const revert = () => {
+    for (const animation of nativeAnimations) animation.cancel();
+    nativeAnimations.clear();
     for (const animation of animations.splice(0)) animation.revert();
   };
   const release = (animation: WAAPIAnimation) => {
@@ -59,6 +63,22 @@ export function playOverlayEntrance(root: HTMLElement | SVGSVGElement, cues: rea
   };
   try {
     for (const { cue, target, base, filter, x, y, scale, opacity } of frames) {
+      if (cue.keyframes) {
+        const animation = target.animate(cue.keyframes(root), {
+          duration: cue.duration,
+          delay: cue.delay ?? 0,
+          easing: cue.ease ?? 'linear',
+          fill: 'both'
+        });
+        nativeAnimations.add(animation);
+        void animation.finished.then(
+          () => {
+            if (nativeAnimations.delete(animation)) animation.cancel();
+          },
+          () => nativeAnimations.delete(animation)
+        );
+        continue;
+      }
       const shadow = 'brightness(0) opacity(1) blur(1px)';
       const revealed = `brightness(1) opacity(1) blur(0px) ${filter}`.trim();
       const duration = cue.duration ?? 480;

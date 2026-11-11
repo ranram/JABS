@@ -55,7 +55,7 @@ afterEach(() => {
   Socket.instances = [];
 });
 
-it('selects either stream slot, shows five placing logos and the run, and never mixes players after switching', async () => {
+it('keeps Player Stats results tied to the selected player', async () => {
   await initializeI18n();
   await i18n.changeLanguage('en');
   vi.stubGlobal('WebSocket', Socket);

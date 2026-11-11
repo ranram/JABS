@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type RefObject } from 'react';
 import { winnerStingerFraming } from '@shared/stingers';
 import type { StingerPlaybackClock } from './useStingerPlaybackClock';
 import { useAppearance } from '../appearance/AppearanceProvider';
+import { winnerSubjectKeyframes } from './winnerSubjectKeyframes';
 
 /** Keep the winner reveal on the video's clock, including stalls and seeks. */
 export function useStingerWinnerAnimation(
@@ -95,57 +96,16 @@ export function useStingerWinnerAnimation(
             const settled = delay + subject.entrance * tempo;
             const image = subject.selector !== '.stinger-name';
             const baseFilter = getComputedStyle(element).filter || 'none';
-            const silhouette = image ? `brightness(0) ${baseFilter === 'none' ? '' : baseFilter}`.trim() : undefined;
-            const filter = image ? baseFilter : undefined;
-            const revealTempo = Math.min(tempo, (exitStart - settled) / 500);
-            const highlight = `brightness(0) invert(0.22) ${baseFilter === 'none' ? '' : baseFilter}`.trim();
-            const frames: Keyframe[] = [
-              { offset: 0, opacity: 1, transform: subject.from, filter: silhouette },
-              ...(delay ? [{ offset: delay / duration, opacity: 1, transform: subject.from, filter: silhouette }] : []),
-              // Hold the silhouette, then use one artwork highlight before the color reveal.
-              {
-                offset: settled / duration,
-                opacity: 1,
-                transform: subject.rest,
-                filter: silhouette,
-                easing: 'steps(1, end)'
-              },
-              ...(image
-                ? [
-                    {
-                      offset: (settled + 180 * revealTempo) / duration,
-                      opacity: 1,
-                      transform: subject.rest,
-                      filter: silhouette,
-                      easing: 'steps(1, end)'
-                    },
-                    {
-                      offset: (settled + 181 * revealTempo) / duration,
-                      opacity: 1,
-                      transform: `${subject.rest} scale(1.035)`,
-                      filter: highlight,
-                      easing: 'steps(1, end)'
-                    },
-                    {
-                      offset: (settled + 330 * revealTempo) / duration,
-                      opacity: 1,
-                      transform: `${subject.rest} scale(1.035)`,
-                      filter,
-                      easing: 'cubic-bezier(0.16, 0.8, 0.2, 1)'
-                    },
-                    { offset: (settled + 470 * revealTempo) / duration, opacity: 1, transform: subject.rest, filter }
-                  ]
-                : []),
-              {
-                offset: exitStart / duration,
-                opacity: 1,
-                transform: subject.rest,
-                filter,
-                easing: 'cubic-bezier(0.55, 0, 0.8, 0.45)'
-              },
-              { offset: 1, opacity: 1, transform: subject.from, filter }
-            ];
-            frames[delay ? 1 : 0].easing = 'cubic-bezier(0.22, 0.55, 0.3, 1)';
+            const frames = winnerSubjectKeyframes({
+              from: subject.from,
+              rest: subject.rest,
+              filter: image ? baseFilter : undefined,
+              delay,
+              settled,
+              duration,
+              exitStart,
+              tempo
+            });
             const animation = element.animate(frames, { duration, fill: 'both' });
             void animation.finished.catch(() => undefined);
             animation.pause();

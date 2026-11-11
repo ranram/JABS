@@ -62,7 +62,7 @@ mod tests {
     use std::path::Path;
 
     #[test]
-    fn clearing_players_keeps_setup_profiles_and_previous_match_progress() {
+    fn clearing_players_preserves_setup_and_rejects_stale_requests() {
         for tournament_match in [false, true] {
             let database = Database::open(Path::new(":memory:")).unwrap();
             database
@@ -164,20 +164,14 @@ mod tests {
                 OverlayStore::load(&database).unwrap().current().unwrap(),
                 cleared
             );
+            let stale_version = store.selected_set().unwrap().updated_at;
+            store.set_score(&database, "one", 1).unwrap();
+            let newer = store.current().unwrap();
+            assert!(matches!(
+                store.clear_players(&database, &stale_version),
+                Err(UpdateSelectedSetError::Conflict(_))
+            ));
+            assert_eq!(store.current().unwrap(), newer);
         }
-    }
-
-    #[test]
-    fn stale_clear_leaves_the_newer_match_untouched() {
-        let database = Database::open(Path::new(":memory:")).unwrap();
-        let store = OverlayStore::load(&database).unwrap();
-        let version = store.selected_set().unwrap().updated_at;
-        store.set_score(&database, "one", 1).unwrap();
-        let before = store.current().unwrap();
-        assert!(matches!(
-            store.clear_players(&database, &version),
-            Err(UpdateSelectedSetError::Conflict(_))
-        ));
-        assert_eq!(store.current().unwrap(), before);
     }
 }

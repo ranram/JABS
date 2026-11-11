@@ -34,7 +34,7 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
   });
   const currentResult = activeSet ? announcementPresentation(activeSet) : undefined;
   const winner = currentResult?.winner;
-  const { media, ready } = useVersusMedia(winner ? activeSet : undefined);
+  const { media, ready } = useVersusMedia(winner ? activeSet : undefined, state?.composition === 'highlight');
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const sortedProfiles = useMemo(
     () => sortByLabel(profiles, (profile) => profile.styleName, locale),
@@ -90,11 +90,13 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
           data={[
             { value: 'classic', label: t('workspaces.resultScreen.classic') },
             { value: 'victory', label: t('workspaces.resultScreen.victory') },
-            { value: 'spotlight', label: t('workspaces.resultScreen.spotlight') }
+            { value: 'spotlight', label: t('workspaces.resultScreen.spotlight') },
+            { value: 'highlight', label: t('workspaces.resultScreen.highlight') }
           ]}
           disabled={saving}
           onChange={(value) => {
-            if (value === 'classic' || value === 'victory' || value === 'spotlight') void update('composition', value);
+            if (value === 'classic' || value === 'victory' || value === 'spotlight' || value === 'highlight')
+              void update('composition', value);
           }}
         />
       </SimpleGrid>
@@ -122,13 +124,27 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
           label={t('workspaces.transparentBackground')}
           onChange={(event) => void update('showBackground', !event.currentTarget.checked)}
         />
-        {state.composition !== 'classic' && (
-          <Switch
-            checked={state.showTextBackdrop}
-            disabled={saving}
-            label={t('workspaces.resultScreen.showTextBackdrop')}
-            onChange={(event) => void update('showTextBackdrop', event.currentTarget.checked)}
-          />
+        {state.composition === 'highlight' && (
+          <>
+            <Switch
+              checked={state.showWinnerTitle}
+              disabled={saving}
+              label={t('workspaces.resultScreen.showWinnerTitle')}
+              onChange={(event) => void update('showWinnerTitle', event.currentTarget.checked)}
+            />
+            <Switch
+              checked={state.showIdentity}
+              disabled={saving}
+              label={t('workspaces.resultScreen.showIdentity')}
+              onChange={(event) => void update('showIdentity', event.currentTarget.checked)}
+            />
+            <Switch
+              checked={state.showConfetti}
+              disabled={saving}
+              label={t('workspaces.resultScreen.showConfetti')}
+              onChange={(event) => void update('showConfetti', event.currentTarget.checked)}
+            />
+          </>
         )}
       </SimpleGrid>
       {activeSet && (
@@ -137,15 +153,17 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
           framing={state.artworkFraming}
           stylingGameId={state.stylingGameId}
           layout={state.composition}
+          highlightSettings={state}
           winnerSide={winner ? (winner === activeSet.playerOne ? 0 : 1) : undefined}
           showCharacter={state.showCharacter}
           showPhoto={state.showPlayerPhoto}
+          showBackground={state.showBackground}
           media={media}
           ready={ready}
-          onChange={(key, transform, mirroredKey) =>
+          onChange={(key, transform, mirroredKey, mirrorX) =>
             void updateDraft((current) => ({
               ...current,
-              artworkFraming: updateArtworkFraming(current.artworkFraming, key, transform, mirroredKey)
+              artworkFraming: updateArtworkFraming(current.artworkFraming, key, transform, mirroredKey, mirrorX)
             }))
           }
         />

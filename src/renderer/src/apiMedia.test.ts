@@ -39,3 +39,20 @@ it('shares prepared artwork across consumers and prepares replaced assets again 
   expect(fetchImage).toHaveBeenCalledTimes(5);
   expect(trimTransparentPadding).toHaveBeenCalledTimes(5);
 });
+
+it('keeps the original player image separate from its trimmed display copy', async () => {
+  const fetchImage = vi.fn(async () => ({
+    ok: true,
+    headers: new Headers({ 'content-type': 'image/png' }),
+    blob: async () => new Blob(['photo'], { type: 'image/png' })
+  }));
+  vi.stubGlobal('fetch', fetchImage);
+
+  const source = await api.playerPhotoAssetUrl('player.png', false);
+  const trimmed = await api.playerPhotoAssetUrl('player.png');
+
+  expect(source).not.toMatch(/#trimmed$/);
+  expect(trimmed).toMatch(/#trimmed$/);
+  expect(fetchImage).toHaveBeenCalledTimes(2);
+  expect(trimTransparentPadding).toHaveBeenCalledTimes(1);
+});

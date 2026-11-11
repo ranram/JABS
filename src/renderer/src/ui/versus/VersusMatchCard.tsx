@@ -7,7 +7,7 @@ import { CatalogImage } from '../CatalogImage';
 import { DisplayText } from '../DisplayText';
 import { useMatchFormatLabel } from '../useMatchFormatLabel';
 import { displayFlagLabel, displayFlagUrl, isPrideDisplayFlag } from '../overlayPlayerPresentation';
-import { useVersusNameFit } from './useVersusNameFit';
+import { useIdentityTextFit } from '../useIdentityTextFit';
 import type { SubjectMedia } from '../useVersusMedia';
 import type { VersusDetail } from './useVersusDetails';
 import { useVersusCardFit } from './useVersusCardFit';
@@ -97,7 +97,7 @@ export function VersusMatchCard({
 }
 
 function PlayerName({ player, name, index }: { player: PlayerState; name: string; index: number }) {
-  const ref = useVersusNameFit(name);
+  const ref = useIdentityTextFit(name, '.versus-name-text');
   const flagUrl = displayFlagUrl(player.country, player.displayFlag);
   return (
     <div

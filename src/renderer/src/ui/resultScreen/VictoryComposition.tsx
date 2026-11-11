@@ -1,4 +1,3 @@
-import './artworkSides.css';
 import type { PlayerMediaPlacement } from '@shared/mediaPlacement';
 import { useTranslation } from 'react-i18next';
 import type { PlayerState } from '@shared/models';

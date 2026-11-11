@@ -91,7 +91,7 @@ function fixture() {
   return { context, execute, command };
 }
 
-it('provides four independent tile values and uses existing score limits and stale-state guards', async () => {
+it('applies Stream Deck scores only to the current match', async () => {
   const state = streamDeckSnapshotSchema.parse({
     type: 'state',
     protocol: 1,

@@ -6,7 +6,7 @@ For downloads and installation, see the [README](README.md). For a guided introd
 
 Load a start.gg tournament link, then open **Set Selector** beside **Clear player details** or under **Matches**. Choose an event, narrow the list by phase, pool, or station, and find a match by player, round, score, or set ID. Choose **Send to Stream** to show it in your overlays.
 
-The Set Selector is available from every tab. It stays open while you queue matches, send them to stream, or use **Quick Score Update**. Close it to return to the stream editor.
+You can open Set Selector from any tab. It stays open while you queue matches, send them to stream, or report through **Quick Score Update**.
 
 Changes in **Edit stream state** save automatically. Open **Scoreboard appearance** to choose the style, font, photos, logos, and broadcast rails. X accounts, pronouns, and tournament seeds appear separately from the names and scores. Their positions follow the game when you switch styles. Custom scoreboards use the positions saved in their layout.
 
@@ -32,10 +32,10 @@ Public tournaments work without a token. To report results, your start.gg accoun
 
 1. Sign in to start.gg and open **Developer Settings**, linked in the official [authentication guide](https://developer.start.gg/docs/authentication/).
 2. Choose **Create new token** and give it a description such as `JABS`.
-3. Copy the token when it appears; start.gg shows it only once.
+3. Copy the token when it appears. You can only view it once.
 4. In JABS, open **API access**, paste the token, and choose **Save token**.
 
-JABS saves tokens in your operating system's secure credential storage. If it is unavailable, **Use for session** keeps the token until JABS closes. Keep your token private and revoke it on start.gg if it is exposed.
+JABS saves tokens in your operating system’s secure credential storage. If that storage is unavailable, choose **Use for session** to keep the token until JABS closes. Keep your token private and revoke it on start.gg if it is exposed.
 
 ### Score and report
 
@@ -61,7 +61,7 @@ Choose **Add match to queue** in a set's actions to prepare upcoming matches wit
 
 You can queue sets with one or both opponents marked **TBD**, as long as the set already exists in the selector. Their names fill in when you refresh the selector or the queue fetches that match. If its turn arrives before both opponents are known, the queue shows **Waiting for opponents** and checks only that set every 15 seconds. The current match stays on stream until the next one is ready. **Pause queue** stops the checks.
 
-To prepare a Top 8, open **Matches → Queue** and choose **Queue Top 8 automatically**. Review the proposed matches and choose **Yes, add matches**. JABS adds the missing, unreported matches in bracket order, including a Grand Finals reset if start.gg lists one. Existing queue entries keep their positions and the current match stays on stream. This adds matches without starting the queue. If JABS cannot identify the Top 8 path, add the matches manually from the Set Selector. An unused reset can remain at the end. Clear the queue when the tournament is finished.
+To prepare a Top 8, open **Matches → Queue** and choose **Queue Top 8 automatically**. You can do this while all four opening matches are **TBD vs TBD**, once start.gg has published the bracket structure. Review the proposed matches and choose **Yes, add matches**. JABS adds the missing, unreported matches in bracket order, including a Grand Finals reset if start.gg lists one. Existing queue entries keep their positions and the current match stays on stream. This adds matches without starting the queue. If JABS cannot identify the Top 8 path, add the matches manually from the Set Selector. An unused reset can remain at the end. Clear the queue when the tournament is finished.
 
 Use the arrow buttons to reorder, the screen button to send a match to stream, and the trash button to remove it. Hover over a button to see its label. In the Set Selector, the **Queued** filter shows queued matches in queue order and combines with the other filters. Turn it off to return to the usual bracket order.
 
@@ -117,9 +117,13 @@ The two clear shortcuts open a **Yes / No** dialog. Click your choice, press **Y
 
 Choose a source from **Copy overlay URL** in the toolbar, then paste its URL into an OBS Browser Source. Set its size to `1920×1080`, clear any custom CSS, and keep JABS running while broadcasting.
 
-The Scoreboard follows the current match. Winner & Champion stays blank until there is a winner, then chooses the winner or champion presentation automatically. Set up the other sources under **Overlays**. For Bracket View, choose a phase and pool; for Top 8 Matchups, load the opening matchups from your event.
+The Scoreboard follows the current match. Winner & Champion stays blank until there is a winner, then chooses the winner or champion presentation automatically. Set up the other sources under **Overlays**. For Bracket View, choose a phase and pool. For Top 8 Matchups, load the opening matchups from your event.
 
-In **Edit stream state**, **Scoreboard font** changes the scoreboard and its information rails; **[DEFAULT]** restores the selected style's fonts. Custom scoreboards keep their own font choice. Use **Settings** for colors and broadcast language.
+Choose **Scoreboard font** under **Edit stream state** to change the scoreboard and its information rails. **[DEFAULT]** uses the selected style’s font. Custom scoreboards keep their own font choice.
+
+Use **Settings** for colors, broadcast language, and text size. **Larger** is the default text size. Choose **Smaller** for a more compact layout.
+
+Set **Animation delay (seconds)** in **Settings** to wait before OBS overlay entrances, including built-in and custom scoreboards. The default is `0` for an immediate start. Custom scoreboard frames and text slide up and fade in together. Player photos keep their usual entrance. The delay is saved with appearance presets. Stingers keep the timing set under **Stingers**.
 
 In **Settings**, choose a saved appearance preset to apply it. To create one, choose **New preset**, adjust the default settings, enter a name, and choose **Save preset**. This creates a separate preset and keeps your other saved presets.
 
@@ -135,7 +139,11 @@ Open the overlay’s settings and use **Image framing**. Player Stats shows both
 
 Click an image to select it, or use **Ctrl+click** to reach artwork behind it. Drag to move, use **+ / −** to resize, and press **F** to flip. **Adjust visual layer** selects an image by name. **Reset position** resets only the selected image. Images can scale up to 800% if needed.
 
-Character position and size mirror across sides for the same artwork. Flip stays separate for each side, and photos keep each player’s own framing. Each screen and composition saves separate framing for photos alone, characters alone, and both together. Player 2 appears on the opposite side in the preview and OBS.
+Classic, Victory, and Spotlight keep artwork on the left and names, logos, and match details on the right for either winner. Character position and size carry across winners without reversing horizontal movement. Player Stats mirrors character framing between sides. Flip stays separate for each side, and photos keep each player’s own framing. Each screen and composition saves separate framing for photos alone, characters alone, and both together.
+
+Choose **Highlight** under **Layout** for large player and character artwork, a faint team or sponsor backdrop, and a foreground Winner or Champion title. The subjects zoom and fade into place before the name and title enter. Automatic framing groups the subjects together and places the visible top of unedited character art near the lower edge of the name. Artwork can extend behind the title or your own OBS banner. The glow follows the winning side’s theme color. Photo framing sizes the head while retaining the body below it. **Image framing** shows the same arrangement as OBS and lets you adjust it when needed.
+
+Turn off **Show Winner / Champion title** to use your own banner while keeping the player’s name. **Show player name** controls the name separately. You can also hide photos, character art, or logos. Turn on **Show confetti** for a single burst when the result appears. Enable **Transparent background** to place Highlight over your own scene.
 
 ### Stingers
 
@@ -182,9 +190,18 @@ Enable **Player photos in scoreboards** under **Edit stream state → Scoreboard
 - **Contained** keeps the photo inside its frame.
 - **Extend above** lets the photo rise above its frame, with the sides and bottom kept inside. The top scoreboard moves down to make room.
 
-Each mode remembers its framing for each game and player side. Choose a game and the Player 1 or Player 2 preview, then adjust the photo. In Extend above, a dashed line marks the frame’s top. Choose **Fit preview**, or click outside the photo, to fit the full image in the preview again.
+New and replaced photos frame automatically in the preview and OBS. For transparent cutouts, JABS estimates a head-and-shoulders crop. Other photos use the whole image. Unusual poses may need a manual adjustment.
 
-Under **Apply framing to**, choose **Both sides** to use the current position, size, and flip in both player positions. For a different crop or flip on one side, choose that side's preview and its individual option before adjusting. Choose **Save player** to keep the changes.
+To adjust a photo:
+
+1. Choose a game and the **Player 1** or **Player 2** preview.
+2. Drag the photo to move it. Use **+ / −** to resize it and **F** to flip it.
+3. Choose **Both sides** under **Apply framing to** if you want the same adjustments in both player positions.
+4. Choose **Save player**.
+
+Each game, side, and photo mode keeps its own position, size, and flip settings. **Auto frame** replaces the saved crop with automatic framing and resets those adjustments for the selected side or both sides. **Reset framing** resets position, size, and flip while keeping the current crop.
+
+In Extend above, the dashed line marks the frame’s top. Choose **Fit preview**, or click outside the photo, to see the full image after adjusting it.
 
 Built-in and custom scoreboards use the same photo areas for each game. Player photos are unavailable for Smash Ultimate.
 
@@ -208,9 +225,9 @@ Open **Media → Open assets folder**, or choose a specific folder from **Media*
 | Sponsor logo | `sponsors/` | Team/Sponsor |
 | Tournament logo | `tourney-logos/` | Choose it in JABS |
 
-Use PNG, JPEG, or WebP. For player photos, a transparent `1024×1536` cutout works well; for scoreboard headshots, use `512×512`. Headshots take priority over regular photos on scoreboards.
+Use PNG, JPEG, or WebP. Transparent player photos work best. A `1024×1536` cutout is a useful starting size, but scoreboard photos do not need a square canvas or extra padding. If a player has both a headshot and a regular photo, the scoreboard uses the headshot.
 
-Transparent margins around character art and player photos are trimmed for display. Original files stay unchanged. If older framing looks too large, use **Reset position** and adjust the image again.
+Transparent margins around character art and player photos are trimmed for most overlays. Scoreboard photos use the original image and fit its visible content. Original files stay unchanged. If older framing looks too large, use **Reset position** and adjust the image again.
 
 Use the character and outfit selectors at the top of **Overlays** to update the current match. They stay visible while you scroll. For saved players, these choices also update their defaults for that game. Each overlay keeps its own image framing.
 
@@ -229,6 +246,8 @@ Versus Screen remembers character framing for each game, artwork or outfit, and 
 Import a transparent PNG at `1920×1080`, up to 20 MiB. Position the player names, scores, and other fields over your frame, choose a font under **Appearance**, then choose **Use in OBS**. Your layout appears through the regular Scoreboard source URL.
 
 Layout changes save automatically. Each player’s Team/Sponsor logo can be positioned separately from their name. Select a name, score, logo, or other element to adjust its position, size, and alignment. Drag it to move it, use arrow keys for 1 px adjustments, or hold `Shift` for 10 px. `Alt+click` selects elements underneath. **Mirror to Player 1/2** copies its size and placement to the opposite side. Each side remains editable.
+
+Team/Sponsor names use the theme’s primary color for Player 1 and secondary color for Player 2. Under **Appearance**, turn off **Use theme colors for Team/Sponsor** to choose one color for both. Saved custom colors stay in use until you enable theme colors.
 
 At the bottom of **Appearance**, use **Broadcast extras** to enter left and right rail text and choose which rails appear. The center rail uses match details.
 

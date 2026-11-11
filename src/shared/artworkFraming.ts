@@ -21,6 +21,7 @@ export function artworkFramingKeys(
   assets?: { characterAssetId?: string; photoAssetId?: string },
   side: 0 | 1 = 0
 ) {
+  const mirrorX = !['classic', 'victory', 'spotlight'].includes(layout.split(':')[0]!);
   const game = set.assetCatalogSlug ?? set.gameId;
   const character = [
     layout,
@@ -44,20 +45,23 @@ export function artworkFramingKeys(
     character: JSON.stringify(side === 0 ? character : [...character, 1]),
     mirroredCharacter: JSON.stringify(side === 1 ? character : [...character, 1]),
     photo: photoKey(photoIdentity, side),
-    previousPhotos
+    previousPhotos,
+    mirrorX
   };
 }
 
 export function artworkPlacement(framing: ArtworkFraming, keys: ReturnType<typeof artworkFramingKeys>) {
+  const direction = keys.mirrorX ? -1 : 1;
   const opposite = framing[keys.mirroredCharacter];
   const previousPhoto = keys.previousPhotos.find(({ key }) => framing[key]);
   const photo = previousPhoto ? framing[previousPhoto.key] : undefined;
   return {
     character:
-      framing[keys.character] ?? (opposite ? { ...opposite, x: -opposite.x, flipped: false } : defaultMediaTransform()),
+      framing[keys.character] ??
+      (opposite ? { ...opposite, x: direction * opposite.x, flipped: false } : defaultMediaTransform()),
     photo:
       framing[keys.photo] ??
-      (photo ? { ...photo, x: previousPhoto?.mirrored ? -photo.x : photo.x } : defaultMediaTransform())
+      (photo ? { ...photo, x: previousPhoto?.mirrored ? direction * photo.x : photo.x } : defaultMediaTransform())
   };
 }
 
@@ -74,14 +78,16 @@ export function updateArtworkFraming(
   framing: ArtworkFraming,
   key: string,
   transform: MediaTransform,
-  mirroredKey?: string
+  mirroredKey?: string,
+  mirrorX = true
 ): ArtworkFraming {
   const next = { ...framing, [key]: transform };
   const opposite = mirroredKey ? framing[mirroredKey] : undefined;
+  const direction = mirrorX ? -1 : 1;
   const previous =
-    framing[key] ?? (opposite ? { ...opposite, x: -opposite.x, flipped: false } : defaultMediaTransform());
+    framing[key] ?? (opposite ? { ...opposite, x: direction * opposite.x, flipped: false } : defaultMediaTransform());
   if (mirroredKey && (previous.x !== transform.x || previous.y !== transform.y || previous.scale !== transform.scale)) {
-    next[mirroredKey] = { ...transform, x: -transform.x, flipped: framing[mirroredKey]?.flipped ?? false };
+    next[mirroredKey] = { ...transform, x: direction * transform.x, flipped: framing[mirroredKey]?.flipped ?? false };
   }
   return next;
 }

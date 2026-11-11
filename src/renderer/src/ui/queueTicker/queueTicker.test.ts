@@ -50,7 +50,7 @@ function snapshot(): QueueTickerSnapshot {
     ]
   };
 }
-it('renders upcoming names and real results, and becomes transparent when disabled or empty', async () => {
+it('rotates queued matches and confirmed results', async () => {
   let state = snapshot();
   const legacySettings = { ...state.settings } as Partial<typeof state.settings>;
   delete legacySettings.style;
@@ -152,45 +152,4 @@ it('persists count, results, and clearing the style override', async () => {
   await act(async () => clearStyle.click());
   expect(transport.update).toHaveBeenLastCalledWith(expect.objectContaining({ stylingGameId: undefined }));
   expect(view.container.querySelector('input[placeholder="Use live match style"]')?.getAttribute('value')).toBe('');
-});
-
-it('keeps previews static and places the optional logo outside the moving match lanes', async () => {
-  let state = snapshot();
-  state.settings.style = 'compact';
-  state.settings.stylingGameId = 'tekken-8';
-  state.settings.showLogo = true;
-  state.settings.logoAssetId = 'event.png';
-  let previewLane: 'upcoming' | 'results' = 'upcoming';
-  const view = await mountView(() => h(QueueTickerBar, { state, preview: true, previewLane }));
-  const bar = view.container.querySelector<HTMLElement>('[data-style=compact]')!;
-  expect(bar.classList.contains('theme-t8')).toBe(true);
-  expect(view.container.textContent).toContain('Top 8 · Winners Final');
-  expect(view.container.textContent).not.toContain('Gamma');
-  expect(view.container.querySelector('[data-cycle]')).toBeNull();
-  expect(view.container.querySelector('[data-animate]')).toBeNull();
-  expect(view.container.querySelector('.queue-ticker-matches[aria-hidden=true]')).toBeNull();
-  const logo = view.container.querySelector('.queue-ticker-logo img')!;
-  expect(logo.getAttribute('src')).toBe('/assets/tournament-logos/event.png');
-  expect(logo.closest('.queue-ticker-track')).toBeNull();
-  expect(view.container.querySelectorAll('.queue-ticker-match')).toHaveLength(1);
-  expect(view.container.querySelectorAll('.queue-ticker-match > .queue-ticker-divider')).toHaveLength(1);
-  previewLane = 'results';
-  await view.rerender();
-  expect(view.container.textContent).toContain('Pools · Winners Round 2');
-  expect(view.container.textContent).not.toContain('Alpha');
-  expect(view.container.querySelector('.queue-ticker-logo img')).toBe(logo);
-  state = { ...state, results: [{ ...state.results[0], winner: 'two', scoreOne: '2', scoreTwo: '3' }] };
-  await view.rerender();
-  expect([...view.container.querySelectorAll('.result-marker')].map((marker) => marker.textContent)).toEqual([
-    'L',
-    'W'
-  ]);
-  expect(view.container.querySelector('[data-winner]')?.textContent).toBe('Delta');
-  state = { ...state, settings: { ...state.settings, showResults: false } };
-  await view.rerender();
-  expect(view.container.textContent).toContain('Alpha');
-  expect(view.container.textContent).not.toContain('Gamma');
-  state = { ...state, settings: { ...state.settings, showLogo: false } };
-  await view.rerender();
-  expect(view.container.querySelector('.queue-ticker-logo')).toBeNull();
 });

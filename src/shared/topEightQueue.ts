@@ -3,7 +3,7 @@ import { detectTopEightOpeningSets } from './topEightMatchups';
 
 /** Follow advancement links, independent of translated round labels. */
 export function topEightQueueSets(sets: readonly SetSummary[]): SetSummary[] | undefined {
-  const opening = detectTopEightOpeningSets(sets);
+  const opening = detectTopEightOpeningSets(sets, { allowUnresolved: true });
   if (!opening) return undefined;
   const [winnersSemifinals, losersRoundOne] = [opening.slice(0, 2), opening.slice(2)];
   const follows = (set: SetSummary, source: SetSummary, placement: 1 | 2) =>

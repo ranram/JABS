@@ -14,9 +14,10 @@ export const appearanceSchema = z
     colorOverride: z.boolean().default(false),
     primaryColor: color.default('#f7b733'),
     secondaryColor: color.default('#ff554d'),
-    textSize: z.enum(['default', 'large']).default('default'),
+    textSize: z.enum(['default', 'large']).default('large'),
     broadcastLanguage: z.enum(['follow', 'en', 'es-419']).default('follow'),
-    entranceAnimations: z.boolean().default(true)
+    entranceAnimations: z.boolean().default(true),
+    entranceDelayMs: z.number().int().min(0).max(30_000).default(0)
   })
   .strict();
 export type Appearance = z.infer<typeof appearanceSchema>;

@@ -305,6 +305,60 @@ it('loads only the current winner media and keeps it through composition and cha
   expect(view.container.querySelector('.victory')).toBeNull();
   expect(transport.playerMedia).toHaveBeenCalledTimes(identityReads);
   expect(transport.characterAssets).toHaveBeenCalledTimes(resultCharacterReads);
+  transport.result!.composition = 'highlight';
+  transport.result!.showIdentity = true;
+  transport.result!.showConfetti = false;
+  transport.result!.showSponsorLogo = false;
+  overlay.selectedSet.playerOne.prefix = 'Team One';
+  await view.rerender();
+  const highlight = view.container.querySelector('[data-announcement-composition="highlight"]')!;
+  expect(highlight.getAttribute('data-player')).toBe('1');
+  expect(highlight.classList.contains('is-transparent-background')).toBe(true);
+  expect(highlight.querySelector('.highlight-name')?.textContent).toContain(overlay.selectedSet.playerOne.name);
+  expect(highlight.querySelector('video')).toBeNull();
+  document.getElementById('live-overlay-test')!.textContent += readFileSync(
+    'src/renderer/src/ui/resultScreen/highlight.css',
+    'utf8'
+  );
+  const savedStyle = transport.result!.stylingGameId;
+  for (const style of ['street-fighter-6', 'blazblue-centralfiction'] as const) {
+    transport.result!.stylingGameId = style;
+    let primary = '';
+    for (const side of [0, 1]) {
+      overlay.selectedSet.playerOne.score = side === 0 ? 2 : 1;
+      overlay.selectedSet.playerTwo.score = side === 1 ? 2 : 1;
+      await view.rerender();
+      const team = highlight.querySelector('.highlight-sponsor-name')!;
+      const titleColor = getComputedStyle(highlight.querySelector('.highlight-title')!).color;
+      expect(getComputedStyle(team).color).toBe(titleColor);
+      expect(titleColor).not.toBe('');
+      expect(titleColor).not.toBe(getComputedStyle(highlight.querySelector('.highlight-name')!).color);
+      expect(getComputedStyle(highlight.querySelector('.highlight-name')!).fontFamily).toContain('JABS Oswald');
+      if (side === 0) primary = titleColor;
+      else expect(titleColor).not.toBe(primary);
+    }
+  }
+  overlay.selectedSet.playerOne.score = 2;
+  overlay.selectedSet.playerTwo.score = 1;
+  transport.result!.stylingGameId = savedStyle;
+  transport.result!.showWinnerTitle = false;
+  await view.rerender();
+  expect(highlight.querySelector('.highlight-title')).toBeNull();
+  expect(highlight.querySelector('.highlight-name')?.textContent).toContain(overlay.selectedSet.playerOne.name);
+  transport.result!.showConfetti = true;
+  transport.result!.showIdentity = false;
+  transport.result!.showPlayerPhoto = false;
+  transport.result!.showCharacter = false;
+  await view.rerender();
+  expect(highlight.querySelector('.highlight-copy, .victory-player-photo, .victory-character-art')).toBeNull();
+  expect(highlight.querySelector('video')?.loop).toBe(false);
+  overlay.selectedSet.playerOne.score = 1;
+  overlay.selectedSet.playerTwo.score = 2;
+  await view.rerender();
+  expect(highlight.getAttribute('data-player')).toBe('2');
+  transport.result!.showConfetti = false;
+  await view.rerender();
+  expect(highlight.querySelector('video')).toBeNull();
   overlay.selectedSet.round = savedRound;
   transport.result!.showBackground = true;
 });

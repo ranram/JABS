@@ -11,7 +11,10 @@ import { QueueTopEightButton } from './QueueTopEightButton';
 vi.mock('../../api', () => ({
   api: {
     phases: async () => ({ phases: [{ id: 'phase', name: 'Top 8' }] }),
-    sets: async () => ({ sets: createTestTopEightSets(), pageInfo: { totalPages: 1 } })
+    sets: async () => ({
+      sets: createTestTopEightSets().map((set) => ({ ...set, entrantOne: undefined, entrantTwo: undefined })),
+      pageInfo: { totalPages: 1 }
+    })
   }
 }));
 
@@ -21,7 +24,7 @@ function buttonNamed(label: string): HTMLButtonElement {
   return button;
 }
 
-it('requires confirmation, preserves queued matches, and includes the exposed reset last', async () => {
+it('confirms a Top 8 of TBD matches, preserves the queue, and includes the exposed reset last', async () => {
   await initializeI18n();
   const add = vi.fn(async () => true);
   const hold = vi.fn();
@@ -59,6 +62,7 @@ it('requires confirmation, preserves queued matches, and includes the exposed re
   const detect = buttonNamed('Queue Top 8 automatically');
   await act(async () => detect.click());
   expect(document.querySelector('[role=dialog]')?.textContent).toContain('Send all Top 8 matches to the match queue?');
+  expect(document.querySelector('[role=dialog] li')?.textContent).toBe('ws2 · TBD vs TBD');
   expect(add).not.toHaveBeenCalled();
   await act(async () => buttonNamed('No, cancel').click());
   expect(add).not.toHaveBeenCalled();

@@ -204,7 +204,7 @@ it.each([false, true])('identifies malformed JSON and schema failures (schema=%s
   expect(JSON.stringify(diagnostics.record.mock.calls)).not.toContain('private');
 });
 
-it('keeps renderer operation labels compatible with native logs and strips dynamic values', () => {
+it('keeps diagnostic operation labels compatible across renderer and native code', () => {
   const native = readFileSync('src-tauri/src/diagnostics/operations.rs', 'utf8');
   const variants = native
     .split('pub enum Operation {')[1]

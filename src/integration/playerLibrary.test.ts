@@ -54,7 +54,7 @@ function saved(id: string, character: string) {
     portraitAssetId: null
   });
 }
-it('uses player IDs across graphics, preserves local edits, and ignores late library responses', async () => {
+it('resolves library players by ID without overwriting edits', async () => {
   resolve.mockImplementation(async (players: Array<{ playerId?: string }>) =>
     players.map(({ playerId }) => (playerId ? saved(playerId, playerId === '1' ? 'Cammy' : 'Ryu') : null))
   );

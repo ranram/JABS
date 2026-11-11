@@ -6,18 +6,27 @@ import { selectedCharacterAssetId } from '@shared/characterAssets';
 import { useMediaLookups } from '../hooks/useMediaLookups';
 import { api } from '../api';
 import { loadCharacterPortraits, type CharacterPortrait } from '../characterPortraits';
+import {
+  frameHighlightArtwork,
+  highlightPlayerPhoto,
+  type HighlightArtworkFrame
+} from './resultScreen/highlightArtwork';
 
 export type SubjectMedia = {
   characterAssetId?: string;
   photoAssetId?: string;
   characterUrl?: string;
+  characterFrame?: HighlightArtworkFrame;
   photoUrl?: string;
   sponsorUrl?: string;
   characterPortraits?: CharacterPortrait[];
   hasCatalogCharacterMedia?: boolean;
 };
 
-export function useVersusMedia(selectedSet: SelectedSetState | undefined): {
+export function useVersusMedia(
+  selectedSet: SelectedSetState | undefined,
+  frameArtwork = false
+): {
   media: [SubjectMedia, SubjectMedia];
   ready: boolean;
 } {
@@ -29,6 +38,9 @@ export function useVersusMedia(selectedSet: SelectedSetState | undefined): {
       ? [selectedSet.playerOne, selectedSet.playerTwo].map((player) =>
           JSON.stringify({
             slug,
+            frameArtwork,
+            playerId: frameArtwork ? player.playerId : undefined,
+            localPlayerId: frameArtwork ? player.localPlayerId : undefined,
             name: player.name,
             playerPhotoAssetId: player.playerPhotoAssetId,
             prefix: player.prefix,
@@ -61,21 +73,31 @@ export function useVersusMedia(selectedSet: SelectedSetState | undefined): {
         const hasCatalogCharacterMedia = assets.assets.some((asset) => Boolean(asset.assetId || asset.portraitAssetId));
         async function resolve(player: PlayerState, match: PlayerMediaMatch): Promise<SubjectMedia> {
           const characterAssetId = selectedCharacterAssetId(player, assets.assets);
-          const [characterUrl, photoUrl, sponsorUrl, characterPortraits] = await Promise.all([
+          const photoId = player.playerPhotoAssetId ?? match.playerPhotoAssetId;
+          const fallbackPhoto = async () => ({
+            assetId: photoId,
+            url: photoId ? await api.playerPhotoAssetUrl(photoId).catch(() => undefined) : undefined
+          });
+          const [characterUrl, photo, sponsorUrl, characterPortraits] = await Promise.all([
             characterAssetId ? api.gameCharacterAssetUrl(gameSlug, characterAssetId).catch(() => undefined) : undefined,
-            (player.playerPhotoAssetId ?? match.playerPhotoAssetId)
-              ? api.playerPhotoAssetUrl(player.playerPhotoAssetId ?? match.playerPhotoAssetId!).catch(() => undefined)
-              : undefined,
+            frameArtwork ? highlightPlayerPhoto(player, photoId).catch(fallbackPhoto) : fallbackPhoto(),
             match.sponsorLogoAssetId
               ? api.sponsorLogoAssetUrl(match.sponsorLogoAssetId).catch(() => undefined)
               : undefined,
             loadCharacterPortraits(gameSlug, playerPortraitCharacters(player), assets.assets).catch(() => [])
           ]);
+          const [framedCharacter, framedPhoto] = frameArtwork
+            ? await Promise.all([
+                characterUrl ? frameHighlightArtwork(characterUrl, 'character').catch(() => undefined) : undefined,
+                photo.url ? frameHighlightArtwork(photo.url, 'photo').catch(() => undefined) : undefined
+              ])
+            : [undefined, undefined];
           return {
             characterAssetId,
-            photoAssetId: player.playerPhotoAssetId ?? match.playerPhotoAssetId,
-            characterUrl,
-            photoUrl,
+            photoAssetId: photo.assetId,
+            characterUrl: framedCharacter?.url ?? characterUrl,
+            characterFrame: framedCharacter?.frame,
+            photoUrl: framedPhoto?.url ?? photo.url,
             sponsorUrl,
             characterPortraits,
             hasCatalogCharacterMedia

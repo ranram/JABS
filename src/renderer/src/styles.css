@@ -99,8 +99,8 @@ body {
   display: grid;
   width: 100vw;
   height: 100vh;
-  grid-template-columns: minmax(620px, 0.82fr) minmax(760px, 1.18fr);
-  grid-template-areas: "copy subject";
+  grid-template-columns: minmax(760px, 1.18fr) minmax(620px, 0.82fr);
+  grid-template-areas: "subject copy";
   align-items: center;
   overflow: hidden;
   background:
@@ -157,7 +157,7 @@ body {
 
 .announcement-character-art {
   z-index: 2;
-  right: -5%;
+  left: -5%;
   bottom: -2%;
   width: 98%;
   height: 102%;
@@ -172,7 +172,7 @@ body {
 
 .announcement-player-photo {
   z-index: 3;
-  right: 8%;
+  left: 8%;
   bottom: 2%;
   width: 84%;
   height: 91%;
@@ -181,14 +181,14 @@ body {
 }
 
 .announcement-subject.has-character.has-photo .announcement-character-art {
-  right: -10%;
+  left: -10%;
   width: 86%;
 }
 
 .announcement-subject.has-character.has-photo .announcement-player-photo {
-  right: auto;
+  right: 15%;
   bottom: 5%;
-  left: 15%;
+  left: auto;
   width: 40%;
   height: 60%;
   filter: drop-shadow(14px 18px 0 color-mix(in srgb, var(--game-accent) 62%, transparent)) drop-shadow(0 20px 24px rgba(0, 0, 0, 0.6));
@@ -270,19 +270,15 @@ body {
   text-transform: uppercase;
 }
 
-.announcement-sponsor-watermark {
-  position: absolute;
-  z-index:10;
-  top:75%;
-  right: -10%;
+.announcement-sponsor-logo {
   display: none;
-  width: 40%;
-  height: 25%;
+  width: 240px;
+  height: 110px;
   object-fit: contain;
-  opacity: 0.50;
+  object-position: left center;
 }
 
-.announcement-sponsor-watermark.is-loaded {
+.announcement-sponsor-logo.is-loaded {
   display: block;
 }
 
@@ -297,7 +293,7 @@ body {
   position: absolute;
   z-index: 5;
   top: 34px;
-  left: 50%;
+  left: 79.5%;
   display: none;
   width: 280px;
   height: 150px;

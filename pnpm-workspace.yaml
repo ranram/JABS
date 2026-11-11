@@ -20,6 +20,7 @@ minimumReleaseAgeExclude:
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 525600
 trustLockfile: false
+enableGlobalVirtualStore: false
 blockExoticSubdeps: true
 
 # Narrow security backport for an advisory in the active dependency graph.

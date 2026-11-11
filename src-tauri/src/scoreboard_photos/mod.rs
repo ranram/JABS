@@ -39,6 +39,8 @@ pub struct Photo {
     pub asset_id: String,
     pub fingerprint: String,
     pub crop: Crop,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_frame: Option<bool>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub placements: BTreeMap<String, SidePlacements>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]

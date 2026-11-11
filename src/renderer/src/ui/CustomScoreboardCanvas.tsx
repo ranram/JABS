@@ -74,7 +74,7 @@ function CustomScoreboardCanvasContent({
   const style = {
     '--custom-font-family': bundledFonts[scoreboard.typography.font ?? defaultCustomScoreboardFont].family,
     '--custom-text': scoreboard.typography.textColor,
-    '--custom-sponsor': scoreboard.typography.sponsorColor ?? scoreboard.typography.textColor,
+    '--custom-sponsor': scoreboard.typography.sponsorColor,
     '--custom-name-size': `${scoreboard.typography.nameSize / 19.2}cqw`,
     '--custom-meta-size': `${scoreboard.typography.metaSize / 19.2}cqw`,
     '--custom-score-size': `${scoreboard.typography.scoreSize / 19.2}cqw`,
@@ -83,7 +83,6 @@ function CustomScoreboardCanvasContent({
 
   function regionProps(region: CustomScoreboardRegionId, extraClass = '') {
     return {
-      'data-entrance': region,
       'data-custom-scoreboard-region': region,
       className: `custom-scoreboard-region${editingRegion === region ? ' is-editing' : ''}${extraClass}`,
       style: regionStyle(customScoreboardRegion(scoreboard, region), photoTopInset)
@@ -204,60 +203,64 @@ function CustomScoreboardCanvasContent({
   return (
     <section
       ref={entranceRef}
-      className={`custom-scoreboard-canvas outline-${scoreboard.typography.outline}${onMoveRegion ? ' is-editable' : ''}${dragging ? ' is-dragging' : ''}`}
+      className={`custom-scoreboard-canvas ${detailProfile.overlay.themeClass} outline-${scoreboard.typography.outline}${onMoveRegion ? ' is-editable' : ''}${dragging ? ' is-dragging' : ''}`}
       style={{ ...appearanceStyle, ...style }}
       data-custom-scoreboard-id={scoreboard.id}
       tabIndex={onMoveRegion ? 0 : undefined}
       aria-label={onMoveRegion ? editorLabel : undefined}
       {...editing}
     >
-      <CustomScoreboardFrame frameUrl={frameUrl} inset={photoTopInset} />
+      <div className="custom-scoreboard-frame-layer" data-entrance="custom-frame">
+        <CustomScoreboardFrame frameUrl={frameUrl} inset={photoTopInset} />
+      </div>
       <ScoreboardPlayerPhotos
         selectedSet={selectedSet}
         logoUrl={logoUrl}
         animateEntrance={animateEntrance && !onMoveRegion}
         onTopInsetChange={setPhotoTopInset}
       />
-      {editingRegion?.startsWith('playerOne') && <div className="custom-scoreboard-editing-boundary is-one" />}
-      {editingRegion?.startsWith('playerTwo') && <div className="custom-scoreboard-editing-boundary is-two" />}
-      {editingBounds?.y === 780 && <div className="custom-scoreboard-editing-boundary is-bottom" />}
-      {playerElements(selectedSet?.playerOne, 'one')}
-      {playerElements(selectedSet?.playerTwo, 'two')}
-      {scoreboard.visibility.round && (
-        <div {...regionProps('matchLabel', ' custom-scoreboard-context')}>
-          <DisplayText text={selectedSet?.round || 'ROUND'} />
-        </div>
-      )}
-      {scoreboard.visibility.tournamentLogo && broadcast?.logoEnabled && logoUrl && (
-        <div {...regionProps('logo', ' custom-scoreboard-logo')}>
-          <img src={logoUrl} draggable={false} alt="" aria-hidden="true" />
-        </div>
-      )}
-      {(scoreboard.visibility.bottomRails ||
-        editingRegion === 'infoLeft' ||
-        editingRegion === 'infoCenter' ||
-        editingRegion === 'infoRight') && (
-        <>
-          {((scoreboard.visibility.bottomRails && scoreboard.visibility.infoLeft !== false) ||
-            editingRegion === 'infoLeft') && (
-            <div {...regionProps('infoLeft', ' custom-scoreboard-context')}>
-              <DisplayText text={broadcast?.infoBarEnabled ? (broadcast.infoLeft ?? '') : ''} />
-            </div>
-          )}
-          {((scoreboard.visibility.bottomRails && scoreboard.visibility.infoCenter !== false) ||
-            editingRegion === 'infoCenter') && (
-            <div {...regionProps('infoCenter', ' custom-scoreboard-context')}>
-              <DisplayText text={matchContext} />
-            </div>
-          )}
-          {((scoreboard.visibility.bottomRails && scoreboard.visibility.infoRight !== false) ||
-            editingRegion === 'infoRight') && (
-            <div {...regionProps('infoRight', ' custom-scoreboard-context')}>
-              <DisplayText text={broadcast?.infoBarEnabled ? (broadcast.infoRight ?? '') : ''} />
-            </div>
-          )}
-        </>
-      )}
+      <div className="custom-scoreboard-content" data-entrance="custom-scoreboard">
+        {editingRegion?.startsWith('playerOne') && <div className="custom-scoreboard-editing-boundary is-one" />}
+        {editingRegion?.startsWith('playerTwo') && <div className="custom-scoreboard-editing-boundary is-two" />}
+        {editingBounds?.y === 780 && <div className="custom-scoreboard-editing-boundary is-bottom" />}
+        {playerElements(selectedSet?.playerOne, 'one')}
+        {playerElements(selectedSet?.playerTwo, 'two')}
+        {scoreboard.visibility.round && (
+          <div {...regionProps('matchLabel', ' custom-scoreboard-context')}>
+            <DisplayText text={selectedSet?.round || 'ROUND'} />
+          </div>
+        )}
+        {scoreboard.visibility.tournamentLogo && broadcast?.logoEnabled && logoUrl && (
+          <div {...regionProps('logo', ' custom-scoreboard-logo')}>
+            <img src={logoUrl} draggable={false} alt="" aria-hidden="true" />
+          </div>
+        )}
+        {(scoreboard.visibility.bottomRails ||
+          editingRegion === 'infoLeft' ||
+          editingRegion === 'infoCenter' ||
+          editingRegion === 'infoRight') && (
+          <>
+            {((scoreboard.visibility.bottomRails && scoreboard.visibility.infoLeft !== false) ||
+              editingRegion === 'infoLeft') && (
+              <div {...regionProps('infoLeft', ' custom-scoreboard-context')}>
+                <DisplayText text={broadcast?.infoBarEnabled ? (broadcast.infoLeft ?? '') : ''} />
+              </div>
+            )}
+            {((scoreboard.visibility.bottomRails && scoreboard.visibility.infoCenter !== false) ||
+              editingRegion === 'infoCenter') && (
+              <div {...regionProps('infoCenter', ' custom-scoreboard-context')}>
+                <DisplayText text={matchContext} />
+              </div>
+            )}
+            {((scoreboard.visibility.bottomRails && scoreboard.visibility.infoRight !== false) ||
+              editingRegion === 'infoRight') && (
+              <div {...regionProps('infoRight', ' custom-scoreboard-context')}>
+                <DisplayText text={broadcast?.infoBarEnabled ? (broadcast.infoRight ?? '') : ''} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </section>
   );
 }

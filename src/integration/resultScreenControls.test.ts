@@ -25,7 +25,10 @@ const logos = [
 vi.mock('../renderer/src/api', () => ({
   api: {
     playerMedia: transport.playerMedia,
-    identityMedia: async () => { const matches = await transport.playerMedia(); return { matches: [matches.playerOne, matches.playerTwo] }; },
+    identityMedia: async () => {
+      const matches = await transport.playerMedia();
+      return { matches: [matches.playerOne, matches.playerTwo] };
+    },
     gameCharacterAssets: transport.characters,
     gameCharacterAssetUrl: async (_slug: string, id: string) => `data:image/png;base64,${id}`,
     playerPhotoAssetUrl: async (id: string) => `data:image/png;base64,${id}`,
@@ -164,5 +167,45 @@ it('configures result logos and refreshes the current winner media without accep
   await resultView.rerender();
   await act(async () => lateMedia.resolve({ playerOne: {}, playerTwo: { playerPhotoAssetId: 'beta.png' } }));
   expectAvailability('showPlayerPhoto', false);
+  const layoutLabel = [...resultView.container.querySelectorAll('label')].find(
+    (label) => label.textContent === 'Layout'
+  )!;
+  await act(async () => document.getElementById(layoutLabel.htmlFor)!.click());
+  const highlight = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+    (option) => option.textContent === 'Highlight'
+  )!;
+  await act(async () => highlight.click());
+  expect(transport.result!.composition).toBe('highlight');
+  for (const [labelText, key, value] of [
+    ['Show confetti', 'showConfetti', true],
+    ['Show player name', 'showIdentity', false],
+    ['Show Winner / Champion title', 'showWinnerTitle', false],
+    ['Transparent background', 'showBackground', false]
+  ] as const) {
+    const label = [...resultView.container.querySelectorAll('label')].find((label) => label.textContent === labelText)!;
+    await act(async () => document.getElementById(label.htmlFor)!.click());
+    expect(transport.saveResult).toHaveBeenLastCalledWith(
+      expect.objectContaining({ composition: 'highlight', [key]: value })
+    );
+  }
+  for (const layout of ['Highlight', 'Classic', 'Victory', 'Spotlight']) {
+    if (layout !== 'Highlight') {
+      await act(async () => document.getElementById(layoutLabel.htmlFor)!.click());
+      const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+        (option) => option.textContent === layout
+      )!;
+      await act(async () => option.click());
+    }
+    expect(resultView.container.querySelector('.artwork-framing-shell.is-transparent-preview')).not.toBeNull();
+    expect(resultView.container.querySelector('.artwork-preview-subject.is-transparent-background')).not.toBeNull();
+    const label = [...resultView.container.querySelectorAll('label')].find(
+      (label) => label.textContent === 'Transparent background'
+    )!;
+    await act(async () => document.getElementById(label.htmlFor)!.click());
+    expect(transport.result!.showBackground).toBe(true);
+    expect(resultView.container.querySelector('.is-transparent-preview')).toBeNull();
+    expect(resultView.container.querySelector('.artwork-preview-subject.is-transparent-background')).toBeNull();
+    await act(async () => document.getElementById(label.htmlFor)!.click());
+  }
   await resultView.unmount();
 });

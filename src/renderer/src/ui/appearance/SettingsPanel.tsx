@@ -8,6 +8,7 @@ import {
   Drawer,
   FileButton,
   Group,
+  NumberInput,
   Select,
   SimpleGrid,
   Stack,
@@ -217,8 +218,8 @@ export function SettingsPanel() {
           label={t('appearance.textSize')}
           value={appearance.textSize}
           data={[
-            { value: 'default', label: t('appearance.defaultText') },
-            { value: 'large', label: t('appearance.largeText') }
+            { value: 'large', label: t('appearance.largeText') },
+            { value: 'default', label: t('appearance.smallText') }
           ]}
           onChange={(value) => value && change({ textSize: value as Appearance['textSize'] })}
         />
@@ -237,6 +238,20 @@ export function SettingsPanel() {
         label={t('appearance.animations')}
         checked={appearance.entranceAnimations}
         onChange={(event) => change({ entranceAnimations: event.currentTarget.checked })}
+      />
+      <NumberInput
+        label={t('appearance.animationDelay')}
+        description={t('appearance.animationDelayHelp')}
+        min={0}
+        max={30}
+        step={0.25}
+        decimalScale={2}
+        clampBehavior="strict"
+        disabled={!appearance.entranceAnimations}
+        value={appearance.entranceDelayMs / 1000}
+        onChange={(seconds) => {
+          if (typeof seconds === 'number') change({ entranceDelayMs: Math.round(seconds * 1000) }, 350);
+        }}
       />
       <Divider />
       <Group justify="space-between">

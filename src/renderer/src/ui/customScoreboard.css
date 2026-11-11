@@ -15,6 +15,16 @@
   outline-offset: min(-2px, -0.12cqw);
 }
 
+.custom-scoreboard-content,
+.custom-scoreboard-frame-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.custom-scoreboard-content {
+  z-index: 2;
+}
+
 .custom-scoreboard-frame {
   position: absolute;
   inset: 0;
@@ -75,7 +85,11 @@
 }
 
 .custom-scoreboard-prefix {
-  color: var(--custom-sponsor, currentColor);
+  color: var(--custom-sponsor, var(--appearance-primary, var(--game-accent, #f7b733)));
+}
+
+[data-custom-scoreboard-region='playerTwoName'] .custom-scoreboard-prefix {
+  color: var(--custom-sponsor, var(--appearance-secondary, var(--broadcast-right, #ff554d)));
 }
 
 .custom-scoreboard-editing-boundary {

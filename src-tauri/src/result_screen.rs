@@ -13,6 +13,7 @@ pub enum ResultComposition {
     Classic,
     Victory,
     Spotlight,
+    Highlight,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -26,8 +27,12 @@ pub struct ResultScreenState {
     pub logo_asset_id: Option<String>,
     #[serde(default = "default_true")]
     pub show_background: bool,
+    #[serde(default = "default_true")]
+    pub show_identity: bool,
+    #[serde(default = "default_true")]
+    pub show_winner_title: bool,
     #[serde(default)]
-    pub show_text_backdrop: bool,
+    pub show_confetti: bool,
     pub show_tournament_logo: bool,
     pub show_player_photo: bool,
     pub show_sponsor_logo: bool,
@@ -54,7 +59,9 @@ impl ResultScreenStore {
                     styling_game_id: None,
                     logo_asset_id: None,
                     show_background: true,
-                    show_text_backdrop: false,
+                    show_identity: true,
+                    show_winner_title: true,
+                    show_confetti: false,
                     show_tournament_logo: true,
                     show_player_photo: true,
                     show_sponsor_logo: true,
@@ -147,14 +154,22 @@ mod tests {
         let store = ResultScreenStore::load(&database).unwrap();
         let legacy = store.current().unwrap();
         assert_eq!(legacy["composition"], "classic");
-        assert_eq!(legacy["showTextBackdrop"], false);
+        assert_eq!(legacy["showIdentity"], true);
+        assert_eq!(legacy["showWinnerTitle"], true);
+        assert_eq!(legacy["showConfetti"], false);
         assert!(legacy.get("logoAssetId").is_none());
         let mut old_payload = legacy.clone();
         old_payload.as_object_mut().unwrap().remove("artworkFraming");
         assert!(serde_json::from_value::<ResultScreenState>(old_payload.clone()).unwrap().artwork_framing.is_empty());
         old_payload.as_object_mut().unwrap().remove("composition");
-        old_payload.as_object_mut().unwrap().remove("showTextBackdrop");
-        assert!(!serde_json::from_value::<ResultScreenState>(old_payload.clone()).unwrap().show_text_backdrop);
+        old_payload["showTextBackdrop"] = serde_json::json!(true);
+        old_payload.as_object_mut().unwrap().remove("showIdentity");
+        old_payload.as_object_mut().unwrap().remove("showWinnerTitle");
+        old_payload.as_object_mut().unwrap().remove("showConfetti");
+        let migrated: ResultScreenState = serde_json::from_value(old_payload.clone()).unwrap();
+        assert!(migrated.show_identity);
+        assert!(migrated.show_winner_title);
+        assert!(!migrated.show_confetti);
         assert!(matches!(
             serde_json::from_value::<ResultScreenState>(old_payload)
                 .unwrap()
@@ -175,7 +190,6 @@ mod tests {
         bad_framing.artwork_framing.get_mut("photo-context").unwrap().x = 2.1;
         assert!(store.replace(&database, bad_framing).is_err());
         settings.composition = ResultComposition::Victory;
-        settings.show_text_backdrop = true;
         settings.logo_asset_id = Some("local.png".into());
         let stale = settings.clone();
         let saved = store.replace(&database, settings.clone()).unwrap();
@@ -185,7 +199,6 @@ mod tests {
         let restored = ResultScreenStore::load(&database).unwrap().current().unwrap();
         assert_eq!(restored["artworkFraming"]["character-context"]["scale"], 5.0);
         assert_eq!(restored["artworkFraming"]["photo-context"]["scale"], 3.0);
-        assert_eq!(restored["showTextBackdrop"], true);
         assert_eq!(
             ResultScreenStore::load(&database)
                 .unwrap()
@@ -201,9 +214,7 @@ mod tests {
             "victory"
         );
         settings.composition = ResultComposition::Spotlight;
-        settings.show_text_backdrop = false;
         settings = serde_json::from_value(store.replace(&database, settings.clone()).unwrap()).unwrap();
-        assert_eq!(ResultScreenStore::load(&database).unwrap().current().unwrap()["showTextBackdrop"], false);
         assert_eq!(
             ResultScreenStore::load(&database)
                 .unwrap()
@@ -211,6 +222,18 @@ mod tests {
                 .unwrap()["composition"],
             "spotlight"
         );
+        settings.composition = ResultComposition::Highlight;
+        settings.show_confetti = true;
+        settings.show_identity = false;
+        settings.show_winner_title = false;
+        settings.show_background = false;
+        settings = serde_json::from_value(store.replace(&database, settings.clone()).unwrap()).unwrap();
+        let highlight = ResultScreenStore::load(&database).unwrap().current().unwrap();
+        assert_eq!(highlight["composition"], "highlight");
+        assert_eq!(highlight["showConfetti"], true);
+        assert_eq!(highlight["showIdentity"], false);
+        assert_eq!(highlight["showWinnerTitle"], false);
+        assert_eq!(highlight["showBackground"], false);
         settings.logo_asset_id = Some("../outside.png".into());
         assert!(store.replace(&database, settings.clone()).is_err());
         assert_eq!(store.current().unwrap()["logoAssetId"], "local.png");

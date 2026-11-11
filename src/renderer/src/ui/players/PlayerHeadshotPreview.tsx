@@ -25,6 +25,7 @@ type Props = {
   stylingGameId?: GameId;
   onChange(transform: MediaTransform): void;
   onReset(): void;
+  onAutoFrame?(): void;
 };
 
 export function PlayerHeadshotPreview(props: Props) {
@@ -74,6 +75,17 @@ export function PlayerHeadshotPreview(props: Props) {
         )}
       </svg>
       <Group justify="center" gap="xs">
+        <Button
+          size="compact-sm"
+          variant="default"
+          disabled={!props.onAutoFrame}
+          onClick={() => {
+            setEditing(false);
+            props.onAutoFrame?.();
+          }}
+        >
+          {t('scoreboardPhotos.autoFrame')}
+        </Button>
         {props.framing === 'extendAbove' && (
           <Button size="compact-sm" variant="default" onClick={() => setEditing(false)}>
             {t('scoreboardPhotos.fitPreview')}

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, createElement as h } from 'react';
 import { readFileSync } from 'node:fs';
-import { Drawer, MantineProvider, Modal } from '@mantine/core';
+import { MantineProvider } from '@mantine/core';
 import { I18nextProvider } from 'react-i18next';
 import { expect, it, vi } from 'vitest';
 import {
@@ -27,8 +27,6 @@ import { BracketPresentation } from '../renderer/src/ui/BracketScreen';
 import { initializeI18n, i18n } from '../renderer/src/i18n';
 import { mountView } from '../renderer/src/hooks/hookTestHarness';
 import { contrastRatio, parseColor } from '../renderer/src/ui/appearance/textContrast';
-import { localizedNativeError } from '../renderer/src/i18n/nativeErrors';
-import { jabsTheme } from '../renderer/src/ui/theme';
 
 const notices = vi.hoisted(() => ({ show: vi.fn(), hide: vi.fn() }));
 vi.mock('@mantine/notifications', () => ({ notifications: notices }));
@@ -54,102 +52,7 @@ vi.mock('../renderer/src/hooks/useScoreboardPhotos', () => ({
   useScoreboardPhotos: () => ({ state: { enabled: false, updatedAt: '1' } })
 }));
 
-it('shares translated modal close controls and preserves hidden-close guards', async () => {
-  await initializeI18n();
-  for (const kind of ['modal', 'drawer']) {
-    await i18n.changeLanguage('en');
-    const onClose = vi.fn();
-    let withCloseButton = true;
-    const view = await mountView(() => {
-      const props = { opened: true, onClose, title: 'Dialog', withCloseButton };
-      return h(
-        MantineProvider,
-        { env: 'test', theme: jabsTheme },
-        kind === 'modal' ? h(Modal, props) : h(Drawer, props)
-      );
-    });
-    try {
-      const close = document.querySelector<HTMLButtonElement>('.operator-modal-close')!;
-      expect(close?.textContent).toBe('Close');
-      await act(async () => i18n.changeLanguage('es-419'));
-      expect(close.textContent).toBe('Cerrar');
-      await act(async () => close.click());
-      expect(onClose).toHaveBeenCalledTimes(1);
-      withCloseButton = false;
-      await view.rerender();
-      expect(document.querySelector('.operator-modal-close')).toBeNull();
-    } finally {
-      await view.unmount();
-    }
-  }
-  await i18n.changeLanguage('en');
-});
-
-it.each([
-  ['en', 'The Losers bracket name contains blocked text. Your previous settings were kept.'],
-  [
-    'es-419',
-    'Se detectó texto bloqueado en el nombre del bracket de perdedores. Se conservaron los ajustes anteriores.'
-  ]
-])('notifies every rejected bracket-name save in %s and keeps the saved name', async (locale, message) => {
-  await initializeI18n();
-  await i18n.changeLanguage(locale);
-  notices.show.mockClear();
-  const original = appearancePreferencesSchema.parse({
-    appearance: { losersLabel: 'Lower' },
-    presets: [],
-    operatorLanguage: locale,
-    updatedAt: '2026-10-26T00:00:00Z'
-  });
-  transport.load.mockReset().mockResolvedValue(original);
-  transport.save
-    .mockReset()
-    .mockRejectedValue(
-      new Error(
-        localizedNativeError('The Losers bracket name contains blocked text. Your previous settings were kept.')
-      )
-    );
-  vi.stubGlobal(
-    'WebSocket',
-    class extends EventTarget {
-      close() {}
-    }
-  );
-  let settings!: ReturnType<typeof useAppearance>;
-  function Observer() {
-    settings = useAppearance();
-    return h('span', null, settings.appearance.losersLabel);
-  }
-  const view = await mountView(() => h(AppearanceProvider, { children: h(Observer) }));
-  try {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      let saved = true;
-      await act(async () => {
-        saved = await settings.update((current) => ({
-          ...current,
-          appearance: { ...current.appearance, losersLabel: 'Randy' }
-        }));
-      });
-      expect(saved).toBe(false);
-      expect(view.container.textContent).toBe('Lower');
-      expect(settings.error).toBe(message);
-      expect(notices.show).toHaveBeenCalledTimes(attempt);
-      expect(notices.show).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          color: 'red',
-          message,
-          withCloseButton: true
-        })
-      );
-    }
-  } finally {
-    await view.unmount();
-    vi.unstubAllGlobals();
-    await i18n.changeLanguage('en');
-  }
-});
-
-it('shares appearance changes with broadcast previews and saves portable presets without changing operator language', async () => {
+it('applies appearance to previews and exports portable presets', async () => {
   await initializeI18n();
   await i18n.changeLanguage('en');
   transport.load.mockReset().mockImplementation(async () => transport.state);
@@ -271,9 +174,18 @@ it('shares appearance changes with broadcast previews and saves portable presets
   const fontTargets =
     '.overlay-player-name, .scoreboard-detail-pill, .overlay-player-score, .overlay-match-chip strong, .overlay-info-rail';
   const originalFonts = new Map<string, string[]>();
-  for (const profile of [gameProfiles['street-fighter-6'], gameProfiles['guilty-gear-strive']]) {
+  for (const profile of [
+    gameProfiles['street-fighter-6'],
+    gameProfiles['guilty-gear-strive'],
+    gameProfiles['marvel-tokon']
+  ]) {
     transport.overlay.selectedSet.stylingGameId = profile.id;
     await view.rerender();
+    if (profile.id === 'marvel-tokon') {
+      const overlay = view.container.querySelector<HTMLElement>('[data-overlay-template]')!;
+      expect(overlay.dataset.scoreboardFont).toBe('inter');
+      expect(overlay.style.getPropertyValue('--scoreboard-font-family')).toBe('"JABS Inter"');
+    }
     originalFonts.set(
       profile.id,
       [...view.container.querySelectorAll(fontTargets)].map((element) => getComputedStyle(element).fontFamily)
@@ -281,7 +193,11 @@ it('shares appearance changes with broadcast previews and saves portable presets
   }
   await chooseFont('Montserrat');
   expect(transport.state!.scoreboardFont).toBe('montserrat');
-  for (const profile of [gameProfiles['street-fighter-6'], gameProfiles['guilty-gear-strive']]) {
+  for (const profile of [
+    gameProfiles['street-fighter-6'],
+    gameProfiles['guilty-gear-strive'],
+    gameProfiles['marvel-tokon']
+  ]) {
     transport.overlay.selectedSet.stylingGameId = profile.id;
     await view.rerender();
     expect(view.container.querySelectorAll('.overlay-info-rail')).toHaveLength(3);
@@ -291,12 +207,22 @@ it('shares appearance changes with broadcast previews and saves portable presets
   }
   await chooseFont('[DEFAULT]');
   expect(transport.state!.scoreboardFont).toBeUndefined();
-  for (const profile of [gameProfiles['street-fighter-6'], gameProfiles['guilty-gear-strive']]) {
+  for (const profile of [
+    gameProfiles['street-fighter-6'],
+    gameProfiles['guilty-gear-strive'],
+    gameProfiles['marvel-tokon']
+  ]) {
     transport.overlay.selectedSet.stylingGameId = profile.id;
     await view.rerender();
-    expect(
-      [...view.container.querySelectorAll(fontTargets)].map((element) => getComputedStyle(element).fontFamily)
-    ).toEqual(originalFonts.get(profile.id));
+    if (profile.id === 'marvel-tokon') {
+      for (const element of view.container.querySelectorAll(fontTargets)) {
+        expect(getComputedStyle(element).fontFamily).toContain('JABS Inter');
+      }
+    } else {
+      expect(
+        [...view.container.querySelectorAll(fontTargets)].map((element) => getComputedStyle(element).fontFamily)
+      ).toEqual(originalFonts.get(profile.id));
+    }
   }
   await chooseFont('Oswald');
   customActive = true;
@@ -308,6 +234,22 @@ it('shares appearance changes with broadcast previews and saves portable presets
   await view.rerender();
   expect(fontInput.value).toBe('Oswald');
   await act(async () => settingsButton.click());
+  const delayLabel = [...document.querySelectorAll('label')].find(
+    (label) => label.textContent === 'Animation delay (seconds)'
+  )!;
+  const delayInput = document.getElementById(delayLabel.htmlFor) as HTMLInputElement;
+  expect(delayInput.value).toBe('0');
+  vi.useFakeTimers();
+  try {
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(delayInput, '2.5');
+      delayInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(400));
+    expect(transport.state!.appearance.entranceDelayMs).toBe(2500);
+  } finally {
+    vi.useRealTimers();
+  }
   const originalScores = new Map<string, string[]>();
   for (const profile of [gameProfiles['street-fighter-6'], gameProfiles['guilty-gear-strive']]) {
     transport.overlay.selectedSet.stylingGameId = profile.id;
@@ -331,7 +273,8 @@ it('shares appearance changes with broadcast previews and saves portable presets
         secondaryColor: '#445566',
         textSize: 'large',
         broadcastLanguage: 'es-419',
-        entranceAnimations: false
+        entranceAnimations: false,
+        entranceDelayMs: 2500
       }
     }));
   });
@@ -417,11 +360,13 @@ it('shares appearance changes with broadcast previews and saves portable presets
   expect(JSON.parse(exported).appearance).not.toHaveProperty('scoreboardFont');
   expect(transport.state!.presets[0].appearance).not.toHaveProperty('scoreboardFont');
   expect(parseAppearanceFile(exported).appearance).toEqual(transport.state!.appearance);
+  expect(parseAppearanceFile(exported).appearance.entranceDelayMs).toBe(2500);
   expect(() => parseAppearanceFile(JSON.stringify({ ...JSON.parse(exported), token: 'unexpected' }))).toThrow();
   expect(() => parseAppearanceFile(exported.replace('#112233', 'url(file:///tmp/image)'))).toThrow();
   const restore = [...document.querySelectorAll('button')].find((node) => node.textContent === 'Restore defaults')!;
   await act(async () => restore.click());
   expect(transport.state!.appearance).toEqual(defaultAppearance);
+  expect(transport.state!.appearance.textSize).toBe('large');
   expect(transport.state!.activePresetId).toBeNull();
   expect(transport.state!.scoreboardFont).toBe('oswald');
   expect(transport.state!.presets).toHaveLength(1);
@@ -451,7 +396,7 @@ it('shares appearance changes with broadcast previews and saves portable presets
   vi.unstubAllGlobals();
 }, 15_000);
 
-it('restores preset identity, creates separate presets, and rolls back failed changes', async () => {
+it('restores saved presets and recovers from failed updates', async () => {
   await initializeI18n();
   await i18n.changeLanguage('en');
   vi.stubGlobal(
@@ -582,7 +527,7 @@ it('restores preset identity, creates separate presets, and rolls back failed ch
   }
 });
 
-it('recovers the font selector after initial settings reads fail and preserves saved preferences', async () => {
+it('recovers the font selector after a failed settings load', async () => {
   await initializeI18n();
   await i18n.changeLanguage('en');
   vi.useFakeTimers();

@@ -25,6 +25,8 @@ pub struct Appearance {
     pub text_size: String,
     pub broadcast_language: String,
     pub entrance_animations: bool,
+    #[serde(default)]
+    pub entrance_delay_ms: u32,
 }
 impl Default for Appearance {
     fn default() -> Self {
@@ -34,9 +36,10 @@ impl Default for Appearance {
             color_override: false,
             primary_color: "#f7b733".into(),
             secondary_color: "#ff554d".into(),
-            text_size: "default".into(),
+            text_size: "large".into(),
             broadcast_language: "follow".into(),
             entrance_animations: true,
+            entrance_delay_ms: 0,
         }
     }
 }
@@ -156,6 +159,9 @@ fn validate_text(value: &mut String) -> Result<(), String> {
     Ok(())
 }
 fn validate_appearance(value: &mut Appearance) -> Result<(), String> {
+    if value.entrance_delay_ms > 30_000 {
+        return Err("Choose an animation delay between 0 and 30 seconds.".into());
+    }
     for label in [&mut value.winners_label, &mut value.losers_label] {
         if let Some(text) = label {
             validate_text(text)?;
@@ -283,6 +289,11 @@ mod tests {
         let db = Database::open(std::path::Path::new(":memory:")).unwrap();
         let store = AppearanceStore::load(&db).unwrap();
         let stale = store.current().unwrap();
+        assert_eq!(stale.appearance.text_size, "large");
+        assert_eq!(stale.appearance.entrance_delay_ms, 0);
+        let mut legacy = serde_json::to_value(&stale.appearance).unwrap();
+        legacy.as_object_mut().unwrap().remove("entranceDelayMs");
+        assert_eq!(serde_json::from_value::<Appearance>(legacy).unwrap().entrance_delay_ms, 0);
         assert!(serde_json::to_value(&stale)
             .unwrap()
             .get("scoreboardFont")
@@ -291,6 +302,8 @@ mod tests {
         value.scoreboard_font = Some("oswald".into());
         value.appearance.losers_label = Some(" El Camino del Ninja ".into());
         value.appearance.color_override = true;
+        value.appearance.text_size = "default".into();
+        value.appearance.entrance_delay_ms = 2500;
         value.presets.push(Preset {
             id: "weekly".into(),
             name: "Weekly".into(),
@@ -307,6 +320,15 @@ mod tests {
         assert!(store.replace(&db, stale).is_err());
         let mut restored = AppearanceStore::load(&db).unwrap().current().unwrap();
         assert_eq!(restored.scoreboard_font.as_deref(), Some("oswald"));
+        assert_eq!(restored.appearance.text_size, "default");
+        assert_eq!(restored.appearance.entrance_delay_ms, 2500);
+        assert_eq!(restored.presets[0].appearance.entrance_delay_ms, 2500);
+        for preset in [false, true] {
+            let mut invalid_delay = restored.clone();
+            let appearance = if preset { &mut invalid_delay.presets[0].appearance } else { &mut invalid_delay.appearance };
+            appearance.entrance_delay_ms = 30_001;
+            assert!(store.replace(&db, invalid_delay).is_err());
+        }
         assert_eq!(restored.active_preset_id.as_deref(), Some("weekly"));
         assert!(serde_json::to_value(&restored.presets[0])
             .unwrap()

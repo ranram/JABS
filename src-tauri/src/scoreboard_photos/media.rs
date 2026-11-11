@@ -85,6 +85,7 @@ fn named_photo(
                     asset_id: (*id).clone(),
                     fingerprint,
                     crop: Crop::default(),
+                    auto_frame: Some(true),
                     placements: Default::default(),
                     extended_placements: Default::default(),
                 }));
@@ -122,6 +123,7 @@ pub(super) fn resolve_photo(
                     asset_id: id,
                     fingerprint,
                     crop: Crop::default(),
+                    auto_frame: Some(true),
                     placements: Default::default(),
                     extended_placements: Default::default(),
                 }),
@@ -141,6 +143,7 @@ pub(super) fn resolve_photo(
             && saved.fingerprint == photo.fingerprint
         {
             photo.crop = saved.crop.clone();
+            photo.auto_frame = saved.auto_frame;
             photo.placements = saved.placements.clone();
             photo.extended_placements = saved.extended_placements.clone();
         }

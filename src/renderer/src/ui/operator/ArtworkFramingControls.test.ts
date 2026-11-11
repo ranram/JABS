@@ -12,18 +12,12 @@ import {
 import { mountView } from '../../hooks/hookTestHarness';
 import { initializeI18n } from '../../i18n';
 import { ArtworkFramingControls } from './ArtworkFramingControls';
-import { ResultArtwork } from '../resultScreen/ResultArtwork';
-import { readFileSync } from 'node:fs';
-const victoryCss = readFileSync('src/renderer/src/ui/resultScreen/victory.css', 'utf8');
-const sidesCss = readFileSync('src/renderer/src/ui/resultScreen/artworkSides.css', 'utf8');
-const statsCss = readFileSync('src/renderer/src/ui/playerStats/playerStats.css', 'utf8');
-
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
-it('edits both sides with click and Ctrl-click, mirrors character geometry, and restricts results to the winner', async () => {
+it('edits artwork on both sides and limits result framing to the winner', async () => {
   await initializeI18n();
   vi.stubGlobal(
     'ResizeObserver',
@@ -38,7 +32,7 @@ it('edits both sides with click and Ctrl-click, mirrors character geometry, and 
   vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true);
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
-    const right = this.closest('[data-player="2"]');
+    const right = this.closest('.player-stats[data-player="2"], .highlight[data-player="2"]');
     return new DOMRect(right ? 1000 : 0, 0, this.classList.contains('artwork-framing-canvas') ? 1920 : 900, 900);
   });
   const captures = new WeakMap<HTMLElement, number>();
@@ -57,11 +51,23 @@ it('edits both sides with click and Ctrl-click, mirrors character geometry, and 
   selected.playerOne.playerId = '101';
   selected.playerTwo.playerId = '102';
   const media = [
-    { characterUrl: 'art', characterAssetId: 'Ryu.webp', photoUrl: 'one', photoAssetId: 'one.webp' },
-    { characterUrl: 'art', characterAssetId: 'Ryu.webp', photoUrl: 'two', photoAssetId: 'two.webp' }
+    {
+      characterUrl: 'art',
+      characterAssetId: 'Ryu.webp',
+      characterFrame: { top: 0.04, aspectRatio: 640 / 900 },
+      photoUrl: 'one',
+      photoAssetId: 'one.webp'
+    },
+    {
+      characterUrl: 'art',
+      characterAssetId: 'Ryu.webp',
+      characterFrame: { top: 0.04, aspectRatio: 640 / 900 },
+      photoUrl: 'two',
+      photoAssetId: 'two.webp'
+    }
   ] as const;
   let framing: ArtworkFraming = {};
-  let layout: 'stats' | 'victory' = 'stats';
+  let layout: 'stats' | 'classic' | 'victory' | 'spotlight' | 'highlight' = 'stats';
   let winnerSide: 0 | 1 | undefined;
   let showPhoto = true;
   let showCharacter = true;
@@ -78,8 +84,8 @@ it('edits both sides with click and Ctrl-click, mirrors character geometry, and 
         showPhoto,
         media: [...media],
         ready: true,
-        onChange(key, transform, mirroredKey) {
-          framing = updateArtworkFraming(framing, key, transform, mirroredKey);
+        onChange(key, transform, mirroredKey, mirrorX) {
+          framing = updateArtworkFraming(framing, key, transform, mirroredKey, mirrorX);
         }
       })
     )
@@ -104,11 +110,16 @@ it('edits both sides with click and Ctrl-click, mirrors character geometry, and 
   ).toEqual(oldPhoto);
 
   const photo = view.container.querySelector<HTMLImageElement>('[data-player="1"] .victory-player-photo')!;
-  async function clickImage(ctrlKey = false, target = photo, x = 450) {
+  async function clickImage(ctrlKey = false, target = photo, x = 450, dragX = 0) {
     await act(async () => {
       target.dispatchEvent(
         new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: 450, ctrlKey })
       );
+      if (dragX) {
+        target.dispatchEvent(
+          new PointerEvent('pointermove', { bubbles: true, pointerId: 1, clientX: x + dragX, clientY: 450 })
+        );
+      }
       target.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
     });
   }
@@ -190,47 +201,70 @@ it('edits both sides with click and Ctrl-click, mirrors character geometry, and 
   expect(view.container.querySelectorAll('.artwork-preview-subject')).toHaveLength(1);
   expect(view.container.querySelector('.artwork-preview-subject')?.getAttribute('data-player')).toBe('2');
   expect(view.container.querySelector('[data-player="1"]')).toBeNull();
-  await view.unmount();
-});
-
-it('keeps Player 2 photo and hero geometry identical in preview and OBS regardless of stylesheet order', async () => {
-  const placement = {
-    character: { x: 0, y: 0, scale: 1, flipped: false },
-    photo: { x: 0, y: 0, scale: 1, flipped: false }
-  };
-  for (const styles of [
-    [victoryCss, statsCss, sidesCss],
-    [sidesCss, victoryCss, statsCss]
-  ]) {
-    const sheet = document.createElement('style');
-    sheet.textContent = styles.join('\n');
-    document.head.append(sheet);
-    try {
-      const view = await mountView(() =>
-        h(
-          'div',
-          { className: 'victory spotlight player-stats', 'data-player': '2' },
-          h(ResultArtwork, { characterUrl: 'character', photoUrl: 'photo', placement }),
-          h(ResultArtwork, {
-            characterUrl: 'character',
-            photoUrl: 'photo',
-            placement,
-            editing: { selected: 'photo', label: 'Player 2', onSelect() {}, onChange() {} }
-          })
-        )
-      );
-      const photos = view.container.querySelectorAll<HTMLElement>('.victory-player-photo');
-      expect(photos).toHaveLength(2);
-      for (const photo of photos) {
-        expect(getComputedStyle(photo).left).toBe('auto');
-        expect(getComputedStyle(photo).right).toBe('48%');
+  for (const fixedLayout of ['classic', 'victory', 'spotlight'] as const) {
+    layout = fixedLayout;
+    await view.rerender();
+    const character = view.container.querySelector<HTMLImageElement>(
+      layout === 'classic' ? '.announcement-character-art' : '.victory-character-art'
+    )!;
+    await clickImage(true, character, 450, 40);
+    await act(async () => {
+      for (const key of ['ArrowRight', '+', 'f']) {
+        character.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
       }
-      for (const hero of view.container.querySelectorAll<HTMLElement>('.victory-hero')) {
-        expect(getComputedStyle(hero).getPropertyValue('inset')).toBe('140px -30px 160px 56%');
+      character.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    });
+    const fixedKeys = artworkFramingKeys(selected, selected.playerTwo, layout, media[1], 1);
+    expect(framing[fixedKeys.character].x).toBeGreaterThan(0);
+    expect(framing[fixedKeys.character].scale).toBeCloseTo(1.04);
+    expect(framing[fixedKeys.character].flipped).toBe(true);
+    expect(framing[fixedKeys.mirroredCharacter]).toMatchObject({
+      x: framing[fixedKeys.character].x,
+      scale: 1.04,
+      flipped: false
+    });
+    await view.rerender();
+    const photo = view.container.querySelector<HTMLImageElement>(
+      layout === 'classic' ? '.announcement-player-photo' : '.victory-player-photo'
+    )!;
+    await clickImage(false, photo, 450, -25);
+    await act(async () => {
+      for (const key of ['ArrowLeft', '+', 'f']) {
+        photo.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
       }
-      await view.unmount();
-    } finally {
-      sheet.remove();
-    }
+      photo.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    });
+    expect(framing[fixedKeys.photo].x).toBeLessThan(0);
+    expect(framing[fixedKeys.photo]).toMatchObject({ scale: 1.04, flipped: true });
+    await view.rerender();
+    const reset = [...view.container.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent === 'Reset position'
+    )!;
+    await act(async () => reset.click());
+    expect(framing[fixedKeys.photo]).toEqual({ x: 0, y: 0, scale: 1, flipped: false });
+    expect(framing[fixedKeys.character].scale).toBeCloseTo(1.04);
+    winnerSide = 0;
+    await view.rerender();
+    const firstKeys = artworkFramingKeys(selected, selected.playerOne, layout, media[0], 0);
+    expect(artworkPlacement(framing, firstKeys).character.x).toBe(framing[fixedKeys.character].x);
+    expect(artworkPlacement(framing, firstKeys).photo.scale).toBe(1);
+    winnerSide = 1;
   }
+  layout = 'highlight';
+  await view.rerender();
+  const highlightArt = view.container.querySelector<HTMLImageElement>('.victory-character-art')!;
+  const initialY = highlightArt.style.transform.match(/translate3d\([^,]+,\s*([^,]+)/)![1];
+  await clickImage(true, highlightArt, 1450);
+  await act(async () => {
+    highlightArt.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    highlightArt.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+  });
+  const highlightKeys = artworkFramingKeys(selected, selected.playerTwo, 'highlight', media[1], 1);
+  expect(framing[highlightKeys.character].y).toBeLessThan(0);
+  expect(framing[highlightKeys.character].x).toBeGreaterThan(0);
+  await view.rerender();
+  expect(view.container.querySelector<HTMLImageElement>('.victory-character-art')!.style.transform).toContain(
+    `, ${initialY},`
+  );
+  await view.unmount();
 });

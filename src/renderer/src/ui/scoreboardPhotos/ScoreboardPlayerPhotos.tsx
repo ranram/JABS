@@ -4,6 +4,7 @@ import { resolveGameProfile, type GameId } from '@shared/gameProfiles';
 import {
   defaultHeadshotCrop,
   photoCropViewBox,
+  scoreboardPhotoViewBox,
   photoPlacementTransform,
   scoreboardPhotoPlacement,
   scoreboardPhotoLayout,
@@ -151,7 +152,7 @@ export function ScoreboardPhotoSide({
   const palette = resolveGameProfile(stylingGameId ?? layout.gameId).overlay;
   const crop = placeholder
     ? { x: 0, y: 0, width: image.width, height: image.height }
-    : photoCropViewBox(image.width, image.height, width / height, image.crop);
+    : scoreboardPhotoViewBox(photo!, width / height);
   const shadowScale = crop.width / width;
   const extendAbove = framing === 'extendAbove' && !placeholder;
   const photoTop = extendAbove ? scoreboardPhotoTop(photo!, layout, side, framing) : y;

@@ -89,14 +89,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn font_assets_keep_their_binary_body_and_font_content_type() {
-        let response = asset_response("assets/Anton-Regular.ttf", b"\0\x01\0\0font");
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(response.headers()[header::CONTENT_TYPE], "font/ttf");
-        assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
-        let bytes = axum::body::to_bytes(response.into_body(), 100)
-            .await
-            .unwrap();
-        assert_eq!(&bytes[..], b"\0\x01\0\0font");
+    async fn bundled_media_keep_their_binary_body_and_content_type() {
+        for (path, mime, body) in [
+            ("assets/Anton-Regular.ttf", "font/ttf", b"\0\x01\0\0font".as_slice()),
+            ("assets/confetti.webm", "video/webm", b"\x1a\x45\xdf\xa3video".as_slice()),
+        ] {
+            let response = asset_response(path, body);
+            assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(response.headers()[header::CONTENT_TYPE], mime);
+            assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
+            let bytes = axum::body::to_bytes(response.into_body(), 100)
+                .await
+                .unwrap();
+            assert_eq!(&bytes[..], body);
+        }
     }
 }

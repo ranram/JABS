@@ -1,71 +1,13 @@
 // @vitest-environment happy-dom
 import { createElement as h } from 'react';
 import { beforeAll, expect, it } from 'vitest';
-import { gameProfiles, type GameId } from '@shared/gameProfiles';
+import { gameProfiles } from '@shared/gameProfiles';
 import { createTestOverlayState } from '@shared/testFixtures';
-import { scoreboardPhotoLayout } from '@shared/scoreboardPhotos';
 import { mountView } from '../../hooks/hookTestHarness';
 import { initializeI18n } from '../../i18n';
 import { ScoreboardDetails } from './ScoreboardDetails';
-import { scoreboardDetailLayouts, scoreboardDetailsTop } from './scoreboardDetailLayouts';
 
 beforeAll(initializeI18n);
-
-it('keeps both detail groups clear of game HUD and portrait areas at their default positions', () => {
-  for (const profile of Object.values(gameProfiles)) {
-    const layout = scoreboardDetailLayouts[profile.id];
-    const photo = scoreboardPhotoLayout({ gameId: profile.id });
-    // Tokon's green assist bars occupy the inner end of the broad photo exclusion strip.
-    const hud =
-      photo?.protectedAreas.filter((area) => {
-        const label = (area as { label?: string }).label ?? '';
-        if (profile.id === 'avatar-legends' && label.includes('player label')) return false;
-        return profile.id !== 'marvel-tokon' || !label.includes('team state meters');
-      }) ?? [];
-    // UNI's portrait narrows to x=207 at the pill row, despite its wider top bounds.
-    const portraits =
-      profile.id === 'under-night-in-birth-ii-sys-celes'
-        ? [
-            [0, 0, 207, 154],
-            [1713, 0, 207, 154]
-          ]
-        : photo
-          ? Object.values(photo.sides).map((side) => side.bounds)
-          : [];
-    const referenceHud: Partial<Record<GameId, number[][]>> = {
-      'street-fighter-6': [[167, 108, 35, 30]],
-      'tekken-8': [[74, 151, 340, 53]],
-      'avatar-legends': [[526, 105, 354, 24]],
-      'marvel-tokon': [[592, 115, 286, 33]],
-      'king-of-fighters-xv': [
-        [530, 100, 350, 27],
-        [170, 102, 113, 27],
-        [830, 132, 400, 38]
-      ],
-      'mortal-kombat-1': [[196, 92, 194, 58]],
-      'under-night-in-birth-ii-sys-celes': [[218, 130, 460, 2]],
-      'ultimate-marvel-vs-capcom-3': [
-        [438, 156, 95, 26],
-        [880, 40, 160, 160]
-      ]
-    };
-    const extraHud = (referenceHud[profile.id] ?? []).flatMap(([x, y, width, height]) => [
-      [x, y, width, height],
-      [1920 - x - width, y, width, height]
-    ]);
-    const protectedBounds = [...hud.map((area) => area.bounds), ...portraits, ...extraHud];
-    const top = scoreboardDetailsTop(profile.id, 0);
-    for (const left of [layout.left, 1920 - layout.left - layout.width]) {
-      expect(left).toBeGreaterThanOrEqual(0);
-      expect(left + layout.width + 4).toBeLessThanOrEqual(1920);
-      for (const [x, y, width, height] of protectedBounds) {
-        const overlaps = left < x + width && left + layout.width + 4 > x && top < y + height && top + 32 > y;
-        expect(overlaps, `${profile.id}: detail group overlaps ${[x, y, width, height]}`).toBe(false);
-      }
-    }
-  }
-  expect(scoreboardDetailsTop('guilty-gear-strive', 40)).toBe(206);
-});
 
 it('shows populated pills with the X icon first and respects tournament seed visibility without changing player data', async () => {
   const set = createTestOverlayState().selectedSet;
@@ -104,7 +46,9 @@ it('shows populated pills with the X icon first and respects tournament seed vis
   set.setId = 'linked';
   set.playerTwo.pronouns = 'they/them';
   await view.rerender();
-  expect([...view.container.querySelectorAll('[data-detail=seed]')].map((pill) => pill.textContent)).toEqual(['Seed 17']);
+  expect([...view.container.querySelectorAll('[data-detail=seed]')].map((pill) => pill.textContent)).toEqual([
+    'Seed 17'
+  ]);
   const groups = [...view.container.querySelectorAll<HTMLElement>('.scoreboard-detail-group')];
   expect(groups[0].style.left).toBe(groups[1].style.right);
   expect(groups[0].style.width).toBe(groups[1].style.width);

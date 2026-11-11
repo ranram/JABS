@@ -52,6 +52,17 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
       clearTimeout(timer);
       delete root.dataset.entrancePending;
     }
+    function play() {
+      if (cancelled) return;
+      played.current = { activation, presentationKey };
+      try {
+        runningAnimation.current = playOverlayEntrance(root, cues);
+      } catch {
+        // Keep the static layout readable if the browser cannot animate it.
+      } finally {
+        delete root.dataset.entrancePending;
+      }
+    }
     async function begin() {
       const images = [...root.querySelectorAll('img')];
       const assets = Promise.all([
@@ -67,14 +78,8 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
       ]);
       clearTimeout(timer);
       if (cancelled) return;
-      played.current = { activation, presentationKey };
-      try {
-        runningAnimation.current = playOverlayEntrance(root, cues);
-      } catch {
-        // Keep the static layout readable if the browser cannot animate it.
-      } finally {
-        delete root.dataset.entrancePending;
-      }
+      if (appearance.entranceDelayMs > 0) timer = setTimeout(play, appearance.entranceDelayMs);
+      else play();
     }
 
     // OBS does not expose a current-source status getter. A fresh page gets one
@@ -87,7 +92,7 @@ export function useOverlayEntrance<T extends HTMLElement | SVGSVGElement = HTMLE
     return () => {
       cancel();
     };
-  }, [activation, inactive, cues, animationsEnabled, ready, presentationKey]);
+  }, [activation, inactive, cues, animationsEnabled, ready, presentationKey, appearance.entranceDelayMs]);
 
   return rootRef;
 }

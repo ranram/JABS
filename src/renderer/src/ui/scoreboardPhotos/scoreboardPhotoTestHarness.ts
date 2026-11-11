@@ -80,7 +80,6 @@ beforeEach(() => {
       }
       get naturalHeight() {
         if (this.src.includes('padded-logo')) return 1080;
-        if (this.src.includes('near-square-logo')) return 480;
         if (this.src.includes('square-logo')) return 600;
         if (this.src.includes('wide-')) return 200;
         return 900;
@@ -92,20 +91,24 @@ beforeEach(() => {
   );
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
     let padded = false;
-    let unreadable = false;
-    let empty = false;
+    let silhouette = false;
     return {
       drawImage(image: HTMLImageElement) {
         padded = image.src.includes('padded-logo');
-        unreadable = image.src.includes('unreadable');
-        empty = image.src.includes('empty-logo');
+        silhouette = image.src.includes('silhouette');
       },
       getImageData(_x: number, _y: number, width: number, height: number) {
-        if (unreadable) throw new Error('Pixel access unavailable');
         const data = new Uint8ClampedArray(width * height * 4);
         for (let y = 0; y < height; y++) {
           for (let x = 0; x < width; x++) {
-            if (!empty && (!padded || (x >= 47 && x < 215 && y >= 5 && y < 248))) data[(y * width + x) * 4 + 3] = 255;
+            if (silhouette) {
+              const head = x >= width * 0.45 && x < width * 0.65 && y >= height * 0.04 && y < height * 0.28;
+              const neck = x >= width * 0.48 && x < width * 0.62 && y >= height * 0.26 && y < height * 0.35;
+              const body = x >= width * 0.15 && x < width * 0.9 && y >= height * 0.33;
+              if (head || neck || body) data[(y * width + x) * 4 + 3] = 255;
+              continue;
+            }
+            if (!padded || (x >= 47 && x < 215 && y >= 5 && y < 248)) data[(y * width + x) * 4 + 3] = 255;
           }
         }
         return { data };

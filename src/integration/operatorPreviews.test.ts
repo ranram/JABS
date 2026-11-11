@@ -121,7 +121,7 @@ const activeSet = createTestOverlayState().selectedSet!;
 const characterAssets: GameCharacterAsset[] = [{ character: 'Ryu', assetId: 'Ryu.png', variants: [] }];
 activeSet.broadcast = { ...activeSet.broadcast!, logoEnabled: true, logoAssetId: 'logo.png' };
 
-it('imports final standings automatically and refreshes preview media without repeating identity lookups on style edits', async () => {
+it('imports standings and refreshes generator artwork', async () => {
   vi.useFakeTimers();
   transport.characters.mockResolvedValue({ assets: characterAssets });
   transport.artwork.mockImplementation(async () => `data:image/png;base64,artwork${transport.revision}`);
@@ -402,7 +402,7 @@ it('explains unavailable public bracket reads without exposing server details', 
   await view.unmount();
 });
 
-it('keeps standalone games independent, follows loaded events in both generators, and refreshes artwork on return', async () => {
+it('keeps generator drafts tied to the selected game and event', async () => {
   await i18n.changeLanguage('en');
   vi.useFakeTimers();
   const folderChecks = vi.fn(async (_url: string, init?: RequestInit) => {

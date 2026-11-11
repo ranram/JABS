@@ -22,13 +22,17 @@ import { resultScreenEntrance } from './resultScreenEntrance';
 import { VictoryComposition } from './resultScreen/VictoryComposition';
 import { victoryEntrance } from './resultScreen/victoryEntrance';
 import { spotlightEntrance } from './resultScreen/spotlightEntrance';
+import { HighlightComposition } from './resultScreen/HighlightComposition';
+import { highlightEntrance } from './resultScreen/highlightEntrance';
+import { useVersusMedia } from './useVersusMedia';
 import { phaseAndRound } from '@shared/matchContext';
 import playerPlaceholder from '../assets/player_placeholder.svg';
 
 const resultEntrances = {
   classic: resultScreenEntrance,
   victory: victoryEntrance,
-  spotlight: spotlightEntrance
+  spotlight: spotlightEntrance,
+  highlight: highlightEntrance
 };
 
 type PlayerMediaUrls = { sponsorLogoUrl?: string; playerPhotoUrl?: string; photoAssetId?: string };
@@ -51,23 +55,44 @@ function AnnouncementOverlayContent({
   const { state: savedSettings } = useResultScreenState();
   const settings = savedSettings ?? defaultResultScreenSettings;
   const composition = settings.composition;
+  const highlight = composition === 'highlight';
+  const highlightMedia = useVersusMedia(highlight && winner ? selectedSet : undefined, true);
+  const highlightWinner = highlightMedia.media[winner === selectedSet.playerTwo ? 1 : 0];
   const playerMedia = usePlayerMediaUrls(
     selectedSet,
-    Boolean(savedSettings && winner && (settings.showPlayerPhoto || settings.showSponsorLogo))
+    Boolean(!highlight && savedSettings && winner && (settings.showPlayerPhoto || settings.showSponsorLogo))
   );
-  const winnerMedia = winner === selectedSet.playerOne ? playerMedia.playerOne : playerMedia.playerTwo;
+  const winnerMedia = highlight
+    ? {
+        playerPhotoUrl: highlightWinner.photoUrl,
+        sponsorLogoUrl: highlightWinner.sponsorUrl,
+        photoAssetId: highlightWinner.photoAssetId
+      }
+    : winner === selectedSet.playerOne
+      ? playerMedia.playerOne
+      : playerMedia.playerTwo;
   const stylingProfile = resolveGameProfile(
     savedSettings?.stylingGameId ?? selectedSet.stylingGameId ?? selectedSet.gameId ?? profile.id
   );
-  const characterMedia = useAnnouncementCharacterMedia(
+  const legacyCharacterMedia = useAnnouncementCharacterMedia(
     selectedSet.assetCatalogSlug ?? selectedSet.gameId,
-    savedSettings?.showCharacter ? winnerCharacters[0] : undefined,
-    savedSettings?.showCharacter ? winner?.characterAssetId : undefined,
-    savedSettings?.showCharacter && winner ? playerPortraitCharacters(winner) : []
+    !highlight && savedSettings?.showCharacter ? winnerCharacters[0] : undefined,
+    !highlight && savedSettings?.showCharacter ? winner?.characterAssetId : undefined,
+    !highlight && savedSettings?.showCharacter && winner ? playerPortraitCharacters(winner) : []
   );
+  const characterMedia = highlight
+    ? {
+        characterUrl: settings.showCharacter ? highlightWinner.characterUrl : undefined,
+        artworkAssetId: highlightWinner.characterAssetId,
+        characterPortraits: [],
+        hasCatalogMedia: highlightWinner.hasCatalogCharacterMedia,
+        ready: highlightMedia.ready
+      }
+    : legacyCharacterMedia;
   const { characterUrl, characterPortraits } = characterMedia;
   const photoUrl = settings.showPlayerPhoto
-    ? (winnerMedia.playerPhotoUrl ?? (playerMedia.ready ? playerPlaceholder : undefined))
+    ? (winnerMedia.playerPhotoUrl ??
+      ((highlight ? highlightMedia.ready : playerMedia.ready) ? playerPlaceholder : undefined))
     : undefined;
   const placement = winner
     ? artworkPlacement(
@@ -88,7 +113,7 @@ function AnnouncementOverlayContent({
   const { url: resultLogoUrl, ready: logoReady } = useLogoAsset(
     savedSettings?.showTournamentLogo ? (savedSettings.logoAssetId ?? selectedSet.broadcast?.logoAssetId) : undefined
   );
-  const mediaReady = characterMedia.ready && playerMedia.ready && logoReady;
+  const mediaReady = characterMedia.ready && (highlight ? highlightMedia.ready : playerMedia.ready) && logoReady;
   // A new result gets an entrance; score and style edits keep the current presentation.
   const resultKey = JSON.stringify([
     composition,
@@ -111,12 +136,49 @@ function AnnouncementOverlayContent({
     .filter(Boolean)
     .join(' ');
 
+  if (highlight) {
+    return (
+      <main
+        ref={entranceRef}
+        style={appearanceStyle}
+        className={`overlay victory highlight ${stylingProfile.overlay.themeClass}${settings.showBackground ? '' : ' is-transparent-background'}`}
+        data-player={winner === selectedSet.playerTwo ? 2 : 1}
+        data-announcement-surface="result"
+        data-announcement-composition="highlight"
+        data-announcement-kind={presentation?.kind ?? 'winner'}
+      >
+        {winner && (
+          <HighlightComposition
+            winner={winner}
+            kind={presentation?.kind ?? 'winner'}
+            characterUrl={characterUrl}
+            characterFrame={highlightWinner.characterFrame}
+            photoUrl={photoUrl}
+            sponsorLogoUrl={sponsorLogoUrl}
+            logoUrl={resultLogoUrl}
+            placement={placement}
+            showIdentity={settings.showIdentity}
+            showWinnerTitle={settings.showWinnerTitle}
+            showConfetti={settings.showConfetti}
+            ready={mediaReady}
+            presentationKey={resultKey}
+          />
+        )}
+        {reconnecting && (
+          <div className="overlay-connection-status" role="status">
+            {t('common:status.reconnecting')}
+          </div>
+        )}
+      </main>
+    );
+  }
+
   if (composition !== 'classic') {
     return (
       <main
         ref={entranceRef}
         style={appearanceStyle}
-        className={`overlay victory${composition === 'spotlight' ? ' spotlight' : ''} ${stylingProfile.overlay.themeClass}${settings.showBackground ? '' : ' is-transparent-background'}${settings.showTextBackdrop ? ' has-text-backdrop' : ''}`}
+        className={`overlay victory${composition === 'spotlight' ? ' spotlight' : ''} ${stylingProfile.overlay.themeClass}${settings.showBackground ? '' : ' is-transparent-background'}`}
         data-player={winner === selectedSet.playerTwo ? 2 : 1}
         data-announcement-surface="result"
         data-announcement-composition={composition}
@@ -162,9 +224,6 @@ function AnnouncementOverlayContent({
       {winner && (
         <section className="announcement-composition" data-entrance="result-layout">
           <div className={`announcement-subject ${mediaClass}`} aria-hidden="true">
-            {sponsorLogoUrl && (
-              <CatalogImage className="announcement-sponsor-watermark" src={sponsorLogoUrl} entrance="result-sponsor" />
-            )}
             {mediaReady && !characterUrl && !photoUrl && !sponsorLogoUrl && (
               <span className="announcement-subject-placeholder" data-entrance="result-placeholder">
                 <DisplayText text={winner.name} initial />
@@ -212,6 +271,9 @@ function AnnouncementOverlayContent({
             <small data-entrance="result-round">
               <DisplayText text={phaseAndRound(selectedSet)} />
             </small>
+            {sponsorLogoUrl && (
+              <CatalogImage className="announcement-sponsor-logo" src={sponsorLogoUrl} entrance="result-sponsor" />
+            )}
           </div>
           {resultLogoUrl && (
             <CatalogImage className="announcement-tournament-logo" src={resultLogoUrl} entrance="result-logo" />
@@ -232,7 +294,9 @@ const defaultResultScreenSettings: ResultScreenState = {
   artworkFraming: {},
   stylingGameId: 'street-fighter-6',
   showBackground: true,
-  showTextBackdrop: false,
+  showIdentity: true,
+  showWinnerTitle: true,
+  showConfetti: false,
   showTournamentLogo: true,
   showPlayerPhoto: true,
   showSponsorLogo: true,
