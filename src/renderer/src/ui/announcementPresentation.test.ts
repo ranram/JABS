@@ -4,7 +4,11 @@ import { announcementPresentation } from './announcementPresentation';
 
 function completedSet(round: string, winner: 'one' | 'two', winnersSideEntrantId?: string): SelectedSetState {
   return {
-    displayName: 'Alpha vs Beta', round, winnersSideEntrantId, gameId: 'street-fighter-6', bestOf: 5,
+    displayName: 'Alpha vs Beta',
+    round,
+    winnersSideEntrantId,
+    gameId: 'street-fighter-6',
+    bestOf: 5,
     playerOne: { entrantId: 'alpha', name: 'Alpha', score: winner === 'one' ? 3 : 1 },
     playerTwo: { entrantId: 'beta', name: 'Beta', score: winner === 'two' ? 3 : 1 },
     updatedAt: '2026-08-12T00:00:00.000Z'
@@ -22,9 +26,20 @@ describe('announcement presentation', () => {
   it('waits for Topanga deuce to finish and awards the deciding win at 9–9', () => {
     const selected = { ...completedSet('Exhibition', 'one'), matchFormat: 'topanga' as const, bestOf: 13 };
     for (const [winningScore, losingScore, finished] of [
-      [6, 0, false], [6, 6, false], [7, 0, true], [7, 5, true], [7, 6, false],
-      [7, 7, false], [8, 6, true], [8, 7, false], [9, 7, true],
-      [9, 8, false], [9, 9, false], [10, 8, true], [10, 9, true], [10, 10, false]
+      [6, 0, false],
+      [6, 6, false],
+      [7, 0, true],
+      [7, 5, true],
+      [7, 6, false],
+      [7, 7, false],
+      [8, 6, true],
+      [8, 7, false],
+      [9, 7, true],
+      [9, 8, false],
+      [9, 9, false],
+      [10, 8, true],
+      [10, 9, true],
+      [10, 10, false]
     ] as const) {
       for (const side of ['one', 'two'] as const) {
         const result = announcementPresentation({
@@ -34,11 +49,50 @@ describe('announcement presentation', () => {
           playerOne: { ...selected.playerOne, score: side === 'one' ? winningScore : losingScore },
           playerTwo: { ...selected.playerTwo, score: side === 'two' ? winningScore : losingScore }
         });
-        if (finished) expect(result).toMatchObject({
-          kind: 'winner', winner: { entrantId: side === 'one' ? 'alpha' : 'beta' }
-        });
+        if (finished)
+          expect(result).toMatchObject({
+            kind: 'winner',
+            winner: { entrantId: side === 'one' ? 'alpha' : 'beta' }
+          });
         else expect(result, `${side}: ${winningScore}–${losingScore}`).toBeUndefined();
       }
     }
+  });
+
+  it('prepares the leading player for the winner screen without requiring a completed result', () => {
+    for (const format of ['best-of', 'first-to', 'topanga'] as const) {
+      const selected = { ...completedSet('Exhibition', 'one'), matchFormat: format, bestOf: 13 };
+      for (const [one, two, leader] of [
+        [1, 0, 'alpha'],
+        [0, 1, 'beta'],
+        [6, 5, 'alpha'],
+        [5, 6, 'beta'],
+        [0, 0, undefined],
+        [2, 2, undefined]
+      ] as const) {
+        const set = {
+          ...selected,
+          playerOne: { ...selected.playerOne, score: one },
+          playerTwo: { ...selected.playerTwo, score: two }
+        };
+        expect(announcementPresentation(set)).toBeUndefined();
+        expect(announcementPresentation(set, { allowLeadingScore: true })?.winner.entrantId).toBe(leader);
+      }
+    }
+    const final = {
+      ...completedSet('Grand Final', 'one', 'alpha'),
+      playerOne: { entrantId: 'alpha', name: 'Alpha', score: 1 },
+      playerTwo: { entrantId: 'beta', name: 'Beta', score: 0 }
+    };
+    expect(announcementPresentation(final, { allowLeadingScore: true })?.kind).toBe('champion');
+    expect(
+      announcementPresentation({ ...final, upstreamReset: true, state: '3' }, { allowLeadingScore: true })
+    ).toBeUndefined();
+    expect(
+      announcementPresentation(
+        { ...final, reportedOutcome: { kind: 'disqualification', winnerId: 'beta' } },
+        { allowLeadingScore: true }
+      )?.winner.entrantId
+    ).toBe('beta');
   });
 });

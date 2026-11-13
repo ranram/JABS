@@ -58,6 +58,27 @@
 .custom-scoreboard-element.is-detail {
   overflow: visible;
 }
+
+.scoreboard-character-names {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.scoreboard-character-group {
+  position: absolute;
+  display: flex;
+}
+.scoreboard-character-group .scoreboard-detail-pill {
+  box-sizing: border-box;
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+.custom-scoreboard-canvas .scoreboard-character-names .scoreboard-detail-pill {
+  --detail-unit: 0.052083333cqw;
+  font-size: calc(12 * var(--detail-unit) * var(--appearance-text-scale, 1));
+}
 .custom-scoreboard-element .scoreboard-detail-pill {
   --detail-unit: 0.052083333cqw;
   max-height: 100%;

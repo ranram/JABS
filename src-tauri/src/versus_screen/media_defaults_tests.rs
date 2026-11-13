@@ -57,6 +57,7 @@ impl Fixture {
         let mut settings: VersusScreenState =
             serde_json::from_value(store.current().unwrap()).unwrap();
         settings.media_mode = "combined".into();
+        settings.mirror_character_placement = false;
         store.replace(&database, settings).unwrap();
         let mut fixture = Self {
             root,
@@ -123,7 +124,7 @@ impl Fixture {
 }
 
 #[test]
-fn character_framing_is_shared_across_players_and_sides_but_scoped_to_artwork_game_and_layout() {
+fn character_framing_is_shared_across_players_but_scoped_to_side_artwork_game_and_layout() {
     let mut fixture = Fixture::new();
     let alpha = fixture.selected.clone();
     let mut settings = fixture.settings();
@@ -153,7 +154,7 @@ fn character_framing_is_shared_across_players_and_sides_but_scoped_to_artwork_ga
     fixture.select(opposite_side.clone());
     assert_eq!(
         fixture.settings().media_placements[1].character,
-        MediaTransform { x: -framing.x, flipped: false, ..framing.clone() }
+        MediaTransform::default()
     );
 
     let mut outfit = guest.clone();
@@ -339,53 +340,66 @@ fn choosing_a_missing_character_restores_its_layout_without_changing_the_other_p
 }
 
 #[test]
-fn character_framing_mirrors_both_ways_while_flip_and_photos_stay_independent() {
-    let mut fixture = Fixture::new();
-    let mut selected = fixture.selected.clone();
-    selected.player_two.character = Some("Cammy".into());
-    selected.player_two.characters = vec!["Cammy".into()];
-    fixture.select(selected);
-    let mut settings = fixture.settings();
-    settings.media_placements[1].character.flipped = true;
-    settings.media_placements[1].photo.x = 0.1;
-    fixture.store.replace(&fixture.database, settings).unwrap();
-    let mut settings = fixture.settings();
-    settings.media_placements[0].character.x = 0.25;
-    settings.media_placements[0].character.y = -0.15;
-    settings.media_placements[0].character.scale = 1.4;
-    fixture.store.replace(&fixture.database, settings).unwrap();
-    let settings = fixture.settings();
-    assert_eq!(settings.media_placements[1].character, MediaTransform {
-        x: -0.25, y: -0.15, scale: 1.4, flipped: true,
-    });
-    assert!(!settings.media_placements[0].character.flipped);
-    assert_eq!(settings.media_placements[1].photo.x, 0.1);
-    let mut settings = settings;
-    settings.media_placements[1].character.x = -0.3;
-    settings.media_placements[1].character.scale = 1.8;
-    fixture.store.replace(&fixture.database, settings).unwrap();
-    let settings = fixture.settings();
-    assert_eq!(settings.media_placements[0].character.x, 0.3);
-    assert_eq!(settings.media_placements[0].character.scale, 1.8);
-    assert!(!settings.media_placements[0].character.flipped);
-    let mut settings = settings;
-    settings.media_placements[0].character.flipped = true;
-    fixture.store.replace(&fixture.database, settings).unwrap();
-    assert!(fixture.settings().media_placements[1].character.flipped);
-    fixture = fixture.reopen();
-    let mut guests = fixture.selected.clone();
-    guests.player_one.player_id = None;
-    guests.player_one.name = "Guest One".into();
-    guests.player_two.player_id = None;
-    guests.player_two.name = "Guest Two".into();
-    fixture.select(guests);
-    assert_eq!(fixture.settings().media_placements[0].character.scale, 1.8);
-    assert_eq!(fixture.settings().media_placements[1].character.scale, 1.8);
-    assert_eq!(fixture.settings().media_placements[0].character.x, 0.3);
-    assert_eq!(fixture.settings().media_placements[1].character.x, -0.3);
-    assert!(fixture.settings().media_placements[0].character.flipped);
-    assert!(fixture.settings().media_placements[1].character.flipped);
-    fixture.close();
+fn character_mirroring_is_optional_and_preserves_photos_and_flips_after_restart() {
+    for mirror in [false, true] {
+        let mut fixture = Fixture::new();
+        let mut selected = fixture.selected.clone();
+        selected.player_two.character = Some("Cammy".into());
+        selected.player_two.characters = vec!["Cammy".into()];
+        fixture.select(selected);
+        let mut settings = fixture.settings();
+        settings.mirror_character_placement = mirror;
+        settings.media_placements[1].character.flipped = true;
+        settings.media_placements[1].photo.x = 0.1;
+        fixture.store.replace(&fixture.database, settings).unwrap();
+        let mut right = fixture.settings().media_placements[1].clone();
+
+        let mut settings = fixture.settings();
+        settings.media_placements[0].character = MediaTransform {
+            x: 0.25, y: -0.15, scale: 1.4, flipped: false,
+        };
+        fixture.store.replace(&fixture.database, settings).unwrap();
+        if mirror {
+            right.character.x = -0.25;
+            right.character.y = -0.15;
+            right.character.scale = 1.4;
+        }
+        assert_eq!(fixture.settings().media_placements[1], right);
+        let mut left = fixture.settings().media_placements[0].clone();
+
+        let mut settings = fixture.settings();
+        settings.media_placements[1].character.x = -0.3;
+        settings.media_placements[1].character.scale = 1.8;
+        fixture.store.replace(&fixture.database, settings).unwrap();
+        if mirror {
+            left.character.x = 0.3;
+            left.character.scale = 1.8;
+        }
+        assert_eq!(fixture.settings().media_placements[0], left);
+        let expected = fixture.settings().media_placements.clone();
+
+        fixture = fixture.reopen();
+        assert_eq!(fixture.settings().mirror_character_placement, mirror);
+        let mut guests = fixture.selected.clone();
+        guests.player_one.player_id = None;
+        guests.player_one.name = "Guest One".into();
+        guests.player_two.player_id = None;
+        guests.player_two.name = "Guest Two".into();
+        fixture.select(guests);
+        assert_eq!(fixture.settings().media_placements[0].character, expected[0].character);
+        assert_eq!(fixture.settings().media_placements[1].character, expected[1].character);
+
+        let expected = fixture.settings().media_placements.clone();
+        let mut settings = fixture.settings();
+        settings.mirror_character_placement = false;
+        fixture.store.replace(&fixture.database, settings).unwrap();
+        assert_eq!(fixture.settings().media_placements, expected);
+        let mut settings = fixture.settings();
+        settings.media_placements[0].character.x += 0.1;
+        fixture.store.replace(&fixture.database, settings).unwrap();
+        assert_eq!(fixture.settings().media_placements[1], expected[1]);
+        fixture.close();
+    }
 }
 
 #[test]
@@ -498,12 +512,9 @@ fn information_layouts_keep_settings_and_framing_separate_across_matches_and_res
     assert_eq!(fixture.settings().media_placements[0].character, standard_framing[0].character);
     assert_eq!(fixture.settings().media_placements[0].photo, MediaTransform::default());
     switch(&fixture, "compact");
-    let mirrored = fixture.settings().media_placements[1].character.clone();
-    assert_eq!(mirrored.x, -compact_framing[0].character.x);
-    assert_eq!(mirrored.scale, compact_framing[0].character.scale);
-    assert!(!mirrored.flipped);
+    assert_eq!(fixture.settings().media_placements[1].character, MediaTransform::default());
     assert_eq!(fixture.settings().media_placements[1].photo.scale, 0.8);
-    // A flip on the opposite side remains independent of the shared geometry.
+    // A flip on the opposite side remains independent.
     let mut edited = fixture.settings();
     edited.media_placements[1].character.flipped = true;
     fixture.store.replace(&fixture.database, edited).unwrap();

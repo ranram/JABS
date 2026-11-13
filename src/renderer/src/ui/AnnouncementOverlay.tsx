@@ -27,6 +27,7 @@ import { highlightEntrance } from './resultScreen/highlightEntrance';
 import { useVersusMedia } from './useVersusMedia';
 import { phaseAndRound } from '@shared/matchContext';
 import playerPlaceholder from '../assets/player_placeholder.svg';
+import { playerPresentationIdentity } from './mediaIdentity';
 
 const resultEntrances = {
   classic: resultScreenEntrance,
@@ -49,7 +50,7 @@ function AnnouncementOverlayContent({
 }) {
   const { t } = useTranslation(['overlay', 'common']);
   const appearanceStyle = useAppearanceStyle();
-  const presentation = announcementPresentation(selectedSet);
+  const presentation = announcementPresentation(selectedSet, { allowLeadingScore: true });
   const winner = presentation?.winner;
   const winnerCharacters = winner ? playerCharacters(winner) : [];
   const { state: savedSettings } = useResultScreenState();
@@ -119,10 +120,11 @@ function AnnouncementOverlayContent({
     composition,
     selectedSet.setId,
     selectedSet.eventId,
-    selectedSet.gameId,
+    selectedSet.assetCatalogSlug ?? selectedSet.gameId,
+    selectedSet.videogameId,
     presentation?.kind,
-    selectedSet.playerOne.entrantId ?? selectedSet.playerOne.name,
-    selectedSet.playerTwo.entrantId ?? selectedSet.playerTwo.name,
+    playerPresentationIdentity(selectedSet.playerOne),
+    playerPresentationIdentity(selectedSet.playerTwo),
     winner === selectedSet.playerOne ? 'one' : 'two'
   ]);
   const entranceRef = useOverlayEntrance(
@@ -199,6 +201,7 @@ function AnnouncementOverlayContent({
             logoUrl={resultLogoUrl}
             placement={placement}
             portraits={characterPortraits}
+            showWinnerTitle={settings.showWinnerTitle}
           />
         )}
         {reconnecting && (
@@ -254,7 +257,11 @@ function AnnouncementOverlayContent({
             />
           </div>
           <div className="announcement-copy">
-            <span className="announcement-kicker" data-entrance="result-kicker">
+            <span
+              className="announcement-kicker"
+              data-entrance="result-kicker"
+              data-result-title-hidden={!settings.showWinnerTitle || undefined}
+            >
               {presentation?.kind === 'champion' ? t('championAnnouncement') : t('winnerAnnouncement')}
             </span>
             <strong data-entrance="result-name">
@@ -398,8 +405,12 @@ function usePlayerMediaUrls(selectedSet: SelectedSetState | undefined, enabled: 
       .then(async (matches) => {
         const resolvePlayerMedia = async (match: typeof matches.playerOne): Promise<PlayerMediaUrls> => {
           const [sponsorLogoUrl, playerPhotoUrl] = await Promise.all([
-            match.sponsorLogoAssetId ? api.sponsorLogoAssetUrl(match.sponsorLogoAssetId) : undefined,
-            match.playerPhotoAssetId ? api.playerPhotoAssetUrl(match.playerPhotoAssetId) : undefined
+            match.sponsorLogoAssetId
+              ? api.sponsorLogoAssetUrl(match.sponsorLogoAssetId).catch(() => undefined)
+              : undefined,
+            match.playerPhotoAssetId
+              ? api.playerPhotoAssetUrl(match.playerPhotoAssetId).catch(() => undefined)
+              : undefined
           ]);
           return { sponsorLogoUrl, playerPhotoUrl, photoAssetId: match.playerPhotoAssetId };
         };

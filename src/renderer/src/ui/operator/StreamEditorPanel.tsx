@@ -153,6 +153,7 @@ export function StreamEditorPanel({
 
         <StreamBroadcastControls
           logoSelectId={logoSelectId}
+          selectedSet={draft}
           broadcast={draft.broadcast}
           isExhibition={isExhibition}
           logos={logos}

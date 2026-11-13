@@ -6,6 +6,7 @@ import type { GameId } from '@shared/gameProfiles';
 import {
   photoPlacementTransform,
   scoreboardPhotoTop,
+  scoreboardPhotoViewport,
   type photoCropViewBox,
   type ScoreboardPhotoLayout,
   type PhotoFraming
@@ -141,7 +142,7 @@ function AdjustableHeadshot({
     },
     dragSize(group) {
       const bounds = group.closest('.headshot-framing-preview')!.getBoundingClientRect();
-      const [, , panelWidth, panelHeight] = layout.sides[side].bounds;
+      const { width: panelWidth, height: panelHeight } = scoreboardPhotoViewport(layout, side, framing);
       return {
         width: bounds.width / 2,
         height: framing === 'extendAbove' ? (bounds.width * panelHeight) / panelWidth : bounds.height

@@ -1,12 +1,12 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "JABS",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "identifier": "gg.jabs.desktop",
   "build": {
     "beforeDevCommand": "pnpm run dev:web",
     "devUrl": "http://127.0.0.1:5173",
-    "beforeBuildCommand": "pnpm run build:web",
+    "beforeBuildCommand": "pnpm run version:check && pnpm run build:web",
     "frontendDist": "../dist"
   },
   "app": {
@@ -31,6 +31,11 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "targets": "all",
+    "windows": {
+      "nsis": {
+        "template": "windows/installer.nsi"
+      }
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -43,7 +48,8 @@
       "../src/renderer/src/assets/fonts/OFL-*.txt": "font-licenses/",
       "../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md",
       "../vendor/glib/LICENSE": "licenses/glib/LICENSE",
-      "../vendor/glib/COPYRIGHT": "licenses/glib/COPYRIGHT"
+      "../vendor/glib/COPYRIGHT": "licenses/glib/COPYRIGHT",
+      "windows/LICENSE_MIT": "licenses/tauri-installer/LICENSE_MIT"
     }
   },
   "plugins": {

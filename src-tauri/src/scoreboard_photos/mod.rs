@@ -106,6 +106,8 @@ pub struct Settings {
     pub logo_backdrop: bool,
     #[serde(default)]
     pub sponsor_backdrop: bool,
+    #[serde(default)]
+    pub show_character_names: bool,
     pub updated_at: String,
 }
 impl Settings {
@@ -132,6 +134,7 @@ impl PhotoStore {
                     framing: Framing::default(),
                     logo_backdrop: false,
                     sponsor_backdrop: false,
+                    show_character_names: false,
                     updated_at: crate::database::now_rfc3339()?,
                 })
             },

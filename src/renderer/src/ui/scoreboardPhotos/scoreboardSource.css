@@ -1,0 +1,26 @@
+.scoreboard-source {
+  display: contents;
+}
+
+.scoreboard-source > .overlay {
+  height: 56.25vw;
+}
+
+.scoreboard-source.has-photo-headroom {
+  display: block;
+  position: relative;
+  width: 100vw;
+  height: calc(56.25vw + var(--scoreboard-source-headroom));
+  padding-top: var(--scoreboard-source-headroom);
+  overflow: hidden;
+  background: transparent;
+  pointer-events: none;
+}
+
+.scoreboard-source.has-photo-headroom > .overlay {
+  overflow: visible;
+}
+
+.scoreboard-source.has-photo-headroom .custom-scoreboard-canvas {
+  overflow: visible;
+}

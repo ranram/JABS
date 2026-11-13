@@ -5,11 +5,16 @@ import { MantineProvider } from '@mantine/core';
 import { expect, it, vi } from 'vitest';
 import { createTestOverlayState } from '@shared/testFixtures';
 import type { LibraryPlayer } from '@shared/playerLibrary';
-import { scoreboardPhotoLayout, scoreboardPhotoPlacement, scoreboardPhotoViewBox } from '@shared/scoreboardPhotos';
+import {
+  scoreboardPhotoLayout,
+  scoreboardPhotoPlacement,
+  scoreboardPhotoViewBox,
+  scoreboardPhotoViewport
+} from '@shared/scoreboardPhotos';
 import { mountView } from '../../hooks/hookTestHarness';
 import { invalidateCatalogConsumers } from '../../hooks/useCatalogRevision';
 import { ScoreboardPlayerPhotos } from './ScoreboardPlayerPhotos';
-import { PlayerPhotoFraming } from '../players/PlayerPhotoFraming';
+import { PlayerPhotoFraming, PhotoFramingContext } from '../players/PlayerPhotoFraming';
 import { PlayerHeadshotEditor } from '../players/PlayerHeadshotEditor';
 
 const transport = photoTransport();
@@ -41,13 +46,17 @@ it('keeps automatic framing consistent between the editor and OBS', async () => 
     h(
       MantineProvider,
       {},
-      h(PlayerHeadshotEditor, { player, selectedSet, onChange: changed }),
+      h(
+        PhotoFramingContext.Provider,
+        { value: transport.framing },
+        h(PlayerHeadshotEditor, { player, selectedSet, onChange: changed })
+      ),
       h(ScoreboardPlayerPhotos, { selectedSet })
     )
   );
   function expectSameFit() {
     const layout = scoreboardPhotoLayout(selectedSet)!;
-    const [, , w, h] = layout.sides.left.bounds;
+    const { width: w, height: h } = scoreboardPhotoViewport(layout, 'left', transport.framing);
     const box = scoreboardPhotoViewBox({ ...photo('portrait'), autoFrame: true, width: 600, height: 900 }, w / h);
     const expected = `${box.x} ${box.y} ${box.width} ${box.height}`;
     expect(view.container.querySelector('.headshot-framing-preview svg[viewBox]')!.getAttribute('viewBox')).toBe(
@@ -58,6 +67,9 @@ it('keeps automatic framing consistent between the editor and OBS', async () => 
     ).toBe(expected);
     expect(changed).not.toHaveBeenCalled();
   }
+  expectSameFit();
+  transport.framing = 'extendAbove';
+  await view.rerender();
   expectSameFit();
   const requests = transport.resolve.mock.calls.length;
   selectedSet = { ...selectedSet, gameId: 'guilty-gear-strive', assetCatalogSlug: 'guilty-gear-strive' };

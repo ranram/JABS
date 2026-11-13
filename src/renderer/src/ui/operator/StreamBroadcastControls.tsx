@@ -1,20 +1,26 @@
 import { Checkbox, Select, SimpleGrid, Stack } from '@mantine/core';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LogoAsset, SelectedSetState } from '@shared/models';
 import { BufferedTextInput } from './BufferedTextInput';
 import { emptyToUndefined, sortByLabel } from './operatorUtils';
+import { scoreboardPhotoLayout } from '@shared/scoreboardPhotos';
+import { useScoreboardPhotos } from '../../hooks/useScoreboardPhotos';
+import { useOperatorNotifications } from './useOperatorNotifications';
+import { api } from '../../api';
 
 type Broadcast = NonNullable<SelectedSetState['broadcast']>;
 
 export function StreamBroadcastControls({
   logoSelectId,
+  selectedSet,
   broadcast,
   isExhibition,
   logos,
   onChange
 }: {
   logoSelectId?: string;
+  selectedSet?: SelectedSetState;
   broadcast?: Broadcast;
   isExhibition: boolean;
   logos: LogoAsset[];
@@ -22,6 +28,12 @@ export function StreamBroadcastControls({
 }) {
   const { t, i18n } = useTranslation('operator');
   const locale = i18n.resolvedLanguage ?? i18n.language;
+  const showCharacterNames = Boolean(
+    selectedSet &&
+    !selectedSet.customScoreboardId &&
+    (selectedSet.stylingGameId ?? selectedSet.gameId) === 'street-fighter-6' &&
+    scoreboardPhotoLayout(selectedSet)?.gameId === 'street-fighter-6'
+  );
   const logoOptions = useMemo(
     () => sortByLabel(logos, (logo) => logo.label, locale).map((logo) => ({ value: logo.id, label: logo.label })),
     [logos, locale]
@@ -65,7 +77,11 @@ export function StreamBroadcastControls({
           onChange={(value) => onChange({ logoAssetId: value ?? undefined })}
         />
       </SimpleGrid>
-      <SimpleGrid className="scoreboard-visibility-options" type="container" cols={{ base: 1, '18rem': 2, '36rem': 3 }}>
+      <SimpleGrid
+        className="scoreboard-visibility-options"
+        type="container"
+        cols={{ base: 1, '18rem': 2, '36rem': 3, '48rem': showCharacterNames && !isExhibition ? 4 : 3 }}
+      >
         <Checkbox
           data-testid="editor-info-bar-enabled"
           checked={broadcast?.infoBarEnabled ?? false}
@@ -92,7 +108,35 @@ export function StreamBroadcastControls({
             onChange={(event) => onChange({ seedsEnabled: event.currentTarget.checked })}
           />
         )}
+        {showCharacterNames && <CharacterNamesCheckbox />}
       </SimpleGrid>
     </Stack>
+  );
+}
+
+function CharacterNamesCheckbox() {
+  const { t } = useTranslation('operator');
+  const { state, setState } = useScoreboardPhotos();
+  const [saving, setSaving] = useState(false);
+  const notify = useOperatorNotifications();
+  async function save(showCharacterNames: boolean) {
+    if (!state || saving) return;
+    setSaving(true);
+    try {
+      setState(await api.updateScoreboardPhotoSettings({ ...state, showCharacterNames }));
+    } catch {
+      notify(t('scoreboardPhotos.saveFailed'), 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <Checkbox
+      data-testid="editor-character-names-enabled"
+      label={t('scoreboardPhotos.showCharacterNames')}
+      checked={state?.showCharacterNames ?? false}
+      disabled={!state || saving}
+      onChange={(event) => void save(event.currentTarget.checked)}
+    />
   );
 }

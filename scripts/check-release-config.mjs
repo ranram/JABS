@@ -1,8 +1,22 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto'
 
 const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 const tauri = JSON.parse(await readFile(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
 const cargo = await readFile(new URL('../src-tauri/Cargo.toml', import.meta.url), 'utf8');
+const installerPath = 'windows/installer.nsi'
+if (tauri.bundle.windows?.nsis?.template !== installerPath) {
+  throw new Error('Windows builds must use the JABS installer that preserves application data.')
+}
+const installer = await readFile(new URL(`../src-tauri/${installerPath}`, import.meta.url))
+// Review the preserved-data behavior before changing this template or upgrading the CLI.
+const installerHash = '5bfb62544e7ceb9da1d5358e0a23b26e75b3d9f4ee3f91dbdff908f6104b2bdf'
+if (
+  packageJson.devDependencies['@tauri-apps/cli'] !== '2.11.4' ||
+  createHash('sha256').update(installer).digest('hex') !== installerHash
+) {
+  throw new Error('Review Windows data preservation before changing the installer or Tauri CLI. See src-tauri/windows/README.md.')
+}
 const nativeVersion = cargo.match(/\[package\][\s\S]*?^version = "([^"]+)"/m)?.[1];
 if (packageJson.version !== tauri.version || packageJson.version !== nativeVersion) {
   throw new Error('Keep package.json, src-tauri/tauri.conf.json and src-tauri/Cargo.toml versions equal.');

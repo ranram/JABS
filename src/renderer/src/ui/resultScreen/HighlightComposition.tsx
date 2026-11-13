@@ -79,16 +79,16 @@ export function HighlightComposition({
           />
         </div>
         <div className="highlight-impact" data-entrance="highlight-impact" aria-hidden="true" />
-        {(showIdentity || showWinnerTitle) && (
-          <header className="highlight-copy">
-            {showWinnerTitle && (
-              <div className="highlight-title" data-entrance="highlight-title">
-                {t(kind === 'champion' ? 'championAnnouncement' : 'winnerAnnouncement')}
-              </div>
-            )}
-            {showIdentity && <HighlightName name={winner.name} sponsor={sponsor} />}
-          </header>
-        )}
+        <header className="highlight-copy">
+          <div
+            className="highlight-title"
+            data-entrance="highlight-title"
+            data-result-title-hidden={!showWinnerTitle || undefined}
+          >
+            {t(kind === 'champion' ? 'championAnnouncement' : 'winnerAnnouncement')}
+          </div>
+          {showIdentity && <HighlightName name={winner.name} sponsor={sponsor} />}
+        </header>
         {showConfetti && <HighlightConfetti ready={ready} presentationKey={presentationKey} />}
       </div>
     </section>

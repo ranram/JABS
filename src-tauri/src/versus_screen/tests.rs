@@ -184,9 +184,12 @@ fn history_and_settings_writes_preserve_each_other_and_reject_stale_revisions() 
     let store = VersusScreenStore::load(&database).unwrap();
     let stale = store.current().unwrap();
     assert_eq!(stale["showMatchBackdrop"], true);
+    assert_eq!(stale["mirrorCharacterPlacement"], true);
     assert_eq!(stale["informationLayout"], "standard");
     let mut legacy = stale.clone();
     legacy.as_object_mut().unwrap().remove("showMatchBackdrop");
+    legacy.as_object_mut().unwrap().remove("mirrorCharacterPlacement");
+    assert!(serde_json::from_value::<VersusScreenState>(legacy.clone()).unwrap().mirror_character_placement);
     legacy.as_object_mut().unwrap().remove("informationLayout");
     assert_eq!(
         serde_json::from_value::<VersusScreenState>(legacy.clone())
@@ -413,6 +416,7 @@ fn player_defaults_apply_to_exhibitions_and_new_sets_without_replacing_saved_set
     select(&store, &initial, &exhibition);
     set_mode(&store, "combined");
     let mut edited = settings(&store);
+    edited.mirror_character_placement = false;
     edited.media_placements[0].character.scale = 1.4;
     edited.media_placements[0].photo.x = 0.2;
     edited.media_placements[1].character.flipped = true;
@@ -499,14 +503,7 @@ fn player_defaults_apply_to_exhibitions_and_new_sets_without_replacing_saved_set
     let mut swapped = exhibition.clone();
     std::mem::swap(&mut swapped.player_one, &mut swapped.player_two);
     select(&store, &exhibition, &swapped);
-    let mut mirrored_defaults = default_media_placements();
-    mirrored_defaults[1].character = MediaTransform {
-        x: -latest_defaults[0].character.x,
-        y: latest_defaults[0].character.y,
-        scale: latest_defaults[0].character.scale,
-        flipped: false,
-    };
-    assert_eq!(settings(&store).media_placements, mirrored_defaults);
+    assert_eq!(settings(&store).media_placements, default_media_placements());
     select(&store, &swapped, &exhibition);
     assert_eq!(settings(&store).media_placements, latest_defaults);
     let mut replacement = exhibition.clone();

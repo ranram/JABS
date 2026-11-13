@@ -1,2 +1,3 @@
 # Keep the reviewed vendored source byte-identical on every build platform.
 vendor/glib/** -text
+src-tauri/windows/installer.nsi text eol=lf

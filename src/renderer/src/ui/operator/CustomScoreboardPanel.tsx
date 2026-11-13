@@ -42,6 +42,7 @@ import { CustomScoreboardRegionControls } from '../customScoreboard/CustomScoreb
 import { ScoreboardFontSelect } from '../fonts/ScoreboardFontSelect';
 import './customScoreboardPanel.css';
 import { useCustomScoreboardDraft } from './useCustomScoreboardDraft';
+import { scoreboardPhotoLayout } from '@shared/scoreboardPhotos';
 
 type CustomScoreboardPanelProps = {
   onPatchBroadcast?(patch: Partial<NonNullable<SelectedSetState['broadcast']>>): void;
@@ -330,6 +331,18 @@ export function CustomScoreboardPanel({
                                 }
                               />
                             ))}
+                            {activeSet && scoreboardPhotoLayout(activeSet)?.gameId === 'street-fighter-6' && (
+                              <Switch
+                                label={t('scoreboardPhotos.showCharacterNames')}
+                                checked={draft.visibility.characterNames}
+                                onChange={(event) =>
+                                  setDraft({
+                                    ...draft,
+                                    visibility: { ...draft.visibility, characterNames: event.currentTarget.checked }
+                                  })
+                                }
+                              />
+                            )}
                             <Switch
                               label={t('customScoreboard.sponsorThemeColors')}
                               checked={draft.typography.sponsorColor === undefined}

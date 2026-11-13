@@ -115,9 +115,9 @@ The two clear shortcuts open a **Yes / No** dialog. Click your choice, press **Y
 
 ## OBS
 
-Choose a source from **Copy overlay URL** in the toolbar, then paste its URL into an OBS Browser Source. Set its size to `1920×1080`, clear any custom CSS, and keep JABS running while broadcasting.
+Choose a source from **Copy overlay URL** in the toolbar, then paste its URL into an OBS Browser Source. Use `1920×1080` unless you enable SF6 photo extension, described under **Scoreboard photos and logos** below. Clear any custom CSS and keep JABS running while broadcasting.
 
-The Scoreboard follows the current match. Winner & Champion stays blank until there is a winner, then chooses the winner or champion presentation automatically. Set up the other sources under **Overlays**. For Bracket View, choose a phase and pool. For Top 8 Matchups, load the opening matchups from your event.
+The Scoreboard follows the current match. Winner & Champion prepares the player leading the JABS score, even before the winning point is entered. Unresolved ties keep the screen blank. In Grand Finals, the screen chooses Winner or Champion automatically. Set up the other sources under **Overlays**. For Bracket View, choose a phase and pool. For Top 8 Matchups, load the opening matchups from your event.
 
 Choose **Scoreboard font** under **Edit stream state** to change the scoreboard and its information rails. **[DEFAULT]** uses the selected style’s font. Custom scoreboards keep their own font choice.
 
@@ -135,15 +135,15 @@ For animated overlays that should start fresh when you return to their scene, en
 
 ### Frame Player Stats and Winner & Champion images
 
-Open the overlay’s settings and use **Image framing**. Player Stats shows both players together, with Player 2 on the right. Winner & Champion becomes editable once there is a winner and shows only that player.
+Open the overlay’s settings and use **Image framing**. Player Stats shows both players together, with Player 2 on the right. Winner & Champion becomes editable once a player leads the score or has a confirmed result, and shows only that player.
 
 Click an image to select it, or use **Ctrl+click** to reach artwork behind it. Drag to move, use **+ / −** to resize, and press **F** to flip. **Adjust visual layer** selects an image by name. **Reset position** resets only the selected image. Images can scale up to 800% if needed.
 
 Classic, Victory, and Spotlight keep artwork on the left and names, logos, and match details on the right for either winner. Character position and size carry across winners without reversing horizontal movement. Player Stats mirrors character framing between sides. Flip stays separate for each side, and photos keep each player’s own framing. Each screen and composition saves separate framing for photos alone, characters alone, and both together.
 
-Choose **Highlight** under **Layout** for large player and character artwork, a faint team or sponsor backdrop, and a foreground Winner or Champion title. The subjects zoom and fade into place before the name and title enter. Automatic framing groups the subjects together and places the visible top of unedited character art near the lower edge of the name. Artwork can extend behind the title or your own OBS banner. The glow follows the winning side’s theme color. Photo framing sizes the head while retaining the body below it. **Image framing** shows the same arrangement as OBS and lets you adjust it when needed.
+Choose **Highlight** under **Layout** for large player and character artwork grouped in the center, with a faint team or sponsor logo behind them. Artwork can extend behind the Winner or Champion title or your own OBS banner. The glow follows the winning side’s theme color. Use **Image framing** to adjust the same arrangement shown in OBS.
 
-Turn off **Show Winner / Champion title** to use your own banner while keeping the player’s name. **Show player name** controls the name separately. You can also hide photos, character art, or logos. Turn on **Show confetti** for a single burst when the result appears. Enable **Transparent background** to place Highlight over your own scene.
+Turn off **Keep Winner / Champion title** in any winner layout to hide the title after its entrance animation. Names, logos, and artwork stay in place. In Highlight, **Show player name** controls the name separately. You can also hide photos, character art, or logos. Turn on **Show confetti** for a single burst when the result appears. Enable **Transparent background** to place Highlight over your own scene.
 
 ### Stingers
 
@@ -185,10 +185,12 @@ Use **Export library** to back up player records, and back up your image folders
 
 Sponsor logos appear automatically on built-in and custom nameplates when a file in `sponsors/` matches the player’s **Team/Sponsor**. Player 1’s logo sits on the right before the score. Player 2’s sits on the left. Names appear in front of the logos. Player photos do not need to be enabled.
 
+For Street Fighter 6, enable **Show character names** under **Scoreboard appearance**, or beside the custom scoreboard’s visibility switches. Each character name sits below its photo mask, beside the in-game username and icon. These positions stay fixed in custom layouts. The option is hidden for other games and JABS scoreboard styles.
+
 Enable **Player photos in scoreboards** under **Edit stream state → Scoreboard appearance**. In **Players**, choose a photo mode:
 
 - **Contained** keeps the photo inside its frame.
-- **Extend above** lets the photo rise above its frame, with the sides and bottom kept inside. The top scoreboard moves down to make room.
+- **Extend above** adds 60px above the SF6 photo frame. Set **Width** to **1920** and **Height** to **1140** in the OBS Browser Source’s **Properties**. The extra space stays reserved when switching photo modes, so the scoreboard stays in place. With a 1920×1080 source, photos stay contained. Other games use automatic headroom.
 
 New and replaced photos frame automatically in the preview and OBS. For transparent cutouts, JABS estimates a head-and-shoulders crop. Other photos use the whole image. Unusual poses may need a manual adjustment.
 
@@ -239,7 +241,7 @@ In Versus Screen, Top 8 Generator, and YouTube Thumbnail Generator, drag either 
 
 With an image selected, arrow keys move it, `Shift` + arrows moves it farther, `+` / `-` resizes it, and `F` flips it.
 
-Versus Screen remembers character framing for each game, artwork or outfit, and photo/character layout. Position and size mirror across player sides. Flip stays independent for each side. Other players using that artwork inherit its framing. Photo framing stays with each saved player. Saved match layouts and personal adjustments take priority.
+In **Overlays → Versus Screen**, **Mirror character placement** links character position and size across sides for the same game and artwork. It is on by default. Turn it off to frame each side independently. Flips and player photos stay independent in either mode. Changing the switch keeps existing placements until you edit them. Standard and Compact save separate framing.
 
 ## Custom scoreboards
 

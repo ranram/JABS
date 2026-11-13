@@ -33,6 +33,7 @@ import './commentatorOverlay.css';
 import './operator/generatorFonts.css';
 import { useOverlayEntrance } from './useOverlayEntrance';
 import { scoreboardEntrance } from './scoreboardEntrance';
+import { useScoreboardSwap } from './useScoreboardSwap';
 import { AnnouncementOverlay } from './AnnouncementOverlay';
 import { CatalogImage } from './CatalogImage';
 import { QueueTickerOverlay } from './queueTicker/QueueTicker';
@@ -40,6 +41,7 @@ import { StingersOverlay } from './stingers/StingersOverlay';
 import { ScoreboardSponsors } from './scoreboardSponsors/ScoreboardSponsors';
 import { ScoreboardSponsorLogo } from './scoreboardSponsors/ScoreboardSponsorLogo';
 import { ScoreboardPlayerPhotos } from './scoreboardPhotos/ScoreboardPlayerPhotos';
+import { ScoreboardSource } from './scoreboardPhotos/ScoreboardSource';
 import { bundledFonts } from './fonts/bundledFonts';
 import './fonts/scoreboardFontOverride.css';
 
@@ -92,6 +94,11 @@ function MatchOverlayView() {
     scoreboardEntrance,
     Boolean(selectedSet && !announcementSurface && !selectedSet.customScoreboardId)
   );
+  useScoreboardSwap(
+    entranceRef,
+    selectedSet,
+    Boolean(selectedSet && !announcementSurface && !selectedSet.customScoreboardId)
+  );
   const presentation = resolveOverlayPresentation(
     announcementSurface ? '/overlay/active/main' : window.location.pathname,
     selectedSet?.stylingGameId ?? selectedSet?.gameId
@@ -139,57 +146,61 @@ function MatchOverlayView() {
 
   if (customScoreboard.scoreboard && customScoreboard.frameUrl) {
     return (
-      <main className="overlay" data-custom-scoreboard-id={customScoreboard.scoreboard.id}>
-        <CustomScoreboardCanvas
-          animateEntrance
-          scoreboard={customScoreboard.scoreboard}
-          frameUrl={customScoreboard.frameUrl}
-          selectedSet={selectedSet}
-          logoUrl={logoUrl}
-        />
+      <ScoreboardSource selectedSet={selectedSet}>
+        <main className="overlay" data-custom-scoreboard-id={customScoreboard.scoreboard.id}>
+          <CustomScoreboardCanvas
+            animateEntrance
+            scoreboard={customScoreboard.scoreboard}
+            frameUrl={customScoreboard.frameUrl}
+            selectedSet={selectedSet}
+            logoUrl={logoUrl}
+          />
+          {error && (
+            <div className="overlay-connection-status" role="status">
+              {t('common:status.reconnecting')}
+            </div>
+          )}
+        </main>
+      </ScoreboardSource>
+    );
+  }
+
+  return (
+    <ScoreboardSource selectedSet={selectedSet}>
+      <main
+        ref={entranceRef}
+        className={`overlay ${profile.overlay.themeClass}`}
+        style={
+          {
+            ...appearanceStyle,
+            '--scoreboard-photo-top': `${photoTopInset / 10.8}%`,
+            ...(effectiveScoreboardFont
+              ? { '--scoreboard-font-family': bundledFonts[effectiveScoreboardFont].family }
+              : {})
+          } as CSSProperties
+        }
+        data-scoreboard-font={effectiveScoreboardFont}
+        data-game-id={profile.id}
+        data-overlay-template={profile.overlay.template}
+      >
+        <ScoreboardSponsors selectedSet={selectedSet}>
+          <ScoreboardPlayerPhotos
+            selectedSet={selectedSet}
+            stylingGameId={profile.id}
+            logoUrl={logoUrl}
+            onTopInsetChange={setPhotoTopInset}
+          />
+          <Template profile={profile} selectedSet={selectedSet} />
+          <ScoreboardDetails selectedSet={selectedSet} profile={profile} topInset={photoTopInset} />
+          <BroadcastLayer profile={profile} selectedSet={selectedSet} logoUrl={logoUrl} />
+        </ScoreboardSponsors>
         {error && (
           <div className="overlay-connection-status" role="status">
             {t('common:status.reconnecting')}
           </div>
         )}
       </main>
-    );
-  }
-
-  return (
-    <main
-      ref={entranceRef}
-      className={`overlay ${profile.overlay.themeClass}`}
-      style={
-        {
-          ...appearanceStyle,
-          '--scoreboard-photo-top': `${photoTopInset / 10.8}%`,
-          ...(effectiveScoreboardFont
-            ? { '--scoreboard-font-family': bundledFonts[effectiveScoreboardFont].family }
-            : {})
-        } as CSSProperties
-      }
-      data-scoreboard-font={effectiveScoreboardFont}
-      data-game-id={profile.id}
-      data-overlay-template={profile.overlay.template}
-    >
-      <ScoreboardSponsors selectedSet={selectedSet}>
-        <ScoreboardPlayerPhotos
-          selectedSet={selectedSet}
-          stylingGameId={profile.id}
-          logoUrl={logoUrl}
-          onTopInsetChange={setPhotoTopInset}
-        />
-        <Template profile={profile} selectedSet={selectedSet} />
-        <ScoreboardDetails selectedSet={selectedSet} profile={profile} topInset={photoTopInset} />
-        <BroadcastLayer profile={profile} selectedSet={selectedSet} logoUrl={logoUrl} />
-      </ScoreboardSponsors>
-      {error && (
-        <div className="overlay-connection-status" role="status">
-          {t('common:status.reconnecting')}
-        </div>
-      )}
-    </main>
+    </ScoreboardSource>
   );
 }
 
@@ -319,7 +330,7 @@ function PlayerPlate({ player, selectedSet, side, profile }: PlayerPlateProps) {
       )}
       <div className="overlay-player-copy" ref={copyRef}>
         <ScoreboardSponsorLogo side={side} />
-        <span className="overlay-player-identity">
+        <span className="overlay-player-identity" data-scoreboard-swap-text={side}>
           <strong className="overlay-player-name">
             <ScoreboardPlayerName
               name={name}
@@ -335,7 +346,9 @@ function PlayerPlate({ player, selectedSet, side, profile }: PlayerPlateProps) {
         className="overlay-player-score"
         aria-label={t('overlay:playerScore', { player: player.name, score: player.score })}
       >
-        <span className="overlay-player-score-text">{player.score}</span>
+        <span className="overlay-player-score-text" data-scoreboard-swap-text={side}>
+          {player.score}
+        </span>
       </span>
     </article>
   );

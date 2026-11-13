@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src/renderer/src/assets/jabs-logo.svg" alt="JABS logo" width="480">
+</p>
+
 # JABS: Just Another Bracketing System
 
 JABS helps fighting game organizers run tournaments and broadcasts from their computer. It loads brackets from [start.gg](https://www.start.gg/), keeps the current match ready for stream, updates scores, and sends transparent overlays to OBS.
@@ -65,6 +69,18 @@ Other fighting games are available through the searchable **Game** list or their
 3. Keep JABS running and update scores from **Edit stream state**.
 
 Choose **Help** for in-app tutorials. The [User Manual](USER_MANUAL.md) covers artwork, overlays, and [connecting to start.gg for reporting](USER_MANUAL.md#connect-to-startgg).
+
+## On Uninstall
+
+JABS keeps saved data in these folders after uninstalling:
+
+| System | App data folder |
+| --- | --- |
+| Windows | `%APPDATA%\gg.jabs.desktop` |
+| macOS | `~/Library/Application Support/gg.jabs.desktop` |
+| Linux | `$XDG_DATA_HOME/gg.jabs.desktop`, usually `~/.local/share/gg.jabs.desktop` |
+
+Older Windows uninstallers may still offer to delete app data.
 
 ## Develop
 

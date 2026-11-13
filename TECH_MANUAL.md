@@ -61,7 +61,9 @@ OBS keeps the JABS service address when loading an overlay in either dev or an i
 | Stingers | `/overlay/stingers` |
 | Queue ticker | `/overlay/queue-ticker` |
 
-Player Stats and Winner/Champion save bounded `artworkFraming` maps by game, composition, visible layers, and artwork identity. Classic, Victory and Spotlight use fixed left-side artwork and right-side copy in OBS and the editor. Their character geometry carries across winners with the same horizontal direction. Other layouts retain mirrored framing. Flips stay independent, and photo keys prefer start.gg IDs while still reading older local-player keys. Winner/Champion writes reject stale settings revisions.
+Player Stats and Winner/Champion save bounded `artworkFraming` maps by game, composition, visible layers, and artwork identity. Classic, Victory and Spotlight keep artwork on the left and copy on the right in OBS and the editor. Character geometry carries across winners without reversing horizontal movement. Other layouts retain mirrored framing. Flips stay independent, and photo keys prefer start.gg IDs while still reading older local-player keys. Winner/Champion writes reject stale settings revisions.
+
+Winner screens and their controls use `announcementPresentation` with `allowLeadingScore` to prepare the score leader before match completion. Confirmed results take priority. Unresolved ties and upstream resets stay blank. Stingers require a completed result.
 
 Highlight uses the same Winner/Champion route and settings. `highlightLayout` groups artwork at the center with a large translucent sponsor backdrop. Decoded artwork carries its visible-top fraction and aspect ratio. Unedited characters use those measurements to align the cutout near the lower edge of the name. The automatic offset uses the existing placement coordinates so the first edit does not jump. Saved manual geometry keeps priority. A single visible subject is centered. Hiding the name gives artwork more vertical space. Subjects extend behind foreground titles and banners. Only the full 1920×1080 stage clips them. The framing editor uses the same composition as OBS.
 
@@ -73,7 +75,7 @@ Highlight artwork strikes into place over 220 ms. The staggered sequence ends wi
 
 Optional confetti preloads before its cue and plays once per result or OBS activation. Hidden sources pause it. The bundled asset, `src/renderer/src/assets/overlays/confetti.webm`, is derived from `examples/confetti.webm` at 1280×720, retaining 60 fps and alpha. The original reference stays unchanged. `showConfetti` defaults to false.
 
-The scoreboard route shows the selected built-in or custom layout. The result route chooses Winner or Champion from the match result; `/overlay/active/champion` remains a supported alias.
+The scoreboard route shows the selected built-in or custom layout. The result route prepares Winner or Champion for the selected match; `/overlay/active/champion` remains a supported alias.
 
 ## start.gg requests
 
@@ -126,7 +128,7 @@ The Player Library stores profiles and local overrides in `players`, searchable 
 
 Versus framing is handled by `versus_screen.rs` and its `media` and `layout_settings` modules. Match adjustments live in `set_overrides.versus_media`. Reusable character transforms live in `versus_character_defaults`, keyed by game catalog, character, resolved artwork, side, and composition. Photo transforms belong to each player and use catalog, side, composition, and photo asset keys in `player_versus_media`.
 
-Standard retains the original framing keys. Compact uses a `compact:` composition scope. The Versus surface stores each layout’s display preferences and framing context, restored atomically when switching layouts. Matching character position and size mirror across sides, while flips and player photos stay independent. Other overlays keep their own settings and framing stores.
+Standard retains the original framing keys. Compact uses a `compact:` composition scope. The Versus surface stores each layout’s display preferences and framing context, restored atomically when switching layouts. `mirrorCharacterPlacement` defaults to true and links character position and size across sides for the same artwork. When disabled, edits update only the selected side’s character default. Flips and photo framing stay independent. Changing the switch does not alter existing placements. Other overlays keep their own settings and framing stores.
 
 Saved match layouts take priority over reusable defaults. Older combined player records remain readable and keep their priority, but only edits by their owner update them. New character edits update shared defaults. Surface, match, photo, and character writes share one transaction. Framing survives restarts and is not included in Player Library exports.
 
@@ -240,7 +242,9 @@ Tutorial descriptions support `**bold text**`. The renderer escapes HTML before 
 
 ## Scoreboard detail pills
 
-`ScoreboardDetails` renders X handles, pronouns, and enabled tournament seeds outside built-in nameplates. `scoreboardDetailLayouts` stores mirrored 1920×1080 placements for every supported game, chosen from the game references. Gameplay context determines placement; the scoreboard style and appearance overrides determine colors. Rows start from mirrored HUD landmarks. Bending Arts uses the player-label strip; Assemble! and Double Down start at the life bars. Width limits keep long details out of adjacent meters. Photo headroom uses the actual game’s HUD bounds, with a below-HUD fallback for Strive; changing the style does not change these positions. Custom scoreboards reuse `ScoreboardDetailPill` at their saved field coordinates. Only these three fields use the scoped pill CSS.
+`ScoreboardDetails` renders X handles, pronouns, and enabled seeds outside built-in nameplates. `scoreboardDetailLayouts` stores their 1920×1080 positions by gameplay layout. The selected scoreboard style supplies colors. Custom layouts use `ScoreboardDetailPill` at saved field coordinates.
+
+SF6 character-name pills fill the photo-mask width below its original bottom edge. Their positions stay fixed in custom layouts and Extend above mode. Built-in visibility uses `scoreboard-photos.showCharacterNames`, while custom layouts use `visibility.characterNames`. Both default to false. The controls appear only for the SF6 JABS style or an SF6 custom scoreboard.
 
 ## Scoreboard photos
 
@@ -252,9 +256,9 @@ Native resolution marks new or replaced files `autoFrame: true`. The renderer lo
 
 `scoreboardPhotoViewBox` shares the crop between the editor, OBS, and headroom calculation. Silhouette crops use 96% fill and align with the top of the hair. The fallback uses 92% fill with 4% top clearance. Viewports can extend outside the source image so square photos fit wide panels. Focus bounds stay in decoded media metadata. Existing manual crops keep priority, and automatic framing needs no player save to reach OBS.
 
-**Auto frame** writes the automatic-framing flag and resets the active mode’s selected placements in one update. Replaced files discard stale crops and placements in both the editor and OBS. Keep original and trimmed raster cache entries separate.
+**Auto frame** writes the automatic-framing flag and resets the active mode’s selected placements in one update. Replaced files discard stale crops and placements in both the editor and OBS. Original and trimmed rasters use separate cache entries.
 
-For Extend above, `scoreboardPhotoTop` calculates headroom from visible alpha, crop, and placement. Both photos and the top HUD move down to make room. Masks open above the frames while preserving side, bottom, and HUD clipping. Custom frame artwork stays split at 780px so bottom rails remain anchored. Contained uses the original masks with no inset.
+For SF6, `scoreboardPhotoViewport` extends each photo mask 60px upward while keeping its bottom fixed. The editor and OBS frame photos within that viewport. `ScoreboardSource` reserves transparent headroom in both photo modes when the browser can fit a 1920×1140 canvas. A 1920×1080 canvas keeps photos contained. Scoreboard artwork and text retain their original coordinates. Logo clipping uses the original mask. Automatic framing constrains older offsets that would place the head above the opening. Other games use alpha-based headroom and shift the top HUD accordingly.
 
 `PlayerHeadshotPreview` holds its viewport fixed while the extended photo is selected; only the cutout transform and clipping mask update during adjustment. Fit preview or blur recalculates the viewport. Drag distances use the fixed display scale rather than the changing cutout height.
 

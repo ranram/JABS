@@ -4,7 +4,7 @@ import { hasStreamMatch } from './streamStatus';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelect } from '../LanguageSelect';
 import { AppUpdateControls } from './AppUpdateControls';
-import brandLogo from '../../assets/jabs-logo.png';
+import brandLogo from '../../assets/jabs-logo.svg';
 
 type OperatorTopbarProps = {
   tokenVerified: boolean;
@@ -35,17 +35,9 @@ export function OperatorTopbar({
 
   return (
     <header className="operator-topbar">
-      <Group className="operator-brand" gap="sm" wrap="nowrap">
-        <img className="brand-mark" src={brandLogo} alt="" />
-        <div>
-          <Text component="h1" fw={900} size="lg">
-            JABS
-          </Text>
-          <Text size="xs" c="dimmed">
-            {t('operator:appSubtitle')}
-          </Text>
-        </div>
-      </Group>
+      <h1 className="operator-brand">
+        <img className="brand-mark" src={brandLogo} alt="JABS" />
+      </h1>
       <Group className="operator-status-strip" wrap="wrap" justify="flex-end">
         <div className="topbar-readout">
           <Text component="span" size="xs">

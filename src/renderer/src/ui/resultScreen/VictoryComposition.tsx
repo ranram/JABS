@@ -21,6 +21,7 @@ type Props = {
   logoUrl?: string;
   portraits: CharacterPortrait[];
   placement?: PlayerMediaPlacement;
+  showWinnerTitle?: boolean;
 };
 
 export function VictoryComposition({
@@ -34,7 +35,8 @@ export function VictoryComposition({
   sponsorLogoUrl,
   logoUrl,
   portraits,
-  placement
+  placement,
+  showWinnerTitle = true
 }: Props) {
   const { t } = useTranslation('overlay');
   const sponsor = winner.prefix?.trim() || winner.sponsor?.trim();
@@ -58,7 +60,11 @@ export function VictoryComposition({
       {logoUrl && <CatalogImage className="victory-logo" src={logoUrl} entrance="victory-logo" />}
 
       <div className="victory-copy" data-entrance="victory-copy">
-        <div className="victory-title" data-entrance="victory-title">
+        <div
+          className="victory-title"
+          data-entrance="victory-title"
+          data-result-title-hidden={!showWinnerTitle || undefined}
+        >
           <span>{announcement}</span>
         </div>
         <strong ref={nameRef} className="victory-name" data-entrance="victory-name">

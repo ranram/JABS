@@ -12,6 +12,7 @@ const transport = vi.hoisted(() => ({
   framing: 'contained' as PhotoFraming,
   logoBackdrop: false,
   sponsorBackdrop: false,
+  showCharacterNames: false,
   updatedAt: '1',
   save: vi.fn(),
   resolve: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock('../../hooks/useScoreboardPhotos', () => ({
       framing: transport.framing,
       logoBackdrop: transport.logoBackdrop,
       sponsorBackdrop: transport.sponsorBackdrop,
+      showCharacterNames: transport.showCharacterNames,
       updatedAt: transport.updatedAt
     },
     setState(next: ScoreboardPhotoSettings) {
@@ -34,6 +36,7 @@ vi.mock('../../hooks/useScoreboardPhotos', () => ({
       transport.framing = next.framing;
       transport.logoBackdrop = next.logoBackdrop;
       transport.sponsorBackdrop = next.sponsorBackdrop;
+      transport.showCharacterNames = next.showCharacterNames;
       transport.updatedAt = next.updatedAt;
     }
   })
@@ -62,6 +65,7 @@ beforeEach(() => {
   transport.framing = 'contained';
   transport.logoBackdrop = false;
   transport.sponsorBackdrop = false;
+  transport.showCharacterNames = false;
   transport.updatedAt = '1';
   transport.save.mockReset().mockImplementation(async (settings) => ({ ...settings, updatedAt: '2' }));
   transport.resolve.mockReset().mockResolvedValue({ photos: [null, null] });

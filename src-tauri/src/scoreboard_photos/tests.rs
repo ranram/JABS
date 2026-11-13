@@ -352,6 +352,7 @@ async fn photo_settings_are_persisted_versioned_and_require_trusted_mutations() 
     assert_eq!(original.framing, Framing::Contained);
     assert!(!original.logo_backdrop);
     assert!(!original.sponsor_backdrop);
+    assert!(!original.show_character_names);
     let legacy: Settings = serde_json::from_value(serde_json::json!({
         "enabled": true, "updatedAt": original.updated_at
     }))
@@ -359,10 +360,12 @@ async fn photo_settings_are_persisted_versioned_and_require_trusted_mutations() 
     assert_eq!(legacy.framing, Framing::Contained);
     assert!(!legacy.logo_backdrop);
     assert!(!legacy.sponsor_backdrop);
+    assert!(!legacy.show_character_names);
     let mut next = original.clone();
     next.enabled = true;
     next.framing = Framing::ExtendAbove;
     next.logo_backdrop = true;
+    next.show_character_names = true;
     let mut updates = f.runtime.scoreboard_photos.subscribe();
     let rejected = update(
         State(f.runtime.clone()),
@@ -388,8 +391,10 @@ async fn photo_settings_are_persisted_versioned_and_require_trusted_mutations() 
     assert_eq!(persisted.framing, Framing::ExtendAbove);
     assert!(persisted.logo_backdrop);
     assert!(!persisted.sponsor_backdrop);
+    assert!(persisted.show_character_names);
     let message: serde_json::Value = serde_json::from_str(&updates.recv().await.unwrap()).unwrap();
     assert_eq!(message["payload"]["logoBackdrop"], true);
+    assert_eq!(message["payload"]["showCharacterNames"], true);
     let mut conflicting = persisted.clone();
     conflicting.sponsor_backdrop = true;
     assert_eq!(update(State(f.runtime.clone()), headers.clone(), Json(conflicting)).await.status(), StatusCode::UNPROCESSABLE_ENTITY);

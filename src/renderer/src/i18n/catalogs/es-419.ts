@@ -541,7 +541,7 @@ export const es419 = {
       contained: 'Dentro del marco',
       extendAbove: 'Extender hacia arriba (Experimental)',
       framingHelp:
-        'Dentro del marco mantiene las fotos dentro del marcador. Extender hacia arriba permite que sobresalgan solo por arriba. Cada modo conserva su encuadre.',
+        'Cada modo guarda su encuadre. Para extender las fotos de SF6, establece el ancho en 1920 y la altura en 1140 en las Propiedades de la fuente de navegador de OBS. Con 1920×1080, las fotos de SF6 se mantienen dentro del marco.',
 
       saveScope: 'Aplicar encuadre a',
       savePlayerOne: 'Lado del jugador 1',
@@ -554,6 +554,7 @@ export const es419 = {
       recommendedSize:
         'Usa una foto de cabeza y hombros. No necesitas cambiarle el tamaño ni agregar márgenes transparentes.',
       enabled: 'Fotos de jugadores en marcadores',
+      showCharacterNames: 'Mostrar nombres de personajes',
       logoBackdrop: 'Logo del torneo detrás de los jugadores',
       sponsorBackdrop: 'Logos de patrocinadores detrás de los jugadores',
       chooseLogo: 'Elige un logo de torneo en <extras>Logo</extras>.',
@@ -569,7 +570,6 @@ export const es419 = {
       loadFailed: 'No se pudo cargar la configuración de fotos.',
       noImage: 'No hay una imagen coincidente.'
     },
-    appSubtitle: 'Just Another Bracketing System',
     // Player library
     players: {
       // Library navigation
@@ -886,13 +886,13 @@ export const es419 = {
         spotlight: 'Protagonista',
         highlight: 'Highlight',
         showIdentity: 'Mostrar nombre del jugador',
-        showWinnerTitle: 'Mostrar título de ganador o campeón',
+        showWinnerTitle: 'Conservar título de ganador o campeón',
         showConfetti: 'Mostrar confeti',
         loading: 'Cargando ajustes…',
         currentWinner: 'Ganador actual',
         winner: 'Ganador del set',
         champion: 'Campeón',
-        noWinner: 'Completa el set para mostrar al ganador',
+        noWinner: 'Esperando una ventaja en el marcador',
         showTournamentLogo: 'Mostrar logo del torneo',
         showPlayerPhoto: 'Mostrar foto del jugador',
         showSponsorLogo: 'Mostrar logo del equipo/patrocinador',
@@ -958,8 +958,9 @@ export const es419 = {
         showScrollingRails: 'Mostrar bandas de texto en movimiento',
         informationLayout: 'Diseño de la información',
         informationLayouts: { standard: 'Estándar', compact: 'Compacto' },
+        mirrorCharacterPlacement: 'Reflejar posición del personaje',
         framingHelp:
-          'Estándar y Compacto guardan encuadres separados. La posición y el tamaño del personaje se reflejan entre lados para el mismo juego e ilustración. Cada lado conserva su propia opción de voltear la imagen. Las fotos mantienen el encuadre de cada jugador guardado.',
+          'El reflejo vincula la posición y el tamaño de una misma ilustración entre ambos lados. El volteo y las fotos se guardan por separado. Estándar y Compacto guardan sus propios encuadres.',
         showMatchBackdrop: 'Fondo de la información de la partida',
         matchBackdropHelp: 'Las filas de comparación e historial conservan su fondo.',
         statsHeading: 'Comparación de jugadores',

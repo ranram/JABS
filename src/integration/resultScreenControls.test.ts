@@ -10,6 +10,8 @@ import { deferred, mountView } from '../renderer/src/hooks/hookTestHarness';
 import { invalidateCatalogConsumers } from '../renderer/src/hooks/useCatalogRevision';
 import { initializeI18n, i18n } from '../renderer/src/i18n';
 import { ResultScreenControls } from '../renderer/src/ui/operator/ResultScreenControls';
+import { api } from '../renderer/src/api';
+import { notifications } from '@mantine/notifications';
 
 const transport = vi.hoisted(() => ({
   state: undefined as OverlayState | undefined,
@@ -41,7 +43,44 @@ vi.mock('../renderer/src/api', () => ({
 }));
 afterEach(() => vi.restoreAllMocks());
 
-it('configures result logos and refreshes the current winner media without accepting stale replies', async () => {
+it('recovers a failed initial Winner settings load without reopening the panel', async () => {
+  await initializeI18n();
+  await i18n.changeLanguage('en');
+  const settings = resultScreenStateSchema.parse({
+    showPlayerPhoto: false,
+    showCharacter: false,
+    showSponsorLogo: false,
+    showTournamentLogo: false,
+    updatedAt: '2026-11-11T00:00:00Z'
+  });
+  vi.useFakeTimers();
+  const load = vi
+    .spyOn(api, 'resultScreenState')
+    .mockRejectedValueOnce(new Error('Temporary disconnect'))
+    .mockResolvedValue(settings);
+  vi.spyOn(notifications, 'show').mockReturnValue('load-error');
+  const view = await mountView(() =>
+    h(
+      MantineProvider,
+      { env: 'test' },
+      h(ResultScreenControls, {
+        logos,
+        profiles: Object.values(gameProfiles)
+      })
+    )
+  );
+  try {
+    expect(view.container.textContent).toContain('Loading');
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(view.container.textContent).toContain('Keep Winner / Champion title');
+  } finally {
+    await view.unmount();
+    vi.useRealTimers();
+  }
+});
+
+it('prepares the score leader before completion and refreshes result media without accepting stale replies', async () => {
   await initializeI18n();
   await i18n.changeLanguage('en');
   const fresh = createTestOverlayState();
@@ -108,7 +147,7 @@ it('configures result logos and refreshes the current winner media without accep
   const playerTwoWinner = {
     ...exhibition,
     playerOne: { ...exhibition.playerOne, entrantId: '', score: 0 },
-    playerTwo: { ...exhibition.playerTwo, entrantId: '', score: 7 }
+    playerTwo: { ...exhibition.playerTwo, entrantId: '', score: 1 }
   };
   transport.playerMedia.mockResolvedValue({ playerOne: { playerPhotoAssetId: 'alpha.png' }, playerTwo: {} });
   transport.characters.mockResolvedValue({ assets: [] });
@@ -146,7 +185,7 @@ it('configures result logos and refreshes the current winner media without accep
   const resultCatalogReads = transport.characters.mock.calls.length;
   transport.state.selectedSet = {
     ...playerTwoWinner,
-    playerTwo: { ...playerTwoWinner.playerTwo, score: 8 },
+    playerTwo: { ...playerTwoWinner.playerTwo, score: 2 },
     broadcast: { ...playerTwoWinner.broadcast!, logoAssetId: 'local.png' }
   };
   await resultView.rerender();
@@ -179,7 +218,7 @@ it('configures result logos and refreshes the current winner media without accep
   for (const [labelText, key, value] of [
     ['Show confetti', 'showConfetti', true],
     ['Show player name', 'showIdentity', false],
-    ['Show Winner / Champion title', 'showWinnerTitle', false],
+    ['Keep Winner / Champion title', 'showWinnerTitle', false],
     ['Transparent background', 'showBackground', false]
   ] as const) {
     const label = [...resultView.container.querySelectorAll('label')].find((label) => label.textContent === labelText)!;
@@ -196,6 +235,15 @@ it('configures result logos and refreshes the current winner media without accep
       )!;
       await act(async () => option.click());
     }
+    const titleLabel = [...resultView.container.querySelectorAll('label')].find(
+      (label) => label.textContent === 'Keep Winner / Champion title'
+    )!;
+    const titleSwitch = document.getElementById(titleLabel.htmlFor) as HTMLInputElement;
+    expect(titleSwitch.checked).toBe(false);
+    await act(async () => titleSwitch.click());
+    expect(transport.result!.showWinnerTitle).toBe(true);
+    await act(async () => titleSwitch.click());
+    expect(transport.result!.showWinnerTitle).toBe(false);
     expect(resultView.container.querySelector('.artwork-framing-shell.is-transparent-preview')).not.toBeNull();
     expect(resultView.container.querySelector('.artwork-preview-subject.is-transparent-background')).not.toBeNull();
     const label = [...resultView.container.querySelectorAll('label')].find(

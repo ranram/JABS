@@ -14,6 +14,7 @@ import { CustomScoreboardCanvas } from '../renderer/src/ui/CustomScoreboardCanva
 import { OverlayView } from '../renderer/src/ui/OverlayView';
 import { countryFlagUrl, displayFlagUrl } from '../renderer/src/ui/overlayPlayerPresentation';
 import playerPlaceholder from '../renderer/src/assets/player_placeholder.svg';
+import { api } from '../renderer/src/api';
 
 const transport = vi.hoisted(() => ({
   overlay: undefined as OverlayState | undefined,
@@ -201,6 +202,40 @@ it('keeps Top 8 portrait slots blank while loading and refreshes only when their
   expect(transport.characterAssets).toHaveBeenCalledTimes(catalogReads);
 });
 
+it('keeps valid winner photos when another photo or sponsor image cannot load', async () => {
+  const { view, overlay } = await mountLiveOverlay();
+  transport.result!.showPlayerPhoto = true;
+  transport.result!.showSponsorLogo = true;
+  transport.playerMedia.mockResolvedValue({
+    playerOne: { playerPhotoAssetId: 'first.png', sponsorLogoAssetId: 'first-team.png' },
+    playerTwo: { playerPhotoAssetId: 'second.png', sponsorLogoAssetId: 'broken-team.png' }
+  });
+  vi.spyOn(api, 'sponsorLogoAssetUrl').mockImplementation(async (id) => {
+    if (id === 'broken-team.png') throw new Error('Logo unavailable');
+    return `data:image/png;base64,${id}`;
+  });
+  window.history.replaceState(null, '', '/overlay/active/winner');
+  await view.rerender(() => h(OverlayView));
+  expect(view.container.querySelector('.announcement-player-photo')?.getAttribute('src')).toBe(
+    'data:image/png;base64,first.png'
+  );
+  expect(view.container.querySelector('.announcement-sponsor-logo')?.getAttribute('src')).toBe(
+    'data:image/png;base64,first-team.png'
+  );
+  vi.spyOn(api, 'playerPhotoAssetUrl').mockImplementation(async (id) => {
+    if (id === 'first.png') throw new Error('Photo unavailable');
+    return `data:image/png;base64,${id}`;
+  });
+  overlay.selectedSet.playerTwo.score = 3;
+  overlay.selectedSet.playerOne.prefix = 'Reload media';
+  await view.rerender();
+  expect(view.container.querySelector('.announcement-player-photo')?.getAttribute('src')).toBe(
+    'data:image/png;base64,second.png'
+  );
+  expect(view.container.querySelector('.announcement-sponsor-logo')).toBeNull();
+  await view.unmount();
+});
+
 it('loads only the current winner media and keeps it through composition and champion transitions', async () => {
   const { view, overlay } = await mountLiveOverlay();
   // Winner media waits for both catalogs and identity, without showing the previous result.
@@ -343,14 +378,14 @@ it('loads only the current winner media and keeps it through composition and cha
   transport.result!.stylingGameId = savedStyle;
   transport.result!.showWinnerTitle = false;
   await view.rerender();
-  expect(highlight.querySelector('.highlight-title')).toBeNull();
+  expect(getComputedStyle(highlight.querySelector('.highlight-title')!).opacity).toBe('0');
   expect(highlight.querySelector('.highlight-name')?.textContent).toContain(overlay.selectedSet.playerOne.name);
   transport.result!.showConfetti = true;
   transport.result!.showIdentity = false;
   transport.result!.showPlayerPhoto = false;
   transport.result!.showCharacter = false;
   await view.rerender();
-  expect(highlight.querySelector('.highlight-copy, .victory-player-photo, .victory-character-art')).toBeNull();
+  expect(highlight.querySelector('.highlight-name, .victory-player-photo, .victory-character-art')).toBeNull();
   expect(highlight.querySelector('video')?.loop).toBe(false);
   overlay.selectedSet.playerOne.score = 1;
   overlay.selectedSet.playerTwo.score = 2;
@@ -359,6 +394,28 @@ it('loads only the current winner media and keeps it through composition and cha
   transport.result!.showConfetti = false;
   await view.rerender();
   expect(highlight.querySelector('video')).toBeNull();
+  for (const composition of ['classic', 'victory', 'spotlight', 'highlight'] as const) {
+    transport.result!.composition = composition;
+    transport.result!.showWinnerTitle = true;
+    transport.result!.showIdentity = true;
+    await view.rerender();
+    const title = view.container.querySelector<HTMLElement>('.announcement-kicker, .victory-title, .highlight-title')!;
+    const copy = title.parentElement!;
+    const children = [...copy.children];
+    const copyStyle = copy.getAttribute('style');
+    transport.result!.showWinnerTitle = false;
+    await view.rerender();
+    expect([...copy.children]).toEqual(children);
+    expect(copy.getAttribute('style')).toBe(copyStyle);
+    expect(getComputedStyle(title).opacity).toBe('0');
+    expect(getComputedStyle(title).display).not.toBe('none');
+    if (composition === 'victory' || composition === 'spotlight') {
+      expect(view.container.querySelector('.victory-opening')?.textContent).toBe('Champion');
+    }
+    transport.result!.showWinnerTitle = true;
+    await view.rerender();
+    expect(getComputedStyle(title).opacity).not.toBe('0');
+  }
   overlay.selectedSet.round = savedRound;
   transport.result!.showBackground = true;
 });
@@ -488,7 +545,9 @@ async function mountLiveOverlay() {
   await i18n.changeLanguage('en');
   const styles = document.createElement('style');
   styles.id = 'live-overlay-test';
-  styles.textContent = readFileSync('src/renderer/src/styles.css', 'utf8');
+  styles.textContent =
+    readFileSync('src/renderer/src/styles.css', 'utf8') +
+    readFileSync('src/renderer/src/ui/overlayEntrance.css', 'utf8');
   document.head.append(styles);
   const overlay = createTestOverlayState();
   overlay.selectedSet.setId = 'set-1';

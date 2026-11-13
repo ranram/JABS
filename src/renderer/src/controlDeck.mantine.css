@@ -31,23 +31,8 @@
 }
 
 .operator-brand {
-  gap: 11px;
-}
-
-.operator-brand h1 {
   margin: 0;
-  color: var(--deck-ink);
-  font-size: 18px;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-
-.operator-brand p {
-  margin: 3px 0 0;
-  color: var(--deck-muted);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .operator-workspaces {

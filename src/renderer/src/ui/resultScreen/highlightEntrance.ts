@@ -22,7 +22,7 @@ const entrances: readonly EntranceCue[] = [
   },
   { target: 'highlight-name', from: 'top', delay: 1550, duration: 450 },
   { target: 'highlight-sponsor', from: { scale: 1.25 }, duration: 500, fade: true },
-  { target: 'highlight-title', from: 'bottom', delay: 2350, duration: 450 },
+  { target: 'highlight-title', from: 'bottom', delay: 2350, duration: 450, fade: true },
   { target: 'highlight-logo', from: { y: -80 }, delay: 150, duration: 350, fade: true }
 ];
 

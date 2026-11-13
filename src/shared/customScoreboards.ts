@@ -82,6 +82,7 @@ export const customScoreboardSchema = z.object({
     flags: z.boolean(),
     sponsors: z.boolean(),
     xHandles: z.boolean(),
+    characterNames: z.boolean().default(false),
     pronouns: z.boolean(),
     seeds: z.boolean(),
     round: z.boolean(),

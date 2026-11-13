@@ -22,6 +22,10 @@
 }
 
 .custom-scoreboard-content {
+  z-index: 3;
+}
+
+.custom-scoreboard-frame-layer {
   z-index: 2;
 }
 

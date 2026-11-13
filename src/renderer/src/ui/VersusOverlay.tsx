@@ -9,7 +9,7 @@ import { useVersusScreenState } from '../hooks/useVersusScreenState';
 import { useVersusMedia, type SubjectMedia } from './useVersusMedia';
 import { useOverlayEntrance } from './useOverlayEntrance';
 import { versusEntrance } from './versusEntrance';
-import { mediaInteractionKey } from './mediaIdentity';
+import { mediaInteractionKey, playerPresentationIdentity } from './mediaIdentity';
 import { VersusPlayer, type VersusPlacementControls } from './versus/VersusPlayer';
 import { VersusMatchCard } from './versus/VersusMatchCard';
 import { useVersusProfiles } from './versus/useVersusProfiles';
@@ -75,8 +75,11 @@ function VersusPresentationContent({
   const key = JSON.stringify([
     mode,
     selectedSet.setId,
-    selectedSet.playerOne.entrantId,
-    selectedSet.playerTwo.entrantId
+    selectedSet.eventId,
+    selectedSet.assetCatalogSlug ?? selectedSet.gameId,
+    selectedSet.videogameId,
+    playerPresentationIdentity(selectedSet.playerOne),
+    playerPresentationIdentity(selectedSet.playerTwo)
   ]);
   const entranceRef = useOverlayEntrance(versusEntrance, !controls.preview && mode !== 'waiting', mediaReady, key);
   const className = `overlay versus-overlay ${profile.overlay.themeClass}${settings.informationLayout === 'compact' ? ' versus-compact' : ''}${mode === 'exhibition' ? ' versus-exhibition' : ''}${settings.showBackground ? '' : ' is-transparent-background'}${controls.preview ? ' versus-preview-canvas' : ''}`;

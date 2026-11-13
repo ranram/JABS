@@ -17,6 +17,7 @@ import { useMatchFormatLabel } from './useMatchFormatLabel';
 import { displayPhaseName, matchPlayerName } from '@shared/matchContext';
 import { customScoreboardEntrance } from './customScoreboardEntrance';
 import { useOverlayEntrance } from './useOverlayEntrance';
+import { useScoreboardSwap } from './useScoreboardSwap';
 import './customScoreboard.css';
 import { CustomScoreboardFrame } from './customScoreboard/CustomScoreboardFrame';
 import { ScoreboardSponsors, usePlayerSponsorLogo } from './scoreboardSponsors/ScoreboardSponsors';
@@ -63,6 +64,7 @@ function CustomScoreboardCanvasContent({
     true,
     scoreboard.id
   );
+  useScoreboardSwap(entranceRef, selectedSet, animateEntrance && !onMoveRegion);
   const matchLabel = useMatchFormatLabel(selectedSet);
   const detailProfile = resolveGameProfile(selectedSet?.stylingGameId ?? selectedSet?.gameId);
   const { dragging, ...editing } = useCustomScoreboardEditing({
@@ -174,7 +176,11 @@ function CustomScoreboardCanvasContent({
         {values.map(({ id, value, className, kind }) => {
           if (!value && editingRegion !== id) return null;
           return (
-            <span key={id} {...regionProps(id, ` custom-scoreboard-element${className}${kind ? ' is-detail' : ''}`)}>
+            <span
+              key={id}
+              {...regionProps(id, ` custom-scoreboard-element${className}${kind ? ' is-detail' : ''}`)}
+              data-scoreboard-swap-text={kind ? undefined : playerSide}
+            >
               {id === ids.name ? (
                 <CustomScoreboardName
                   name={value}
@@ -217,6 +223,7 @@ function CustomScoreboardCanvasContent({
         selectedSet={selectedSet}
         logoUrl={logoUrl}
         animateEntrance={animateEntrance && !onMoveRegion}
+        showCharacterNames={scoreboard.visibility.characterNames}
         onTopInsetChange={setPhotoTopInset}
       />
       <div className="custom-scoreboard-content" data-entrance="custom-scoreboard">

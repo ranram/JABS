@@ -12,6 +12,12 @@ import { highlightEntrance } from './resultScreen/highlightEntrance';
 import { CustomScoreboardCanvas } from './CustomScoreboardCanvas';
 import * as appearanceSettings from './appearance/AppearanceProvider';
 import { api } from '../api';
+import { OverlayView } from './OverlayView';
+import * as overlaySource from '../hooks/useOverlayState';
+import { AnnouncementOverlay } from './AnnouncementOverlay';
+import * as resultSource from '../hooks/useResultScreenState';
+import { resultScreenStateSchema } from '@shared/resultScreen';
+import { gameProfiles } from '@shared/gameProfiles';
 
 const photoSettings = vi.hoisted(() => ({ enabled: false }));
 vi.mock('../hooks/useScoreboardPhotos', () => ({
@@ -109,7 +115,7 @@ it('keeps Highlight entrances smooth and adds brief landing impacts with cleanup
           h('div', { 'data-entrance': 'victory-photo', style: { transform: placement } }),
           h('div', { 'data-entrance': 'victory-character' }),
           h('div', { 'data-entrance': 'highlight-name' }),
-          showTitle && h('div', { 'data-entrance': 'highlight-title' }),
+          h('div', { 'data-entrance': 'highlight-title', style: { opacity: showTitle ? 1 : 0 } }),
           h('div', { 'data-entrance': 'highlight-impact' })
         )
       )
@@ -150,7 +156,15 @@ it('keeps Highlight entrances smooth and adds brief landing impacts with cleanup
       .at(-1)!
       .frames.filter(({ opacity }) => Number(opacity) > 0)
       .map(({ opacity }) => opacity)
-  ).toEqual([0.42, 0.5]);
+  ).toEqual([0.42, 0.5, 0.6]);
+  const titleIndex = calls.map(([target]) => target.dataset.entrance).lastIndexOf('highlight-title');
+  const [title, options] = calls[titleIndex];
+  expect(options.opacity).toEqual([0, 1]);
+  const animation = animate.mock.results[titleIndex].value;
+  const complete = (options as unknown as { onComplete(animation: unknown): void }).onComplete;
+  complete(animation);
+  expect(animation.revert).toHaveBeenCalledOnce();
+  expect(title.style.opacity).toBe('0');
   await view.unmount();
   for (const effect of effects) expect(effect.cancel).toHaveBeenCalledOnce();
 });
@@ -271,6 +285,46 @@ it('enters after a cold load and again when Preview first becomes Program', asyn
   expect(last.revert).toHaveBeenCalledOnce();
 });
 
+it('replays a manual winner replacement but keeps a linked entrant name correction still', async () => {
+  const selectedSet = createTestOverlayState().selectedSet;
+  selectedSet.playerOne.entrantId = '';
+  selectedSet.playerTwo.entrantId = '';
+  selectedSet.playerOne.score = 1;
+  const state = resultScreenStateSchema.parse({
+    showPlayerPhoto: false,
+    showCharacter: false,
+    showSponsorLogo: false,
+    showTournamentLogo: false,
+    updatedAt: selectedSet.updatedAt
+  });
+  vi.spyOn(resultSource, 'useResultScreenState').mockReturnValue({
+    state,
+    setState: vi.fn(),
+    reconnect: vi.fn(),
+    error: undefined
+  });
+  const view = await mountView(() =>
+    h(AnnouncementOverlay, {
+      profile: gameProfiles['street-fighter-6'],
+      selectedSet,
+      reconnecting: false
+    })
+  );
+  const count = animate.mock.calls.length;
+  expect(count).toBeGreaterThan(0);
+  selectedSet.playerOne.name = 'Next player';
+  await view.rerender();
+  expect(animate).toHaveBeenCalledTimes(count * 2);
+  selectedSet.playerOne.entrantId = 'linked-one';
+  selectedSet.playerTwo.entrantId = 'linked-two';
+  await view.rerender();
+  const linkedCount = animate.mock.calls.length;
+  selectedSet.playerOne.name = 'Corrected spelling';
+  await view.rerender();
+  expect(animate).toHaveBeenCalledTimes(linkedCount);
+  await view.unmount();
+});
+
 it('delays custom scoreboard entrances while keeping the usual photo animation', async () => {
   photoSettings.enabled = true;
   vi.spyOn(api, 'resolveScoreboardPhotos').mockResolvedValue({ photos: [null, null] });
@@ -330,3 +384,99 @@ it('delays custom scoreboard entrances while keeping the usual photo animation',
   expect(animate.mock.calls.length).toBeGreaterThan(afterCustom);
   await custom.unmount();
 });
+
+it.each(['JABS', 'custom'])(
+  'slides only swapped player text on the %s scoreboard and cleans up interrupted motion',
+  async (kind) => {
+    const originalPath = window.location.pathname;
+    window.history.replaceState(null, '', '/overlay/active/main');
+    let selectedSet = createTestOverlayState().selectedSet;
+    selectedSet.playerOne.pronouns = 'she/her';
+    selectedSet.playerTwo.pronouns = 'he/him';
+    const scoreboard = createTestCustomScoreboard();
+    scoreboard.visibility.pronouns = true;
+    let animateEntrance = true;
+    let playAnimations = true;
+    const useAppearance = appearanceSettings.useAppearance;
+    vi.spyOn(appearanceSettings, 'useAppearance').mockImplementation(() => {
+      const context = useAppearance();
+      return { ...context, appearance: { ...context.appearance, entranceAnimations: playAnimations } };
+    });
+    vi.spyOn(overlaySource, 'useOverlayState').mockImplementation(() => ({
+      state: { selectedSet },
+      setState: vi.fn(),
+      error: undefined,
+      reconnect: vi.fn()
+    }));
+    const effects: { target: HTMLElement; frames: Keyframe[]; cancel: ReturnType<typeof vi.fn> }[] = [];
+    vi.spyOn(Element.prototype, 'animate').mockImplementation(function (this: HTMLElement, frames) {
+      const cancel = vi.fn();
+      effects.push({ target: this, frames: frames as Keyframe[], cancel });
+      return { cancel, finished: new Promise(() => {}) } as unknown as Animation;
+    });
+    const view = await mountView(() =>
+      kind === 'JABS'
+        ? h(OverlayView)
+        : h(CustomScoreboardCanvas, {
+            scoreboard,
+            frameUrl: 'frame.png',
+            selectedSet,
+            animateEntrance
+          })
+    );
+    try {
+      expect(effects).toHaveLength(0);
+      selectedSet = { ...selectedSet, playerOne: { ...selectedSet.playerOne, score: 1 } };
+      await view.rerender();
+      expect(effects).toHaveLength(0);
+      const swap = () => {
+        selectedSet = { ...selectedSet, playerOne: selectedSet.playerTwo, playerTwo: selectedSet.playerOne };
+      };
+      swap();
+      await view.rerender();
+      const texts = [...view.container.querySelectorAll<HTMLElement>('[data-scoreboard-swap-text]')];
+      expect(texts.length).toBeGreaterThanOrEqual(6);
+      expect(effects.map(({ target }) => target)).toEqual(texts);
+      for (const effect of effects) {
+        const offset = effect.target.dataset.scoreboardSwapText === 'left' ? '-20px 0' : '20px 0';
+        expect(effect.frames).toEqual([
+          { translate: offset, opacity: 0 },
+          { translate: '0px 0', opacity: 1 }
+        ]);
+        expect(
+          effect.target.matches('.scoreboard-player-photos, .custom-scoreboard-frame-layer, .overlay-player')
+        ).toBe(false);
+      }
+      const first = [...effects];
+      swap();
+      await view.rerender();
+      expect(effects).toHaveLength(first.length * 2);
+      for (const effect of first) expect(effect.cancel).toHaveBeenCalledOnce();
+      await activate(false);
+      for (const effect of effects) expect(effect.cancel).toHaveBeenCalledOnce();
+      swap();
+      await view.rerender();
+      await activate(true);
+      expect(effects).toHaveLength(first.length * 2);
+      swap();
+      selectedSet = { ...selectedSet, setId: 'different-match' };
+      await view.rerender();
+      expect(effects).toHaveLength(first.length * 2);
+      playAnimations = false;
+      await view.rerender();
+      swap();
+      await view.rerender();
+      expect(effects).toHaveLength(first.length * 2);
+      playAnimations = true;
+      animateEntrance = kind === 'JABS';
+      await view.rerender();
+      swap();
+      await view.rerender();
+      expect(effects).toHaveLength(first.length * (kind === 'JABS' ? 3 : 2));
+      await view.unmount();
+      for (const effect of effects) expect(effect.cancel).toHaveBeenCalledOnce();
+    } finally {
+      window.history.replaceState(null, '', originalPath);
+    }
+  }
+);

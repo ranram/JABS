@@ -13,7 +13,15 @@ This file provides attribution for those components. The original license terms 
 
 ## App artwork
 
-The project owner supplied the boxing-glove artwork as public-domain material. The original PNG is `src-tauri/app-icon.png`; the header image and platform icons are resized copies.
+The JABS logo was contributed to the project and supplied by the project owner. The header uses `src/renderer/src/assets/jabs-logo.svg`. The desktop icon adapts its lettering in `src-tauri/app-icon.svg`.
+
+## Windows installer
+
+The NSIS installer template in `src-tauri/windows/installer.nsi` is adapted from Tauri CLI 2.11.4 to preserve application data during uninstall and replacement installs.
+
+- Source: [Tauri](https://github.com/tauri-apps/tauri/tree/tauri-cli-v2.11.4/crates/tauri-bundler/src/bundle/windows/nsis)
+- License: MIT. See `src-tauri/windows/LICENSE_MIT`, bundled as `licenses/tauri-installer/LICENSE_MIT`
+- Copyright: 2017–Present Tauri Apps Contributors
 
 ## Countries States Cities
 

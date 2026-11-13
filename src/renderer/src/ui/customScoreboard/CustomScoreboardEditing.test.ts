@@ -492,6 +492,7 @@ function createLayout(): CustomScoreboard {
       flags: true,
       sponsors: true,
       xHandles: false,
+      characterNames: false,
       pronouns: false,
       seeds: false,
       round: true,

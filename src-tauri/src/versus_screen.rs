@@ -67,6 +67,8 @@ pub struct VersusScreenState {
     pub information_layout: String,
     #[serde(default = "default_true")]
     pub show_match_backdrop: bool,
+    #[serde(default = "default_true")]
+    pub mirror_character_placement: bool,
     pub show_tournament_logo: bool,
     pub show_sponsor_logos: bool,
     #[serde(default = "default_true")]
@@ -185,7 +187,8 @@ impl VersusScreenStore {
         let framing_changed = std::array::from_fn(|side| {
             let next = &submitted.media_placements[side].character;
             let previous = &current.media_placements[side].character;
-            next.x != previous.x || next.y != previous.y || next.scale != previous.scale
+            submitted.mirror_character_placement
+                && (next.x != previous.x || next.y != previous.y || next.scale != previous.scale)
         });
         if let Some(context) = &submitted.media_match {
             context.mirror_character_edits(&mut submitted.media_placements, framing_changed);
@@ -421,6 +424,7 @@ fn default_state() -> Result<VersusScreenState, String> {
         show_background: true,
         information_layout: default_information_layout(),
         show_match_backdrop: true,
+        mirror_character_placement: true,
         show_tournament_logo: true,
         show_sponsor_logos: true,
         show_head_to_head: true,

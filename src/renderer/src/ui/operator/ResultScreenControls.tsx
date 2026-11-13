@@ -29,12 +29,16 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
   } = useSettingsDraft({
     load: api.resultScreenState,
     save: api.updateResultScreenState,
+    retryInitialLoad: true,
     onError: (error) =>
       notifyError(error, t('workspaces.resultScreen.failedTitle'), t('workspaces.resultScreen.failed'))
   });
-  const currentResult = activeSet ? announcementPresentation(activeSet) : undefined;
+  const currentResult = activeSet ? announcementPresentation(activeSet, { allowLeadingScore: true }) : undefined;
   const winner = currentResult?.winner;
-  const { media, ready } = useVersusMedia(winner ? activeSet : undefined, state?.composition === 'highlight');
+  const { media, ready } = useVersusMedia(
+    winner ? activeSet : undefined,
+    state?.composition === 'highlight'
+  );
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const sortedProfiles = useMemo(
     () => sortByLabel(profiles, (profile) => profile.styleName, locale),
@@ -124,14 +128,14 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
           label={t('workspaces.transparentBackground')}
           onChange={(event) => void update('showBackground', !event.currentTarget.checked)}
         />
+        <Switch
+          checked={state.showWinnerTitle}
+          disabled={saving}
+          label={t('workspaces.resultScreen.showWinnerTitle')}
+          onChange={(event) => void update('showWinnerTitle', event.currentTarget.checked)}
+        />
         {state.composition === 'highlight' && (
           <>
-            <Switch
-              checked={state.showWinnerTitle}
-              disabled={saving}
-              label={t('workspaces.resultScreen.showWinnerTitle')}
-              onChange={(event) => void update('showWinnerTitle', event.currentTarget.checked)}
-            />
             <Switch
               checked={state.showIdentity}
               disabled={saving}
@@ -174,7 +178,7 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
 
 export function ResultScreenStatus({ activeSet }: { activeSet?: SelectedSetState }) {
   const { t } = useTranslation('operator');
-  const result = activeSet ? announcementPresentation(activeSet) : undefined;
+  const result = activeSet ? announcementPresentation(activeSet, { allowLeadingScore: true }) : undefined;
   if (!result) {
     return (
       <Badge color="gray" variant="light" maw="100%" h="auto" styles={{ label: { whiteSpace: 'normal' } }}>

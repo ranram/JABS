@@ -69,6 +69,7 @@ export function VersusScreenControls({
     activeSet?.videogameId,
     state?.mediaMode,
     state?.informationLayout,
+    state?.mirrorCharacterPlacement,
     [activeSet?.playerOne, activeSet?.playerTwo].map((player) => [
       player?.localPlayerId,
       player?.playerId,
@@ -220,6 +221,12 @@ export function VersusScreenControls({
         />
       </div>
       <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
+        <Switch
+          label={t('workspaces.versusScreen.mirrorCharacterPlacement')}
+          checked={state.mirrorCharacterPlacement}
+          disabled={saving || refreshing}
+          onChange={(event) => void update({ mirrorCharacterPlacement: event.currentTarget.checked })}
+        />
         <Switch
           label={t('workspaces.transparentBackground')}
           checked={!state.showBackground}

@@ -299,24 +299,24 @@ it('preserves exhibition media through score and appearance edits', async () => 
   exhibition.stylingGameId = 'street-fighter-6';
   await view.rerender();
 
-  const backdropSwitch = () => {
-    const label = [...view.container.querySelectorAll('label')].find((label) =>
-      label.textContent?.startsWith('Match information backdrop')
-    )!;
-    return document.getElementById(label.htmlFor) as HTMLInputElement;
-  };
-  expect(backdropSwitch().checked).toBe(true);
-  expect(view.container.querySelector('.versus-center-card.is-without-backdrop')).toBeNull();
-  await act(async () => backdropSwitch().click());
-  await view.rerender();
-  expect(transport.save).toHaveBeenLastCalledWith(
-    expect.objectContaining({ showMatchBackdrop: false, showBackground: true })
-  );
-  expect(view.container.querySelectorAll('.versus-center-card.is-without-backdrop')).toHaveLength(2);
-  expect(view.container.querySelectorAll('.versus-stat-sponsor')).toHaveLength(2);
-  await act(async () => backdropSwitch().click());
-  await view.rerender();
-  expect(view.container.querySelector('.versus-center-card.is-without-backdrop')).toBeNull();
+  for (const [name, key] of [
+    ['Mirror character placement', 'mirrorCharacterPlacement'],
+    ['Match information backdrop', 'showMatchBackdrop']
+  ]) {
+    const label = [...view.container.querySelectorAll('label')].find((label) => label.textContent?.startsWith(name))!;
+    const input = () => document.getElementById(label.htmlFor) as HTMLInputElement;
+    for (const checked of [false, true]) {
+      await act(async () => input().click());
+      await view.rerender();
+      expect(transport.save).toHaveBeenLastCalledWith(
+        expect.objectContaining({ [key]: checked, showBackground: true })
+      );
+      if (key === 'showMatchBackdrop')
+        expect(view.container.querySelectorAll('.versus-center-card.is-without-backdrop')).toHaveLength(
+          checked ? 0 : 2
+        );
+    }
+  }
   expect(view.container.querySelector('.versus-match-logo')).toBeNull();
   expect(historyButton()?.disabled).toBe(true);
   const reads = transport.playerMedia.mock.calls.length;

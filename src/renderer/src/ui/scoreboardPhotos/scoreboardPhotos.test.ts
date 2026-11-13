@@ -19,6 +19,7 @@ import { deferred, mountView } from '../../hooks/hookTestHarness';
 import { invalidateCatalogConsumers } from '../../hooks/useCatalogRevision';
 import { ScoreboardPlayerPhotos } from './ScoreboardPlayerPhotos';
 import { CustomScoreboardCanvas } from '../CustomScoreboardCanvas';
+import { ScoreboardSource } from './ScoreboardSource';
 import { PlayerHeadshotEditor } from '../players/PlayerHeadshotEditor';
 import { PlayerPhotoFraming, PlayerPhotoFramingControls } from '../players/PlayerPhotoFraming';
 import { ScoreboardPhotoControls } from './ScoreboardPhotoControls';
@@ -34,8 +35,11 @@ it('does no photo work while disabled and uses placeholders for missing or faile
     logoAssetId: 'event.png'
   };
   const logoUrl = 'data:image/png;base64,wide-event-logo';
-  expect(scoreboardPhotoSettingsSchema.parse({ enabled: true, updatedAt: '1' }).logoBackdrop).toBe(false);
-  expect(scoreboardPhotoSettingsSchema.parse({ enabled: true, updatedAt: '1' }).sponsorBackdrop).toBe(false);
+  expect(scoreboardPhotoSettingsSchema.parse({ enabled: true, updatedAt: '1' })).toMatchObject({
+    logoBackdrop: false,
+    sponsorBackdrop: false,
+    showCharacterNames: false
+  });
   expect(
     scoreboardPhotoSettingsSchema.safeParse({
       enabled: true,
@@ -76,6 +80,7 @@ it('does no photo work while disabled and uses placeholders for missing or faile
     framing: 'contained',
     logoBackdrop: true,
     sponsorBackdrop: false,
+    showCharacterNames: false,
     updatedAt: '1'
   });
   await view.rerender();
@@ -93,6 +98,7 @@ it('does no photo work while disabled and uses placeholders for missing or faile
     framing: 'contained',
     logoBackdrop: false,
     sponsorBackdrop: true,
+    showCharacterNames: false,
     updatedAt: '2'
   });
   await controls.rerender();
@@ -104,6 +110,7 @@ it('does no photo work while disabled and uses placeholders for missing or faile
     framing: 'contained',
     logoBackdrop: true,
     sponsorBackdrop: false,
+    showCharacterNames: false,
     updatedAt: '2'
   });
   await controls.rerender();
@@ -116,6 +123,7 @@ it('does no photo work while disabled and uses placeholders for missing or faile
     framing: 'contained',
     logoBackdrop: false,
     sponsorBackdrop: false,
+    showCharacterNames: false,
     updatedAt: '2'
   });
   selectedSet.broadcast = { ...selectedSet.broadcast!, logoAssetId: undefined };
@@ -161,7 +169,9 @@ it('keeps identities through swaps and late loads without reloading media for sc
     stop.getAttribute('stop-color')
   );
   expect(styledColors).not.toEqual(originalColors);
-  expect(styledColors.slice(0, 2)).toEqual(styledColors.slice(2));
+  expect(styledColors.slice(0, 2)).not.toEqual(styledColors.slice(2));
+  expect(styledColors[0]).toContain('--appearance-primary');
+  expect(styledColors[2]).toContain('--appearance-secondary');
   expect(styledColors[1]).toContain('#30d5ff');
   const pending = deferred<{ photos: Array<ScoreboardPhoto | null> }>();
   transport.resolve
@@ -294,7 +304,7 @@ it('uses selected-game geometry in custom scoreboards without exposing photo reg
   expect(Math.tan((-rightAngle * Math.PI) / 180)).toBeCloseTo(rightHeight / rightWidth);
   for (const side of ['left', 'right']) {
     expect(logoFor(side)?.getAttribute('opacity')).toBe('0.14');
-    expect(logoFor(side)?.parentElement?.getAttribute('mask')).toMatch(/^url\(#.+-photo\)$/);
+    expect(logoFor(side)?.closest('g[mask]')?.getAttribute('mask')).toMatch(/^url\(#.+-photo\)$/);
   }
   const reads = transport.identity.mock.calls.length;
   selectedSet.playerOne.score = 1;
@@ -550,57 +560,104 @@ it('saves independent photo adjustments by game, side and mode', async () => {
   expect(scoreboardPhotoPlacement(current.scoreboardPhoto!, '2xko', 'left')).toEqual(left);
 });
 
-it('reserves headroom only in Extend above mode', async () => {
-  const selectedSet = createTestOverlayState('street-fighter-6').selectedSet;
-  const layout = scoreboardPhotoLayout(selectedSet)!;
-  const prepared = {
-    ...photo('one'),
-    extendedPlacements: { 'street-fighter-6': { left: { x: 0, y: -0.2, scale: 1.3, flipped: false } } }
-  };
-  transport.enabled = true;
-  transport.resolve.mockResolvedValue({ photos: [prepared, photo('two')] });
-  const inset = vi.fn();
-  const view = await mountView(() => h(ScoreboardPlayerPhotos, { selectedSet, onTopInsetChange: inset }));
-  const scoreboard = createTestCustomScoreboard();
-  scoreboard.regions.infoRight.y = 900;
-  const custom = await mountView(() => h(CustomScoreboardCanvas, { scoreboard, frameUrl: 'frame.png', selectedSet }));
-  const name = () => custom.container.querySelector<HTMLElement>('[data-custom-scoreboard-region=playerOneName]')!;
-  const bottom = () => custom.container.querySelector<HTMLElement>('[data-custom-scoreboard-region=infoRight]')!;
-  const bottomTop = bottom().style.top;
-  expect(name().style.top).toBe('0%');
-  expect(custom.container.querySelectorAll('.custom-scoreboard-frame')).toHaveLength(1);
-  const bar = () => view.container.querySelector<SVGSVGElement>('.scoreboard-player-photos')!;
-  expect(bar().dataset.photoTopInset).toBe('0');
-  expect(bar().style.top).toBe('');
-  expect(view.container.querySelector('[data-photo-extension]')).toBeNull();
-  transport.framing = 'extendAbove';
-  await view.rerender();
-  await custom.rerender();
-  const top = scoreboardPhotoTop({ ...prepared, width: 600, height: 900 }, layout, 'left');
-  expect(Number.parseFloat(name().style.top)).toBeCloseTo(Math.ceil(-top) / 10.8);
-  expect(bottom().style.top).toBe(bottomTop);
-  expect(custom.container.querySelectorAll('.custom-scoreboard-frame-top')).toHaveLength(1);
-  expect(top).toBeLessThan(0);
-  expect(inset).toHaveBeenLastCalledWith(Math.ceil(-top));
-  expect(Number.parseFloat(bar().style.top)).toBeCloseTo(Math.ceil(-top) / 10.8);
-  const extension = view.container.querySelector('[data-photo-extension]')!;
-  expect(Number(extension.getAttribute('y'))).toBeCloseTo(top);
-  expect(Number(extension.closest('mask')!.getAttribute('y'))).toBeCloseTo(top);
-  expect(
-    scoreboardPhotoTop(
-      { ...prepared, width: 600, height: 900, contentBounds: { x: 0, y: 0.8, width: 1, height: 0.2 } },
-      layout,
-      'left'
-    )
-  ).toBe(0);
-  transport.framing = 'contained';
-  await view.rerender();
-  expect(inset).toHaveBeenLastCalledWith(0);
-  await custom.rerender();
-  expect(name().style.top).toBe('0%');
-  expect(bottom().style.top).toBe(bottomTop);
-  expect(custom.container.querySelectorAll('.custom-scoreboard-frame')).toHaveLength(1);
-  expect(custom.container.querySelector('.custom-scoreboard-frame-top')).toBeNull();
-  expect(bar().style.top).toBe('');
-  expect(view.container.querySelector('[data-photo-extension]')).toBeNull();
-});
+it.each(['street-fighter-6', '2xko'] as const)(
+  '%s photo extension preserves the required headroom and custom frame placement',
+  async (gameId) => {
+    let sourceHeight = 1140;
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1920);
+    vi.spyOn(window, 'innerHeight', 'get').mockImplementation(() => sourceHeight);
+    const fixed = gameId === 'street-fighter-6';
+    const selectedSet = createTestOverlayState(gameId).selectedSet;
+    const layout = scoreboardPhotoLayout(selectedSet)!;
+    const prepared = {
+      ...photo('one'),
+      extendedPlacements: { [gameId]: { left: { x: 0, y: -0.2, scale: 1.3, flipped: false } } }
+    };
+    transport.enabled = true;
+    transport.logoBackdrop = true;
+    const logoUrl = 'data:image/png;base64,event-logo';
+    transport.resolve.mockResolvedValue({ photos: [prepared, photo('two')] });
+    const inset = vi.fn();
+    const view = await mountView(() => h(ScoreboardPlayerPhotos, { selectedSet, logoUrl, onTopInsetChange: inset }));
+    const scoreboard = createTestCustomScoreboard();
+    scoreboard.regions.infoRight.y = 900;
+    const custom = await mountView(() =>
+      h(ScoreboardSource, {
+        selectedSet,
+        children: h(
+          'main',
+          { className: 'overlay' },
+          h(CustomScoreboardCanvas, { scoreboard, frameUrl: 'frame.png', selectedSet })
+        )
+      })
+    );
+    const name = () => custom.container.querySelector<HTMLElement>('[data-custom-scoreboard-region=playerOneName]')!;
+    const bottom = () => custom.container.querySelector<HTMLElement>('[data-custom-scoreboard-region=infoRight]')!;
+    const bottomTop = bottom().style.top;
+    const source = () => custom.container.querySelector<HTMLElement>('.scoreboard-source')!;
+    const sourceRoom = source().style.getPropertyValue('--scoreboard-source-headroom');
+    expect(name().style.top).toBe('0%');
+    expect(custom.container.querySelectorAll('.custom-scoreboard-frame')).toHaveLength(1);
+    const bar = () => view.container.querySelector<SVGSVGElement>('.scoreboard-player-photos')!;
+    expect(bar().dataset.photoTopInset).toBe('0');
+    expect(bar().style.top).toBe('');
+    expect(view.container.querySelector('[data-photo-extension]')).toBeNull();
+    transport.framing = 'extendAbove';
+    await view.rerender();
+    await custom.rerender();
+    const top = scoreboardPhotoTop({ ...prepared, width: 600, height: 900 }, layout, 'left');
+    expect(Boolean(custom.container.querySelector('.scoreboard-source.has-photo-headroom'))).toBe(fixed);
+    expect(source().style.getPropertyValue('--scoreboard-source-headroom')).toBe(sourceRoom);
+    expect(sourceRoom).toBe(fixed ? '3.125vw' : '0vw');
+    expect(Number.parseFloat(name().style.top)).toBeCloseTo(fixed ? 0 : Math.ceil(-top) / 10.8);
+    expect(bottom().style.top).toBe(bottomTop);
+    expect(custom.container.querySelectorAll('.custom-scoreboard-frame-top')).toHaveLength(fixed ? 0 : 1);
+    expect(top).toBeLessThan(0);
+    expect(inset).toHaveBeenLastCalledWith(fixed ? 0 : Math.ceil(-top));
+    expect(Number.parseFloat(bar().style.top)).toBeCloseTo(fixed ? 0 : Math.ceil(-top) / 10.8);
+    const extension = view.container.querySelector('[data-photo-extension]')!;
+    if (fixed) {
+      expect(top).toBe(-60);
+      for (const side of ['left', 'right'] as const) {
+        const layer = view.container.querySelector(`[data-scoreboard-photo-side=${side}]`)!;
+        const extension = layer.querySelector('[data-photo-extension]')!;
+        const viewport = layer.querySelector('svg')!;
+        const [, y, , height] = layout.sides[side].bounds;
+        expect(Number(extension.getAttribute('height'))).toBe(60);
+        expect(Number(viewport.getAttribute('y'))).toBe(y - 60);
+        expect(Number(viewport.getAttribute('height'))).toBe(height + 60);
+      }
+    }
+    expect(Number(extension.getAttribute('y'))).toBeCloseTo(top);
+    expect(Number(extension.closest('mask')!.getAttribute('y'))).toBeCloseTo(top);
+    for (const side of ['left', 'right'] as const) {
+      const layer = view.container.querySelector(`[data-scoreboard-photo-side=${side}]`)!;
+      const logo = layer.querySelector('[data-scoreboard-photo-logo]')!;
+      const clipId = logo.parentElement!.getAttribute('clip-path')!.slice(5, -1);
+      const clip = [...layer.querySelectorAll('clipPath')].find((element) => element.id === clipId)!;
+      expect(clip.querySelector('path')!.getAttribute('d')).toBe(layout.sides[side].path);
+      expect(clip.querySelector('[data-photo-extension]')).toBeNull();
+      expect(layer.querySelector('mask [data-photo-extension]')).not.toBeNull();
+    }
+    transport.framing = 'contained';
+    await view.rerender();
+    expect(inset).toHaveBeenLastCalledWith(0);
+    await custom.rerender();
+    expect(name().style.top).toBe('0%');
+    expect(bottom().style.top).toBe(bottomTop);
+    expect(custom.container.querySelector('.custom-scoreboard-frame-top')).toBeNull();
+    expect(Boolean(custom.container.querySelector('.scoreboard-source.has-photo-headroom'))).toBe(fixed);
+    expect(bar().style.top).toBe('');
+    expect(view.container.querySelector('[data-photo-extension]')).toBeNull();
+    if (fixed) {
+      sourceHeight = 1080;
+      await act(async () => window.dispatchEvent(new Event('resize')));
+      expect(custom.container.querySelector('.scoreboard-source.has-photo-headroom')).toBeNull();
+      transport.framing = 'extendAbove';
+      await custom.rerender();
+      expect(custom.container.querySelector('.scoreboard-source.has-photo-headroom')).toBeNull();
+      expect(custom.container.querySelector('[data-photo-extension]')).toBeNull();
+      expect(name().style.top).toBe('0%');
+    }
+  }
+);

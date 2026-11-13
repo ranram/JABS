@@ -10,7 +10,7 @@ import { scoreboardDetailLayouts, scoreboardDetailsTop } from './scoreboardDetai
 import './scoreboardDetails.css';
 import { scoreboardSeed } from './scoreboardSeed';
 
-export type ScoreboardDetailKind = 'xHandle' | 'pronouns' | 'seed';
+export type ScoreboardDetailKind = 'xHandle' | 'pronouns' | 'seed' | 'character';
 
 export function ScoreboardDetailPill({
   kind,
@@ -28,7 +28,7 @@ export function ScoreboardDetailPill({
       {kind === 'xHandle' && (
         <XLogoIcon className="scoreboard-detail-icon" size={14} weight="bold" aria-hidden="true" />
       )}
-      <span className="scoreboard-detail-label">
+      <span className="scoreboard-detail-label" data-scoreboard-swap-text={side}>
         <DisplayText text={value} />
       </span>
     </span>

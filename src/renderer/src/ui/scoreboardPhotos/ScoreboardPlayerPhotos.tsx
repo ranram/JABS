@@ -9,6 +9,7 @@ import {
   scoreboardPhotoPlacement,
   scoreboardPhotoLayout,
   scoreboardPhotoTop,
+  scoreboardPhotoViewport,
   type PhotoFraming,
   type PhotoProtectedArea,
   type PhotoShape,
@@ -26,6 +27,8 @@ import {
 import { useOverlayEntrance } from '../useOverlayEntrance';
 import { scoreboardPhotoEntrance } from './scoreboardPhotoEntrance';
 import { scoreboardLogoPlacement, type ScoreboardLogoContent } from './scoreboardLogoBackdrop';
+import { ScoreboardSourceHeadroomContext } from './ScoreboardSource';
+import { ScoreboardCharacterNames } from '../scoreboardDetails/ScoreboardCharacterNames';
 import './scoreboardPlayerPhotos.css';
 
 export function ScoreboardPlayerPhotos({
@@ -33,18 +36,23 @@ export function ScoreboardPlayerPhotos({
   stylingGameId,
   logoUrl,
   animateEntrance = true,
+  showCharacterNames,
   onTopInsetChange
 }: {
   selectedSet?: SelectedSetState;
   stylingGameId?: GameId;
   logoUrl?: string;
   animateEntrance?: boolean;
+  showCharacterNames?: boolean;
   onTopInsetChange?(inset: number): void;
 }) {
   const { state } = useScoreboardPhotos();
   const preparedGame =
     selectedSet && (selectedSet.assetCatalogSlug || selectedSet.gameName || selectedSet.setId || selectedSet.eventId);
   const layout = preparedGame && selectedSet ? scoreboardPhotoLayout(selectedSet) : undefined;
+  const effectiveStylingGameId = stylingGameId ?? selectedSet?.stylingGameId ?? selectedSet?.gameId;
+  const sourceHeadroom = useContext(ScoreboardSourceHeadroomContext);
+  const framing = layout?.gameId === 'street-fighter-6' && sourceHeadroom === 0 ? 'contained' : state?.framing;
   const players = selectedSet
     ? [selectedSet.playerOne, selectedSet.playerTwo].map(({ localPlayerId, playerId, name, playerPhotoAssetId }) => ({
         localPlayerId,
@@ -72,7 +80,7 @@ export function ScoreboardPlayerPhotos({
     layout?.gameId
   );
   const topInset =
-    state?.enabled && state.framing === 'extendAbove' && layout
+    state?.enabled && framing === 'extendAbove' && layout && layout.gameId !== 'street-fighter-6'
       ? Math.ceil(
           Math.max(
             0,
@@ -83,32 +91,45 @@ export function ScoreboardPlayerPhotos({
   useLayoutEffect(() => {
     onTopInsetChange?.(topInset);
   }, [onTopInsetChange, topInset]);
-  if (!state?.enabled || !layout) return null;
+  if (!layout) return null;
   return (
-    <svg
-      ref={entranceRef}
-      className="scoreboard-player-photos"
-      viewBox="0 0 1920 1080"
-      style={state.framing === 'extendAbove' ? { top: `${topInset / 10.8}%`, overflow: 'visible' } : undefined}
-      data-photo-top-inset={topInset}
-      aria-hidden="true"
-      focusable="false"
-      data-scoreboard-photo-layout={layout.maskId}
-    >
-      {(['left', 'right'] as const).map((side, i) => (
-        <g key={side} className="scoreboard-photo-container" data-entrance={`scoreboard-photo-${side}`}>
-          <ScoreboardPhotoSide
-            side={side}
-            photo={photos[i]}
-            framing={state.framing}
+    <>
+      {(showCharacterNames ?? (state?.showCharacterNames && effectiveStylingGameId === 'street-fighter-6')) &&
+        layout.gameId === 'street-fighter-6' &&
+        selectedSet && (
+          <ScoreboardCharacterNames
+            selectedSet={selectedSet}
             layout={layout}
-            stylingGameId={stylingGameId ?? selectedSet?.stylingGameId ?? selectedSet?.gameId}
-            logoUrl={logoUrls[i]}
-            logoContent={side === 'left' || sharedLogo ? leftLogoContent : rightLogoContent}
+            themeClass={resolveGameProfile(effectiveStylingGameId).overlay.themeClass}
           />
-        </g>
-      ))}
-    </svg>
+        )}
+      {state?.enabled && (
+        <svg
+          ref={entranceRef}
+          className="scoreboard-player-photos"
+          viewBox="0 0 1920 1080"
+          style={framing === 'extendAbove' ? { top: `${topInset / 10.8}%`, overflow: 'visible' } : undefined}
+          data-photo-top-inset={topInset}
+          aria-hidden="true"
+          focusable="false"
+          data-scoreboard-photo-layout={layout.maskId}
+        >
+          {(['left', 'right'] as const).map((side, i) => (
+            <g key={side} className="scoreboard-photo-container" data-entrance={`scoreboard-photo-${side}`}>
+              <ScoreboardPhotoSide
+                side={side}
+                photo={photos[i]}
+                framing={framing}
+                layout={layout}
+                stylingGameId={effectiveStylingGameId}
+                logoUrl={logoUrls[i]}
+                logoContent={side === 'left' || sharedLogo ? leftLogoContent : rightLogoContent}
+              />
+            </g>
+          ))}
+        </svg>
+      )}
+    </>
   );
 }
 
@@ -148,11 +169,16 @@ export function ScoreboardPhotoSide({
   const image = placeholder ? { url: placeholderUrl, width: 512, height: 512, crop: defaultHeadshotCrop() } : photo;
   const shape = layout.sides[side];
   const [x, y, width, height] = shape.bounds;
+  const viewport = scoreboardPhotoViewport(layout, side, placeholder ? 'contained' : framing);
   const logoPlacement = scoreboardLogoPlacement(shape.bounds, side, logoContent);
   const palette = resolveGameProfile(stylingGameId ?? layout.gameId).overlay;
+  const accent =
+    side === 'left'
+      ? `var(--appearance-primary, ${palette.accent})`
+      : `var(--appearance-secondary, var(--broadcast-right, ${palette.accent}))`;
   const crop = placeholder
     ? { x: 0, y: 0, width: image.width, height: image.height }
-    : scoreboardPhotoViewBox(photo!, width / height);
+    : scoreboardPhotoViewBox(photo!, viewport.width / viewport.height);
   const shadowScale = crop.width / width;
   const extendAbove = framing === 'extendAbove' && !placeholder;
   const photoTop = extendAbove ? scoreboardPhotoTop(photo!, layout, side, framing) : y;
@@ -171,12 +197,14 @@ export function ScoreboardPhotoSide({
           x2={side === 'left' ? x + width : x}
           y2={y + height}
         >
-          <stop offset="0" stopColor={`color-mix(in srgb, ${palette.background} 88%, black)`} />
-          <stop
-            offset="1"
-            stopColor={`color-mix(in srgb, var(--appearance-primary, ${palette.accent}) 10%, ${palette.background})`}
-          />
+          <stop offset="0" stopColor={`color-mix(in srgb, color-mix(in srgb, ${accent} 58%, #353941) 70%, black)`} />
+          <stop offset="1" stopColor={`color-mix(in srgb, color-mix(in srgb, ${accent} 68%, #252931) 70%, black)`} />
         </linearGradient>
+        {logoUrl && (
+          <clipPath id={`${id}-logo`} clipPathUnits="userSpaceOnUse">
+            <Shape shape={shape} />
+          </clipPath>
+        )}
         <mask
           id={`${id}-photo`}
           maskUnits="userSpaceOnUse"
@@ -198,13 +226,15 @@ export function ScoreboardPhotoSide({
       <g mask={`url(#${id}-photo)`}>
         <Shape shape={shape} fill={`url(#${id}-background)`} data-scoreboard-photo-background />
         {logoUrl && (
-          <image data-scoreboard-photo-logo href={logoUrl} {...logoPlacement} preserveAspectRatio="xMidYMid meet" />
+          <g clipPath={`url(#${id}-logo)`}>
+            <image data-scoreboard-photo-logo href={logoUrl} {...logoPlacement} preserveAspectRatio="xMidYMid meet" />
+          </g>
         )}
         <svg
           x={x}
-          y={y}
+          y={viewport.y}
           width={width}
-          height={height}
+          height={viewport.height}
           viewBox={`${crop.x} ${crop.y} ${crop.width} ${crop.height}`}
           overflow={extendAbove ? 'visible' : 'hidden'}
           preserveAspectRatio={placeholder ? 'xMidYMid meet' : 'xMidYMid slice'}

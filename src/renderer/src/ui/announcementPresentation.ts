@@ -7,13 +7,16 @@ export type AnnouncementPresentation = {
   winner: PlayerState;
 };
 
-export function announcementPresentation(selectedSet: SelectedSetState): AnnouncementPresentation | undefined {
+export function announcementPresentation(
+  selectedSet: SelectedSetState,
+  { allowLeadingScore = false }: { allowLeadingScore?: boolean } = {}
+): AnnouncementPresentation | undefined {
+  if (selectedSet.upstreamReset) return undefined;
   const winnerSide = winnerSideForMatch(selectedSet);
   let winner = winnerSide === 'one' ? selectedSet.playerOne : winnerSide === 'two' ? selectedSet.playerTwo : undefined;
   if (
     !winner &&
-    selectedSet.matchFormat !== 'topanga' &&
-    selectedSet.state === '3' &&
+    (allowLeadingScore || (selectedSet.matchFormat !== 'topanga' && selectedSet.state === '3')) &&
     selectedSet.playerOne.score !== selectedSet.playerTwo.score
   ) {
     winner = selectedSet.playerOne.score > selectedSet.playerTwo.score ? selectedSet.playerOne : selectedSet.playerTwo;

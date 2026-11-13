@@ -1,3 +1,8 @@
 [data-entrance-pending] [data-entrance] {
   visibility: hidden;
 }
+
+[data-result-title-hidden] {
+  /* Entrance animations override opacity until the title settles, without changing its space. */
+  opacity: 0;
+}

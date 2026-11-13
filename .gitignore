@@ -33,3 +33,6 @@ tourney-logos/*
 Thumbs.db
 *.log
 /local-reference/
+
+# Local website maintenance instructions.
+/site/README.md

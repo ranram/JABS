@@ -75,6 +75,7 @@ export const scoreboardPhotoSettingsSchema = z
     framing: photoFramingSchema.default('contained'),
     logoBackdrop: z.boolean().default(false),
     sponsorBackdrop: z.boolean().default(false),
+    showCharacterNames: z.boolean().default(false),
     updatedAt: z.string()
   })
   .strict()
@@ -115,13 +116,49 @@ export function scoreboardPhotoLayout(
 }
 
 export function scoreboardPhotoPlacement(
-  photo: ScoreboardPhoto,
+  photo: ScoreboardPhoto & Partial<Pick<FramedPhoto, 'width' | 'height' | 'contentBounds' | 'focusBounds'>>,
   gameId: string | undefined,
   side: 'left' | 'right',
   framing: PhotoFraming = 'contained'
 ): MediaTransform {
   const placements = framing === 'extendAbove' ? photo.extendedPlacements : photo.placements;
-  return (gameId && placements?.[gameId]?.[side]) || defaultMediaTransform();
+  const placement = (gameId && placements?.[gameId]?.[side]) || defaultMediaTransform();
+  const bounds = photo.focusBounds ?? photo.contentBounds;
+  if (
+    framing !== 'extendAbove' ||
+    gameId !== 'street-fighter-6' ||
+    !photo.autoFrame ||
+    !photo.width ||
+    !photo.height ||
+    !bounds
+  )
+    return placement;
+  const viewport = scoreboardPhotoViewport({ ...photoLayouts[gameId], gameId }, side, framing);
+  const crop = scoreboardPhotoViewBox(
+    { ...photo, width: photo.width, height: photo.height },
+    viewport.width / viewport.height
+  );
+  const headTop = (bounds.y * photo.height - crop.y) / crop.height;
+  const placedTop = 0.5 + placement.y + placement.scale * (headTop - 0.5);
+  // Older offsets could move a head beyond the newly fixed extension.
+  return placedTop < 0 ? { ...placement, y: placement.y - placedTop } : placement;
+}
+
+export function scoreboardPhotoExtension(
+  layout: ScoreboardPhotoLayout | undefined,
+  framing: PhotoFraming = 'contained'
+) {
+  return framing === 'extendAbove' && layout?.gameId === 'street-fighter-6' ? 60 : 0;
+}
+
+export function scoreboardPhotoViewport(
+  layout: ScoreboardPhotoLayout,
+  side: 'left' | 'right',
+  framing: PhotoFraming = 'contained'
+) {
+  const [x, y, width, height] = layout.sides[side].bounds;
+  const extension = scoreboardPhotoExtension(layout, framing);
+  return { x, y: y - extension, width, height: height + extension };
 }
 
 export function photoPlacementTransform(box: ReturnType<typeof photoCropViewBox>, placement: MediaTransform) {
@@ -141,7 +178,7 @@ export function photoCropViewBox(width: number, height: number, aspect: number, 
   };
 }
 
-/** Top of the visible cutout in scoreboard coordinates, before reserving headroom. */
+/** SF6 has a fixed extension. Other layouts follow the visible cutout. */
 export function scoreboardPhotoTop(
   photo: FramedPhoto,
   layout: ScoreboardPhotoLayout,
@@ -151,6 +188,7 @@ export function scoreboardPhotoTop(
 ) {
   const [, y, width, height] = layout.sides[side].bounds;
   if (framing === 'contained') return y;
+  if (layout.gameId === 'street-fighter-6') return scoreboardPhotoViewport(layout, side, framing).y;
   const crop = scoreboardPhotoViewBox(photo, width / height);
   const center = crop.y + crop.height / 2;
   const imageTop = (photo.contentBounds?.y ?? 0) * photo.height;

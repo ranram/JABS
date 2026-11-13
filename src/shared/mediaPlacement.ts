@@ -7,6 +7,11 @@ export const mediaTransformSchema = z.object({
   flipped: z.boolean().default(false)
 });
 
+export const playerMediaPlacementSchema = z.object({
+  character: mediaTransformSchema,
+  photo: mediaTransformSchema
+});
+
 export type MediaLayerKind = 'character' | 'photo';
 export const playerMediaModeIds = ['character', 'photo', 'combined'] as const;
 export type PlayerMediaMode = (typeof playerMediaModeIds)[number];

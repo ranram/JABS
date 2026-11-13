@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { canonicalGameId, type GameId } from './gameProfiles';
 import {
   defaultPlayerMediaPlacement,
-  mediaTransformSchema,
+  playerMediaPlacementSchema,
   playerMediaModeIds,
   type PlayerMediaPlacement
 } from './mediaPlacement';
@@ -26,11 +26,6 @@ const headToHeadSchema = z.object({
   completedAt: z.number().int().nonnegative().optional(),
   playerOneScore: z.number().int().nonnegative(),
   playerTwoScore: z.number().int().nonnegative()
-});
-
-const playerMediaPlacementSchema = z.object({
-  character: mediaTransformSchema,
-  photo: mediaTransformSchema
 });
 
 export const versusHistorySchema = z.object({
@@ -67,6 +62,7 @@ export const versusScreenStateSchema = z.object({
   informationLayout: z.enum(['standard', 'compact']).default('standard'),
   showBackground: z.boolean().default(true),
   showMatchBackdrop: z.boolean().default(true),
+  mirrorCharacterPlacement: z.boolean().default(true),
   showTournamentLogo: z.boolean(),
   showSponsorLogos: z.boolean(),
   showHeadToHead: z.boolean().default(true),

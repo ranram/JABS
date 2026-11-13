@@ -534,7 +534,7 @@ export const en = {
       contained: 'Contained',
       extendAbove: 'Extend above (Experimental)',
       framingHelp:
-        'Contained keeps photos inside the scoreboard. Extend above allows them past the top edge only. Each mode remembers its framing.',
+        'Each mode saves its own framing. For SF6 Extend above, set Width to 1920 and Height to 1140 in the OBS Browser Source’s Properties. At 1920×1080, SF6 photos stay contained.',
 
       saveScope: 'Apply framing to',
       savePlayerOne: 'Player 1 side',
@@ -546,6 +546,7 @@ export const en = {
       unsupported: 'This game has no scoreboard photo layout.',
       recommendedSize: 'Use a head-and-shoulders photo. You do not need to resize it or add transparent margins.',
       enabled: 'Player photos in scoreboards',
+      showCharacterNames: 'Show character names',
       logoBackdrop: 'Tournament logo behind players',
       sponsorBackdrop: 'Sponsor logos behind players',
       chooseLogo: 'Choose a tournament logo under <extras>Logo</extras>.',
@@ -561,7 +562,6 @@ export const en = {
       loadFailed: 'Unable to load scoreboard photo settings.',
       noImage: 'No matching player image.'
     },
-    appSubtitle: 'Just Another Bracketing System',
     // Player library
     players: {
       // Library navigation
@@ -853,8 +853,9 @@ export const en = {
         showScrollingRails: 'Show scrolling rails',
         informationLayout: 'Information layout',
         informationLayouts: { standard: 'Standard', compact: 'Compact' },
+        mirrorCharacterPlacement: 'Mirror character placement',
         framingHelp:
-          'Standard and Compact save separate framing. Character position and size mirror across sides for the same game and artwork. Each side keeps its own flip, and photos keep each saved player’s framing.',
+          'Mirroring links character position and size across sides for the same artwork. Flips and photos stay independent. Standard and Compact save separate framing.',
         showMatchBackdrop: 'Match information backdrop',
         matchBackdropHelp: 'Comparison and history rows keep their backgrounds.',
         statsHeading: 'Match comparison',
@@ -902,13 +903,13 @@ export const en = {
         spotlight: 'Spotlight',
         highlight: 'Highlight',
         showIdentity: 'Show player name',
-        showWinnerTitle: 'Show Winner / Champion title',
+        showWinnerTitle: 'Keep Winner / Champion title',
         showConfetti: 'Show confetti',
         loading: 'Loading settings…',
         currentWinner: 'Current winner',
         winner: 'Set winner',
         champion: 'Champion',
-        noWinner: 'Complete the match to show its winner',
+        noWinner: 'Waiting for a score lead',
         showTournamentLogo: 'Show tournament logo',
         showPlayerPhoto: 'Show player photo',
         showSponsorLogo: 'Show team/sponsor logo',

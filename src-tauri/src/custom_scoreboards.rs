@@ -102,6 +102,8 @@ pub struct ScoreboardVisibility {
     pub sponsors: bool,
     #[serde(default)]
     pub x_handles: bool,
+    #[serde(default)]
+    pub character_names: bool,
     #[serde(default = "default_true")]
     pub pronouns: bool,
     #[serde(default = "default_true")]
@@ -403,6 +405,7 @@ fn default_scoreboard(id: String, name: String, frame_revision: String) -> Custo
             flags: true,
             sponsors: true,
             x_handles: false,
+            character_names: false,
             pronouns: true,
             seeds: true,
             round: true,
@@ -485,7 +488,7 @@ mod tests {
             "revision".to_owned(),
         );
         let mut legacy = serde_json::to_value(&scoreboard).unwrap();
-        for rail in ["infoLeft", "infoCenter", "infoRight"] {
+        for rail in ["infoLeft", "infoCenter", "infoRight", "characterNames"] {
             legacy["visibility"].as_object_mut().unwrap().remove(rail);
         }
         assert!(legacy["typography"].get("sponsorColor").is_none());
@@ -502,6 +505,7 @@ mod tests {
 
         scoreboard.visibility.info_left = false;
         scoreboard.visibility.info_right = false;
+        scoreboard.visibility.character_names = true;
         scoreboard.typography.sponsor_color = Some("#66ccff".into());
         scoreboard.typography.text_color = "#ffcc66".into();
         scoreboard.player_elements.player_one.sponsor_logo =
