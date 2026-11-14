@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { charactersForAssetCatalog } from '@shared/characterRosters';
 import type { GameCharacterAsset } from '@shared/models';
-import { useCatalogRevision } from '../../hooks/useCatalogRevision';
+import { useAssetRevision } from '../../hooks/useCatalogRevision';
 import { api } from '../../api';
 
 const emptyAssets: readonly GameCharacterAsset[] = [];
@@ -15,7 +15,7 @@ export function useCharacterCatalogOptions(
   assetCatalogSlug: string | undefined,
   assetCatalogRevision: number
 ): CharacterCatalogOptions {
-  const catalogRevision = useCatalogRevision();
+  const catalogRevision = useAssetRevision();
   const [catalog, setCatalog] = useState<{ slug: string; assets: GameCharacterAsset[] }>();
   const assets = catalog && catalog.slug === assetCatalogSlug ? catalog.assets : emptyAssets;
 

@@ -36,8 +36,10 @@ export function useRealtimeState<T>({
     let snapshotVersion = 0;
     let loadId = 0;
     let pendingLoads = 0;
+    let receivedSnapshot = false;
     const diagnosticContext = diagnosticOperation
-      ? { area: diagnosticArea(diagnosticOperation), operation: diagnosticOperation } : {};
+      ? { area: diagnosticArea(diagnosticOperation), operation: diagnosticOperation }
+      : {};
 
     async function refresh(): Promise<void> {
       pendingLoads += 1;
@@ -46,6 +48,7 @@ export function useRealtimeState<T>({
       try {
         const next = await load();
         if (!disposed && version === snapshotVersion && requestId === loadId) {
+          receivedSnapshot = true;
           setState(next);
           setError(undefined);
         }
@@ -78,7 +81,6 @@ export function useRealtimeState<T>({
           if (disposed || socket !== nextSocket) return;
           if (reconnectAttempt > 0) recordDiagnostic('realtime-reconnected', diagnosticContext);
           reconnectAttempt = 0;
-          setError(undefined);
           void refresh();
         });
         nextSocket.addEventListener('message', (event) => {
@@ -86,6 +88,7 @@ export function useRealtimeState<T>({
           if (acceptCatalogMessage(event.data)) return;
           const next = parseMessage(event.data);
           if (next !== undefined) {
+            receivedSnapshot = true;
             snapshotVersion += 1;
             setState(next);
             setError(undefined);
@@ -96,7 +99,7 @@ export function useRealtimeState<T>({
           recordDiagnostic('realtime-disconnected', { ...diagnosticContext, reason: 'network' });
           socket = undefined;
           loadId += 1;
-          setError(reconnectingError);
+          setError(receivedSnapshot ? reconnectingError : i18n.t('errors:realtimeInitialConnection'));
           nextSocket.close();
           scheduleReconnect();
         }

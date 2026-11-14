@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { CustomScoreboard } from '@shared/customScoreboards';
 import { api } from '../api';
-import { useCatalogRevision } from './useCatalogRevision';
+import { useAssetRevision } from './useCatalogRevision';
 
 export function useCustomScoreboard(scoreboardId: string | undefined, revision?: string): {
   scoreboard?: CustomScoreboard;
   frameUrl?: string;
 } {
   const scoreboard = useCustomScoreboardManifest(scoreboardId, revision);
-  const catalogRevision = useCatalogRevision();
+  const catalogRevision = useAssetRevision();
   const [frameUrl, setFrameUrl] = useState<string>();
 
   useEffect(() => {

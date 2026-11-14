@@ -179,6 +179,11 @@ export function StartggPanel({
   const tutorialActive = useTutorialActive();
   const [setSelectorOpen, setSetSelectorOpen] = useState(false);
   const [playersOpen, setPlayersOpen] = useState(false);
+  const refreshSelector = useRef(bracket.actions.loadSets);
+  refreshSelector.current = () => bracket.state.setScope ? bracket.actions.loadSets() : Promise.resolve();
+  useEffect(() => {
+    if (setSelectorOpen) void refreshSelector.current();
+  }, [setSelectorOpen]);
   useEffect(() => {
     if (!tournamentLoaded) setSetSelectorOpen(false);
   }, [tournamentLoaded]);

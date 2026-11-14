@@ -9,6 +9,8 @@ export { ArrowsLeftRightIcon } from '@phosphor-icons/react/dist/csr/ArrowsLeftRi
 export { ArrowCounterClockwiseIcon } from '@phosphor-icons/react/dist/csr/ArrowCounterClockwise';
 export { ArrowLeftIcon } from '@phosphor-icons/react/dist/csr/ArrowLeft';
 export { ArrowRightIcon } from '@phosphor-icons/react/dist/csr/ArrowRight';
+export { ArrowLineUpIcon } from '@phosphor-icons/react/dist/csr/ArrowLineUp';
+export { ArrowLineDownIcon } from '@phosphor-icons/react/dist/csr/ArrowLineDown';
 export { ArrowUpIcon } from '@phosphor-icons/react/dist/csr/ArrowUp';
 export { ArrowDownIcon } from '@phosphor-icons/react/dist/csr/ArrowDown';
 export { CheckIcon } from '@phosphor-icons/react/dist/csr/Check';

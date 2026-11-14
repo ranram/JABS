@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { parseQueueRealtime, type QueueContext } from '@shared/matchQueue';
+import { parseQueueRealtime, type QueueContext, type MatchQueue } from '@shared/matchQueue';
 import { matchQueueApi } from '../../matchQueueApi';
 import { useRealtimeState } from '../../hooks/useRealtimeState';
 import { parseRealtimeJson } from '../../hooks/realtime';
@@ -28,6 +28,7 @@ export function MatchQueueWorkspace({
   const live = useRealtimeState({
     load: matchQueueApi.current,
     diagnosticOperation: 'queue-read',
+    refreshIntervalMs: 15_000,
     parseMessage,
     loadError: t('queue.loadFailed')
   });
@@ -46,6 +47,17 @@ export function MatchQueueWorkspace({
   const pending = usePendingWrites();
   const clientId = useRef(crypto.randomUUID());
   const operationInFlight = useRef(false);
+  const refreshInFlight = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  function acceptSnapshot(next: MatchQueue) {
+    live.setState((current) => (!current || next.revision >= current.revision ? next : current));
+  }
   const sequence = useRef(0);
   const settledSequence = useRef(0);
   const pendingHeartbeats = useRef(new Set<AbortController>());
@@ -134,13 +146,13 @@ export function MatchQueueWorkspace({
     setBusy(true);
     setError(undefined);
     try {
-      live.setState(await action());
+      acceptSnapshot(await action());
       return true;
     } catch (e) {
       setError(localizedNativeError(e, t('queue.actionFailed')));
       // Reload the authoritative revision after a rejected or uncertain request.
       try {
-        live.setState(await matchQueueApi.current());
+        acceptSnapshot(await matchQueueApi.current());
       } catch {
         // Later realtime updates can restore the queue state if this read also fails.
       }
@@ -168,7 +180,24 @@ export function MatchQueueWorkspace({
     busy,
     blocked: blocked || pending || Boolean(live.error) || connectionFailed,
     error: error ?? live.error,
-    open: () => setOpened(true),
+    open: () => {
+      setOpened(true);
+      if (refreshInFlight.current) return;
+      refreshInFlight.current = true;
+      setError(undefined);
+      const previous = latest.current.state;
+      void matchQueueApi
+        .refresh()
+        .then((next) => {
+          if (mounted.current) live.setState((current) => (current === previous ? next : current));
+        })
+        .catch((error) => {
+          if (mounted.current) setError(localizedNativeError(error, t('queue.loadFailed')));
+        })
+        .finally(() => {
+          refreshInFlight.current = false;
+        });
+    },
     close: () => {
       setOpened(false);
       setHolding(false);

@@ -77,7 +77,7 @@ async fn save(
         .map(|saved| json!(saved));
     if result.is_ok() {
         runtime
-            .asset_catalog_revision
+            .player_library_revision
             .send_modify(|revision| *revision += 1);
     }
     respond(result)
@@ -102,7 +102,7 @@ async fn delete(
         .map(|_| json!({ "ok": true }));
     if result.is_ok() {
         runtime
-            .asset_catalog_revision
+            .player_library_revision
             .send_modify(|revision| *revision += 1);
     }
     respond(result)
@@ -173,16 +173,15 @@ async fn import_library(
     if let Some(response) = reject_untrusted_mutation(&headers) {
         return response;
     }
-    respond(
-        tokio::task::spawn_blocking(move || {
-            runtime
-                .database
-                .library_import(players)
-                .map(|(added, skipped)| json!({ "added": added, "skipped": skipped }))
+    let writer = runtime.clone();
+    let result = tokio::task::spawn_blocking(move || {
+            let result = writer.database.library_import(players);
+            if result.is_ok() { writer.player_library_revision.send_modify(|revision| *revision += 1); }
+            result.map(|(added, skipped)| json!({ "added": added, "skipped": skipped }))
         })
         .await
-        .unwrap_or_else(|_| Err("The library import could not finish.".into())),
-    )
+        .unwrap_or_else(|_| Err("The library import could not finish.".into()));
+    respond(result)
 }
 
 #[derive(Deserialize)]
@@ -199,7 +198,46 @@ async fn lookup(
         return response;
     }
     match super::lookup::find(&runtime, &body.reference).await {
-        Ok(result) => secure_json(Json(result)),
+        Ok(result) => {
+            if result.source == "startgg" { runtime.player_library_revision.send_modify(|revision| *revision += 1); }
+            secure_json(Json(result))
+        },
         Err(error) => startgg_error(error),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{database::Database, player_library::Profile};
+
+    #[tokio::test]
+    async fn importing_players_notifies_open_views_only_after_successful_writes() {
+        let unused = std::path::PathBuf::from("/jabs-no-test-assets");
+        let runtime = Arc::new(RuntimeState::new(
+            Database::open(std::path::Path::new(":memory:")).unwrap(), unused.clone(),
+            unused.clone(), unused.clone(), unused.clone(), unused.clone(), unused,
+        ).unwrap());
+        let mut headers = HeaderMap::new();
+        headers.insert("X-JABS-Action", "renderer-v1".parse().unwrap());
+        let mut changes = runtime.player_library_revision.subscribe();
+        let image_revision = *runtime.asset_catalog_revision.borrow();
+        let player = LibraryPlayer {
+            local_id: "1".repeat(32), player_id: None,
+            imported: Profile { name: "Imported player".into(), ..Profile::default() },
+            overrides: Default::default(), aliases: vec![], games: vec![], scoreboard_photo: None,
+            updated_at: String::new(), seen_at: String::new(),
+        };
+        let response = import_library(State(runtime.clone()), headers.clone(), Json(vec![player.clone()])).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(changes.has_changed().unwrap());
+        assert_eq!(*runtime.asset_catalog_revision.borrow(), image_revision);
+        changes.borrow_and_update();
+        assert!(runtime.database.library_player(&player.local_id).unwrap().is_some());
+        let mut invalid = player;
+        invalid.local_id = "invalid".into();
+        let response = import_library(State(runtime.clone()), headers, Json(vec![invalid])).await;
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        assert!(!changes.has_changed().unwrap());
     }
 }

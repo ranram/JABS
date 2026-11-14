@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { StartggGateway } from '@shared/startggGateway';
-import { mountHook } from '../../hooks/hookTestHarness';
+import { deferred, mountHook } from '../../hooks/hookTestHarness';
 import { useBracketBrowser } from './useBracketBrowser';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -26,6 +26,12 @@ it('refreshes stream assignments with sets and reports queue failure without dis
   expect(hook.current.state.sets).toEqual([{ id: '1' }]);
   expect(hook.current.state.streamAssignments).toEqual([assignment]);
   expect(setMessage).toHaveBeenLastCalledWith(expect.stringContaining('selector.streamRefreshFailed'), 'warning');
+  const older = deferred<{ source: string; sets: { id: string }[]; pageInfo: typeof pageInfo }>();
+  sets.mockReturnValueOnce(older.promise).mockResolvedValueOnce({ source: 'live', sets: [{ id: 'new' }], pageInfo });
+  let pending: Promise<void>;
+  await act(async () => { pending = hook.current.actions.loadSets(scope); await hook.current.actions.loadSets(scope); });
+  await act(async () => { older.resolve({ source: 'live', sets: [{ id: 'old' }], pageInfo }); await pending; });
+  expect(hook.current.state.sets).toEqual([{ id: 'new' }]);
 });
 
 it('clears stream state on context changes but preserves it on refresh and failed transitions', async () => {
@@ -57,4 +63,37 @@ it('clears stream state on context changes but preserves it on refresh and faile
   expect(hook.current.state.selectedEventId).toBe('1');
   await act(async () => hook.current.actions.selectEvent(''));
   expect(onContextChange).toHaveBeenCalledTimes(5);
+});
+
+it('aborts the current search batch on cancellation and does not request later pages', async () => {
+  let signal: AbortSignal | undefined;
+  const sets = vi.fn().mockImplementation((_scope, page, _perPage, requestSignal?: AbortSignal) => {
+    signal = requestSignal;
+    if (page === 1) return Promise.resolve({ source: 'live', sets: [], pageInfo: { ...pageInfo, totalPages: 5 } });
+    return new Promise((_resolve, reject) => requestSignal?.addEventListener('abort', () => reject(new DOMException('', 'AbortError'))));
+  });
+  const setMessage = vi.fn();
+  const hook = await mountHook(() => useBracketBrowser({ startgg: { sets } as unknown as StartggGateway,
+    setMessage, setLoading: vi.fn(), setTokenVerified: vi.fn() }));
+  let search: Promise<void>;
+  await act(async () => { search = hook.current.actions.ensureCompleteSetSearchCatalog(scope); });
+  expect(sets).toHaveBeenCalledTimes(3);
+  await act(async () => { hook.current.actions.cancelSetSearch(); await search; });
+  expect(signal?.aborted).toBe(true);
+  expect(sets).toHaveBeenCalledTimes(3);
+  expect(hook.current.state.setSearchLoading).toBe(false);
+  expect(setMessage).not.toHaveBeenCalled();
+});
+
+it('ignores an older post-report refresh after a newer selector refresh finishes', async () => {
+  const older = deferred<{ source: string; sets: { id: string }[]; pageInfo: typeof pageInfo }>();
+  const sets = vi.fn().mockResolvedValue({ source: 'live', sets: [], pageInfo });
+  const hook = await mountHook(() => useBracketBrowser({ startgg: { sets } as unknown as StartggGateway,
+    setMessage: vi.fn(), setLoading: vi.fn(), setTokenVerified: vi.fn() }));
+  await act(async () => hook.current.actions.loadSets(scope));
+  sets.mockReturnValueOnce(older.promise).mockResolvedValueOnce({ source: 'live', sets: [{ id: 'new' }], pageInfo });
+  let pending!: Promise<boolean>;
+  await act(async () => { pending = hook.current.actions.refreshAfterReport(); await hook.current.actions.loadSets(scope); });
+  await act(async () => { older.resolve({ source: 'live', sets: [{ id: 'old' }], pageInfo }); expect(await pending).toBe(false); });
+  expect(hook.current.state.sets).toEqual([{ id: 'new' }]);
 });

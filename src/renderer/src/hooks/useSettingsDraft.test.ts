@@ -45,3 +45,22 @@ it('returns failure, reloads acknowledged state and rebases later edits after a 
   await hook.unmount();
   expect(save).toHaveBeenLastCalledWith({ name: 'external', visible: true, updatedAt: '3' });
 });
+
+it('recovers initial settings loads by default and stops retrying after unmount', async () => {
+  vi.useFakeTimers();
+  try {
+    const load = vi.fn().mockRejectedValueOnce(new Error('Offline')).mockResolvedValue({ visible: true });
+    const hook = await mountHook(() => useSettingsDraft({ load, save: vi.fn(), onError: vi.fn() }));
+    expect(hook.current.loadError).toBeInstanceOf(Error);
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    expect(hook.current.state).toEqual({ visible: true });
+    expect(hook.current.loadError).toBeUndefined();
+    await hook.unmount();
+    load.mockRejectedValue(new Error('Offline'));
+    const failing = await mountHook(() => useSettingsDraft({ load, save: vi.fn(), onError: vi.fn() }));
+    await failing.unmount();
+    const calls = load.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(load).toHaveBeenCalledTimes(calls);
+  } finally { vi.useRealTimers(); }
+});

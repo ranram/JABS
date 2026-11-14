@@ -8,6 +8,8 @@ export const assetCatalogMessageSchema = assetCatalogRevisionSchema.extend({
   event: z.literal('asset-catalog')
 });
 
+export const playerLibraryMessageSchema = assetCatalogRevisionSchema.extend({ event: z.literal('player-library') });
+
 export const assetCatalogCheckSchema = assetCatalogRevisionSchema.extend({
   changed: z.boolean()
 });

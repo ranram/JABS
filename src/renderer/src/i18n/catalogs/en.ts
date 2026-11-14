@@ -141,6 +141,14 @@ export const en = {
       topEightYes: 'Yes, add matches',
       topEightNo: 'No, cancel',
 
+      refreshStale: 'Queue may be out of date',
+      refreshFailed: 'start.gg could not refresh the queue. Displayed matches may be out of date. JABS will retry automatically.',
+      pauseReasons: {
+        inactivity: 'Paused after inactivity. Review the queue before continuing.',
+        'event-changed': 'Paused because the event changed.',
+        disconnected: 'Paused because no operator is connected to this event.',
+        'match-changed': 'Paused because the live match changed.'
+      },
       pausedCountdown: 'Paused · {{time}} remaining',
       title: 'Match queue',
       open: 'Queue ({{count}})',
@@ -166,6 +174,8 @@ export const en = {
       queued: 'Queued · #{{position}}',
       send: 'Send to stream',
       remove: 'Remove',
+      moveTop: 'Move to top',
+      moveBottom: 'Move to bottom',
       moveUp: 'Move up',
       moveDown: 'Move down',
       moved: 'Match moved to position {{position}}.',
@@ -506,6 +516,8 @@ export const en = {
     },
     shortcutGuide: { navigation: 'Navigation & queue', scoring: 'Scoring', matchActions: 'Match actions' },
     queueTicker: {
+      settingsFailed: 'Could not load or save ticker settings.',
+      retryingLoad: 'Could not load ticker settings. Retrying…',
       preview: 'Ticker preview',
       on: 'On',
       off: 'Off',
@@ -1604,6 +1616,8 @@ export const en = {
       quickReportFailed: 'Unable to quick-report this set to start.gg.',
 
       // Stream edits and result reporting
+      setLoaded: 'Set loaded into the stream state.',
+      setQueuedNext: 'Match queued next. The current match is still on stream.',
       selectSetFailed: 'Unable to select set.',
       streamSaved: 'Stream changes saved and sent to OBS.',
       saveStreamFailed: 'Unable to save stream state.',
@@ -1645,7 +1659,10 @@ export const en = {
   errors: {
     nativeFailure: 'Could not complete this action. Check the details and try again.',
     invalidLocalResponse: 'The local service returned an invalid response for {{source}}.',
-    realtimeConnection: 'Realtime connection interrupted. Reconnecting…',
+    localReadTimeout: 'JABS took too long to respond. Try again.',
+    localWriteTimeout: 'JABS took too long to confirm the change. It may have been saved. Check the current state before trying again.',
+    realtimeInitialConnection: 'Unable to load live data. Reconnecting…',
+    realtimeConnection: 'Live connection interrupted. Showing the last received data while reconnecting…',
 
     generic: 'Something went wrong.',
     localSettings: 'Unable to load local app settings.',

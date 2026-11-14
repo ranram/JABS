@@ -194,12 +194,27 @@ impl QueueStore {
                 && two == Some(entry.entrant_two_id.as_str()))
                 || (one == Some(entry.entrant_two_id.as_str())
                     && two == Some(entry.entrant_one_id.as_str()));
+            if same_players && set["state"].as_str() == Some("3") {
+                let winner = set["winnerId"].as_str().or_else(|| set["reportedOutcome"]["winnerId"].as_str());
+                if let Some(winner) = winner.filter(|winner| Some(*winner) == one || Some(*winner) == two) {
+                    let first = one == Some(entry.entrant_one_id.as_str());
+                    let scores = (set["entrantOneScore"].as_u64().unwrap_or(0).min(100) as u32,
+                        set["entrantTwoScore"].as_u64().unwrap_or(0).min(100) as u32);
+                    let result = super::ReportedResult { winner_id: winner.to_owned(),
+                        score_one: if first { scores.0 } else { scores.1 },
+                        score_two: if first { scores.1 } else { scores.0 },
+                        disqualification: set["reportedOutcome"]["kind"].as_str() == Some("disqualification") };
+                    changed |= entry.reported_result.as_ref() != Some(&result);
+                    entry.reported_result = Some(result);
+                }
+            }
             match set["state"].as_str() {
                 Some("3")
                     if same_players
                         && (entry.result_status != Some(ResultStatus::Reported)
                             || entry.upstream_reset) =>
                 {
+                    entry.completed_at = entry.completed_at.clone().or_else(|| crate::database::now_rfc3339().ok());
                     entry.result_status = Some(ResultStatus::Reported);
                     entry.upstream_reset = false;
                     changed = true;
@@ -225,6 +240,8 @@ impl QueueStore {
                         reset_ids.push(entry.set_id.clone());
                     }
                     entry.result_status = None;
+                    entry.reported_result = None;
+                    entry.completed_at = None;
                     entry.upstream_reset = true;
                     active_reset |= active_id.as_deref() == Some(entry.set_id.as_str())
                         && (invalidated || (local_reset.is_none() && active_result));
@@ -233,14 +250,21 @@ impl QueueStore {
                 _ => {}
             }
         }
+        let externally_reported = next.snapshot.entries.iter().any(|entry|
+            Some(entry.set_id.as_str()) == active_id.as_deref()
+                && entry.result_status == Some(ResultStatus::Reported) && !entry.upstream_reset);
+        if externally_reported && !next.reported {
+            next.reported = true;
+            changed = true;
+        }
         if !changed && !active_reset {
             return Ok(reset_ids);
         }
         if active_reset {
             pause(&mut next);
             reset_result(&mut next);
-            next.snapshot.revision += 1;
         }
+        next.snapshot.revision += 1;
         save(database, &next.snapshot)?;
         *inner = next;
         self.publish(&inner);
@@ -293,17 +317,22 @@ impl QueueStore {
             }
         }
         let upstream_reset = reset_pending && result != Some(ResultStatus::Reported);
-        if entry.result_status == result && entry.upstream_reset == upstream_reset {
+        let new_report = matches!(source, ResultSource::Report(_)) && entry.reported_result.is_some();
+        if entry.result_status == result && entry.upstream_reset == upstream_reset && !new_report {
             return Ok(());
         }
         let mut next = inner.clone();
+        next.snapshot.entries[index].completed_at = if result.is_some() {
+            next.snapshot.entries[index].completed_at.clone().or_else(|| crate::database::now_rfc3339().ok())
+        } else { None };
+        next.snapshot.entries[index].reported_result = None;
         next.snapshot.entries[index].result_status = result;
         next.snapshot.entries[index].upstream_reset = upstream_reset;
         if invalidates_current {
             pause(&mut next);
             reset_result(&mut next);
-            next.snapshot.revision += 1;
         }
+        next.snapshot.revision += 1;
         save(database, &next.snapshot)?;
         *inner = next;
         self.publish(&inner);

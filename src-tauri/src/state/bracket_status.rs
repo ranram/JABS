@@ -1,5 +1,5 @@
 use super::{OverlayStore, next_timestamp, persist_stream_state, validate_state};
-use crate::database::Database;
+use crate::{database::Database, state::{ReportOutcome, ReportOutcomeKind}};
 use serde_json::Value;
 
 impl OverlayStore {
@@ -28,9 +28,21 @@ impl OverlayStore {
         let Some(state @ ("1" | "2" | "3")) = summary["state"].as_str() else {
             return Ok(None);
         };
+        let ids = (summary["entrantOne"]["id"].as_str(), summary["entrantTwo"]["id"].as_str());
+        let same_players = ids == (Some(selected.player_one.entrant_id.as_str()), Some(selected.player_two.entrant_id.as_str()))
+            || ids == (Some(selected.player_two.entrant_id.as_str()), Some(selected.player_one.entrant_id.as_str()));
+        if ids.0.is_some() && ids.1.is_some() && !same_players { return Ok(None); }
+        let reported = if state == "3" && same_players {
+            serde_json::from_value::<ReportOutcome>(summary["reportedOutcome"].clone()).ok()
+                .or_else(|| summary["winnerId"].as_str().map(|winner| ReportOutcome {
+                    kind: ReportOutcomeKind::WinLoss, winner_id: winner.to_owned()
+                }))
+                .filter(|outcome| outcome.winner_id == selected.player_one.entrant_id || outcome.winner_id == selected.player_two.entrant_id)
+        } else { None };
         let upstream_reset =
             selected.result_reset_after_refresh(state, reset_ids.iter().any(|id| id == set_id));
-        if selected.state.as_deref() == Some(state) && selected.upstream_reset == upstream_reset {
+        if selected.state.as_deref() == Some(state) && selected.upstream_reset == upstream_reset
+            && reported.as_ref().is_none_or(|outcome| selected.reported_outcome.as_ref() == Some(outcome)) {
             return Ok(None);
         }
         let mut next = current.clone();
@@ -39,6 +51,7 @@ impl OverlayStore {
         next.selected_set.state = Some(state.to_owned());
         next.selected_set.upstream_reset = upstream_reset;
         if upstream_reset == Some(true) { next.selected_set.reported_outcome = None; }
+        else if let Some(outcome) = reported { next.selected_set.reported_outcome = Some(outcome); }
         next.selected_set.updated_at = next_timestamp(&selected.updated_at)?;
         validate_state(&next)?;
         let payload = serde_json::to_string(&next)

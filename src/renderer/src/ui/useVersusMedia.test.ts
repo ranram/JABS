@@ -3,6 +3,8 @@ import { act } from 'react';
 import { expect, it, vi } from 'vitest';
 import { createTestOverlayState } from '@shared/testFixtures';
 import { deferred, mountHook } from '../hooks/hookTestHarness';
+import { invalidateCatalogConsumers } from '../hooks/useCatalogRevision';
+import { LocalApiError } from '../localApiTransport';
 import { useVersusMedia } from './useVersusMedia';
 
 const transport = vi.hoisted(() => ({
@@ -57,4 +59,23 @@ it('keeps the other player artwork visible while a newly selected character load
   expect(hook.current.media[1]).toEqual(otherPlayer);
   expect(transport.identity).toHaveBeenCalledOnce();
   await hook.unmount();
+});
+
+it('keeps existing artwork after a failed reload but clears it when the catalog confirms removal', async () => {
+  transport.artwork.mockImplementation(async (_slug, id) => `art:${id}`);
+  const selected = createTestOverlayState().selectedSet;
+  selected.playerOne.character = 'Ryu';
+  selected.playerOne.characters = ['Ryu'];
+  const hook = await mountHook(() => useVersusMedia(selected));
+  expect(hook.current.media[0].characterUrl).toBe('art:Ryu.webp');
+  transport.artwork.mockRejectedValueOnce(new Error('Temporary read failure'));
+  await act(async () => invalidateCatalogConsumers(false));
+  expect(hook.current.media[0].characterUrl).toBe('art:Ryu.webp');
+  transport.artwork.mockRejectedValueOnce(new LocalApiError('Missing image', 404));
+  await act(async () => invalidateCatalogConsumers(false));
+  expect(hook.current.media[0].characterUrl).toBeUndefined();
+  selected.playerOne.character = undefined;
+  selected.playerOne.characters = [];
+  await hook.rerender();
+  expect(hook.current.media[0].characterUrl).toBeUndefined();
 });

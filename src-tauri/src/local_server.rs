@@ -966,7 +966,6 @@ async fn select_startgg_set(
     if let Some(response) = reject_untrusted_mutation(&headers) {
         return response;
     }
-    runtime.match_queue.interrupt(&runtime.database);
     let raw = match fetch_selected_set(&runtime, &body).await {
         Ok(Some(fresh)) => fresh,
         Ok(None) => return secure_json((StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Set not found." })))),
@@ -986,12 +985,7 @@ async fn select_startgg_set(
             }))));
         }
     }
-    match runtime.overlay.replace_selected_set(
-        &runtime.database,
-        &runtime.logo_directory,
-        &runtime.game_asset_directory,
-        fresh,
-    ) {
+    match runtime.match_queue.select_for_stream(&runtime, fresh) {
         Ok(state) => {
             if let (Some(previous), Ok(next)) = (previous, serde_json::from_value::<crate::state::OverlayState>(state.clone())) {
                 let _ = runtime.versus_screen.restore_media_for_match_change(

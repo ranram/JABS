@@ -203,12 +203,21 @@ fn project(
         .collect();
     if snapshot.settings.show_results {
         let event = &context.event_id;
-        snapshot.results = queue
-            .entries
-            .iter()
-            .take(index.map_or(0, |i| i + 1))
-            .rev()
+        let mut completed: Vec<_> = queue.entries.iter().rev().collect();
+        completed.sort_by(|one, two| two.completed_at.cmp(&one.completed_at));
+        snapshot.results = completed.into_iter()
             .filter_map(|entry| {
+                if entry.result_status == Some(crate::match_queue::ResultStatus::Reported) && !entry.upstream_reset {
+                    if let Some(result) = &entry.reported_result {
+                        let one_won = result.winner_id == entry.entrant_one_id;
+                        let (score_one, score_two) = if result.disqualification || result.score_one == result.score_two {
+                            let loser = if result.disqualification { "DQ" } else { "L" };
+                            if one_won { ("W".into(), loser.into()) } else { (loser.into(), "W".into()) }
+                        } else { (result.score_one.to_string(), result.score_two.to_string()) };
+                        return Some(TickerResult { game: entry.into(), score_one, score_two,
+                            winner: if one_won { "one" } else { "two" }.into() });
+                    }
+                }
                 let saved = entry.completed_progress(database, event)?;
                 let saved_winner = saved.winner()?;
                 let first_is_one = entry.entrant_one_id == saved.player_one.entrant_id;

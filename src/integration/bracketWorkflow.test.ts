@@ -210,7 +210,7 @@ it('loads pool matches and reuses the selector across workspaces without bypassi
   expect(dialog.querySelector('[data-testid=event-select]')).not.toBeNull();
   expect(dialog.querySelectorAll('.set-row')).toHaveLength(10);
   expect(document.querySelectorAll('.set-row')).toHaveLength(10);
-  expect(gateway.sets).toHaveBeenCalledTimes(requestsBeforeOpening);
+  expect(gateway.sets).toHaveBeenCalledTimes(requestsBeforeOpening + 1);
   for (const [load, body] of [
     [() => api.checkAssets(), { revision: 10_000, changed: false }],
     [() => api.identityMedia([]), { matches: [] }],

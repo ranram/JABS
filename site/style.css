@@ -313,17 +313,14 @@ h3 {
 
 @media (max-width: 700px) {
   header {
-    padding: 15px 0;
-    flex-wrap: nowrap;
+    padding: 12px 4%;
+    flex-wrap: wrap;
     gap: 12px;
     font-size: 14px;
   }
   nav {
     gap: 14px;
     margin-left: auto;
-  }
-  nav a:first-child {
-    display: none;
   }
   .logo {
     width: 75px;
@@ -370,7 +367,20 @@ h3 {
     font-size: clamp(36px, 7vw, 54px);
   }
   header nav {
-    gap: 14px;
+    order: 3;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    margin: 0;
+    gap: 0 20px;
+    border-top: 1px solid #595752;
+    padding-top: 8px;
+  }
+  header nav a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 0;
   }
   header .language {
     flex-shrink: 0;
@@ -390,20 +400,6 @@ h3 {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-}
-
-@media (max-width: 440px) {
-  header {
-    flex-wrap: wrap;
-  }
-  header nav {
-    order: 3;
-    width: 100%;
-    justify-content: space-between;
-  }
-  header .language {
-    order: 2;
   }
 }
 
@@ -440,4 +436,49 @@ h3 {
   display: inline-block;
   margin-right: 12px;
   color: var(--paper);
+}
+
+/* Mobile navigation stays expanded when JavaScript is unavailable. */
+.menu-toggle {
+  display: none;
+}
+@media (max-width: 700px) {
+  header {
+    position: relative;
+  }
+  .menu-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    order: 2;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border: 1px solid #595752;
+    background: transparent;
+    color: var(--paper);
+    cursor: pointer;
+  }
+  .menu-toggle svg {
+    display: block;
+    flex-shrink: 0;
+  }
+  .menu-toggle:focus-visible {
+    outline: 2px solid var(--red);
+    outline-offset: 3px;
+  }
+  header .language {
+    order: 1;
+  }
+  header nav {
+    flex-basis: calc(100% + 8vw);
+    width: calc(100% + 8vw);
+    margin: 0 -4vw -12px;
+    padding: 8px 4vw;
+    grid-template-columns: 1fr;
+  }
+  header:has(.menu-toggle[data-ready='true'][aria-expanded='false']) nav {
+    display: none;
+  }
 }

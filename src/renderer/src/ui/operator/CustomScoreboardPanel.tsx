@@ -35,7 +35,7 @@ import {
 import type { SelectedSetState } from '@shared/models';
 import { api } from '../../api';
 import { useLogoAssetUrl } from '../../hooks/useLogoAssetUrl';
-import { useCatalogRevision } from '../../hooks/useCatalogRevision';
+import { useAssetRevision } from '../../hooks/useCatalogRevision';
 import { CustomScoreboardCanvas } from '../CustomScoreboardCanvas';
 import { PanelHeader } from '../PanelHeader';
 import { CustomScoreboardRegionControls } from '../customScoreboard/CustomScoreboardRegionControls';
@@ -67,7 +67,7 @@ export function CustomScoreboardPanel({
   onMessage
 }: CustomScoreboardPanelProps) {
   const { t } = useTranslation('operator');
-  const catalogRevision = useCatalogRevision();
+  const catalogRevision = useAssetRevision();
   const [scoreboards, setScoreboards] = useState<CustomScoreboard[]>([]);
   const [frameUrl, setFrameUrl] = useState<string>();
   const logoUrl = useLogoAssetUrl(activeSet?.broadcast?.logoAssetId);

@@ -47,7 +47,7 @@ export interface StartggGateway {
   streamQueue(tournamentSlug: string): Promise<StartggStreamQueueResult>;
   phases(eventId: string): Promise<StartggPhasesResult>;
   phaseGroups(phaseId: string, page?: number, perPage?: number): Promise<StartggPhaseGroupsResult>;
-  sets(scope: StartggSetScope, page?: number, perPage?: number): Promise<StartggSetsResult>;
+  sets(scope: StartggSetScope, page?: number, perPage?: number, signal?: AbortSignal): Promise<StartggSetsResult>;
   inspectStartggSet(
     setId: string,
     gameId: string,

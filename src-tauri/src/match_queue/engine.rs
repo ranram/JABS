@@ -149,6 +149,7 @@ impl QueueStore {
                     "This queued match is already complete. Use Next match to continue.".into(),
                 );
             }
+            inner.snapshot.pause_reason = None;
             inner.snapshot.running = inner.snapshot.mode != Mode::Manual;
             inner.snapshot.error = None;
             inner.last_tick = Instant::now();
@@ -159,7 +160,7 @@ impl QueueStore {
         })
     }
 }
-fn connected(inner: &Inner) -> bool {
+pub(super) fn connected(inner: &Inner) -> bool {
     let event = inner.snapshot.context.as_ref().map(|c| c.event_id.as_str());
     inner
         .clients
@@ -197,7 +198,7 @@ pub(super) fn update_winner(inner: &mut Inner, live: &SelectedSet) {
         inner.last_tick = Instant::now();
     }
 }
-fn status(inner: &Inner) -> String {
+pub(super) fn status(inner: &Inner) -> String {
     if inner.snapshot.entries.is_empty() {
         "empty"
     } else if !inner.snapshot.running {
@@ -214,6 +215,11 @@ fn status(inner: &Inner) -> String {
     .into()
 }
 
+fn next_index(queue: &Snapshot, after: Option<usize>) -> usize {
+    (after.map_or(0, |index| index + 1)..queue.entries.len())
+        .find(|index| queue.entries[*index].result_status.is_none()).unwrap_or(queue.entries.len())
+}
+
 fn start_index(queue: &Snapshot, live: &SelectedSet) -> Result<usize, String> {
     let first = if queue.status == "finished" {
         queue.cursor.map_or(0, |index| index + 1)
@@ -223,7 +229,8 @@ fn start_index(queue: &Snapshot, live: &SelectedSet) -> Result<usize, String> {
     let mut first_unreported = None;
     for (index, entry) in queue.entries.iter().enumerate().skip(first) {
         let on_stream = Some(entry.set_id.as_str()) == live.set_id.as_deref();
-        if entry.result_status == Some(ResultStatus::Reported)
+        if (entry.result_status.is_some() && !on_stream)
+            || entry.result_status == Some(ResultStatus::Reported)
             || (on_stream && live.state.as_deref() == Some("3"))
         {
             continue;
@@ -242,6 +249,7 @@ pub async fn navigate(
     action: &str,
     set_id: Option<&str>,
 ) -> Result<Snapshot, String> {
+    if action == "jump" { return super::selection::send(runtime, revision, set_id).await; }
     match prepare_navigation(runtime, revision, action, set_id)? {
         Some(plan) => apply_transition(runtime, plan).await,
         None => runtime.match_queue.current(),
@@ -276,7 +284,7 @@ fn prepare_navigation(
                 .iter()
                 .position(|entry| Some(entry.set_id.as_str()) == set_id)
                 .ok_or("The queued match is unavailable.")?;
-            if Some(removed) != current || removed + 1 == s.entries.len() {
+            if Some(removed) != current || next_index(s, Some(removed)) == s.entries.len() {
                 drop(inner);
                 runtime.match_queue.edit(
                     &runtime.database,
@@ -302,12 +310,8 @@ fn prepare_navigation(
             "previous" => current
                 .and_then(|i| i.checked_sub(1))
                 .ok_or("There is no previous queued match.")?,
-            "next" | "remove" => current.map_or(0, |i| i + 1),
-            "jump" => s
-                .entries
-                .iter()
-                .position(|e| Some(e.set_id.as_str()) == set_id)
-                .ok_or("The queued match is unavailable.")?,
+            "next" => next_index(s, current),
+            "remove" => next_index(s, current),
             _ => return Err("Unknown queue action.".into()),
         };
         let entry = s
@@ -330,6 +334,7 @@ fn prepare_navigation(
             && live.event_id.as_deref() == Some(&context.event_id)
         {
             inner.snapshot.cursor = Some(index);
+            inner.snapshot.pause_reason = None;
             inner.snapshot.running = inner.snapshot.mode != Mode::Manual;
             inner.last_tick = Instant::now();
             inner.last_wall = SystemTime::now();
@@ -445,6 +450,11 @@ fn commit_transition(
         runtime.match_queue.publish(&inner);
         return Ok(inner.snapshot.clone());
     }
+    let removed = if plan.remove_current {
+        Some(inner.snapshot.cursor.or_else(|| inner.snapshot.entries.iter()
+            .position(|entry| Some(entry.set_id.as_str()) == previous.set_id.as_deref()))
+            .ok_or("The queued match is unavailable.")?)
+    } else { None };
     let summary = Entry::from_set(&fresh)?;
     crate::state::censor_untrusted_selected_set(&mut fresh);
     runtime.overlay.replace_selected_set_if_current(
@@ -455,9 +465,9 @@ fn commit_transition(
         Some(&plan.updated_at),
     )?;
     // The successor shifts left when the previous Current entry is removed.
-    let index = if plan.remove_current {
-        inner.snapshot.entries.remove(plan.index - 1);
-        plan.index - 1
+    let index = if let Some(removed) = removed {
+        inner.snapshot.entries.remove(removed);
+        plan.index - usize::from(removed < plan.index)
     } else {
         plan.index
     };
@@ -498,6 +508,7 @@ fn commit_transition(
 }
 
 pub async fn run(runtime: Arc<RuntimeState>) {
+    tokio::spawn(super::refresh::run(runtime.clone()));
     let mut interval = tokio::time::interval(Duration::from_secs(1));
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut updates = runtime.overlay.subscribe();
@@ -564,7 +575,15 @@ pub(super) async fn tick(runtime: &Arc<RuntimeState>) {
             || inner.snapshot.context.as_ref().map(|c| c.event_id.as_str())
                 != live.event_id.as_deref()
         {
+            let reason = if elapsed > Duration::from_secs(5) || wall_gap > Duration::from_secs(5) {
+                PauseReason::Inactivity
+            } else if inner.snapshot.context.as_ref().map(|c| c.event_id.as_str()) != live.event_id.as_deref() {
+                PauseReason::EventChanged
+            } else if !connected(&inner) {
+                PauseReason::Disconnected
+            } else { PauseReason::MatchChanged };
             pause(&mut inner);
+            inner.snapshot.pause_reason = Some(reason);
             inner.snapshot.revision += 1;
             let _ = save(&runtime.database, &inner.snapshot);
             runtime.match_queue.publish(&inner);
@@ -605,7 +624,7 @@ pub(super) async fn tick(runtime: &Arc<RuntimeState>) {
             }
             return;
         }
-        let index = inner.snapshot.cursor.map_or(0, |i| i + 1);
+        let index = next_index(&inner.snapshot, inner.snapshot.cursor);
         let Some(entry) = inner.snapshot.entries.get(index).cloned() else {
             pause(&mut inner);
             inner.snapshot.status = "finished".into();
@@ -659,6 +678,33 @@ mod transition_tests {
             )
             .unwrap();
         set
+    }
+
+    #[test]
+    fn advancing_skips_retained_local_and_reported_results() {
+        let r = runtime();
+        add_match(&r, "200");
+        add_match(&r, "300");
+        let mut queue = r.match_queue.current().unwrap();
+        queue.entries[1].result_status = Some(ResultStatus::Completed);
+        assert_eq!(next_index(&queue, Some(0)), 2);
+        queue.entries[2].result_status = Some(ResultStatus::Reported);
+        assert_eq!(next_index(&queue, Some(0)), queue.entries.len());
+    }
+
+    #[test]
+    fn removing_current_skips_completed_matches_without_removing_their_results() {
+        let r = runtime();
+        add_match(&r, "200");
+        let fresh = add_match(&r, "300");
+        r.match_queue.inner.lock().unwrap().snapshot.entries[1].result_status = Some(ResultStatus::Completed);
+        let plan = prepare_navigation(&r, r.match_queue.current().unwrap().revision, "remove", Some("100"))
+            .unwrap().unwrap();
+        assert_eq!(plan.entry.set_id, "300");
+        let result = commit_transition(&r, &plan, fresh).unwrap();
+        assert_eq!(result.entries.iter().map(|entry| entry.set_id.as_str()).collect::<Vec<_>>(), ["200", "300"]);
+        assert_eq!(result.cursor, Some(1));
+        assert_eq!(result.entries[0].result_status, Some(ResultStatus::Completed));
     }
 
     fn restore_queue_session(runtime: &RuntimeState) {

@@ -1,6 +1,7 @@
 // Only these fixed labels reach logs; query values and record IDs stay in requests.
 export const requestOperations = {
   '/api/match-queue': 'queue-read',
+  '/api/match-queue/refresh': 'queue-read',
   '/api/match-queue/add': 'queue-add',
   '/api/match-queue/action': 'queue-action',
   '/api/match-queue/heartbeat': 'queue-heartbeat',

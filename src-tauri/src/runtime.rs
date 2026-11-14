@@ -45,6 +45,7 @@ pub struct RuntimeState {
     pub custom_scoreboard_directory: PathBuf,
     pub moderation_allowlist_path: PathBuf,
     pub reporting_set_id: tokio::sync::Mutex<Option<String>>,
+    pub player_library_revision: tokio::sync::watch::Sender<u64>,
     pub asset_catalog_revision: tokio::sync::watch::Sender<u64>,
     pub asset_changes: crate::catalogs::changes::AssetChangeTracker,
 }
@@ -118,6 +119,9 @@ impl RuntimeState {
             moderation_allowlist_path,
             reporting_set_id: tokio::sync::Mutex::new(None),
             // A restarted app must also invalidate caches in OBS sources left open.
+            player_library_revision: tokio::sync::watch::channel(
+                std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,
+            ).0,
             asset_catalog_revision: tokio::sync::watch::channel(
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)

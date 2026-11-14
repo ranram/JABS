@@ -17,6 +17,7 @@ pub(super) async fn websocket_session(mut socket: WebSocket, runtime: Arc<Runtim
     let mut bracket_updates = runtime.bracket_screen.subscribe();
     let mut versus_screen_updates = runtime.versus_screen.subscribe();
     let mut top_eight_matchups_updates = runtime.top_eight_matchups.subscribe();
+    let mut player_updates = runtime.player_library_revision.subscribe();
     let mut asset_updates = runtime.asset_catalog_revision.subscribe();
     let Ok(initial) = runtime.overlay.current().and_then(overlay_state_message) else {
         return;
@@ -29,8 +30,15 @@ pub(super) async fn websocket_session(mut socket: WebSocket, runtime: Arc<Runtim
         return;
     }
 
+    let players = serde_json::json!({ "event": "player-library", "revision": *player_updates.borrow_and_update() }).to_string();
+    if socket.send(Message::Text(players.into())).await.is_err() { return; }
     loop {
         tokio::select! {
+            changed = player_updates.changed() => {
+                if changed.is_err() { break; }
+                let players = serde_json::json!({ "event": "player-library", "revision": *player_updates.borrow_and_update() }).to_string();
+                if socket.send(Message::Text(players.into())).await.is_err() { break; }
+            },
             update = ticker_updates.recv() => match update {
                 Ok(payload) => { if socket.send(Message::Text(payload.into())).await.is_err() { break; } },
                 Err(broadcast::error::RecvError::Lagged(_)) => continue,

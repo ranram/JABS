@@ -16,9 +16,9 @@ import {
   startggVideogamesSchema,
   type GameCharacterPreparation
 } from '@shared/startggVideogames';
-import { invalidateCatalogConsumers, requestGameFolderCheck } from './hooks/useCatalogRevision';
+import { invalidateCatalogConsumers, invalidatePlayerLibraryConsumers, requestGameFolderCheck } from './hooks/useCatalogRevision';
 import { stingerStateSchema, stingerClaimSchema, type StingerSettings, type StingerKind } from '@shared/stingers';
-import { assetCatalogMessageSchema, assetCatalogRevisionSchema, assetCatalogCheckSchema } from '@shared/assetCatalog';
+import { playerLibraryMessageSchema, assetCatalogMessageSchema, assetCatalogRevisionSchema, assetCatalogCheckSchema } from '@shared/assetCatalog';
 import { bracketScreenStateSchema, type BracketSettings } from '@shared/bracketScreen';
 import { parseRealtimeJson } from './hooks/realtime';
 import type {
@@ -61,10 +61,11 @@ import { customScoreboardListSchema, customScoreboardSchema, type CustomScoreboa
 import { gameProfiles as gameProfileCatalog } from '@shared/gameProfiles';
 import { withJsonBodyHeaders } from './requestInit';
 import { BoundedPromiseCache } from './boundedPromiseCache';
+import { prepareImage } from './imagePreparation';
 import { trimTransparentPadding } from './trimTransparentPadding';
 import { blobDataUrl } from './blobDataUrl';
 import { RequestTrace, httpFailureReason, requestFailureReason } from './requestDiagnostics';
-import { createLocalApiTransport } from './localApiTransport';
+import { createLocalApiTransport, LocalApiError } from './localApiTransport';
 export { LocalApiError } from './localApiTransport';
 import {
   scoreboardPhotoSettingsSchema,
@@ -122,9 +123,10 @@ if (window.location.pathname.startsWith('/overlay')) {
     );
   });
 }
-const catalogRasterUrls = new BoundedPromiseCache<string>(96);
+const catalogRasterUrls = new BoundedPromiseCache<string>(96, { maxWeight: 64 * 1024 * 1024, weigh: (value) => value.length * 2 });
 const gamePreparationRequests = new Map<string, Promise<GameCharacterPreparation>>();
-const customScoreboardFrameUrls = new BoundedPromiseCache<string>(4);
+const customScoreboardFrameUrls = new BoundedPromiseCache<string>(4, { maxWeight: 32 * 1024 * 1024, weigh: (value) => value.length * 2 });
+let nativePlayerRevision: number | undefined;
 let nativeCatalogRevision: number | undefined;
 
 function applyCatalogRevision(revision: number): void {
@@ -135,6 +137,17 @@ function applyCatalogRevision(revision: number): void {
 }
 
 export function acceptCatalogMessage(value: unknown): boolean {
+  const players = parseRealtimeJson(value, (payload) => {
+    const parsed = playerLibraryMessageSchema.safeParse(payload);
+    return parsed.success ? parsed.data : undefined;
+  });
+  if (players) {
+    if (nativePlayerRevision !== players.revision) {
+      nativePlayerRevision = players.revision;
+      invalidatePlayerLibraryConsumers();
+    }
+    return true;
+  }
   const message = parseRealtimeJson(value, (payload) => {
     const result = assetCatalogMessageSchema.safeParse(payload);
     return result.success ? result.data : undefined;
@@ -164,15 +177,20 @@ async function cachedRasterUrl(cache: BoundedPromiseCache<string>, path: string,
     }
     if (!response.ok) {
       trace.record('image-failed', httpFailureReason(response.status), response.status);
-      throw new Error(`Local image request failed (${response.status}).`);
+      throw new LocalApiError(`Local image request failed (${response.status}).`, response.status);
     }
     const contentType = response.headers.get('content-type')?.split(';', 1)[0];
     if (!contentType || !['image/png', 'image/jpeg', 'image/webp'].includes(contentType)) {
       trace.record('image-failed', 'invalid-response', response.status);
       throw new Error('The local image response had an invalid content type.');
     }
-    const source = await blobDataUrl(await response.blob());
-    return trimPadding ? trimTransparentPadding(source) : source;
+    const blob = await response.blob();
+    const header = trimPadding && contentType === 'image/jpeg' ? new Uint8Array(await blob.slice(0, 3).arrayBuffer()) : undefined;
+    const opaque = header?.[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
+    return prepareImage(async () => {
+      const source = await blobDataUrl(blob);
+      return trimPadding && !opaque ? trimTransparentPadding(source) : source;
+    });
   });
 }
 
@@ -287,7 +305,7 @@ export const api = {
     request(
       '/api/players/resolve',
       { method: 'POST', body: JSON.stringify({ players, gameKey }) },
-      { decoder: libraryResolveSchema }
+      { decoder: libraryResolveSchema, trackPendingWrite: false }
     ),
   importEventPlayers: (eventId: string, page: number) =>
     request(
@@ -503,7 +521,7 @@ export const api = {
     });
     return request<StartggPhaseGroupsResult>(`/api/startgg/phase-groups?${query.toString()}`);
   },
-  sets: (scope: StartggSetScope, page = 1, perPage = 25) => {
+  sets: (scope: StartggSetScope, page = 1, perPage = 25, signal?: AbortSignal) => {
     const query = new URLSearchParams({
       scope: scope.type,
       eventId: scope.eventId,
@@ -519,7 +537,7 @@ export const api = {
       query.set('stationNumber', String(scope.stationNumber));
     }
 
-    return request<StartggSetsResult>(`/api/startgg/sets?${query.toString()}`);
+    return request<StartggSetsResult>(`/api/startgg/sets?${query.toString()}`, { signal });
   },
   selectStartggSet: (
     setId: string,

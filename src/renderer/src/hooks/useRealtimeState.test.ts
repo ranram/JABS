@@ -4,7 +4,7 @@ import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { deferred, mountHook } from './hookTestHarness';
 import { useRealtimeState } from './useRealtimeState';
 import { useLogoAssetUrl } from './useLogoAssetUrl';
-import { useCatalogRevision, useGamePreparationRevision } from './useCatalogRevision';
+import { useCatalogRevision, useGamePreparationRevision, useAssetRevision } from './useCatalogRevision';
 import { api, acceptCatalogMessage } from '../api';
 import { useStingers } from './useStingers';
 import type { StingerState } from '@shared/stingers';
@@ -262,4 +262,33 @@ it('keeps unchanged images cached and reserves folder setup for explicit reloads
   expect(view.current.preparation).toBe(initial.preparation + 1);
   expect(media.logo).toHaveBeenCalledTimes(3);
   expect(fetcher).toHaveBeenCalledTimes(3);
+});
+
+it('keeps a failed load visible after socket open until a valid snapshot arrives', async () => {
+  vi.stubGlobal('WebSocket', Socket);
+  const pending = deferred<number>();
+  const load = vi.fn().mockRejectedValueOnce(new Error('Initial load failed')).mockReturnValueOnce(pending.promise);
+  const parseMessage = () => undefined;
+  const hook = await mountHook(() => useRealtimeState({ load, parseMessage, loadError: 'Failed' }));
+  expect(hook.current.error).toBe('Initial load failed');
+  await act(async () => Socket.instances[0]!.dispatchEvent(new Event('open')));
+  expect(hook.current.state).toBeUndefined();
+  expect(hook.current.error).toBe('Initial load failed');
+  await act(async () => pending.resolve(4));
+  expect(hook.current.state).toBe(4);
+  expect(hook.current.error).toBeUndefined();
+});
+
+it('refreshes player details without reloading unrelated images or character catalogs', async () => {
+  media.logo.mockClear();
+  const view = await mountHook(() => ({ revision: useCatalogRevision(), assets: useAssetRevision(), logo: useLogoAssetUrl('kept.png') }));
+  const initial = { ...view.current };
+  await act(async () => {
+    acceptCatalogMessage(JSON.stringify({ event: 'player-library', revision: 1 }));
+    acceptCatalogMessage(JSON.stringify({ event: 'player-library', revision: 1 }));
+  });
+  expect(view.current.revision).toBe(initial.revision + 1);
+  expect(view.current.assets).toBe(initial.assets);
+  expect(view.current.logo).toBe(initial.logo);
+  expect(media.logo).toHaveBeenCalledOnce();
 });

@@ -1,5 +1,5 @@
 import type { NoticeSink } from './operatorNotice';
-import { useRef, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { gameIdForStartggVideogame, type GameId } from '@shared/gameProfiles';
 import type {
@@ -133,7 +133,14 @@ export function useBracketBrowser({
     setSetScope(scope);
   }
 
+  const searchAbort = useRef<AbortController | undefined>(undefined);
+  useEffect(() => () => {
+    searchAbort.current?.abort();
+    setSearchRequestRef.current += 1;
+  }, []);
+
   function resetSearchCatalog(clearSearch = false): void {
+    searchAbort.current?.abort();
     setSearchRequestRef.current += 1;
     setSearchLoadingKeyRef.current = undefined;
     patch({
@@ -146,6 +153,7 @@ export function useBracketBrowser({
   }
 
   function cancelSetSearch(): void {
+    searchAbort.current?.abort();
     setSearchRequestRef.current += 1;
     setSearchLoadingKeyRef.current = undefined;
     patch({
@@ -171,8 +179,11 @@ export function useBracketBrowser({
     setSearchRequestRef.current = requestId;
     setSearchLoadingKeyRef.current = scopeKey;
     setSetSearchLoading(true);
+    searchAbort.current?.abort();
+    const controller = new AbortController();
+    searchAbort.current = controller;
     try {
-      const firstPage = await startgg.sets(scope, 1, 20);
+      const firstPage = await startgg.sets(scope, 1, 20, controller.signal);
       if (setSearchRequestRef.current !== requestId) return;
       recordResult(firstPage);
       const byId = new Map(firstPage.sets.map((set) => [set.id, set]));
@@ -182,7 +193,7 @@ export function useBracketBrowser({
       for (let page = 2; page <= firstPage.pageInfo.totalPages; page += 2) {
         if (setSearchRequestRef.current !== requestId) return;
         const pages = [page, page + 1].filter((candidate) => candidate <= firstPage.pageInfo.totalPages);
-        const responses = await Promise.all(pages.map((candidate) => startgg.sets(scope, candidate, 20)));
+        const responses = await Promise.all(pages.map((candidate) => startgg.sets(scope, candidate, 20, controller.signal)));
         for (const response of responses) {
           recordResult(response);
           for (const set of response.sets) byId.set(set.id, set);
@@ -545,7 +556,7 @@ export function useBracketBrowser({
     }
     const refreshActiveSearch = Boolean(setSearch.trim() && searchCatalogIsCurrent);
     replaceSetScope(scope);
-    setPageRequestRef.current += 1;
+    const requestId = ++setPageRequestRef.current;
     setPageLoadingRef.current = false;
     setSetPageLoading(false);
     setLoading(true);
@@ -554,6 +565,7 @@ export function useBracketBrowser({
         startgg.sets(scope, page),
         tournamentSlug ? startgg.streamQueue(tournamentSlug) : Promise.resolve(undefined)
       ]);
+      if (requestId !== setPageRequestRef.current) return;
       if (setsResult.status === 'rejected') throw setsResult.reason;
       const response = setsResult.value;
       if (setScopeKey(setScopeRef.current) !== setScopeKey(scope)) return;
@@ -568,6 +580,7 @@ export function useBracketBrowser({
       if (refreshActiveSearch) {
         await ensureCompleteSetSearchCatalog(scope, true);
       }
+      if (requestId !== setPageRequestRef.current) return;
       setMessage(
         t('messages.showingScopeSets', {
           shown: response.sets.length,
@@ -577,6 +590,7 @@ export function useBracketBrowser({
         queueResult.status === 'rejected' ? 'warning' : 'success'
       );
     } catch (error) {
+      if (requestId !== setPageRequestRef.current) return;
       recordFailure();
       setMessage(errorMessage(error, t('messages.loadSetsFailed')), 'error');
     } finally {
@@ -617,15 +631,15 @@ export function useBracketBrowser({
 
   async function refreshAfterReport(): Promise<boolean> {
     if (!setScope) return true;
+    const requestId = ++setPageRequestRef.current;
     try {
-      setPageRequestRef.current += 1;
       setPageLoadingRef.current = false;
       setSetPageLoading(false);
       const [response, streamQueue] = await Promise.all([
         startgg.sets(setScope, 1),
         tournamentSlug ? startgg.streamQueue(tournamentSlug) : Promise.resolve(undefined)
       ]);
-      if (setScopeKey(setScopeRef.current) !== setScopeKey(setScope)) return false;
+      if (requestId !== setPageRequestRef.current || setScopeKey(setScopeRef.current) !== setScopeKey(setScope)) return false;
       recordResult(response);
       setSets(response.sets);
       setSetPageInfo(response.pageInfo);
@@ -637,7 +651,7 @@ export function useBracketBrowser({
       resetSearchCatalog();
       return true;
     } catch {
-      resetSearchCatalog();
+      if (requestId === setPageRequestRef.current) resetSearchCatalog();
       return false;
     }
   }

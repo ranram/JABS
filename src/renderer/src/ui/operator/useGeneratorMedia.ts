@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { playerCharacters, playerPortraitCharacters } from '@shared/characterTeams';
 import { selectedCharacterAssetId } from '@shared/characterAssets';
 import type { GameCharacterAsset } from '@shared/models';
-import { useCatalogRevision } from '../../hooks/useCatalogRevision';
+import { useCatalogRevision, useAssetRevision } from '../../hooks/useCatalogRevision';
 import { api } from '../../api';
 import { loadCharacterPortraits, type CharacterPortrait } from '../../characterPortraits';
 import { nextGeneratorWarning, type GeneratorWarning } from './useGeneratorWarningToast';
@@ -43,6 +43,7 @@ export function useGeneratorMedia<TDraft>({
   refreshing: boolean;
 } {
   const catalogRevision = useCatalogRevision();
+  const assetRevision = useAssetRevision();
   const [preview, setPreview] = useState<{ draft: TDraft; media: GeneratorSubjectMedia[]; contentKey?: string }>(
     () => ({
       draft,
@@ -70,7 +71,7 @@ export function useGeneratorMedia<TDraft>({
   const identityKey = generatorIdentityKey(subjects, context);
   const revisionKey = JSON.stringify([assetCatalogRevision, catalogRevision]);
   const identityMediaKey = JSON.stringify([identityKey, revisionKey]);
-  const catalogKey = JSON.stringify([assetCatalogSlug, revisionKey]);
+  const catalogKey = JSON.stringify([assetCatalogSlug, assetCatalogRevision, assetRevision]);
   const characterKey = generatorCharacterKey(subjects);
   const contentKey = JSON.stringify([assetCatalogSlug, identityKey, characterKey]);
   const characterMediaKey = JSON.stringify([catalogKey, characterKey]);

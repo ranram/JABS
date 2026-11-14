@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { useCatalogRevision } from './useCatalogRevision';
+import { useAssetRevision } from './useCatalogRevision';
 
 export function useLogoAsset(assetId?: string): { url?: string; ready: boolean } {
-  const revision = useCatalogRevision();
+  const revision = useAssetRevision();
   const [resolved, setResolved] = useState<{ assetId: string; url?: string }>();
   useEffect(() => {
     let active = true;

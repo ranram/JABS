@@ -108,7 +108,7 @@ fn retry_plan(runtime: &RuntimeState, blocked: bool) -> Result<Option<Transition
             .position(|entry| Some(entry.set_id.as_str()) == live.set_id.as_deref())
     });
     plan.index = if plan.automatic || plan.remove_current {
-        current.map_or(0, |index| index + 1)
+        next_index(&inner.snapshot, current)
     } else if plan.run_after_load {
         start_index(&inner.snapshot, &live)?
     } else {

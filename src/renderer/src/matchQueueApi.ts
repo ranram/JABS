@@ -14,6 +14,8 @@ export type QueueHeartbeat = {
 
 export const matchQueueApi = {
   current: () => request('/api/match-queue', undefined, { decoder: matchQueueSchema }),
+  refresh: () =>
+    request('/api/match-queue/refresh', { method: 'POST' }, { decoder: matchQueueSchema, trackPendingWrite: false, diagnosticOperation: 'queue-read' }),
   add: (revision: number, context: QueueContext, setId: string | readonly string[]) =>
     request(
       '/api/match-queue/add',

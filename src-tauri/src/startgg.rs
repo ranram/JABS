@@ -15,6 +15,8 @@ use serde_json::{Map, Value, json};
 use std::collections::HashSet;
 const MAX_EVENT_HEAD_TO_HEAD_PAGES: u32 = 5;
 mod history;
+mod queued_sets;
+pub(crate) use queued_sets::queued_sets;
 
 pub async fn events(runtime: &RuntimeState, slug: &str) -> Result<Value, ApiError> {
     required_text(slug, "Enter a tournament slug or start.gg URL first.")?;
@@ -1059,6 +1061,7 @@ fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
         "roundNumber": finite_i64(object.get("round")),
         "displayScore": optional_text(object.get("displayScore")),
         "reportedOutcome": summary_reported_outcome(value, &slots),
+        "winnerId": object.get("winnerId").and_then(normalized_id),
         "entrantOneScore": entrant_one_score,
         "entrantTwoScore": entrant_two_score,
         "phase": phase,

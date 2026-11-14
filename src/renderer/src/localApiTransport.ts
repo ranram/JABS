@@ -1,3 +1,6 @@
+import { LocalRequestTimeoutError, withLocalRequestDeadline } from './localRequestDeadline';
+import { measureWork } from './performanceMetrics';
+import { requestOperation } from './diagnosticOperations';
 import type { StartggErrorCode } from '@shared/models';
 import { beginPendingWrite } from './pendingWrites';
 import { decodeResponse, type ResponseDecoder } from './responseDecoder';
@@ -9,6 +12,7 @@ import { localizedStartggError } from './i18n/startggErrors';
 
 type RequestOptions<T> = {
   diagnosticOperation?: DiagnosticOperation;
+  timeoutMs?: number;
   retryNetworkFailure?: boolean;
   decoder?: ResponseDecoder<T>;
   /** Whether this request holds edits and match navigation while it runs. */
@@ -32,17 +36,59 @@ export function createLocalApiTransport(apiBasePromise: Promise<string>) {
       options.trackPendingWrite !== false && init?.method && !['GET', 'HEAD'].includes(init.method.toUpperCase())
         ? beginPendingWrite()
         : undefined;
+    const finishMeasure = measureWork(options.diagnosticOperation ?? requestOperation(path));
     try {
       return await performRequest(path, init, options);
     } finally {
+      finishMeasure();
       finish?.();
     }
   }
 
   async function performRequest<T>(path: string, init?: RequestInit, options: RequestOptions<T> = {}): Promise<T> {
-    const apiBase = await apiBasePromise;
     const trace = new RequestTrace(path, init?.method, options.diagnosticOperation);
+    const write = Boolean(init?.method && !['GET', 'HEAD'].includes(init.method.toUpperCase()));
+    const timeoutError = new LocalRequestTimeoutError(
+      i18n.t(write ? 'errors:localWriteTimeout' : 'errors:localReadTimeout'),
+      write
+    );
+    const bulk = [
+      '/api/match-queue/add',
+      '/api/players/import-event',
+      '/api/players/import',
+      '/api/assets/game-characters/prepare',
+      '/api/startgg/event-standings',
+      '/api/broadcast/bracket-screen/refresh'
+    ];
+    const timeoutMs = options.timeoutMs ?? (bulk.includes(path.split('?')[0]) ? 600_000 : 120_000);
+    try {
+      return await withLocalRequestDeadline(
+        (signal) => performWithinDeadline(path, { ...init, signal }, options, trace),
+        init?.signal,
+        timeoutMs,
+        timeoutError
+      );
+    } catch (error) {
+      if (error === timeoutError) trace.record('local-request:failed', 'timeout');
+      else if (init?.signal?.aborted) {
+        const reason = requestFailureReason(init.signal.reason, init.signal);
+        trace.record(reason === 'cancelled' ? 'local-request:cancelled' : 'local-request:failed', reason);
+        throw init.signal.reason;
+      }
+      throw error;
+    }
+  }
+
+  async function performWithinDeadline<T>(
+    path: string,
+    init: RequestInit,
+    options: RequestOptions<T>,
+    trace: RequestTrace
+  ): Promise<T> {
+    const apiBase = await apiBasePromise;
+    if (init.signal?.aborted) throw init.signal.reason;
     function transportFailure(error: unknown): void {
+      if (init.signal?.aborted) return;
       const reason = requestFailureReason(error, init?.signal);
       trace.record(reason === 'cancelled' ? 'local-request:cancelled' : 'local-request:failed', reason);
     }

@@ -230,3 +230,22 @@ fn repeated_reads_share_projection_cache_until_queue_revision_changes() {
         .unwrap();
     assert!(current(&runtime).unwrap().results.is_empty());
 }
+
+#[test]
+fn external_results_need_no_local_save_and_remain_recent_after_reordering() {
+    let (db, settings, mut queue, live) = fixture();
+    let entry = &mut queue.entries[3];
+    entry.result_status = Some(crate::match_queue::ResultStatus::Reported);
+    entry.reported_result = Some(crate::match_queue::ReportedResult {
+        winner_id: entry.entrant_two_id.clone(), score_one: 1, score_two: 2, disqualification: false,
+    });
+    entry.completed_at = Some("2026-11-13T12:00:00Z".into());
+    let id = entry.set_id.clone();
+    let result = project(&db, settings.clone(), &queue, &live);
+    assert_eq!(result.results[0].game.set_id, id);
+    assert_eq!(result.results[0].score_one, "1");
+    assert_eq!(result.results[0].score_two, "2");
+    assert_eq!(result.results[0].winner, "two");
+    queue.entries.rotate_left(3);
+    assert_eq!(project(&db, settings, &queue, &live).results[0].game.set_id, id);
+}

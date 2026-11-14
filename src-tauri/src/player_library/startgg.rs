@@ -99,7 +99,11 @@ pub async fn import_page(
         ));
     };
     let writer = runtime.clone();
-    let added = tokio::task::spawn_blocking(move || observe(&writer.database, &data))
+    let added = tokio::task::spawn_blocking(move || {
+        let result = observe(&writer.database, &data);
+        if result.is_ok() { writer.player_library_revision.send_modify(|revision| *revision += 1); }
+        result
+    })
         .await
         .map_err(|_| {
             jabs_startgg_client::api_error("The player import could not finish.", "upstream")

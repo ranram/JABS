@@ -16,9 +16,17 @@ import {
 } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { PanelHeader } from '../PanelHeader';
-import { ListNumbersIcon, ArrowUpIcon, ArrowDownIcon, MonitorIcon, TrashSimpleIcon } from '../icons';
+import {
+  ListNumbersIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  ArrowLineUpIcon,
+  ArrowLineDownIcon,
+  MonitorIcon,
+  TrashSimpleIcon
+} from '../icons';
 import { QueueIconButton } from './QueueIconButton';
-import { currentQueueIndex } from './queuePresentation';
+import { currentQueueIndex, nextQueueIndex } from './queuePresentation';
 import type { QueueMode } from '@shared/matchQueue';
 import { MatchCardSummary } from './MatchCardSummary';
 import { useMatchQueue } from './matchQueueContext';
@@ -71,9 +79,12 @@ function MatchQueueContents() {
   const state = queue.state;
   const entries = state?.entries ?? [];
   const sameEvent = !state?.context || queue.context?.eventId === state.context.eventId;
-  const firstMovableIndex = state?.running ? (state.cursor ?? -1) + 1 : 0;
   const currentIndex = state ? currentQueueIndex(state, queue.liveSetId) : null;
-  const upNextIndex = (currentIndex ?? -1) + 1;
+  const liveUnfinished =
+    currentIndex !== null && entries[currentIndex]?.setId === queue.liveSetId && !entries[currentIndex]?.resultStatus;
+  const firstMovableIndex = state?.running ? (state.cursor ?? -1) + 1 : 0;
+  const topIndex = liveUnfinished ? (currentIndex ?? -1) + 1 : firstMovableIndex;
+  const upNextIndex = state ? nextQueueIndex(state, queue.liveSetId) : -1;
   const disabled = queue.busy || !state || state.status === 'loading';
   async function move(from: number, to: number) {
     if (!queue || !state || from < firstMovableIndex || to < firstMovableIndex || from === to || to >= entries.length)
@@ -99,6 +110,11 @@ function MatchQueueContents() {
       {(queue.error || state?.error) && (
         <Alert color="red" role="status">
           {queue.error ?? localizedNativeError(state?.error)}
+        </Alert>
+      )}
+      {state?.refreshFailed && (
+        <Alert color="yellow" role="status">
+          {t('operator:queue.refreshFailed')}
         </Alert>
       )}
       {!sameEvent && <Alert color="yellow">{t('operator:queue.otherEvent')}</Alert>}
@@ -213,6 +229,18 @@ function MatchQueueContents() {
                   />
                 </Box>
                 <Group className="match-queue-actions" justify="flex-end" gap="xs" wrap="nowrap" px="md" pb="sm">
+                  <QueueIconButton
+                    label={t('operator:queue.moveTop')}
+                    icon={ArrowLineUpIcon}
+                    disabled={disabled || index <= topIndex}
+                    onClick={() => void move(index, topIndex)}
+                  />
+                  <QueueIconButton
+                    label={t('operator:queue.moveBottom')}
+                    icon={ArrowLineDownIcon}
+                    disabled={disabled || index < firstMovableIndex || index === entries.length - 1}
+                    onClick={() => void move(index, entries.length - 1)}
+                  />
                   <QueueIconButton
                     label={t('operator:queue.moveUp')}
                     icon={ArrowUpIcon}

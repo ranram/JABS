@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { createTestOverlayState } from '@shared/testFixtures';
 import { libraryPresentationSchema } from '@shared/playerLibrary';
 import { deferred, mountHook } from '../../hooks/hookTestHarness';
+import { invalidateCatalogConsumers } from '../../hooks/useCatalogRevision';
 import { useThumbnailDraft } from './useThumbnailDraft';
 
 const resolvePlayers = vi.hoisted(() => vi.fn());
@@ -101,4 +102,22 @@ it('reimports the same match after the live source has been cleared without foll
   await hook.rerender();
   expect(hook.current.draft.players[0].name).toBe(active.playerOne.name);
   expect(hook.current.draft.players[0].characterAssetId).toBe('ryu-2.png');
+});
+
+it('refreshes saved details and outfits while preserving manual graphic edits', async () => {
+  const initial = { ...savedPlayer(), playerPhotoAssetId: 'old.webp' };
+  resolvePlayers.mockResolvedValue([initial]);
+  const active = match();
+  active.playerOne.characterAssetId = initial.characterAssetId ?? undefined;
+  active.playerOne.playerPhotoAssetId = 'old.webp';
+  const hook = await mountHook(() => useThumbnailDraft(active));
+  expect(hook.current.draft.players[0].characterAssetId).toBe('ryu-2.png');
+  const updated = { ...savedPlayer('Ryu', 'ryu-4.png'), playerPhotoAssetId: 'new.webp' };
+  resolvePlayers.mockResolvedValue([updated]);
+  await act(async () => invalidateCatalogConsumers(false));
+  expect(hook.current.draft.players[0]).toMatchObject({ characterAssetId: 'ryu-4.png', playerPhotoAssetId: 'new.webp' });
+  await act(async () => hook.current.setPlayer(0, { characterAssetId: 'manual.png', playerPhotoAssetId: 'manual.webp' }));
+  resolvePlayers.mockResolvedValue([{ ...updated, characterAssetId: 'ryu-5.png', playerPhotoAssetId: 'library.webp' }]);
+  await act(async () => invalidateCatalogConsumers(false));
+  expect(hook.current.draft.players[0]).toMatchObject({ characterAssetId: 'manual.png', playerPhotoAssetId: 'manual.webp' });
 });

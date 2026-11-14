@@ -215,7 +215,7 @@ it('notifies native clients when remote confirmations are dismissed locally or t
   expect(invokeNative).toHaveBeenCalledWith('stream_deck_confirmation_closed', { id: 'unmounted-dialog' });
 });
 
-it('blocks during local dialogs and typing but resumes after those guards clear', async () => {
+it('allows live scoring through ordinary dialogs while guarding confirmations and navigation', async () => {
   const { context, execute, command } = fixture();
   context.selectedSet!.playerOne.score = 0;
   context.confirmation.confirmation = 'players';
@@ -232,12 +232,16 @@ it('blocks during local dialogs and typing but resumes after those guards clear'
   dialog.getClientRects = () => [{ width: 100, height: 100 }] as unknown as DOMRectList;
   document.body.append(dialog);
   expect(await execute(command('swap-players'))).toBe('blocked');
+  expect(await execute(command('score-p1-up'))).toBe('completed');
+  dialog.setAttribute('role', 'alertdialog');
+  expect(await execute(command('score-p1-up'))).toBe('blocked');
   dialog.remove();
   expect(await execute(command('swap-players'))).toBe('completed');
   const input = document.createElement('input');
   document.body.append(input);
   input.focus();
-  expect(await execute(command('score-p1-up'))).toBe('blocked');
+  expect(await execute(command('score-p1-up'))).toBe('completed');
+  expect(await execute(command('swap-players'))).toBe('blocked');
   input.blur();
   input.remove();
   expect(await execute(command('score-p1-up'))).toBe('completed');

@@ -257,7 +257,8 @@ export function OperatorDashboard() {
         baseline: response.state.selectedSet,
         dirty: false
       });
-      setMessage('Set loaded into the stream state.', 'success');
+      const notice = response.state.selectedSet.setId === setId ? 'setLoaded' : 'setQueuedNext';
+      setMessage(t(`operator:messages.${notice}`), 'success');
     } catch (error) {
       recordStartggFailure();
       setMessage(error instanceof Error ? error.message : t('operator:messages.selectSetFailed'), 'error');

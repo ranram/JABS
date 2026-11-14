@@ -1,4 +1,4 @@
-import { currentQueueIndex } from './queuePresentation';
+import { currentQueueIndex, nextQueueIndex } from './queuePresentation';
 import { Badge, Button, Group, Menu, SimpleGrid, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { MatchQueue, QueueEntry } from '@shared/matchQueue';
@@ -24,6 +24,8 @@ function formatCountdown(remainingMs: number): string {
 export function useQueueStatus(state?: MatchQueue) {
   const { t } = useTranslation('operator');
   if (!state) return t('ux.loadingQueue');
+  if (state.refreshFailed) return t('queue.refreshStale');
+  if (!state.running && state.pauseReason) return t(`queue.pauseReasons.${state.pauseReason}`);
   if (state.status === 'countdown' || (state.status === 'paused' && state.remainingMs !== null)) {
     return t(state.status === 'paused' ? 'queue.pausedCountdown' : 'queue.countdown', {
       time: formatCountdown(state.remainingMs ?? 0)
@@ -44,7 +46,7 @@ export function QueueButton({
   const { t } = useTranslation(['operator', 'common']);
   const status = useQueueStatus(queue?.state);
   if (!queue) return null;
-  const next = queue.state?.entries[(currentQueueIndex(queue.state, queue.liveSetId) ?? -1) + 1];
+  const next = queue.state?.entries[nextQueueIndex(queue.state, queue.liveSetId)];
   const compactStatus = queue.state?.running
     ? queue.state.status === 'countdown'
       ? formatCountdown(queue.state.remainingMs ?? 0)
@@ -56,7 +58,7 @@ export function QueueButton({
       : undefined;
   const statusBadge =
     showStatus && queue.state?.entries.length ? (
-      <Badge size="xs" variant="light" color={queue.state.running ? 'teal' : 'gray'}>
+      <Badge size="xs" variant="light" color={queue.state.refreshFailed ? 'yellow' : queue.state.running ? 'teal' : 'gray'}>
         {compactStatus}
       </Badge>
     ) : undefined;
@@ -193,10 +195,10 @@ export function QueueNavigation({ showPlayback = true }: { showPlayback?: boolea
         rightSection={<OperatorIcon icon={ArrowRightIcon} />}
         reason={
           reason ??
-          (!state.entries.length || (index !== null && index >= state.entries.length - 1) ? t('ux.noNext') : undefined)
+          (!state.entries.length || (nextQueueIndex(state, queue.liveSetId) < 0) ? t('ux.noNext') : undefined)
         }
         variant="default"
-        disabled={disabled || !state.entries.length || (index !== null && index >= state.entries.length - 1)}
+        disabled={disabled || !state.entries.length || (nextQueueIndex(state, queue.liveSetId) < 0)}
         aria-keyshortcuts="Control+Shift+N"
         onClick={() => void queue.act({ action: 'next' })}
       >
@@ -219,7 +221,8 @@ export function MatchQueueControls() {
   const showPlayback = state?.mode !== 'manual' && state?.cursor != null;
   const index = state ? currentQueueIndex(state, queue.liveSetId) : null;
   const current = state?.entries[index ?? -1];
-  const next = state?.entries[(index ?? -1) + 1];
+  const nextIndex = state ? nextQueueIndex(state, queue.liveSetId) : -1;
+  const next = state?.entries[nextIndex];
   return (
     <Stack gap="xs" className="match-queue-inset">
       <PanelHeader title={t('queue.title')} icon={ListNumbersIcon} order={3} className="queue-controls-header">
@@ -260,7 +263,7 @@ export function MatchQueueControls() {
                 entry={next}
                 label={t('queue.upNext')}
                 kind="next"
-                position={(index ?? -1) + 1}
+                position={nextIndex}
                 onStream={false}
                 onOpen={queue.open}
               />

@@ -2,11 +2,12 @@ import { useCallback, useState } from 'react';
 import type { GameCharacterAsset, IdentityMediaInput, PlayerMediaMatch } from '@shared/models';
 import { api } from '../api';
 import { BoundedPromiseCache } from '../boundedPromiseCache';
-import { useCatalogRevision } from './useCatalogRevision';
+import { useCatalogRevision, useAssetRevision } from './useCatalogRevision';
 
 /** Keep identity and catalog reads separate from changes to artwork and framing. */
 export function useMediaLookups() {
   const revision = useCatalogRevision();
+  const assetRevision = useAssetRevision();
   const [identities] = useState(() => new BoundedPromiseCache<{ matches: PlayerMediaMatch[] }>(1));
   const [catalogs] = useState(() => new BoundedPromiseCache<{ assets: GameCharacterAsset[] }>(1));
   const lookupIdentities = useCallback(
@@ -15,8 +16,8 @@ export function useMediaLookups() {
     [identities, revision]
   );
   const loadCharacters = useCallback(
-    (slug: string) => catalogs.getOrCreate(JSON.stringify([revision, slug]), () => api.gameCharacterAssets(slug)),
-    [catalogs, revision]
+    (slug: string) => catalogs.getOrCreate(JSON.stringify([assetRevision, slug]), () => api.gameCharacterAssets(slug)),
+    [catalogs, assetRevision]
   );
   return { revision, lookupIdentities, loadCharacters };
 }

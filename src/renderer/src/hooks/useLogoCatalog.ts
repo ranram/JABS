@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { LogoAsset } from '@shared/models';
 import { api } from '../api';
-import { useCatalogRevision } from './useCatalogRevision';
+import { useAssetRevision } from './useCatalogRevision';
 
 export function useLogoCatalog() {
-  const revision = useCatalogRevision();
+  const revision = useAssetRevision();
   const [logos, setLogos] = useState<LogoAsset[]>([]);
   useEffect(() => {
     let active = true;

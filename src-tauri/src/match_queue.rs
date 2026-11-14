@@ -1,6 +1,8 @@
 pub(crate) mod engine;
 mod routes;
 mod results;
+mod refresh;
+mod selection;
 pub use results::ResultStatus;
 #[cfg(test)]
 mod tests;
@@ -54,6 +56,18 @@ pub struct Entry {
     /// Local scoring clears the match's reset flag while this one remains set.
     #[serde(default)]
     pub upstream_reset: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reported_result: Option<ReportedResult>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<String>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportedResult {
+    pub winner_id: String,
+    pub score_one: u32,
+    pub score_two: u32,
+    pub disqualification: bool,
 }
 impl Entry {
     pub fn from_set(set: &SelectedSet) -> Result<Self, String> {
@@ -73,6 +87,8 @@ impl Entry {
             phase: set.phase.clone(),
             result_status: results::result_status(set),
             upstream_reset: set.upstream_reset == Some(true),
+            reported_result: None,
+            completed_at: None,
         })
     }
 
@@ -80,6 +96,9 @@ impl Entry {
         !self.entrant_one_id.starts_with("set-") && !self.entrant_two_id.starts_with("set-")
     }
 }
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PauseReason { Inactivity, EventChanged, Disconnected, MatchChanged }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Snapshot {
@@ -95,6 +114,10 @@ pub struct Snapshot {
     pub status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pause_reason: Option<PauseReason>,
+    #[serde(default)]
+    pub refresh_failed: bool,
 }
 impl Default for Snapshot {
     fn default() -> Self {
@@ -109,6 +132,8 @@ impl Default for Snapshot {
             revision: 0,
             status: "empty".into(),
             error: None,
+            pause_reason: None,
+            refresh_failed: false,
         }
     }
 }
@@ -135,6 +160,7 @@ struct Inner {
 pub struct QueueStore {
     inner: Mutex<Inner>,
     updates: broadcast::Sender<String>,
+    refresh: tokio::sync::Mutex<Option<Instant>>,
 }
 impl QueueStore {
     pub fn load(database: &Database) -> Result<Self, String> {
@@ -151,6 +177,8 @@ impl QueueStore {
         snapshot.running = false;
         snapshot.remaining_ms = None;
         snapshot.error = None;
+        snapshot.pause_reason = None;
+        snapshot.refresh_failed = false;
         snapshot.status = stopped_status(&snapshot).into();
         snapshot.revision += 1;
         save(database, &snapshot)?;
@@ -167,6 +195,7 @@ impl QueueStore {
                 loading: false,
             }),
             updates: broadcast::channel(32).0,
+            refresh: tokio::sync::Mutex::new(None),
         })
     }
     pub fn subscribe(&self) -> broadcast::Receiver<String> {
@@ -283,6 +312,7 @@ impl QueueStore {
         inner.clients.retain(|_, c| client_active(c));
         if had_clients && inner.clients.is_empty() && inner.snapshot.running {
             pause(&mut inner);
+            inner.snapshot.pause_reason = Some(PauseReason::Disconnected);
             inner.snapshot.revision += 1;
             self.publish(&inner);
         }
@@ -300,6 +330,7 @@ impl QueueStore {
         if let Some(event) = inner.snapshot.context.as_ref().map(|c| c.event_id.clone()) {
             if inner.snapshot.running && event_id.as_deref() != Some(&event) {
                 pause(&mut inner);
+                inner.snapshot.pause_reason = Some(PauseReason::EventChanged);
                 inner.snapshot.revision += 1;
                 self.publish(&inner);
             }
@@ -378,6 +409,7 @@ fn stopped_status(snapshot: &Snapshot) -> &'static str {
 }
 fn pause(inner: &mut Inner) {
     inner.waiting = None;
+    inner.snapshot.pause_reason = None;
     inner.snapshot.running = false;
     inner.loading = false;
     inner.snapshot.status = stopped_status(&inner.snapshot).into();

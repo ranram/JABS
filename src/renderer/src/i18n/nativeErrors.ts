@@ -1,3 +1,4 @@
+import { LocalRequestTimeoutError } from '../localRequestDeadline';
 import translations from './nativeErrors.es-419.json';
 import { i18n } from './index';
 
@@ -33,6 +34,7 @@ const templates = Object.entries(spanish).flatMap(([source, translated]) => {
 });
 
 export function localizedNativeError(error: unknown, fallback?: string): string {
+  if (error instanceof LocalRequestTimeoutError) return error.message;
   const message = error instanceof Error ? error.message : typeof error === 'string' ? error : undefined;
   const defaultMessage = fallback ?? i18n.t('errors:nativeFailure');
   if (!message) return defaultMessage;

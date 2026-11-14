@@ -16,6 +16,7 @@ pub fn router() -> Router<Arc<RuntimeState>> {
     Router::new()
         .route("/api/match-queue", get(current))
         .route("/api/match-queue/add", post(add))
+        .route("/api/match-queue/refresh", post(refresh))
         .route("/api/match-queue/action", post(action))
         .route("/api/match-queue/heartbeat", post(heartbeat))
 }
@@ -30,6 +31,15 @@ fn result(value: Result<Snapshot, String>) -> Response {
 }
 async fn current(State(runtime): State<Arc<RuntimeState>>) -> Response {
     result(runtime.match_queue.current())
+}
+async fn refresh(State(runtime): State<Arc<RuntimeState>>, headers: HeaderMap) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    match super::refresh::refresh(&runtime).await {
+        Ok(()) => result(runtime.match_queue.current()),
+        Err(error) => secure_json((StatusCode::BAD_GATEWAY, Json(serde_json::json!({"error":error})))),
+    }
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

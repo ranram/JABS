@@ -40,6 +40,8 @@ export const matchQueueSchema = z.object({
     'loading',
     'finished'
   ]),
+  refreshFailed: z.boolean().optional(),
+  pauseReason: z.enum(['inactivity', 'event-changed', 'disconnected', 'match-changed']).optional(),
   error: z.string().optional()
 });
 export type QueueContext = z.infer<typeof queueContextSchema>;

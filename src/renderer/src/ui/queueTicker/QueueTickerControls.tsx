@@ -17,12 +17,17 @@ export function QueueTickerControls({ logos }: { logos: LogoAsset[] }) {
   const draft = useSettingsDraft({
     load: async () => (await queueTickerApi.current()).settings,
     save: async (settings) => (await queueTickerApi.update(settings)).settings,
-    onError: () => notify(t('queueTicker.saveFailed'), 'error')
+    onError: () => notify(t('queueTicker.settingsFailed'), 'error')
   });
   const [count, setCount] = useState<number>();
   const [previewLane, setPreviewLane] = useState<'upcoming' | 'results'>('upcoming');
   const settings = draft.state;
-  if (!settings) return <Text size="sm">{t('queueTicker.loading')}</Text>;
+  if (!settings)
+    return (
+      <Text size="sm" role="status">
+        {t(draft.loadError ? 'queueTicker.retryingLoad' : 'queueTicker.loading')}
+      </Text>
+    );
   return (
     <Stack gap="md" p="md" className="queue-ticker-controls">
       <Switch

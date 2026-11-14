@@ -321,7 +321,7 @@ fn entry_results_persist_without_starting_or_advancing_the_queue() {
     queue.observe_result(&database, &live);
     let completed = queue.current().unwrap();
     assert_eq!(completed.entries[0].result_status, Some(ResultStatus::Completed));
-    assert_eq!(completed.revision, initial.revision);
+    assert_eq!(completed.revision, initial.revision + 1);
     assert!(!completed.running);
     assert!(completed.cursor.is_none());
     live.player_one.score = 0;
@@ -503,7 +503,7 @@ fn bracket_results_preserve_unreported_scores_and_ignore_unrelated_sets() {
     let cleared = queue.current().unwrap();
     assert!(cleared.entries[0].result_status.is_none());
     assert!(cleared.cursor.is_none());
-    assert_eq!(cleared.revision, revision);
+    assert_eq!(cleared.revision, revision + 2);
     queue.reported(&database, None, "100", true);
     let reported_again = queue.current().unwrap();
     assert_eq!(reported_again.entries[0].result_status, Some(ResultStatus::Reported));
@@ -978,4 +978,92 @@ fn unchanged_waits_are_quiet_but_countdowns_and_disconnects_still_publish() {
     run(engine::tick(&r));
     assert!(!r.match_queue.current().unwrap().running);
     assert!(updates.try_recv().is_ok());
+}
+
+#[test]
+fn external_reports_release_report_mode_without_overwriting_local_scores_or_bypassing_edit_holds() {
+    let r = runtime();
+    r.overlay.set_score(&r.database, "one", 1).unwrap();
+    edit(&r.match_queue, &r.database, "settings", None, None, Some(Mode::Report), Some(1)).unwrap();
+    run(engine::navigate(&r, r.match_queue.current().unwrap().revision, "start", None)).unwrap();
+    let summary = |one: &str, two: &str| serde_json::json!({
+        "id":"100", "state":"3", "winnerId":"20", "entrantOne":{"id":one}, "entrantTwo":{"id":two}
+    });
+    r.observe_startgg_sets("456", &[summary("other", "20")]).unwrap();
+    assert!(!r.match_queue.inner.lock().unwrap().reported);
+    assert_eq!(r.overlay.selected_set().unwrap().state.as_deref(), Some("1"));
+    r.match_queue.heartbeat("operator".into(), Some("456".into()), true, None, None).unwrap();
+    r.observe_startgg_sets("456", &[summary("20", "10")]).unwrap();
+    run(engine::tick(&r));
+    assert_eq!(r.match_queue.current().unwrap().status, "waiting-edits");
+    let live = r.overlay.selected_set().unwrap();
+    assert_eq!((live.player_one.score, live.player_two.score), (1, 0));
+    assert_eq!(live.winner(), Some("two"));
+    r.match_queue.heartbeat("operator".into(), Some("456".into()), false, None, None).unwrap();
+    run(engine::tick(&r));
+    assert_eq!(r.match_queue.current().unwrap().status, "finished");
+}
+
+#[test]
+fn sending_to_stream_promotes_once_keeps_other_matches_and_sets_the_cursor() {
+    let r = runtime();
+    let mut next = r.overlay.selected_set().unwrap();
+    next.set_id = Some("200".into());
+    r.match_queue.add(&r.database, r.match_queue.current().unwrap().revision, context(), Entry::from_set(&next).unwrap()).unwrap();
+    r.overlay.set_score(&r.database, "one", 2).unwrap();
+    r.match_queue.select_for_stream(&r, next.clone()).unwrap();
+    let queue = r.match_queue.current().unwrap();
+    assert_eq!(queue.entries.iter().map(|entry| entry.set_id.as_str()).collect::<Vec<_>>(), ["200", "100"]);
+    assert_eq!(queue.cursor, Some(0));
+    assert!(!queue.running);
+    r.match_queue.select_for_stream(&r, next.clone()).unwrap();
+    assert_eq!(r.match_queue.current().unwrap().entries.len(), 2);
+    edit(&r.match_queue, &r.database, "settings", None, None, Some(Mode::Report), Some(1)).unwrap();
+    r.match_queue.resume(&r.database, r.match_queue.current().unwrap().revision, &r.overlay.selected_set().unwrap()).unwrap();
+    next.set_id = Some("300".into());
+    r.match_queue.select_for_stream(&r, next.clone()).unwrap();
+    let queue = r.match_queue.current().unwrap();
+    assert_eq!(queue.entries.iter().map(|entry| entry.set_id.as_str()).collect::<Vec<_>>(), ["200", "300", "100"]);
+    assert_eq!(r.overlay.selected_set().unwrap().set_id.as_deref(), Some("200"));
+    assert!(queue.running);
+    let mut outside = r.overlay.selected_set().unwrap();
+    outside.set_id = Some("400".into());
+    r.overlay.replace_selected_set(&r.database, Path::new("/jabs-no-test-assets"), Path::new("/jabs-no-test-assets"), outside).unwrap();
+    r.match_queue.select_for_stream(&r, next).unwrap();
+    let queue = r.match_queue.current().unwrap();
+    assert_eq!((&queue.entries[0].set_id[..], &queue.entries[1].set_id[..]), ("400", "300"));
+    assert_eq!(r.overlay.selected_set().unwrap().set_id.as_deref(), Some("400"));
+}
+
+#[test]
+fn a_failed_queue_save_after_stream_selection_stops_automation() {
+    let r = runtime();
+    edit(&r.match_queue, &r.database, "settings", None, None, Some(Mode::Report), Some(1)).unwrap();
+    run(engine::navigate(&r, r.match_queue.current().unwrap().revision, "start", None)).unwrap();
+    let mut next = r.overlay.selected_set().unwrap();
+    next.set_id = Some("200".into());
+    r.database.connection.lock().unwrap().execute_batch(
+        "CREATE TRIGGER reject_queue_save BEFORE UPDATE ON broadcast_surfaces
+         WHEN NEW.surface_id = 'match-queue' BEGIN SELECT RAISE(ABORT, 'test disk failure'); END;"
+    ).unwrap();
+    // The unfinished match stays live, but failing to persist the reordered queue must pause it.
+    r.match_queue.select_for_stream(&r, next).unwrap();
+    let queue = r.match_queue.current().unwrap();
+    assert!(!queue.running);
+    assert!(queue.error.is_some());
+    assert_eq!(r.overlay.selected_set().unwrap().set_id.as_deref(), Some("100"));
+}
+
+#[test]
+fn resetting_a_result_discards_the_old_reported_winner_before_a_new_report() {
+    let (database, queue, mut live) = setup();
+    queue.observe_bracket(&database, "456", &[serde_json::json!({
+        "id":"100", "state":"3", "winnerId":"10", "entrantOneScore":2, "entrantTwoScore":0,
+        "entrantOne":{"id":"10"}, "entrantTwo":{"id":"20"}
+    })]).unwrap();
+    assert!(queue.current().unwrap().entries[0].reported_result.is_some());
+    live.upstream_reset = Some(true);
+    queue.observe_result(&database, &live);
+    queue.reported(&database, None, "100", true);
+    assert!(queue.current().unwrap().entries[0].reported_result.is_none());
 }

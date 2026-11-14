@@ -10,7 +10,7 @@ export function useSettingsDraft<T>({
   load,
   save,
   onError,
-  retryInitialLoad = false
+  retryInitialLoad = true
 }: {
   load(): Promise<T>;
   save(state: T): Promise<T>;
@@ -98,7 +98,7 @@ export function useSettingsDraft<T>({
       } catch (error) {
         if (!current.mounted || id !== current.loadId) return;
         setLoadError(error);
-        callbacks.current.onError(error);
+        if (current.loadAttempt === 0 || current.acknowledged !== undefined) callbacks.current.onError(error);
         if (retryInitialLoad && current.acknowledged === undefined) {
           current.retryTimer = setTimeout(() => void reloadState(), reconnectDelay(current.loadAttempt++));
         }

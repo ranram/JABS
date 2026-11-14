@@ -1,4 +1,7 @@
 // @vitest-environment happy-dom
+import { act } from 'react';
+import { mountHook } from './hooks/hookTestHarness';
+import { usePendingWrites } from './pendingWrites';
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { createLocalApiTransport } from './localApiTransport';
@@ -111,7 +114,7 @@ it('distinguishes a heartbeat timeout from expected cancellation and never retri
     contexts.push(context);
   }
   expect(contexts[0].requestId).not.toBe(contexts[1].requestId);
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).not.toHaveBeenCalled();
   expect(diagnostics.record).toHaveBeenCalledTimes(2);
 });
 
@@ -232,4 +235,32 @@ it('keeps diagnostic operation labels compatible across renderer and native code
   expect(requestOperation('/api/custom-scoreboards/private-ID')).toBe('custom-scoreboard-record');
   expect(requestOperation('/api/broadcast/stingers/video/winner?name=private')).toBe('stinger-video');
   expect(requestOperation('/private/unknown')).toBe('other-local-request');
+});
+
+it('bounds stalled writes through discovery, headers and body without retrying an uncertain save', async () => {
+  vi.useFakeTimers();
+  const hold = await mountHook(usePendingWrites);
+  for (const stage of ['discovery', 'headers', 'body']) {
+    const never = new Promise<never>(() => undefined);
+    let signal: AbortSignal | undefined;
+    const response = new Response('{}');
+    response.json = () => never;
+    const fetcher = vi.fn((_url: string, init: RequestInit) => {
+      signal = init.signal ?? undefined;
+      return stage === 'headers' ? never : Promise.resolve(response);
+    });
+    vi.stubGlobal('fetch', fetcher);
+    const transport = createLocalApiTransport(stage === 'discovery' ? never : Promise.resolve('http://127.0.0.1:4279'));
+    let failed!: Promise<void>;
+    await act(async () => {
+      failed = expect(transport.request('/api/settings/appearance', { method: 'PUT' }, {
+        timeoutMs: 50, retryNetworkFailure: true
+      })).rejects.toMatchObject({ name: 'TimeoutError', outcomeUnknown: true });
+    });
+    expect(hold.current).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); await failed; });
+    expect(hold.current).toBe(false);
+    expect(fetcher).toHaveBeenCalledTimes(stage === 'discovery' ? 0 : 1);
+    if (signal) expect(signal.aborted).toBe(true);
+  }
 });

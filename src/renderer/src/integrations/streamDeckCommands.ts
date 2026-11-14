@@ -4,7 +4,7 @@ import { scoreLimitForPlayer } from '@shared/gameProfiles';
 import type { StreamDeckCommand, StreamDeckResult } from '@shared/streamDeck';
 import type { QueueController } from '../ui/operator/matchQueueContext';
 import type { useWorkspaceShortcuts } from '../ui/operator/useWorkspaceShortcuts';
-import { currentQueueIndex } from '../ui/operator/queuePresentation';
+import { currentQueueIndex, nextQueueIndex } from '../ui/operator/queuePresentation';
 import { hasVisiblePopup, isTypingTarget } from '../ui/operator/useScoreShortcuts';
 
 export type StreamDeckMatchControls = {
@@ -52,8 +52,11 @@ export function createStreamDeckExecutor(current: () => StreamDeckContext) {
       }
       return (await confirmation.confirm()) ? 'completed' : 'blocked';
     }
-    if (confirmation.confirmation || hasVisiblePopup('[data-tutorial="queue-panel"], [data-tutorial="set-selector"]'))
-      return 'blocked';
+    const liveControl = action.startsWith('score-') || action.startsWith('stinger-') || action === 'swap-commentators';
+    const allowedPopups = liveControl
+      ? '[role="dialog"]'
+      : '[data-tutorial="queue-panel"], [data-tutorial="set-selector"]';
+    if (confirmation.confirmation || hasVisiblePopup(allowedPopups)) return 'blocked';
     if (action === 'open-players') {
       context.openPlayers();
       return 'completed';
@@ -68,7 +71,7 @@ export function createStreamDeckExecutor(current: () => StreamDeckContext) {
       context.openSelector();
       return 'completed';
     }
-    if (context.blocked || isTypingTarget(document.activeElement)) return 'blocked';
+    if (context.blocked || (!liveControl && isTypingTarget(document.activeElement))) return 'blocked';
     if (action === 'stinger-perfect' || action === 'stinger-winner') {
       if (!context.playStinger || (action === 'stinger-winner' && (!set || command.expectedVersion !== set.updatedAt)))
         return 'blocked';
@@ -99,7 +102,7 @@ export function createStreamDeckExecutor(current: () => StreamDeckContext) {
         if (
           action === 'queue-previous'
             ? index === null || index === 0
-            : !queue.state.entries.length || (index !== null && index >= queue.state.entries.length - 1)
+            : nextQueueIndex(queue.state, queue.liveSetId) < 0
         )
           return 'blocked';
         return (await queue.act({ action: action === 'queue-next' ? 'next' : 'previous' })) ? 'completed' : 'failed';

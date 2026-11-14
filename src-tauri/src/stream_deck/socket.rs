@@ -135,8 +135,8 @@ async fn session(mut socket: WebSocket, runtime: Arc<RuntimeState>) {
     }
     let mut last_id = 0;
     loop {
+        if *revoked.borrow() != epoch { break; }
         tokio::select! {
-            biased;
             _ = revoked.changed() => break,
             _ = overlays.recv() => {
                 let Ok(next) = snapshot(&runtime) else { break; };

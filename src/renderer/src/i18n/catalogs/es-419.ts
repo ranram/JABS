@@ -146,6 +146,14 @@ export const es419 = {
       topEightYes: 'Sí, agregar partidas',
       topEightNo: 'No, cancelar',
 
+      refreshStale: 'La cola puede estar desactualizada',
+      refreshFailed: 'No se pudo actualizar la cola desde start.gg. Las partidas mostradas pueden estar desactualizadas. JABS volverá a intentarlo automáticamente.',
+      pauseReasons: {
+        inactivity: 'En pausa por inactividad. Revisa la cola antes de continuar.',
+        'event-changed': 'En pausa porque cambió el evento.',
+        disconnected: 'En pausa porque no hay un operador conectado a este evento.',
+        'match-changed': 'En pausa porque cambió la partida en vivo.'
+      },
       pausedCountdown: 'En pausa · quedan {{time}}',
       title: 'Cola de partidas',
       open: 'Cola ({{count}})',
@@ -171,6 +179,8 @@ export const es419 = {
       queued: 'En cola · #{{position}}',
       send: 'Enviar a transmisión',
       remove: 'Quitar',
+      moveTop: 'Mover al inicio',
+      moveBottom: 'Mover al final',
       moveUp: 'Subir',
       moveDown: 'Bajar',
       moved: 'Partida movida a la posición {{position}}.',
@@ -512,6 +522,8 @@ export const es419 = {
     },
     shortcutGuide: { navigation: 'Navegación y cola', scoring: 'Puntuación', matchActions: 'Acciones de partida' },
     queueTicker: {
+      settingsFailed: 'No se pudieron cargar o guardar los ajustes del ticker.',
+      retryingLoad: 'No se pudieron cargar los ajustes del ticker. Reintentando…',
       preview: 'Vista previa de la franja',
       on: 'Activada',
       off: 'Desactivada',
@@ -1647,6 +1659,8 @@ export const es419 = {
       quickReportFailed: 'No se pudo reportar rápidamente este set a start.gg.',
 
       // Stream edits and result reporting
+      setLoaded: 'Partida enviada a la transmisión.',
+      setQueuedNext: 'Partida agregada como siguiente. La partida actual sigue en transmisión.',
       selectSetFailed: 'No se pudo seleccionar el set.',
       streamSaved: 'Se guardaron los cambios de la transmisión y se enviaron a OBS.',
       saveStreamFailed: 'No se pudo guardar el estado de transmisión.',
@@ -1690,7 +1704,10 @@ export const es419 = {
   errors: {
     nativeFailure: 'No se pudo completar la acción. Revisa los datos e inténtalo de nuevo.',
     invalidLocalResponse: 'El servicio local devolvió datos no válidos para {{source}}.',
-    realtimeConnection: 'Se interrumpió la conexión en vivo. Reconectando…',
+    localReadTimeout: 'JABS tardó demasiado en responder. Inténtalo de nuevo.',
+    localWriteTimeout: 'JABS tardó demasiado en confirmar el cambio. Es posible que se haya guardado. Revisa el estado actual antes de intentarlo de nuevo.',
+    realtimeInitialConnection: 'No se pudieron cargar los datos en vivo. Reconectando…',
+    realtimeConnection: 'Se interrumpió la conexión en vivo. Se muestran los últimos datos recibidos mientras se reconecta…',
 
     generic: 'Algo salió mal.',
     localSettings: 'No se pudo cargar la configuración local de la aplicación.',
