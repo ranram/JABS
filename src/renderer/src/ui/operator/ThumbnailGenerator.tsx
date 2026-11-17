@@ -10,7 +10,6 @@ import { Button, ColorInput, Paper, Select, SimpleGrid, Stack, Switch, Text } fr
 import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
 import { charactersForAssetCatalog } from '@shared/characterRosters';
-import { broadcastSurfaceSpecs } from '@shared/broadcastCompositions';
 import type { GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, LogoAsset, SelectedSetState } from '@shared/models';
 import { characterTeamSelection, maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
@@ -176,7 +175,8 @@ export function ThumbnailGenerator({
     try {
       const filename = safeGraphicFilename(draft.tournamentName, 'youtube-thumbnail');
       await exportGraphicAsPng(canvasRef.current, {
-        ...broadcastSurfaceSpecs.thumbnail.canvas,
+        width: 1280,
+        height: 720,
         filename,
         trustedText: thumbnailTrustedText(previewDraft)
       });

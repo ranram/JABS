@@ -6,10 +6,9 @@ import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
 import type { LogoAsset, StartggPhase, StartggPhaseGroup } from '@shared/models';
-import type { BracketSettings } from '@shared/bracketScreen';
+import type { BracketScreenState, BracketSettings } from '@shared/bracketScreen';
 import { displayPhaseName } from '@shared/matchContext';
 import { api } from '../../api';
-import { useBracketScreenState } from '../../hooks/useBracketScreenState';
 import { useSettingsDraft } from '../../hooks/useSettingsDraft';
 import { BracketPresentation } from '../BracketScreen';
 import { bracketRounds } from '../bracketLayout';
@@ -17,11 +16,13 @@ import { OverlayLogoSelect } from './OverlayLogoSelect';
 import { sortByLabel } from './operatorUtils';
 
 export function BracketScreenControls({
+  live,
   eventId,
   phases,
   profiles,
   logos
 }: {
+  live?: BracketScreenState;
   eventId?: string;
   phases: StartggPhase[];
   profiles: GameProfile[];
@@ -30,7 +31,6 @@ export function BracketScreenControls({
   const { t, i18n } = useTranslation(['operator', 'common']);
   const winnersLabel = useBracketLabel('winners');
   const losersLabel = useBracketLabel('losers');
-  const { state: live } = useBracketScreenState();
   const settings = useSettingsDraft({
     load: async () => (await api.bracketScreenState()).settings,
     save: async (value: BracketSettings) => (await api.updateBracketScreenSettings(value)).settings,

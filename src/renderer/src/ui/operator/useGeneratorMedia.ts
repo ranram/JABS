@@ -128,29 +128,36 @@ export function useGeneratorMedia<TDraft>({
   useEffect(() => {
     let active = true;
     const timer = window.setTimeout(() => {
-      if (identityInputs.some(({ name }) => !name.trim())) {
+      const named = identityInputs.flatMap((identity, index) => (identity.name.trim() ? [{ identity, index }] : []));
+      if (!named.length) {
         setIdentityMedia([]);
         setResolvedIdentityKey(identityMediaKey);
         setIdentityWarning(undefined);
         return;
       }
       void api
-        .identityMedia(identityInputs, context)
-        .then(async ({ matches }) =>
-          Promise.all(
-            matches.map(async (match, index) => {
-              const playerPhotoAssetId = subjects[index]?.playerPhotoAssetId ?? match.playerPhotoAssetId;
+        .identityMedia(
+          named.map(({ identity }) => identity),
+          context
+        )
+        .then(({ matches }) => {
+          const byIndex = new Map(named.map(({ index }, resultIndex) => [index, matches[resultIndex]]));
+          return Promise.all(
+            subjects.map(async (subject, index) => {
+              const match = byIndex.get(index);
+              if (!match) return {};
+              const playerPhotoAssetId = subject.playerPhotoAssetId ?? match.playerPhotoAssetId;
               return {
                 playerPhotoUrl: playerPhotoAssetId
                   ? await api.playerPhotoAssetUrl(playerPhotoAssetId).catch(() => undefined)
                   : undefined,
                 sponsorLogoUrl: match.sponsorLogoAssetId
-                  ? await api.sponsorLogoAssetUrl(match.sponsorLogoAssetId)
+                  ? await api.sponsorLogoAssetUrl(match.sponsorLogoAssetId).catch(() => undefined)
                   : undefined
               };
             })
-          )
-        )
+          );
+        })
         .then((resolved) => {
           if (!active) return;
           setIdentityMedia(resolved);

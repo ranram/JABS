@@ -60,7 +60,7 @@ export function useTopEightDraft(initialGameId?: GameId): TopEightDraftControlle
   const [selectedLayer, setSelectedLayer] = useState<{ entrant: number; layer: MediaLayerKind }>();
   useEffect(
     () => setSelectedLayer(undefined),
-    [draft.gameId, draft.stylingGameId, draft.style, draft.mediaMode, ...draft.entrants.map((player) => player.name)]
+    [draft.gameId, draft.stylingGameId, draft.style, draft.mediaMode, JSON.stringify(draft.entrants.map((player) => player.name))]
   );
   const [mediaPlacements, setMediaPlacements] = useState<PlayerMediaPlacement[]>(createMediaPlacements);
   return {

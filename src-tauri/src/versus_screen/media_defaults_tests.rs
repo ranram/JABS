@@ -340,7 +340,40 @@ fn choosing_a_missing_character_restores_its_layout_without_changing_the_other_p
 }
 
 #[test]
-fn character_mirroring_is_optional_and_preserves_photos_and_flips_after_restart() {
+fn mirrored_framing_waits_until_the_same_artwork_is_used_on_the_other_side() {
+    let mut fixture = Fixture::new();
+    let mut settings = fixture.settings();
+    settings.mirror_character_placement = true;
+    settings.media_placements[0].character.x = 0.25;
+    settings.media_placements[0].character.y = -0.15;
+    settings.media_placements[0].character.scale = 1.4;
+    let other_artwork = settings.media_placements[1].clone();
+    fixture.store.replace(&fixture.database, settings).unwrap();
+    assert_eq!(fixture.settings().media_placements[1], other_artwork);
+
+    let mut selected = fixture.selected.clone();
+    selected.player_two.character = Some("Cammy".into());
+    selected.player_two.characters = vec!["Cammy".into()];
+    selected.player_two.character_asset_id = Some("Cammy_2.webp".into());
+    fixture.select(selected.clone());
+    assert_eq!(fixture.settings().media_placements[1].character, MediaTransform::default());
+
+    selected.player_two.character_asset_id = None;
+    fixture.select(selected);
+    let right = fixture.settings().media_placements[1].character.clone();
+    assert_eq!((right.x, right.y, right.scale, right.flipped), (-0.25, -0.15, 1.4, true));
+
+    let mut new_match = fixture.selected.clone();
+    new_match.set_id = Some("900".into());
+    new_match.player_one.character = Some("Ryu".into());
+    new_match.player_one.characters = vec!["Ryu".into()];
+    fixture.select(new_match);
+    assert_eq!(fixture.settings().media_placements[1].character, right);
+    fixture.close();
+}
+
+#[test]
+fn character_mirroring_is_optional_and_preserves_photos_after_restart() {
     for mirror in [false, true] {
         let mut fixture = Fixture::new();
         let mut selected = fixture.selected.clone();
@@ -376,6 +409,11 @@ fn character_mirroring_is_optional_and_preserves_photos_and_flips_after_restart(
             left.character.scale = 1.8;
         }
         assert_eq!(fixture.settings().media_placements[0], left);
+
+        let mut settings = fixture.settings();
+        settings.media_placements[1].character.flipped = false;
+        fixture.store.replace(&fixture.database, settings).unwrap();
+        assert_eq!(fixture.settings().media_placements[0].character.flipped, mirror);
         let expected = fixture.settings().media_placements.clone();
 
         fixture = fixture.reopen();
@@ -393,11 +431,29 @@ fn character_mirroring_is_optional_and_preserves_photos_and_flips_after_restart(
         let mut settings = fixture.settings();
         settings.mirror_character_placement = false;
         fixture.store.replace(&fixture.database, settings).unwrap();
-        assert_eq!(fixture.settings().media_placements, expected);
+        let manual = fixture.settings().media_placements.clone();
+        if mirror {
+            assert_eq!(manual[0].character, MediaTransform::default());
+            assert_eq!(manual[1].character, MediaTransform::default());
+        } else {
+            assert_eq!(manual, expected);
+        }
+        assert_eq!(manual[1].photo, expected[1].photo);
         let mut settings = fixture.settings();
         settings.media_placements[0].character.x += 0.1;
         fixture.store.replace(&fixture.database, settings).unwrap();
-        assert_eq!(fixture.settings().media_placements[1], expected[1]);
+        let edited_manual = fixture.settings().media_placements.clone();
+        assert_eq!(edited_manual[1], manual[1]);
+        if mirror {
+            let mut settings = fixture.settings();
+            settings.mirror_character_placement = true;
+            fixture.store.replace(&fixture.database, settings).unwrap();
+            assert_eq!(fixture.settings().media_placements, expected);
+            let mut settings = fixture.settings();
+            settings.mirror_character_placement = false;
+            fixture.store.replace(&fixture.database, settings).unwrap();
+            assert_eq!(fixture.settings().media_placements, edited_manual);
+        }
         fixture.close();
     }
 }

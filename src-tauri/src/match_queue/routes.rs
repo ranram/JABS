@@ -85,6 +85,7 @@ async fn add(
             asset_catalog_slug: context.asset_catalog_slug.clone(),
             event_id: Some(context.event_id.clone()),
             tournament_slug: Some(context.tournament_slug.clone()),
+            queue_context: None,
             restore_overrides: false,
             preserve_broadcast: false,
             preserve_station: false,

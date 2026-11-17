@@ -8,6 +8,10 @@ on:
     - cron: "23 8 * * 1"
   workflow_dispatch:
   workflow_call:
+    inputs:
+      allow-picomatch-advisory:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,7 +31,15 @@ jobs:
         with:
           node-version: 24.22.1
       - name: Audit JavaScript lockfile, including development dependencies
-        run: pnpm audit
+        env:
+          ALLOW_PICOMATCH_ADVISORY: ${{ inputs.allow-picomatch-advisory }}
+        run: |
+          if [ "$ALLOW_PICOMATCH_ADVISORY" = "true" ]; then
+            # Temporary release exception for build tooling. Remove after upgrading picomatch.
+            pnpm audit --ignore GHSA-fc5q-39xc-vjpf
+          else
+            pnpm audit
+          fi
       - name: Validate Rust dependency sources and checksums
         run: |
           node --test scripts/vendored-glib.test.mjs

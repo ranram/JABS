@@ -35,7 +35,7 @@ mod tests {
         wrong_game["entrant"]["event"]["videogame"]["id"] = json!(20);
         standings.push(wrong_game);
         let player = json!({"recentStandings": standings});
-        let five = recent_placements(player.as_object().unwrap(), "10", 5).unwrap();
+        let five = recent_placements(player.as_object().unwrap(), Some("10"), 5).unwrap();
         assert_eq!(five.len(), 5);
         assert_eq!(five[0].placing.placement, 7);
         assert_eq!(five[0].logo_asset_id.as_deref(), Some("7"));
@@ -45,7 +45,7 @@ mod tests {
         for invalid in [Value::Null, json!(0), json!(-1), json!(3.5), json!("2048")] {
             let mut missing_count = player.clone();
             missing_count["recentStandings"][6]["entrant"]["event"]["numEntrants"] = invalid;
-            let placing = recent_placements(missing_count.as_object().unwrap(), "10", 5).unwrap();
+            let placing = recent_placements(missing_count.as_object().unwrap(), Some("10"), 5).unwrap();
             assert_eq!(placing[0].num_entrants, None);
             assert!(
                 serde_json::to_value(&placing[0])
@@ -55,7 +55,7 @@ mod tests {
             );
         }
         assert_eq!(
-            recent_placements(player.as_object().unwrap(), "10", 3)
+            recent_placements(player.as_object().unwrap(), Some("10"), 3)
                 .unwrap()
                 .len(),
             3
@@ -64,7 +64,7 @@ mod tests {
         unsafe_image["recentStandings"][6]["entrant"]["event"]["tournament"]["images"] =
             json!([{"url": "http://127.0.0.1/private"}]);
         assert!(
-            recent_placements(unsafe_image.as_object().unwrap(), "10", 5).unwrap()[0]
+            recent_placements(unsafe_image.as_object().unwrap(), Some("10"), 5).unwrap()[0]
                 .logo_asset_id
                 .is_none()
         );
@@ -73,7 +73,7 @@ mod tests {
 
 pub fn recent_placements(
     player: &Map<String, Value>,
-    game_id: &str,
+    game_id: Option<&str>,
     limit: usize,
 ) -> Result<Vec<RecentPlacement>, ApiError> {
     let nodes = node_list(player.get("recentStandings"), "recent player standings")?;
@@ -82,12 +82,9 @@ pub fn recent_placements(
         .filter_map(|standing| {
             let placement = finite_u64(standing.get("placement")).filter(|value| *value > 0)?;
             let event = standing.pointer("/entrant/event")?;
-            if event
-                .pointer("/videogame/id")
-                .and_then(normalized_id)
-                .as_deref()
-                != Some(game_id)
-            {
+            if game_id.is_some_and(|id| {
+                event.pointer("/videogame/id").and_then(normalized_id).as_deref() != Some(id)
+            }) {
                 return None;
             }
             let tournament = event.get("tournament")?;

@@ -19,7 +19,7 @@ export const playerStatsSchema = z.object({
         numEntrants: z.number().int().positive().optional()
       })
     )
-    .max(5),
+    .max(8),
   run: z.array(
     z.object({
       id: z.string(),

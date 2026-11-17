@@ -19,6 +19,8 @@ pub(super) struct LayoutSettings {
     stat_rows: Vec<String>,
     media_mode: String,
     media_placements: [PlayerMediaPlacement; 2],
+    #[serde(default)]
+    mirror_character_placement: Option<bool>,
 }
 
 impl LayoutSettings {
@@ -36,6 +38,7 @@ impl LayoutSettings {
             stat_rows: state.stat_rows.clone(),
             media_mode: state.media_mode.clone(),
             media_placements: state.media_placements.clone(),
+            mirror_character_placement: Some(state.mirror_character_placement),
         }
     }
 
@@ -52,7 +55,7 @@ impl LayoutSettings {
                 continue;
             }
             let unchanged = current.unchanged_layers(saved, side);
-            if unchanged.character {
+            if unchanged.character && self.mirror_character_placement.is_none_or(|saved| saved == state.mirror_character_placement) {
                 state.media_placements[side].character =
                     self.media_placements[side].character.clone();
             }

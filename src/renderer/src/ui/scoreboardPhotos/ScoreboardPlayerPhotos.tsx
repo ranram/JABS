@@ -169,7 +169,7 @@ export function ScoreboardPhotoSide({
   const image = placeholder ? { url: placeholderUrl, width: 512, height: 512, crop: defaultHeadshotCrop() } : photo;
   const shape = layout.sides[side];
   const [x, y, width, height] = shape.bounds;
-  const viewport = scoreboardPhotoViewport(layout, side, placeholder ? 'contained' : framing);
+  const viewport = scoreboardPhotoViewport(layout, side, framing);
   const logoPlacement = scoreboardLogoPlacement(shape.bounds, side, logoContent);
   const palette = resolveGameProfile(stylingGameId ?? layout.gameId).overlay;
   const accent =
@@ -180,8 +180,8 @@ export function ScoreboardPhotoSide({
     ? { x: 0, y: 0, width: image.width, height: image.height }
     : scoreboardPhotoViewBox(photo!, viewport.width / viewport.height);
   const shadowScale = crop.width / width;
-  const extendAbove = framing === 'extendAbove' && !placeholder;
-  const photoTop = extendAbove ? scoreboardPhotoTop(photo!, layout, side, framing) : y;
+  const photoTop = placeholder ? viewport.y : scoreboardPhotoTop(photo!, layout, side, framing);
+  const extendAbove = framing === 'extendAbove' && (!placeholder || photoTop < y);
   return (
     <g
       data-scoreboard-photo-side={side}
@@ -237,7 +237,7 @@ export function ScoreboardPhotoSide({
           height={viewport.height}
           viewBox={`${crop.x} ${crop.y} ${crop.width} ${crop.height}`}
           overflow={extendAbove ? 'visible' : 'hidden'}
-          preserveAspectRatio={placeholder ? 'xMidYMid meet' : 'xMidYMid slice'}
+          preserveAspectRatio={placeholder ? 'xMidYMin meet' : 'xMidYMid slice'}
         >
           <g
             data-entrance={`scoreboard-photo-${side}-subject`}

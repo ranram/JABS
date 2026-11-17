@@ -33,6 +33,15 @@ impl MediaTransform {
     }
 }
 
+fn reflected_character(source: &MediaTransform) -> MediaTransform {
+    MediaTransform {
+        x: -source.x,
+        y: source.y,
+        scale: source.scale,
+        flipped: !source.flipped,
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerMediaPlacement {
@@ -87,6 +96,8 @@ struct CharacterContext<'a> {
     mode: &'a str,
     character: &'a str,
     character_asset_id: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mirrored: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -279,11 +290,11 @@ impl MediaMatch {
         Ok(Some((player_id.clone(), context)))
     }
 
-    fn character_context(&self, side: usize, mode: &str) -> Result<Option<String>, String> {
-        self.character_context_for_side(side, side, mode)
+    fn character_context(&self, side: usize, mode: &str, mirrored: bool) -> Result<Option<String>, String> {
+        self.character_context_for_side(side, side, mode, mirrored)
     }
 
-    fn character_context_for_side(&self, subject_side: usize, side: usize, mode: &str) -> Result<Option<String>, String> {
+    fn character_context_for_side(&self, subject_side: usize, side: usize, mode: &str, mirrored: bool) -> Result<Option<String>, String> {
         let Some(subjects) = &self.subjects else {
             return Ok(None);
         };
@@ -298,6 +309,7 @@ impl MediaMatch {
             mode: self.effective_mode(subject_side, mode),
             character,
             character_asset_id: artwork,
+            mirrored: mirrored.then_some(true),
         })
         .map(Some)
         .map_err(|_| "Unable to serialize Versus Screen settings.".to_owned())
@@ -321,26 +333,26 @@ impl MediaMatch {
         Ok(Some((player_id.clone(), context)))
     }
 
+    pub(super) fn uses_same_character_artwork(&self) -> bool {
+        self.subjects.as_ref().is_some_and(|subjects| {
+            subjects[0].character.is_some()
+                && subjects[0].character == subjects[1].character
+                && subjects[0].character_asset_id.is_some()
+                && subjects[0].character_asset_id == subjects[1].character_asset_id
+        })
+    }
+
     pub(super) fn mirror_character_edits(
         &self,
         placements: &mut [PlayerMediaPlacement; 2],
         framing_changed: [bool; 2],
     ) {
-        let Some(subjects) = &self.subjects else { return; };
-        if subjects[0].character.is_none()
-            || subjects[0].character != subjects[1].character
-            || subjects[0].character_asset_id != subjects[1].character_asset_id
-        {
+        if !self.uses_same_character_artwork() {
             return;
         }
-        for side in 0..2 {
-            if framing_changed[side] {
-                let source = placements[side].character.clone();
-                let target = &mut placements[1 - side].character;
-                target.x = -source.x;
-                target.y = source.y;
-                target.scale = source.scale;
-            }
+        if let [true, false] | [false, true] = framing_changed {
+            let side = usize::from(framing_changed[1]);
+            placements[1 - side].character = reflected_character(&placements[side].character);
         }
     }
 
@@ -348,37 +360,67 @@ impl MediaMatch {
         &self,
         database: &Database,
         mode: &str,
+        mirrored: bool,
     ) -> Result<[PlayerMediaPlacement; 2], String> {
         let layouts = load_set_layouts(database, self.set_id.as_deref())?;
-        let saved = layouts.iter().find(|saved| {
+        let matching = |saved: &&SavedMatchMedia| {
             self.same_set(&saved.context)
-                && saved
-                    .media_mode
-                    .as_deref()
+                && saved.media_mode.as_deref()
                     .map_or(!mode.starts_with("compact:"), |saved_mode| saved_mode == mode)
                 && valid_media_placements(&saved.placements)
-        });
+        };
         let mut placements = default_media_placements();
+        let mut has_mirrored_framing = [false; 2];
         for (side, placement) in placements.iter_mut().enumerate() {
-            if let Some(saved) = saved {
-                if self.same_subject(&saved.context, side) {
-                    *placement = saved.placements[side].clone();
-                    continue;
+            let mut saved = layouts.iter().filter(matching)
+                .filter(|saved| self.same_subject(&saved.context, side));
+            let latest = saved.next();
+            let character = latest.filter(|saved| saved.mirrored == mirrored)
+                .or_else(|| saved.find(|saved| saved.mirrored == mirrored));
+            let legacy = self.load_legacy_player_default(database, side, mode)?;
+            placement.character = if let Some(saved) = character {
+                has_mirrored_framing[side] = mirrored;
+                saved.placements[side].character.clone()
+            } else if let Some(context) = self.character_context(side, mode, mirrored)? {
+                let stored = database.load_character_versus_media(&context)?;
+                if mirrored && stored.is_none() {
+                    if let Some(saved) = layouts.iter().filter(matching)
+                        .find(|saved| !saved.mirrored && self.same_subject(&saved.context, side))
+                    {
+                        saved.placements[side].character.clone()
+                    } else if let Some(legacy) = &legacy {
+                        legacy.character.clone()
+                    } else if let Some(manual) = self.character_context(side, mode, false)? {
+                        load_transform(database.load_character_versus_media(&manual)?)
+                    } else {
+                        MediaTransform::default()
+                    }
+                } else if !mirrored && legacy.is_some() {
+                    legacy.as_ref().unwrap().character.clone()
+                } else {
+                    has_mirrored_framing[side] = mirrored;
+                    load_transform(stored)
                 }
-            }
-            // Older player saves contain both layers and retain their original priority.
-            if let Some(default) = self.load_legacy_player_default(database, side, mode)? {
-                *placement = default;
-                continue;
-            }
-            if let Some(context) = self.character_context(side, mode)? {
-                placement.character =
-                    load_transform(database.load_character_versus_media(&context)?);
-            }
-            if let Some((player_id, context)) = self.photo_context(side, mode)? {
-                placement.photo =
-                    load_transform(database.load_player_versus_media(&player_id, &context)?);
-            }
+            } else {
+                legacy.as_ref().map(|value| value.character.clone()).unwrap_or_default()
+            };
+            placement.photo = if let Some(saved) = latest {
+                saved.placements[side].photo.clone()
+            } else if let Some(legacy) = legacy {
+                legacy.photo
+            } else if let Some((player_id, context)) = self.photo_context(side, mode)? {
+                load_transform(database.load_player_versus_media(&player_id, &context)?)
+            } else {
+                MediaTransform::default()
+            };
+        }
+        if mirrored && mode != "photo" && mode != "compact:photo" {
+            let source = match has_mirrored_framing {
+                [true, true] => [false, false],
+                [false, true] => [false, true],
+                _ => [true, false],
+            };
+            self.mirror_character_edits(&mut placements, source);
         }
         Ok(placements)
     }
@@ -408,6 +450,7 @@ impl MediaMatch {
         &self,
         database: &Database,
         mode: &str,
+        mirrored: bool,
         placements: &[PlayerMediaPlacement; 2],
         edited: [MediaLayerEdits; 2],
         framing_changed: [bool; 2],
@@ -417,16 +460,17 @@ impl MediaMatch {
             let mut layouts = load_set_layouts(database, Some(set_id))?;
             layouts.retain(|saved| {
                 self.same_set(&saved.context)
-                    && saved
+                    && (saved.mirrored != mirrored || saved
                         .media_mode
                         .as_deref()
-                        .map_or(mode.starts_with("compact:"), |saved_mode| saved_mode != mode)
+                        .map_or(mode.starts_with("compact:"), |saved_mode| saved_mode != mode))
                     && valid_media_placements(&saved.placements)
             });
             let saved = SavedMatchMedia {
                 context: self.clone(),
                 placements: placements.clone(),
                 media_mode: Some(mode.into()),
+                mirrored,
             };
             layouts.insert(0, saved);
             let payload = serde_json::to_string(&SavedSetMedia::Layouts { layouts })
@@ -438,20 +482,23 @@ impl MediaMatch {
                 continue;
             }
             // Update an existing personal override only when its owner actually edits it.
-            if self
-                .load_legacy_player_default(database, side, mode)?
-                .is_some()
-            {
+            if let Some(mut legacy) = self.load_legacy_player_default(database, side, mode)? {
+                if !mirrored && changed.character {
+                    legacy.character = placements[side].character.clone();
+                }
+                if changed.photo {
+                    legacy.photo = placements[side].photo.clone();
+                }
                 if let Some((player_id, context)) = self.legacy_player_context(side, mode)? {
                     edits.player_defaults.push(PlayerMediaDefault {
                         player_id,
                         context,
-                        payload: serialize_placement(&placements[side])?,
+                        payload: serialize_placement(&legacy)?,
                     });
                 }
             }
             if changed.character {
-                if let Some(context) = self.character_context(side, mode)? {
+                if let Some(context) = self.character_context(side, mode, mirrored)? {
                     edits.character_defaults.push(CharacterMediaDefault {
                         context,
                         payload: serialize_placement(&placements[side].character)?,
@@ -459,19 +506,16 @@ impl MediaMatch {
                 }
             }
             if framing_changed[side] {
-                if let Some(context) = self.character_context_for_side(side, 1 - side, mode)? {
-                    let mut mirrored = load_transform(database.load_character_versus_media(&context)?);
-                    mirrored.x = -placements[side].character.x;
-                    mirrored.y = placements[side].character.y;
-                    mirrored.scale = placements[side].character.scale;
-                    // A visible matching character may have its own flip edited in this save.
-                    if self.character_context(1 - side, mode)?.as_ref() == Some(&context) {
-                        mirrored.flipped = placements[1 - side].character.flipped;
+                if let Some(context) = self.character_context_for_side(side, 1 - side, mode, mirrored)? {
+                    let opposite_was_edited = framing_changed[1 - side]
+                        && self.character_context(1 - side, mode, mirrored)?.as_ref() == Some(&context);
+                    if !opposite_was_edited {
+                        let mirrored = reflected_character(&placements[side].character);
+                        edits.character_defaults.push(CharacterMediaDefault {
+                            context,
+                            payload: serialize_placement(&mirrored)?,
+                        });
                     }
-                    edits.character_defaults.push(CharacterMediaDefault {
-                        context,
-                        payload: serialize_placement(&mirrored)?,
-                    });
                 }
             }
             if changed.photo {
@@ -507,6 +551,8 @@ pub(super) struct SavedMatchMedia {
     pub(super) placements: [PlayerMediaPlacement; 2],
     #[serde(default)]
     media_mode: Option<String>,
+    #[serde(default)]
+    mirrored: bool,
 }
 
 #[derive(Deserialize, Serialize)]

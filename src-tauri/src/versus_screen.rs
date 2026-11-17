@@ -176,7 +176,7 @@ impl VersusScreenStore {
                 submitted.media_placements = default_media_placements();
             }
             if let Some(context) = &current.media_match {
-                submitted.media_placements = context.restore_placements(database, &media_scope(&submitted))?;
+                submitted.media_placements = context.restore_placements(database, &media_scope(&submitted), submitted.mirror_character_placement)?;
                 if let Some(saved) = current.layout_settings.get(&submitted.information_layout) {
                     saved.preserve_matching_framing(&mut submitted);
                 }
@@ -184,23 +184,33 @@ impl VersusScreenStore {
             submitted.layout_settings.insert(current.information_layout.clone(), outgoing);
             return self.save_settings(database, &mut current, submitted, None);
         }
+        let scope = media_scope(&submitted);
+        let mirrored = submitted.mirror_character_placement;
+        let mut character_baseline = current.media_placements.clone();
+        if mirrored != current.mirror_character_placement {
+            if let Some(context) = &submitted.media_match {
+                let restored = context.restore_placements(database, &scope, mirrored)?;
+                for (side, restored) in restored.into_iter().enumerate() {
+                    if submitted.media_placements[side].character == character_baseline[side].character {
+                        submitted.media_placements[side].character = restored.character.clone();
+                    }
+                    character_baseline[side].character = restored.character;
+                }
+            }
+        }
         let framing_changed = std::array::from_fn(|side| {
-            let next = &submitted.media_placements[side].character;
-            let previous = &current.media_placements[side].character;
-            submitted.mirror_character_placement
-                && (next.x != previous.x || next.y != previous.y || next.scale != previous.scale)
+            mirrored && submitted.media_placements[side].character != character_baseline[side].character
         });
         if let Some(context) = &submitted.media_match {
             context.mirror_character_edits(&mut submitted.media_placements, framing_changed);
         }
         let edited: [MediaLayerEdits; 2] = std::array::from_fn(|side| MediaLayerEdits {
-            character: submitted.media_placements[side].character != current.media_placements[side].character,
+            character: submitted.media_placements[side].character != character_baseline[side].character,
             photo: submitted.media_placements[side].photo != current.media_placements[side].photo,
         });
-        let scope = media_scope(&submitted);
         if submitted.media_mode != current.media_mode {
             let restored = match &submitted.media_match {
-                Some(context) => context.restore_placements(database, &scope)?,
+                Some(context) => context.restore_placements(database, &scope, mirrored)?,
                 None => default_media_placements(),
             };
             for (side, placement) in restored.into_iter().enumerate() {
@@ -214,6 +224,7 @@ impl VersusScreenStore {
                 Some(context.serialize_edits(
                     database,
                     &scope,
+                    mirrored,
                     &submitted.media_placements,
                     edited,
                     framing_changed,
@@ -308,7 +319,7 @@ impl VersusScreenStore {
         let context =
             MediaMatch::resolve(database, artwork_directory, photo_directory, selected_set)?;
         let scope = media_scope(&current);
-        let mut placements = context.restore_placements(database, &scope)?;
+        let mut placements = context.restore_placements(database, &scope, current.mirror_character_placement)?;
         let previous_context = match &current.media_match {
             Some(previous) => previous.clone(),
             None => MediaMatch::resolve(database, artwork_directory, photo_directory, previous_set)?,

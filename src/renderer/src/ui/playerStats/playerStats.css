@@ -122,6 +122,19 @@
   gap: 34px;
 }
 
+.stats-results.is-placements-only {
+  grid-template-rows: auto;
+  align-content: center;
+}
+
+.stats-results.is-placements-only .stats-placement-list li {
+  height: 86px;
+}
+
+.stats-results.is-placements-only .stats-event-copy {
+  font-size: 34px;
+}
+
 .stats-results h2,
 .stats-results p {
   margin: 0;

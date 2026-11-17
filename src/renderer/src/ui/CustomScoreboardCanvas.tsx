@@ -111,6 +111,7 @@ function CustomScoreboardCanvasContent({
       seed: `${playerKey}Seed`,
       score: `${playerKey}Score`
     } as const;
+    const sponsorRegion = customScoreboardRegion(scoreboard, ids.sponsorLogo);
     const flagUrl =
       player && scoreboard.visibility.flags ? displayFlagUrl(player.country, player.displayFlag) : undefined;
     const sponsor = player ? sponsorLine(player) : t('players.fields.prefix');
@@ -155,10 +156,9 @@ function CustomScoreboardCanvasContent({
         {scoreboard.visibility.sponsors && (sponsorLogo || editingRegion === ids.sponsorLogo) && (
           <span {...regionProps(ids.sponsorLogo, ' custom-scoreboard-element is-sponsor-logo')}>
             {sponsorLogo ? (
-              <ScoreboardSponsorLogo
-                side={playerSide}
-                align={customScoreboardRegion(scoreboard, ids.sponsorLogo).align}
-              />
+              <span className="custom-scoreboard-sponsor-mask" style={sponsorMaskStyle(frameUrl, sponsorRegion)}>
+                <ScoreboardSponsorLogo side={playerSide} align={sponsorRegion.align} />
+              </span>
             ) : (
               t('broadcast.logo')
             )}
@@ -270,6 +270,16 @@ function CustomScoreboardCanvasContent({
       </div>
     </section>
   );
+}
+
+function sponsorMaskStyle(frameUrl: string, { x, y, width, height }: CustomScoreboardRegion): CSSProperties {
+  // CSS positions a mask by the difference between the region and mask sizes.
+  const position = (offset: number, remaining: number) => (remaining ? (offset / remaining) * 100 : 0);
+  return {
+    maskImage: `url(${JSON.stringify(frameUrl)})`,
+    maskSize: `${(1920 / width) * 100}% ${(1080 / height) * 100}%`,
+    maskPosition: `${position(x, 1920 - width)}% ${position(y, 1080 - height)}%`
+  };
 }
 
 function regionStyle(region: CustomScoreboardRegion, inset: number): CSSProperties {

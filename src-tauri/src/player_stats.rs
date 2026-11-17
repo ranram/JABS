@@ -142,7 +142,11 @@ async fn load(runtime: &RuntimeState, context: StatsContext) -> Result<PlayerSta
         .ok()
         .and_then(|data| data.pointer("/event/videogame/id"))
         .and_then(normalized_id)
-        .unwrap_or_else(|| context.game_id.clone());
+        .or_else(|| {
+            (context.event_id.is_some()
+                || context.game_id.bytes().all(|byte| byte.is_ascii_digit()))
+            .then(|| context.game_id.clone())
+        });
     let tournament = metadata
         .as_ref()
         .ok()
@@ -150,12 +154,13 @@ async fn load(runtime: &RuntimeState, context: StatsContext) -> Result<PlayerSta
     let tournament_id = tournament
         .and_then(|value| value.get("id"))
         .and_then(normalized_id);
+    let placement_limit = if context.event_id.is_some() { 5 } else { 8 };
     let profile = async {
         match &context.player_id {
             Some(id) => crate::startgg::request::<Value>(
                 runtime,
                 queries::PLACEMENTS,
-                json!({"playerId": id, "videogameId": game_id}),
+                json!({"playerId": id, "videogameId": game_id, "limit": placement_limit}),
             )
             .await
             .map(Some),
@@ -171,7 +176,7 @@ async fn load(runtime: &RuntimeState, context: StatsContext) -> Result<PlayerSta
     let (profile, run) = tokio::join!(profile, run);
     match profile {
         Ok(Some(data)) => match data.get("player").and_then(Value::as_object) {
-            Some(player) => match crate::startgg_placements::recent_placements(player, &game_id, 5)
+            Some(player) => match crate::startgg_placements::recent_placements(player, game_id.as_deref(), placement_limit)
             {
                 Ok(placements) => {
                     runtime.player_stats.register_logos(&placements);

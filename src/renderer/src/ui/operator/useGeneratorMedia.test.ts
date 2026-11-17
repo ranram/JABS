@@ -10,19 +10,70 @@ const transport = vi.hoisted(() => ({
   catalog: vi.fn(),
   artwork: vi.fn(),
   identities: vi.fn(),
-  photo: vi.fn(async (id: string) => `photo:${id}`)
+  photo: vi.fn(async (id: string) => `photo:${id}`),
+  sponsor: vi.fn(async (id: string) => `sponsor:${id}`)
 }));
 vi.mock('../../api', () => ({
   api: {
     gameCharacterAssets: transport.catalog,
     gameCharacterAssetUrl: transport.artwork,
     identityMedia: transport.identities,
-    playerPhotoAssetUrl: transport.photo
+    playerPhotoAssetUrl: transport.photo,
+    sponsorLogoAssetUrl: transport.sponsor
   }
 }));
 afterEach(() => {
   vi.resetAllMocks();
   vi.useRealTimers();
+});
+
+it('loads named players beside empty slots and keeps their photos when a sponsor image fails', async () => {
+  vi.useFakeTimers();
+  transport.catalog.mockResolvedValue({ assets: [] });
+  transport.identities.mockImplementation(async (identities: Array<{ name: string; sponsor?: string }>) => ({
+    matches: identities.map(({ name, sponsor }) => ({ playerPhotoAssetId: name, sponsorLogoAssetId: sponsor }))
+  }));
+  transport.sponsor.mockRejectedValue(new Error('Sponsor image unavailable'));
+  let draft = createThumbnailDraft();
+  draft.players = [{ name: '' }, { name: 'Second', sponsor: 'Team' }];
+  const hook = await mountHook(() =>
+    useGeneratorMedia({
+      draft,
+      subjects: draft.players,
+      assetCatalogSlug: draft.assetCatalogSlug,
+      assetCatalogRevision: 0,
+      context: {}
+    })
+  );
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(300);
+  });
+  expect(transport.identities).toHaveBeenLastCalledWith([{ name: 'Second', sponsor: 'Team' }], {});
+  expect(hook.current.ready).toBe(true);
+  expect(hook.current.media.map(({ playerPhotoUrl }) => playerPhotoUrl)).toEqual([undefined, 'photo:Second']);
+  expect(hook.current.media[1].sponsorLogoUrl).toBeUndefined();
+
+  transport.sponsor.mockResolvedValue('sponsor:restored');
+  draft = { ...draft, players: [{ name: 'First' }, draft.players[1]] };
+  await hook.rerender();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(300);
+  });
+  expect(hook.current.ready).toBe(true);
+  expect(hook.current.media.map(({ playerPhotoUrl }) => playerPhotoUrl)).toEqual(['photo:First', 'photo:Second']);
+  expect(hook.current.media[1].sponsorLogoUrl).toBe('sponsor:restored');
+
+  const lookups = transport.identities.mock.calls.length;
+  draft = { ...draft, players: [{ name: '' }, { name: ' ' }] };
+  await hook.rerender();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(300);
+  });
+  expect(hook.current.ready).toBe(true);
+  expect(hook.current.media.every(({ playerPhotoUrl, sponsorLogoUrl }) => !playerPhotoUrl && !sponsorLogoUrl)).toBe(
+    true
+  );
+  expect(transport.identities).toHaveBeenCalledTimes(lookups);
 });
 
 it('keeps character choices while checking replacements and hides them when changing games', async () => {
