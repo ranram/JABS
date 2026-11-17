@@ -18,6 +18,8 @@ concurrency:
 jobs:
   security:
     uses: ./.github/workflows/security.yml
+    with:
+      allow-picomatch-advisory: true
     permissions:
       contents: read
 

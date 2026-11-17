@@ -54,7 +54,7 @@ export function StatsResults({ stats, loading, error, linked, tournament, showPl
   const columns = displayed.length > runColumnSize ? 2 : 1;
   const rows = Math.max(1, Math.ceil(displayed.length / columns));
   return (
-    <div className="stats-results">
+    <div className={tournament ? 'stats-results' : 'stats-results is-placements-only'}>
       <section className="stats-placements" data-entrance="stats-placements" aria-label={t('stats.recentPlacements')}>
         <h2>{t('stats.recentPlacements')}</h2>
         {stats?.placements.length ? (
@@ -101,78 +101,78 @@ export function StatsResults({ stats, loading, error, linked, tournament, showPl
         )}
       </section>
 
-      <section className="stats-run" data-entrance="stats-run" aria-label={t('stats.currentRun')}>
-        <header>
-          <div>
-            <h2>{t('stats.currentRun')}</h2>
-            <span className="stats-tournament-name">
-              <DisplayText text={stats?.tournamentName ?? ''} />
-            </span>
-          </div>
-          {run.length > 0 && (
-            <strong className="stats-record">
-              {wins}
-              <small>{t('versus.win')}</small>
-              <span>—</span>
-              {losses}
-              <small>{t('versus.loss')}</small>
-            </strong>
-          )}
-        </header>
-        {run.length > 0 ? (
-          <ol
-            className={`stats-run-list${columns === 2 ? ' has-columns' : ''}`}
-            style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
-          >
-            {displayed.map((set) => (
-              <li key={set.id} className={`is-${set.outcome}`}>
-                <strong className="stats-outcome">
-                  {set.outcome === 'unknown' ? '—' : t(set.outcome === 'win' ? 'versus.win' : 'versus.loss')}
-                </strong>
-                <div className="stats-opponent">
-                  <strong>
-                    <DisplayText text={set.opponent} />
+      {tournament && (
+        <section className="stats-run" data-entrance="stats-run" aria-label={t('stats.currentRun')}>
+          <header>
+            <div>
+              <h2>{t('stats.currentRun')}</h2>
+              <span className="stats-tournament-name">
+                <DisplayText text={stats?.tournamentName ?? ''} />
+              </span>
+            </div>
+            {run.length > 0 && (
+              <strong className="stats-record">
+                {wins}
+                <small>{t('versus.win')}</small>
+                <span>—</span>
+                {losses}
+                <small>{t('versus.loss')}</small>
+              </strong>
+            )}
+          </header>
+          {run.length > 0 ? (
+            <ol
+              className={`stats-run-list${columns === 2 ? ' has-columns' : ''}`}
+              style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
+            >
+              {displayed.map((set) => (
+                <li key={set.id} className={`is-${set.outcome}`}>
+                  <strong className="stats-outcome">
+                    {set.outcome === 'unknown' ? '—' : t(set.outcome === 'win' ? 'versus.win' : 'versus.loss')}
                   </strong>
-                  <span>
-                    <DisplayText text={phaseAndRound(set)} />
-                  </span>
-                </div>
-                <strong className="stats-set-score">
-                  {set.playerDq ? 'DQ' : (set.playerScore ?? '–')}
-                  <span>:</span>
-                  {set.opponentDq ? 'DQ' : (set.opponentScore ?? '–')}
-                </strong>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="stats-empty">
-            {loading
-              ? t('stats.loading')
-              : error
-                ? t('stats.unavailable')
-                : !tournament
-                  ? t('stats.chooseTournament')
+                  <div className="stats-opponent">
+                    <strong>
+                      <DisplayText text={set.opponent} />
+                    </strong>
+                    <span>
+                      <DisplayText text={phaseAndRound(set)} />
+                    </span>
+                  </div>
+                  <strong className="stats-set-score">
+                    {set.playerDq ? 'DQ' : (set.playerScore ?? '–')}
+                    <span>:</span>
+                    {set.opponentDq ? 'DQ' : (set.opponentScore ?? '–')}
+                  </strong>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="stats-empty">
+              {loading
+                ? t('stats.loading')
+                : error
+                  ? t('stats.unavailable')
                   : stats?.runError
                     ? t('stats.runUnavailable')
                     : t('stats.noMatches')}
-          </p>
-        )}
-        {pageCount > 1 && (
-          <p className="stats-notice">
-            {t('stats.runPage', {
-              first: page * runPageSize + 1,
-              last: Math.min((page + 1) * runPageSize, run.length),
-              total: run.length
-            })}
-          </p>
-        )}
-        {stats && !stats.runComplete && run.length > 0 && (
-          <p className="stats-notice" role="status">
-            {t('stats.incompleteRun')}
-          </p>
-        )}
-      </section>
+            </p>
+          )}
+          {pageCount > 1 && (
+            <p className="stats-notice">
+              {t('stats.runPage', {
+                first: page * runPageSize + 1,
+                last: Math.min((page + 1) * runPageSize, run.length),
+                total: run.length
+              })}
+            </p>
+          )}
+          {stats && !stats.runComplete && run.length > 0 && (
+            <p className="stats-notice" role="status">
+              {t('stats.incompleteRun')}
+            </p>
+          )}
+        </section>
+      )}
     </div>
   );
 }

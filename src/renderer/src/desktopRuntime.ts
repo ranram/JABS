@@ -32,49 +32,8 @@ export function clearNativeStartggToken(): Promise<TokenStatus> {
   return invokeNative<TokenStatus>('clear_startgg_token');
 }
 
-export type MediaDirectories = {
-  assetsRoot?: string;
-  gameAssets: string;
-  players: string;
-  playerHeadshots?: string;
-  sponsors: string;
-  tourneyLogos: string;
-  moderationAllowlist: string;
-};
-
 export type MediaDirectoryKind =
   'assets' | 'game-assets' | 'players' | 'player_headshots' | 'sponsors' | 'tourney-logos';
-
-export function nativeMediaDirectory(
-  directories: MediaDirectories | undefined,
-  kind: MediaDirectoryKind
-): string | undefined {
-  if (!directories) return undefined;
-  switch (kind) {
-    case 'assets':
-      return directories.assetsRoot;
-    case 'game-assets':
-      return directories.gameAssets;
-    case 'players':
-      return directories.players;
-    case 'player_headshots':
-      return directories.playerHeadshots;
-    case 'sponsors':
-      return directories.sponsors;
-    case 'tourney-logos':
-      return directories.tourneyLogos;
-  }
-}
-
-/**
- * Resolved user-media catalog locations, for display only. Outside the Tauri
- * desktop shell (plain-browser development) the native locations do not
- * exist, so callers fall back to the repository-relative hint.
- */
-export async function getNativeMediaDirectories(): Promise<MediaDirectories | undefined> {
-  if (!isTauriRuntime()) return undefined;
-  return invokeNative<MediaDirectories>('get_media_directories');
-}
 
 export async function openNativeMediaDirectory(kind: MediaDirectoryKind, subpath?: string): Promise<void> {
   if (!isTauriRuntime()) return;

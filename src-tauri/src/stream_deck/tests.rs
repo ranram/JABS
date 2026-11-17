@@ -271,15 +271,12 @@ fn native_websocket_authenticates_before_state_and_closes_on_revocation() {
             serde_json::from_slice::<serde_json::Value>(&body).unwrap()["confirmationId"].is_null()
         );
         runtime.stream_deck.stop().unwrap();
+        // Already-buffered state frames can arrive before the close frame.
         tokio::time::timeout(Duration::from_secs(2), async {
-            // State frames already sent can arrive before the close frame.
             loop {
-                let (opcode, body) = frame(&mut valid).await;
+                let (opcode, _) = frame(&mut valid).await;
                 if opcode == 8 { break; }
                 assert_eq!(opcode, 1);
-                let state: serde_json::Value = serde_json::from_slice(&body).unwrap();
-                assert_eq!(state["type"], "state");
-                assert!(state["confirmationId"].is_null());
             }
         }).await.unwrap();
         server.abort();

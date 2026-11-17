@@ -1005,34 +1005,110 @@ fn external_reports_release_report_mode_without_overwriting_local_scores_or_bypa
 }
 
 #[test]
-fn sending_to_stream_promotes_once_keeps_other_matches_and_sets_the_cursor() {
+fn sending_to_stream_starts_an_empty_queue_in_the_selected_mode() {
+    for mode in [Mode::Manual, Mode::Report, Mode::WinnerDelay] {
+        let r = runtime();
+        edit(&r.match_queue, &r.database, "settings", None, None, Some(mode.clone()), Some(1)).unwrap();
+        edit(&r.match_queue, &r.database, "clear", None, None, None, None).unwrap();
+        {
+            let mut inner = r.match_queue.inner.lock().unwrap();
+            inner.last_tick = Instant::now() - Duration::from_secs(60);
+            inner.last_wall = SystemTime::now() - Duration::from_secs(60);
+        }
+        let mut next = r.overlay.selected_set().unwrap();
+        next.set_id = Some("200".into());
+        let mut wrong_event = context();
+        wrong_event.event_id = "999".into();
+        assert!(r.match_queue.select_for_stream(&r, next.clone(), Some(wrong_event)).is_err());
+        assert!(r.match_queue.current().unwrap().entries.is_empty());
+        assert_eq!(r.overlay.selected_set().unwrap().set_id.as_deref(), Some("100"));
+
+        r.match_queue.select_for_stream(&r, next.clone(), Some(context())).unwrap();
+        let queue = r.match_queue.current().unwrap();
+        assert_eq!(queue.context.as_ref().unwrap().event_name, "Singles");
+        assert_eq!(queue.entries.len(), 1);
+        assert_eq!(queue.entries[0].set_id, "200");
+        assert_eq!(queue.cursor, Some(0));
+        assert_eq!(queue.mode, mode);
+        assert_eq!(queue.running, mode != Mode::Manual);
+        run(engine::tick(&r));
+        assert_eq!(r.match_queue.current().unwrap().running, mode != Mode::Manual);
+        assert_eq!(r.overlay.selected_set().unwrap().set_id.as_deref(), Some("200"));
+        r.match_queue.select_for_stream(&r, next, None).unwrap();
+        assert_eq!(r.match_queue.current().unwrap().entries.len(), 1);
+        let restored = QueueStore::load(&r.database).unwrap().current().unwrap();
+        assert_eq!(restored.entries[0].set_id, "200");
+        assert_eq!(restored.cursor, Some(0));
+    }
+}
+
+#[test]
+fn sending_to_stream_keeps_history_and_queues_next_after_the_unfinished_live_match() {
     let r = runtime();
     let mut next = r.overlay.selected_set().unwrap();
     next.set_id = Some("200".into());
     r.match_queue.add(&r.database, r.match_queue.current().unwrap().revision, context(), Entry::from_set(&next).unwrap()).unwrap();
     r.overlay.set_score(&r.database, "one", 2).unwrap();
-    r.match_queue.select_for_stream(&r, next.clone()).unwrap();
+    r.match_queue.select_for_stream(&r, next.clone(), None).unwrap();
     let queue = r.match_queue.current().unwrap();
-    assert_eq!(queue.entries.iter().map(|entry| entry.set_id.as_str()).collect::<Vec<_>>(), ["200", "100"]);
-    assert_eq!(queue.cursor, Some(0));
+    assert_eq!(queue.entries.iter().map(|entry| entry.set_id.as_str()).collect::<Vec<_>>(), ["100", "200"]);
+    assert_eq!(queue.cursor, Some(1));
     assert!(!queue.running);
-    r.match_queue.select_for_stream(&r, next.clone()).unwrap();
+    r.match_queue.select_for_stream(&r, next.clone(), None).unwrap();
     assert_eq!(r.match_queue.current().unwrap().entries.len(), 2);
     edit(&r.match_queue, &r.database, "settings", None, None, Some(Mode::Report), Some(1)).unwrap();
     r.match_queue.resume(&r.database, r.match_queue.current().unwrap().revision, &r.overlay.selected_set().unwrap()).unwrap();
     next.set_id = Some("300".into());
-    r.match_queue.select_for_stream(&r, next.clone()).unwrap();
+    r.match_queue.select_for_stream(&r, next.clone(), None).unwrap();
     let queue = r.match_queue.current().unwrap();
-    assert_eq!(queue.entries.iter().map(|entry| entry.set_id.as_str()).collect::<Vec<_>>(), ["200", "300", "100"]);
+    assert_eq!(queue.entries.iter().map(|entry| entry.set_id.as_str()).collect::<Vec<_>>(), ["100", "200", "300"]);
     assert_eq!(r.overlay.selected_set().unwrap().set_id.as_deref(), Some("200"));
     assert!(queue.running);
     let mut outside = r.overlay.selected_set().unwrap();
     outside.set_id = Some("400".into());
     r.overlay.replace_selected_set(&r.database, Path::new("/jabs-no-test-assets"), Path::new("/jabs-no-test-assets"), outside).unwrap();
-    r.match_queue.select_for_stream(&r, next).unwrap();
+    r.match_queue.select_for_stream(&r, next, None).unwrap();
     let queue = r.match_queue.current().unwrap();
-    assert_eq!((&queue.entries[0].set_id[..], &queue.entries[1].set_id[..]), ("400", "300"));
+    assert_eq!((&queue.entries[1].set_id[..], &queue.entries[2].set_id[..]), ("400", "300"));
     assert_eq!(r.overlay.selected_set().unwrap().set_id.as_deref(), Some("400"));
+}
+
+#[test]
+fn sending_reported_matches_to_stream_keeps_their_queue_order() {
+    let r = runtime();
+    r.match_queue.observe_bracket(&r.database, "456", &[serde_json::json!({
+        "id":"100", "state":"3", "winnerId":"10", "entrantOneScore":2, "entrantTwoScore":0,
+        "entrantOne":{"id":"10"}, "entrantTwo":{"id":"20"}
+    })]).unwrap();
+    let first = r.match_queue.current().unwrap().entries[0].clone();
+    let mut second = r.overlay.selected_set().unwrap();
+    second.set_id = Some("200".into());
+    second.state = Some("3".into());
+    second.player_one.score = 2;
+    second.game_history = None;
+    let mut queued_second = Entry::from_set(&second).unwrap();
+    queued_second.result_status = None;
+    r.match_queue.add(&r.database, r.match_queue.current().unwrap().revision, context(), queued_second).unwrap();
+
+    for _ in 0..2 {
+        r.match_queue.select_for_stream(&r, second.clone(), None).unwrap();
+        let queue = r.match_queue.current().unwrap();
+        assert_eq!(queue.entries.iter().map(|entry| entry.set_id.as_str()).collect::<Vec<_>>(), ["100", "200"]);
+        assert_eq!(queue.cursor, Some(1));
+        assert_eq!(queue.entries[0].result_status, Some(ResultStatus::Reported));
+        assert_eq!(queue.entries[1].result_status, Some(ResultStatus::Reported));
+        assert_eq!(queue.entries[0].reported_result, first.reported_result);
+        assert_eq!(queue.entries[0].completed_at, first.completed_at);
+        assert_eq!(r.overlay.selected_set().unwrap().set_id.as_deref(), Some("200"));
+    }
+    let mut third = second;
+    third.set_id = Some("300".into());
+    third.state = Some("1".into());
+    third.player_one.score = 0;
+    r.match_queue.select_for_stream(&r, third, None).unwrap();
+    let restored = QueueStore::load(&r.database).unwrap().current().unwrap();
+    assert_eq!(restored.entries.iter().map(|entry| entry.set_id.as_str()).collect::<Vec<_>>(), ["100", "200", "300"]);
+    assert_eq!(restored.cursor, Some(2));
 }
 
 #[test]
@@ -1047,7 +1123,7 @@ fn a_failed_queue_save_after_stream_selection_stops_automation() {
          WHEN NEW.surface_id = 'match-queue' BEGIN SELECT RAISE(ABORT, 'test disk failure'); END;"
     ).unwrap();
     // The unfinished match stays live, but failing to persist the reordered queue must pause it.
-    r.match_queue.select_for_stream(&r, next).unwrap();
+    r.match_queue.select_for_stream(&r, next, None).unwrap();
     let queue = r.match_queue.current().unwrap();
     assert!(!queue.running);
     assert!(queue.error.is_some());

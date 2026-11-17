@@ -66,7 +66,6 @@ export const es419 = {
       incompleteRun: 'No se pudieron cargar algunas partidas. Reintentando…',
       noMatches: 'Aún no hay partidas terminadas',
       linkProfile: 'Vincula un perfil de start.gg para mostrar resultados recientes.',
-      chooseTournament: 'Envía una partida de torneo a Stream para mostrar su recorrido.',
       invalidPlayer: 'Usa ?player=1 o ?player=2 en la URL de estadísticas.',
       runPage: 'Partidas {{first}}–{{last}} de {{total}}'
     },
@@ -196,7 +195,7 @@ export const es419 = {
       },
       help: {
         manual: 'Usa Anterior y Siguiente para cambiar la partida en transmisión.',
-        report: 'Avanza cuando start.gg confirme un resultado reportado desde JABS para la partida actual de la cola.',
+        report: 'Avanza cuando start.gg confirme el resultado actual, aunque se haya reportado fuera de JABS.',
         'winner-delay':
           'La cola espera los minutos elegidos desde que la partida actual tiene un ganador y luego avanza a la siguiente. El tiempo de juego no cuenta.'
       },
@@ -253,7 +252,7 @@ export const es419 = {
       steps: {
         queueAdd: {
           title: 'Agrega las próximas partidas',
-          body: 'Carga un torneo de start.gg y elige un evento. Abre una partida en el selector y elige **Agregar partida a la cola**. Repite con las partidas que planeas transmitir. Agregarlas **mantiene la transmisión actual**. También puedes agregar **sets con rivales por definir (TBD)** que ya aparezcan en el bracket.'
+          body: 'Carga un torneo y elige un evento. En el selector, **Agregar partida a la cola** prepara partidas sin cambiar la transmisión. **Enviar a transmisión** inicia una cola vacía con esa partida. Los rivales **por definir** se completan cuando se actualiza el bracket.'
         },
         queueOpen: {
           title: 'Abre la cola de partidas',
@@ -261,15 +260,15 @@ export const es419 = {
         },
         queueOrder: {
           title: 'Identifica cada estado',
-          body: '**Actual** marca tu posición. **A continuación** indica la siguiente partida. **Completado** indica que hay un ganador local pendiente de reportar. **Reportado** indica que start.gg confirmó el resultado. El filtro En cola del selector muestra estas partidas en el orden de la cola.'
+          body: '**Actual** indica tu posición en la cola. **A continuación** es la próxima partida sin terminar. **Completado** indica que JABS registró un ganador local. **Reportado** indica que start.gg confirmó el resultado. Enviar la siguiente partida a transmisión conserva el orden de las partidas terminadas.'
         },
         queueModes: {
           title: 'Elige cómo avanzar',
-          body: '**Manual** espera a que cambies de partida. **Tras reportar el resultado** avanza cuando start.gg confirma un reporte enviado desde JABS para la partida actual. **Esperar tras definir al ganador** cuenta desde el marcador ganador, no desde el inicio del juego. Cambiar de modo **inicia una cola con partidas de inmediato**.'
+          body: '**Manual** espera a que cambies de partida. **Tras reportar el resultado** espera a que start.gg confirme el resultado, aunque se haya reportado fuera de JABS. **Esperar tras definir al ganador** inicia la cuenta cuando la partida tiene un ganador. Cambiar de modo inicia la cola si quedan partidas por jugar.'
         },
         queuePlayback: {
           title: 'Inicia, pausa y reanuda',
-          body: '**Iniciar cola** omite las partidas reportadas. Si una partida sin reportar de la cola ya está en transmisión, la mantiene. **Pausar cola** detiene el avance automático. **Reanudar** lo continúa. Partida anterior, Siguiente partida y Enviar a transmisión pausan el avance automático. **Vaciar cola** quita las entradas y mantiene la partida en transmisión. Si los **rivales están por definir**, JABS comprueba el siguiente set cada **15 segundos** y mantiene la partida actual en transmisión hasta que esté listo.'
+          body: '**Iniciar cola** mantiene una partida de la cola que ya esté en transmisión y no se haya reportado, o carga la próxima sin terminar. **Pausar cola** y **Reanudar** controlan el avance automático. **Partida anterior** y **Siguiente partida** lo pausan. **Vaciar cola** quita la lista y mantiene la partida en transmisión. Con **rivales por definir**, JABS comprueba cada **15 segundos** y mantiene visible la partida actual.'
         },
         queueEdit: {
           title: 'Reordena o quita partidas',
@@ -727,6 +726,7 @@ export const es419 = {
     },
     // Bracket OBS screen
     bracketScreen: {
+      selectionEmpty: 'Sin fase ni pool seleccionados',
       headingLabel: 'Título del encabezado',
       eventLabel: 'Nombre del evento',
       title: 'Bracket',
@@ -922,7 +922,7 @@ export const es419 = {
         playerStats: {
           title: 'Estadísticas del jugador',
           description:
-            'Muestra a cualquiera de los dos jugadores en vivo con cinco resultados recientes y su recorrido en el torneo actual.'
+            'Muestra los resultados recientes de cualquiera de los dos jugadores. Durante un torneo, también muestra su recorrido.'
         },
         versus: {
           title: 'Pantalla versus',

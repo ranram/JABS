@@ -370,6 +370,7 @@
   "The report was not confirmed. Refresh the bracket before continuing.": "No se confirmó el reporte. Actualiza el cuadro antes de continuar.",
   "Invalid match queue settings.": "La configuración de la cola de partidas no es válida.",
   "Invalid match queue event.": "El evento de la cola de partidas no es válido.",
+  "The selected match does not belong to this queue event.": "La partida seleccionada no pertenece al evento de esta cola.",
   "Choose an event before adding matches.": "Selecciona un evento antes de agregar partidas.",
   "Invalid match queue entry.": "La partida de la cola no es válida.",
   "Unable to save the match queue.": "No se pudo guardar la cola de partidas.",

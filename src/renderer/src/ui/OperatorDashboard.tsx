@@ -242,6 +242,7 @@ export function OperatorDashboard() {
     setLoading(true);
     try {
       const response = await api.selectStartggSet(setId, setLoadGameId, {
+        queueContext,
         eventId: selectedEventId || undefined,
         tournamentSlug: tournamentSlug || undefined,
         assetCatalogSlug,
@@ -512,21 +513,20 @@ export function OperatorDashboard() {
           ? t('operator:selector.scope.pool')
           : t('operator:selector.scope.station', { number: setScope.stationNumber })
     : '';
+  const queueContext = selectedEventId && selectedEvent
+    ? {
+        eventId: selectedEventId,
+        eventName: selectedEvent.name,
+        tournamentSlug,
+        gameId: setLoadGameId,
+        assetCatalogSlug,
+        preserveStation: persistentSetOverrides.current.station,
+        preserveMatchLength: persistentSetOverrides.current.matchLength
+      }
+    : undefined;
   return (
     <MatchQueueWorkspace
-      context={
-        selectedEventId && selectedEvent
-          ? {
-              eventId: selectedEventId,
-              eventName: selectedEvent.name,
-              tournamentSlug,
-              gameId: setLoadGameId,
-              assetCatalogSlug,
-              preserveStation: persistentSetOverrides.current.station,
-              preserveMatchLength: persistentSetOverrides.current.matchLength
-            }
-          : undefined
-      }
+      context={queueContext}
       liveSetId={selectedSet?.setId}
       blocked={loading || draftDirty || draftSaving || Boolean(quickScore.target)}
     >

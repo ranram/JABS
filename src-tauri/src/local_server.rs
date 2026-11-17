@@ -914,6 +914,7 @@ pub(crate) struct SelectedSetBody {
     pub asset_catalog_slug: Option<String>,
     pub event_id: Option<String>,
     pub tournament_slug: Option<String>,
+    pub queue_context: Option<crate::match_queue::Context>,
     #[serde(default = "default_true")]
     pub restore_overrides: bool,
     #[serde(default = "default_true")]
@@ -985,7 +986,7 @@ async fn select_startgg_set(
             }))));
         }
     }
-    match runtime.match_queue.select_for_stream(&runtime, fresh) {
+    match runtime.match_queue.select_for_stream(&runtime, fresh, body.queue_context) {
         Ok(state) => {
             if let (Some(previous), Ok(next)) = (previous, serde_json::from_value::<crate::state::OverlayState>(state.clone())) {
                 let _ = runtime.versus_screen.restore_media_for_match_change(

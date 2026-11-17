@@ -20,6 +20,7 @@ import { invalidateCatalogConsumers, invalidatePlayerLibraryConsumers, requestGa
 import { stingerStateSchema, stingerClaimSchema, type StingerSettings, type StingerKind } from '@shared/stingers';
 import { playerLibraryMessageSchema, assetCatalogMessageSchema, assetCatalogRevisionSchema, assetCatalogCheckSchema } from '@shared/assetCatalog';
 import { bracketScreenStateSchema, type BracketSettings } from '@shared/bracketScreen';
+import type { QueueContext } from '@shared/matchQueue';
 import { parseRealtimeJson } from './hooks/realtime';
 import type {
   AppHealth,
@@ -550,6 +551,7 @@ export const api = {
       preserveBroadcast?: boolean;
       preserveStation?: boolean;
       preserveMatchLength?: boolean;
+      queueContext?: QueueContext;
     } = {}
   ) =>
     request<StartggSelectionResult>('/api/startgg/select-set', {

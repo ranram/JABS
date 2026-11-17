@@ -241,6 +241,7 @@ it('limits large brackets to readable views and configures pending pools without
       MantineProvider,
       { env: 'test' },
       h(BracketScreenControls, {
+        live: transport.state,
         eventId,
         phases,
         profiles: Object.values(gameProfiles),

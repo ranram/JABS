@@ -13,7 +13,7 @@ const topEightSettings = {
   }))
 };
 
-describe('broadcast composition contracts', () => {
+describe('Versus and Top 8 overlay settings', () => {
   it('migrates Versus row settings and rejects duplicate, unknown, or excessive stats', () => {
     const legacy = {
       stylingGameId: 'tekken-8',

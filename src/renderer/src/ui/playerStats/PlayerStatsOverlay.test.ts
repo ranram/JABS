@@ -86,7 +86,7 @@ it('keeps Player Stats results tied to the selected player', async () => {
       tournamentName: 'Current Tournament',
       runScope: 'tournament',
       runComplete: true,
-      placements: [1, 2, 3, 4, 7].map((id) => ({
+      placements: (state.selectedSet.eventId ? [1, 2, 3, 4, 7] : [1, 2, 3, 4, 5, 7, 9, 13]).map((id) => ({
         placement: id,
         tournamentName: `Tournament ${id}`,
         eventName: 'Singles',
@@ -277,6 +277,12 @@ it('keeps Player Stats results tied to the selected player', async () => {
   );
   await settings({ showPlayerPhoto: false });
   expect(view.container.querySelector('.victory-player-photo')).toBeNull();
+  delete state.selectedSet.eventId;
+  transport.stats.mockResolvedValue({ ...stats(2), run: [], runScope: 'none' });
+  await view.rerender();
+  expect(view.container.querySelector('.stats-run')).toBeNull();
+  expect(view.container.querySelectorAll('.stats-placement-list li')).toHaveLength(8);
+
   delete state.selectedSet.playerTwo.playerId;
   transport.stats.mockResolvedValue({ ...stats(2), placements: [], run: [], runScope: 'event' });
   await view.rerender();

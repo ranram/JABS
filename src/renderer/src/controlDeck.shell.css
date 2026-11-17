@@ -63,33 +63,12 @@
   border-top-right-radius: 38px;
 }
 
-.deck-section-heading,
 .panel-heading {
   justify-content: space-between;
   gap: 15px;
   margin-bottom: 17px;
 }
 
-.deck-section-title {
-  align-items: flex-start;
-  gap: 11px;
-}
-
-.deck-step {
-  display: grid;
-  min-width: 34px;
-  height: 28px;
-  place-items: center;
-  border: 1px solid rgba(217, 255, 67, 0.35);
-  border-radius: 7px;
-  color: var(--deck-lime);
-  font-family: 'SFMono-Regular', Consolas, monospace;
-  font-size: 10px;
-  font-weight: 900;
-  transform: rotate(-2deg);
-}
-
-.deck-section-heading h2,
 .operator-shell .panel h2 {
   margin: 0;
   color: var(--deck-ink);
@@ -101,7 +80,6 @@
   text-transform: uppercase;
 }
 
-.deck-section-heading p,
 .panel-heading p {
   margin: 3px 0 0;
   color: var(--deck-muted);

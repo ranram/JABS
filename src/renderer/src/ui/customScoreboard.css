@@ -187,10 +187,17 @@
 .custom-scoreboard-region.is-sponsor-logo.is-editing {
   z-index: 3;
 }
+.custom-scoreboard-sponsor-mask {
+  display: block;
+  width: 100%;
+  height: 100%;
+  mask-mode: alpha;
+  mask-repeat: no-repeat;
+}
 .custom-scoreboard-region.is-sponsor-logo .scoreboard-sponsor-logo {
+  display: block;
   position: static;
   width: 100%;
   height: 100%;
   max-width: none;
-  opacity: 0.95;
 }

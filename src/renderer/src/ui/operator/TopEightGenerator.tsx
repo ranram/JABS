@@ -10,7 +10,6 @@ import { Center, ColorInput, Group, Loader, Overlay, Paper, Select, SimpleGrid, 
 import { useTranslation } from 'react-i18next';
 import { notifications } from '@mantine/notifications';
 import { charactersForAssetCatalog } from '@shared/characterRosters';
-import { broadcastSurfaceSpecs } from '@shared/broadcastCompositions';
 import { gameIdForStartggVideogame, type GameProfile } from '@shared/gameProfiles';
 import { gameAssetCatalogSlug } from '@shared/gameAssetCatalog';
 import { characterTeamSelection, maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
@@ -260,7 +259,8 @@ export function TopEightGenerator({
     try {
       const filename = safeGraphicFilename(draft.tournamentName, 'top-8');
       await exportGraphicAsPng(canvasRef.current, {
-        ...broadcastSurfaceSpecs['top-eight'].canvas,
+        width: 1920,
+        height: 1080,
         filename,
         trustedText: topEightTrustedText(previewDraft)
       });

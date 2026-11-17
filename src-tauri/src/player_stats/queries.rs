@@ -5,9 +5,9 @@ query PlayerStatsContext($eventId: ID!) {
 "#;
 
 pub const PLACEMENTS: &str = r#"
-query PlayerStatsPlacements($playerId: ID!, $videogameId: ID!) {
+query PlayerStatsPlacements($playerId: ID!, $videogameId: ID, $limit: Int!) {
   player(id: $playerId) {
-    recentStandings(videogameId: $videogameId, limit: 5) {
+    recentStandings(videogameId: $videogameId, limit: $limit) {
       placement
       entrant { event { id name numEntrants videogame { id } tournament { id name startAt images(type: "profile") { url } } } }
     }

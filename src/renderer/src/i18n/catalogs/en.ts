@@ -68,7 +68,6 @@ export const en = {
       incompleteRun: 'Some matches could not be loaded. Retrying…',
       noMatches: 'No completed matches yet',
       linkProfile: 'Link a start.gg player profile to show recent placements.',
-      chooseTournament: 'Send a tournament match to Stream to show its run.',
       invalidPlayer: 'Use ?player=1 or ?player=2 in the Player Stats URL.',
       runPage: 'Matches {{first}}–{{last}} of {{total}}'
     },
@@ -191,7 +190,7 @@ export const en = {
       },
       help: {
         manual: 'Use Previous and Next to change the match on stream.',
-        report: 'Advance after start.gg confirms a result reported through JABS for the current queued match.',
+        report: 'Advance when start.gg confirms the current result, including reports made outside JABS.',
         'winner-delay':
           'The queue waits the chosen number of minutes after the current set has a winner, then advances to the next match. Playing time does not count.'
       },
@@ -247,7 +246,7 @@ export const en = {
       steps: {
         queueAdd: {
           title: 'Add upcoming matches',
-          body: 'Load a start.gg tournament and choose an event. Open a match in the Set Selector and choose **Add match to queue**. Repeat for the matches you plan to stream. Adding matches **leaves the current stream unchanged**. You can also add **TBD sets** already listed in the bracket.'
+          body: 'Load a tournament and choose an event. In Set Selector, **Add match to queue** prepares matches without changing the stream. **Send to stream** starts an empty queue with the selected match. Queued **TBD** opponents fill in as the bracket updates.'
         },
         queueOpen: {
           title: 'Open the match queue',
@@ -255,15 +254,15 @@ export const en = {
         },
         queueOrder: {
           title: 'Read the queue',
-          body: '**Current** marks your position. **Up next** is the following match. **Completed** means a local winner is awaiting a report. **Reported** means start.gg has confirmed the result. The Queued filter in the Set Selector shows these matches in queue order.'
+          body: '**Current** marks your place in the queue. **Up next** is the next unplayed match. **Completed** means JABS recorded a local winner. **Reported** means start.gg confirmed the result. Sending the next match to stream keeps completed matches in their existing positions.'
         },
         queueModes: {
           title: 'Choose how to advance',
-          body: '**Manual** waits for your navigation. **After result is reported** advances after start.gg confirms a report submitted through JABS for Current. **Delay after a winner is decided** counts from when Current has a winner. Playing time does not count. Choosing a different mode **starts a populated queue immediately**.'
+          body: '**Manual** waits for you to change matches. **After result is reported** waits for start.gg to confirm the result, including reports made outside JABS. **Delay after a winner is decided** starts the timer when the match has a winner. Changing modes starts the queue if matches remain.'
         },
         queuePlayback: {
           title: 'Start, pause, and resume',
-          body: '**Start queue** skips reported matches and keeps an unreported queued match already on stream. **Pause queue** stops automation. **Resume** continues. Previous match, Next match, and Send to stream pause automatic advancement. **Clear queue** removes the entries and leaves the broadcast match visible. For **TBD opponents**, JABS checks the next set every **15 seconds** and keeps the current match on stream until it is ready.'
+          body: '**Start queue** keeps an unreported queued match already on stream or loads the next unfinished match. **Pause queue** and **Resume** control automatic advancement. **Previous match** and **Next match** pause it. **Clear queue** removes the list and leaves the match on stream. For **TBD opponents**, JABS checks every **15 seconds** and keeps the current match visible.'
         },
         queueEdit: {
           title: 'Reorder or remove matches',
@@ -715,6 +714,7 @@ export const en = {
     },
     // Bracket OBS screen
     bracketScreen: {
+      selectionEmpty: 'No phase/pool selected',
       headingLabel: 'Header title',
       eventLabel: 'Event label',
       title: 'Bracket',
@@ -938,7 +938,7 @@ export const en = {
         },
         playerStats: {
           title: 'Player Stats',
-          description: 'Show either live player with five recent placements and their current tournament run.'
+          description: 'Show recent placements for either player. During a tournament, also show their current run.'
         },
         versus: {
           title: 'Versus Screen',

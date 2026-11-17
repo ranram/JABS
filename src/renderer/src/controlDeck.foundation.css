@@ -261,9 +261,7 @@
 }
 
 .hero-kicker,
-.status-card-topline,
-.deck-section-heading,
-.deck-section-title {
+.status-card-topline {
   display: flex;
   align-items: center;
 }
@@ -422,7 +420,6 @@
   box-shadow: 0 0 16px rgba(217, 255, 67, 0.55);
 }
 
-.deck-status,
 .loading-badge,
 .unsaved-badge {
   display: inline-flex;
@@ -440,20 +437,6 @@
   text-transform: uppercase;
   white-space: nowrap;
 }
-
-.deck-status::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 9px currentColor;
-}
-
-.deck-status-ready { color: var(--deck-lime); }
-.deck-status-warning { color: #ffc15b; }
-.deck-status-live { color: var(--deck-cyan); }
-.deck-status-neutral { color: #948e9e; }
 
 .operator-shell > .operator-toast-viewport {
   position: fixed;

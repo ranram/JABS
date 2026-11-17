@@ -93,7 +93,7 @@ export function LiveControlsPanel({
     <Stack gap={embedded ? 'xs' : 'md'}>
       {!embedded && <PanelHeader title={t('operator:live.title')} icon={MonitorIcon} inset="md" />}
       <Group justify="space-between" align="baseline" gap="xs" wrap="nowrap">
-        <Text size="xs" c="dimmed" flex={1} miw={0} truncate="end">
+        <Text component="div" size="xs" c="dimmed" flex={1} miw={0} truncate="end">
           {hasStreamMatch(selectedSet)
             ? [selectedSet.tournamentName, selectedSet.round].filter(Boolean).join(' · ') || selectedSet.gameName
             : t('operator:ux.noMatch')}

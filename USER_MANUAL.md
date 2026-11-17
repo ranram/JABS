@@ -4,7 +4,7 @@ For downloads and installation, see the [README](README.md). For a guided introd
 
 ## Run a match
 
-Load a start.gg tournament link, then open **Set Selector** beside **Clear player details** or under **Matches**. Choose an event, narrow the list by phase, pool, or station, and find a match by player, round, score, or set ID. Choose **Send to Stream** to show it in your overlays.
+Load a start.gg tournament link, then open **Set Selector** beside **Clear player details** or under **Matches**. Choose an event, narrow the list by phase, pool, or station, and find a match by player, round, score, or set ID. Choose **Send to Stream** to load the match or make it the next queued match.
 
 You can open Set Selector from any tab. It stays open while you queue matches, send them to stream, or report through **Quick Score Update**.
 
@@ -55,7 +55,7 @@ If you reset a result on start.gg, refresh the Set Selector or open the match's 
 
 ### Queue upcoming matches
 
-For a walkthrough, choose **Help → Use the Match Queue**.
+For a walkthrough, choose **Help → Use the Match Queue**. Opening the queue or Set Selector refreshes the matches. Queued matches also refresh every 15 seconds while you stay connected to the event.
 
 Choose **Add match to queue** in a set's actions to prepare upcoming matches without changing what is on stream. Open **Matches → Queue** from any tab, or use the **Queue** button beside **Clear player details**. Each queue belongs to one event. Clear it before adding matches from another event.
 
@@ -63,23 +63,25 @@ You can queue sets with one or both opponents marked **TBD**, as long as the set
 
 To prepare a Top 8, open **Matches → Queue** and choose **Queue Top 8 automatically**. You can do this while all four opening matches are **TBD vs TBD**, once start.gg has published the bracket structure. Review the proposed matches and choose **Yes, add matches**. JABS adds the missing, unreported matches in bracket order, including a Grand Finals reset if start.gg lists one. Existing queue entries keep their positions and the current match stays on stream. This adds matches without starting the queue. If JABS cannot identify the Top 8 path, add the matches manually from the Set Selector. An unused reset can remain at the end. Clear the queue when the tournament is finished.
 
-Use the arrow buttons to reorder, the screen button to send a match to stream, and the trash button to remove it. Hover over a button to see its label. In the Set Selector, the **Queued** filter shows queued matches in queue order and combines with the other filters. Turn it off to return to the usual bracket order.
+Use **Move to top** to make a match the next one after an unfinished live match. **Move to bottom** puts it last. The screen button sends a match to stream, and the trash button removes it. In Set Selector, the **Queued** filter shows matches in queue order.
 
-**Current** marks the queue position, and **Up next** marks the following match. Before starting, a queued match already on stream can be Current. **Completed** means JABS has a local winner awaiting a report. **Reported** means start.gg has confirmed the result. After resetting results on start.gg, refresh the Set Selector before reviewing the queue.
+**Current** marks your position in the queue. **Up next** is the next unplayed match. **Completed** means JABS recorded a local winner. **Reported** means start.gg confirmed the result. After resetting a result on start.gg, refresh Set Selector before reviewing it.
+
+With an empty queue, **Send to Stream** adds the selected match and starts the queue in its chosen mode. With matches already queued, your selection becomes the next match if one is still in progress. If the current match is finished, the selected match goes live. Completed matches keep their queue positions.
 
 Choose how matches advance:
 
 | Mode | When the match changes |
 | --- | --- |
-| **Manual** | When you use the navigation controls or send a queued match to stream. |
-| **After result is reported** | After start.gg confirms a report submitted through JABS for the current queued match. |
+| **Manual** | When you use the queue controls to change matches. |
+| **After result is reported** | When start.gg confirms the current result, including reports made outside JABS. |
 | **Delay after a winner is decided** | After the current match has a winner and the chosen **1–30 minute** delay ends. Playing time does not count toward this delay, and the result is not reported for you. |
 
 Changing the mode starts a populated queue immediately. **Start queue** keeps an unreported queued match already on stream, or loads the first unreported match in queue order. If the queue has finished, Start continues with the matches added after its last position.
 
 Editing the delay keeps a running queue running and a paused queue paused. An existing countdown resets to the newly chosen duration. Changing the winner also restarts the countdown. Clearing the winning result cancels it.
 
-**Previous match**, **Next match**, and sending a queued match to stream pause automatic advancement. Choose **Resume** to continue.
+**Previous match** and **Next match** pause automatic advancement. Choose **Resume** to continue.
 
 Use **Pause queue** before rearranging Current or earlier matches. While running, only upcoming matches can move. Reordering keeps the same match on stream and moves its Current label with it.
 
@@ -117,7 +119,7 @@ The two clear shortcuts open a **Yes / No** dialog. Click your choice, press **Y
 
 Choose a source from **Copy overlay URL** in the toolbar, then paste its URL into an OBS Browser Source. Use `1920×1080` unless you enable SF6 photo extension, described under **Scoreboard photos and logos** below. Clear any custom CSS and keep JABS running while broadcasting.
 
-The Scoreboard follows the current match. Winner & Champion prepares the player leading the JABS score, even before the winning point is entered. Unresolved ties keep the screen blank. In Grand Finals, the screen chooses Winner or Champion automatically. Set up the other sources under **Overlays**. For Bracket View, choose a phase and pool. For Top 8 Matchups, load the opening matchups from your event.
+The Scoreboard follows the current match. Winner & Champion prepares the player leading the JABS score, even before the winning point is entered. Unresolved ties keep the screen blank. In Grand Finals, the screen chooses Winner or Champion automatically. Set up the other sources under **Overlays**. For Bracket View, choose a phase and pool. Its header shows that selection, or **No phase/pool selected**. For Top 8 Matchups, load the opening matchups from your event.
 
 Choose **Scoreboard font** under **Edit stream state** to change the scoreboard and its information rails. **[DEFAULT]** uses the selected style’s font. Custom scoreboards keep their own font choice.
 
@@ -132,6 +134,10 @@ Settings identifies the active preset and remembers it after restarting. A **mod
 To use your own OBS background, enable **Transparent background** for the overlay. In Versus Screen, turn off **Match information backdrop** to remove the center panel's background while keeping the comparison rows visible. Choose up to four comparison rows, including **Main** for the first selected character and **Pronouns** for the player’s pronouns.
 
 For animated overlays that should start fresh when you return to their scene, enable **Shutdown source when not visible** and **Refresh browser when scene becomes active** in OBS's Browser Source properties. These settings unload the hidden page and reload it when activated. Leave them off for sources you want to keep running between scenes, including Stingers.
+
+### Player Stats
+
+Link a start.gg profile in **Players** to show recent placements. Local matches and exhibitions show up to eight placements. Tournament matches show up to five alongside **Current Run**.
 
 ### Frame Player Stats and Winner & Champion images
 
@@ -167,7 +173,7 @@ Choose **Compact** or **Standard** under **Size**. Compact uses thinner rows. Ch
 
 Copy the ticker URL into an OBS Browser Source at `1920×1080` and place it above the sources it should cover. The ticker sits at the bottom, with transparent space above it. Match information scrolls from left to right, while the section labels and optional logo stay fixed. Upcoming matches and recent results alternate automatically. The preview inside JABS stays still so you can check the layout.
 
-Upcoming matches start after the current queue position. Recent results show completed matches with saved scores or confirmed W/L and DQ outcomes. Unavailable or reset results stay hidden. Clearing the queue also clears the ticker.
+Upcoming matches start after the current queue position. Recent results include local wins and results reported outside JABS. No reporting token is required. Unavailable or reset results stay hidden. Clearing the queue also clears the ticker.
 
 ## Player Library
 
@@ -183,14 +189,14 @@ Use **Export library** to back up player records, and back up your image folders
 
 ### Scoreboard photos and logos
 
-Sponsor logos appear automatically on built-in and custom nameplates when a file in `sponsors/` matches the player’s **Team/Sponsor**. Player 1’s logo sits on the right before the score. Player 2’s sits on the left. Names appear in front of the logos. Player photos do not need to be enabled.
+Sponsor logos appear automatically on built-in and custom nameplates when a file in `sponsors/` matches the player’s **Team/Sponsor**. On built-in nameplates, Player 1’s logo sits to the right of the name and Player 2’s sits to the left. Names appear in front of the logos. Player photos do not need to be enabled.
 
 For Street Fighter 6, enable **Show character names** under **Scoreboard appearance**, or beside the custom scoreboard’s visibility switches. Each character name sits below its photo mask, beside the in-game username and icon. These positions stay fixed in custom layouts. The option is hidden for other games and JABS scoreboard styles.
 
 Enable **Player photos in scoreboards** under **Edit stream state → Scoreboard appearance**. In **Players**, choose a photo mode:
 
 - **Contained** keeps the photo inside its frame.
-- **Extend above** adds 60px above the SF6 photo frame. Set **Width** to **1920** and **Height** to **1140** in the OBS Browser Source’s **Properties**. The extra space stays reserved when switching photo modes, so the scoreboard stays in place. With a 1920×1080 source, photos stay contained. Other games use automatic headroom.
+- **Extend above** gives SF6 photos and placeholders 60 px of space above the frame. Set **Width** to **1920** and **Height** to **1140** in the OBS Browser Source’s **Properties**. The extra space stays reserved when switching photo modes, so the scoreboard stays in place. With a 1920×1080 source, photos stay contained. Other games use automatic headroom.
 
 New and replaced photos frame automatically in the preview and OBS. For transparent cutouts, JABS estimates a head-and-shoulders crop. Other photos use the whole image. Unusual poses may need a manual adjustment.
 
@@ -247,7 +253,7 @@ In **Overlays → Versus Screen**, **Mirror character placement** links characte
 
 Import a transparent PNG at `1920×1080`, up to 20 MiB. Position the player names, scores, and other fields over your frame, choose a font under **Appearance**, then choose **Use in OBS**. Your layout appears through the regular Scoreboard source URL.
 
-Layout changes save automatically. Each player’s Team/Sponsor logo can be positioned separately from their name. Select a name, score, logo, or other element to adjust its position, size, and alignment. Drag it to move it, use arrow keys for 1 px adjustments, or hold `Shift` for 10 px. `Alt+click` selects elements underneath. **Mirror to Player 1/2** copies its size and placement to the opposite side. Each side remains editable.
+Layout changes save automatically. Move each sponsor logo independently of the player name. The logo appears only where your frame has visible artwork. Select a name, score, logo, or other element to adjust its position, size, and alignment. Drag it to move it, use arrow keys for 1 px adjustments, or hold `Shift` for 10 px. `Alt+click` selects elements underneath. **Mirror to Player 1/2** copies its size and placement to the opposite side. Each side remains editable.
 
 Team/Sponsor names use the theme’s primary color for Player 1 and secondary color for Player 2. Under **Appearance**, turn off **Use theme colors for Team/Sponsor** to choose one color for both. Saved custom colors stay in use until you enable theme colors.
 
@@ -263,7 +269,7 @@ You can switch tabs and return to your unfinished graphic. Download it before cl
 
 ## Troubleshooting and support
 
-- **Blank overlay:** check the Browser Source URL and active match, then use OBS's **Refresh cache of current page**. Winner & Champion needs a completed result.
+- **Blank overlay:** check the Browser Source URL and active match, then use OBS's **Refresh cache of current page**. Winner & Champion needs a score leader or a confirmed result.
 - **Missing image:** check its folder and filename, then reload assets. Keep only one image matching each player or sponsor name.
 - **Wrong fonts or a blank overlay after an update:** copy the overlay URL from the running JABS app into the affected Browser Source, then choose **Refresh cache of current page**.
 - **Rejected report:** refresh the set and check your reporting permissions before retrying. Another organizer may have changed the result.

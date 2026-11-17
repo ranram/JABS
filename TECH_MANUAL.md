@@ -61,7 +61,7 @@ OBS keeps the JABS service address when loading an overlay in either dev or an i
 | Stingers | `/overlay/stingers` |
 | Queue ticker | `/overlay/queue-ticker` |
 
-Player Stats and Winner/Champion save bounded `artworkFraming` maps by game, composition, visible layers, and artwork identity. Classic, Victory and Spotlight keep artwork on the left and copy on the right in OBS and the editor. Character geometry carries across winners without reversing horizontal movement. Other layouts retain mirrored framing. Flips stay independent, and photo keys prefer start.gg IDs while still reading older local-player keys. Winner/Champion writes reject stale settings revisions.
+Player Stats and Winner/Champion save bounded `artworkFraming` maps by game, composition, visible layers, and artwork identity. Classic, Victory and Spotlight keep artwork on the left and copy on the right in OBS and the editor. Character geometry carries across winners without reversing horizontal movement. Other layouts retain mirrored framing. Flips stay independent, and photo keys prefer start.gg IDs while still reading older local-player keys. Winner/Champion writes reject stale settings revisions. Player Stats requests up to eight recent placements without a tournament event and renders only the placements panel. With an event, it requests five placements and the current run.
 
 Winner screens and their controls use `announcementPresentation` with `allowLeadingScore` to prepare the score leader before match completion. Confirmed results take priority. Unresolved ties and upstream resets stay blank. Stingers require a completed result.
 
@@ -134,7 +134,7 @@ Saved match layouts take priority over reusable defaults. Older combined player 
 
 ## Match queue
 
-The native match queue stores its event context, entries, cursor, and settings in `broadcast_surfaces` under `match-queue`. Restoring disables automation and drops old timers and report acknowledgments. A finished queue retains its position so Start can continue with appended entries. `/api/match-queue` provides the snapshot. Guarded action, add, and operator-heartbeat routes update it. Realtime messages use the `match-queue` event.
+The native match queue stores its event context, entries, cursor, and settings in `broadcast_surfaces` under `match-queue`. Restoring disables automation and drops old timers and report acknowledgments. A finished queue retains its position so Start can continue with appended entries. `/api/match-queue` provides the snapshot. Guarded action, add, and operator-heartbeat routes update it. Realtime messages use the `match-queue` event. Send to Stream can initialize an empty queue from the selected event. In an existing queue, it keeps an unfinished match live and places the selection next. Finished entries keep their queue order.
 
 Rust runs the countdowns and loads matches. `prepare_navigation` chooses the next entry, `load_queued_match` fetches it, and `commit_transition` checks that the queue, connection, and live match still match the request. Automatic changes also wait for editing and playback to finish. Removing Current loads the next match and removes the old entry as one operation. If loading fails, the original entry stays.
 
@@ -164,7 +164,7 @@ W/L and DQ choices stay in their reporting form until confirmed. A pending-edit 
 
 Confirmed results store `reportedOutcome` separately from numeric scores and game history, so queue logic uses the reported winner. Resets and subsequent scoring clear this metadata. Unrelated draft edits preserve it. Both automatic queue modes accept these results, and automatic winner stingers skip them. Overlay scores stay numeric. Selector cards use the completed upstream set's `winnerId` and raw scores to show W/DQ or W/L beside the players and in the final score. A disqualified opponent has a raw score of −1. These display labels do not change numeric scores.
 
-`RuntimeState::observe_startgg_sets` passes results from selector refreshes and match-detail requests to the queue and live match. `state/bracket_status.rs` saves and publishes changes to the matching live set's upstream status and result validity. It preserves local scores, history, player settings, and appearance. Unrelated sets are ignored, and unchanged results send no update. Saved progress and older forms cannot overwrite the fresh upstream status. Only the sets returned by those requests are checked. There is no continuous full-bracket polling.
+`RuntimeState::observe_startgg_sets` passes results from selector refreshes and match-detail requests to the queue and live match. `state/bracket_status.rs` saves and publishes changes to the matching live set's upstream status and result validity. It preserves local scores, history, player settings, and appearance. Unrelated sets are ignored, and unchanged results send no update. Saved progress and older forms cannot overwrite the fresh upstream status. Only the sets returned by those requests are checked. Opening the queue or Set Selector refreshes the data. While connected, queued set IDs refresh every 15 seconds without polling the full bracket.
 
 The live match and queue entry have separate reset flags. The live match's `upstreamReset` controls whether retained scores can count as a result:
 
@@ -178,7 +178,7 @@ Score changes and explicit score resets clear the live match's invalidation. Edi
 
 Refreshing a reset result does not start a countdown or play a stinger. It allows the next newly completed numeric result to play the automatic winner clip once. It does not interrupt current playback.
 
-A restored Reported badge cannot advance the queue. Automatic advancement needs a report confirmed during the current visit to the match. Before the queue starts, navigation can use a queued match already on stream as its position. After starting, it uses the saved queue position. `QueueIconButton` provides labels and tooltips for row actions.
+A restored Reported badge alone cannot advance the queue. A fresh start.gg response can confirm the current result, including a report submitted outside JABS. Before the queue starts, navigation can use a queued match already on stream as its position. After starting, it uses the saved queue position. `QueueIconButton` provides labels and tooltips for row actions.
 
 The operator UI sends regular heartbeats with the selected event and whether editing blocks advancement. Replies are applied in order, and closing the workspace cancels outstanding requests. A lost connection or sleep pauses automation. Playing the Winner overlay does not itself advance the queue.
 
@@ -190,7 +190,7 @@ Top 8 qualifier labels use native bracket-structure inference at match load. The
 
 ## Queue ticker
 
-`queue_ticker.rs` stores ticker settings in `broadcast_surfaces` under `queue-ticker`. The guarded `/api/broadcast/queue-ticker` endpoint reads the snapshot and saves settings. The ticker follows the saved queue position, showing one to three upcoming matches and up to three recent results when enabled. Results come from validated saved progress for the same event and entrants. Swapped sides retain the correct scores; W/L and DQ outcomes use their confirmed labels. Reset or unavailable results are excluded.
+`queue_ticker.rs` stores ticker settings in `broadcast_surfaces` under `queue-ticker`. The guarded `/api/broadcast/queue-ticker` endpoint reads the snapshot and saves settings. The ticker follows the saved queue position, showing one to three upcoming matches and up to three recent results when enabled. Recent results include local wins and confirmed start.gg results for the same event and entrants. Swapped sides retain the correct scores. W/L and DQ outcomes use their confirmed labels. Reset or unavailable results are excluded.
 
 All clients share a native projection cache keyed by the settings revision, queue revision, and live match's `updatedAt`. Queue and overlay broadcasts trigger checks; countdown updates with unchanged versions reuse the cache without rereading saved scores. The renderer listens for `queue-ticker` events through `useRealtimeState`. OBS scrolls with CSS transforms. The operator preview renders one static copy, and the optional logo uses the existing image cache outside the moving tracks.
 
@@ -248,7 +248,7 @@ SF6 character-name pills fill the photo-mask width below its original bottom edg
 
 ## Scoreboard photos
 
-`ScoreboardSponsors` resolves both players’ matching logos once per identity/catalog revision and shares the URLs with nameplates and photo backdrops. Score, font, palette, and framing changes do not repeat identity lookups. `ScoreboardSponsorLogo` fits sampled visible artwork without cropping or stretching, beneath the identity text; missing assets leave the nameplate geometry unchanged. Custom layouts store optional `playerElements.*.sponsorLogo` bounds for independent movement, sizing, alignment, and mirroring. Layouts without those bounds derive the original name-relative position.
+`ScoreboardSponsors` resolves both players’ matching logos once per identity/catalog revision and shares the URLs with nameplates and photo backdrops. Score, font, palette, and framing changes do not repeat identity lookups. `ScoreboardSponsorLogo` fits sampled visible artwork without cropping or stretching, beneath the identity text at 45% opacity. Missing assets leave the nameplate geometry unchanged. Custom scoreboards clip the logo to the alpha of the uploaded frame at its saved position. Custom layouts store optional `playerElements.*.sponsorLogo` bounds for independent movement, sizing, alignment, and mirroring. Layouts without those bounds derive the original name-relative position.
 
 Photo settings live in `scoreboard-photos`. The global `framing` mode is `contained` or `extendAbove`. Player records keep independent game/side transforms in `placements` and `extendedPlacements`. Both maps survive export and import. Headshots take priority over regular photos.
 
@@ -258,7 +258,7 @@ Native resolution marks new or replaced files `autoFrame: true`. The renderer lo
 
 **Auto frame** writes the automatic-framing flag and resets the active mode’s selected placements in one update. Replaced files discard stale crops and placements in both the editor and OBS. Original and trimmed rasters use separate cache entries.
 
-For SF6, `scoreboardPhotoViewport` extends each photo mask 60px upward while keeping its bottom fixed. The editor and OBS frame photos within that viewport. `ScoreboardSource` reserves transparent headroom in both photo modes when the browser can fit a 1920×1140 canvas. A 1920×1080 canvas keeps photos contained. Scoreboard artwork and text retain their original coordinates. Logo clipping uses the original mask. Automatic framing constrains older offsets that would place the head above the opening. Other games use alpha-based headroom and shift the top HUD accordingly.
+For SF6, `scoreboardPhotoViewport` extends each photo mask 60 px upward while keeping its bottom fixed. The editor and OBS frame photos within that viewport. The bundled SVG placeholder uses the same extended viewport and stays aligned to its top edge. `ScoreboardSource` reserves transparent headroom in both photo modes when the browser can fit a 1920×1140 canvas. A 1920×1080 canvas keeps photos contained. Scoreboard artwork and text retain their original coordinates. Logo clipping uses the original mask. Automatic framing constrains older offsets that would place the head above the opening. Other games use alpha-based headroom and shift the top HUD accordingly.
 
 `PlayerHeadshotPreview` holds its viewport fixed while the extended photo is selected; only the cutout transform and clipping mask update during adjustment. Fit preview or blur recalculates the viewport. Drag distances use the fixed display scale rather than the changing cutout height.
 

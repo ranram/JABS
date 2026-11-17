@@ -1,8 +1,7 @@
 import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
-import { bundledFontIds, bundledFontSchema, type BundledFontId } from './fonts';
+import { bundledFontSchema, type BundledFontId } from './fonts';
 
-export const customScoreboardFontIds = bundledFontIds;
 export type CustomScoreboardFontId = BundledFontId;
 export const defaultCustomScoreboardFont: CustomScoreboardFontId = 'bebas-neue';
 

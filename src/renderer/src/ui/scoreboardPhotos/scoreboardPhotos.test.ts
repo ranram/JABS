@@ -576,7 +576,7 @@ it.each(['street-fighter-6', '2xko'] as const)(
     transport.enabled = true;
     transport.logoBackdrop = true;
     const logoUrl = 'data:image/png;base64,event-logo';
-    transport.resolve.mockResolvedValue({ photos: [prepared, photo('two')] });
+    transport.resolve.mockResolvedValue({ photos: [prepared, fixed ? null : photo('two')] });
     const inset = vi.fn();
     const view = await mountView(() => h(ScoreboardPlayerPhotos, { selectedSet, logoUrl, onTopInsetChange: inset }));
     const scoreboard = createTestCustomScoreboard();

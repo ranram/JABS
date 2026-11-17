@@ -14,6 +14,9 @@ import { ResultScreenControls, ResultScreenStatus } from './ResultScreenControls
 import { VersusScreenControls, VersusScreenStatus } from './VersusScreenControls';
 import { TopEightMatchupsControls } from './TopEightMatchupsControls';
 import { BracketScreenControls } from './BracketScreenControls';
+import { BracketScreenStatus } from './BracketScreenStatus';
+import { useBracketScreenState } from '../../hooks/useBracketScreenState';
+import type { BracketScreenState } from '@shared/bracketScreen';
 import { PlayerStatsControls } from './PlayerStatsControls';
 import { sortByLabel } from './operatorUtils';
 import { OverlaySourceField } from './OverlaySourceField';
@@ -62,6 +65,7 @@ type OtherOverlaysPanelProps = {
 
 export function OtherOverlaysPanel({ localBaseUrl, ...controls }: OtherOverlaysPanelProps) {
   const { t, i18n } = useTranslation('operator');
+  const { state: bracketScreen } = useBracketScreenState();
   const sortedTypes = sortByLabel(
     otherOverlayTypes,
     (type) => t(`workspaces.tools.${type}.title`),
@@ -111,6 +115,15 @@ export function OtherOverlaysPanel({ localBaseUrl, ...controls }: OtherOverlaysP
                     {t(`workspaces.tools.${overlayType}.title`)}
                   </Text>
                   {overlayType === 'queueTicker' && <QueueTickerStatus />}
+                  {overlayType === 'bracket' && (
+                    <Box maw="65%" miw={0}>
+                      <BracketScreenStatus
+                        state={bracketScreen}
+                        phases={controls.phases}
+                        eventId={controls.selectedEventId}
+                      />
+                    </Box>
+                  )}
                   {(overlayType === 'versus' || overlayType === 'winner') && (
                     <Box maw="65%" miw={0}>
                       {overlayType === 'versus' ? (
@@ -126,6 +139,7 @@ export function OtherOverlaysPanel({ localBaseUrl, ...controls }: OtherOverlaysP
                 <Stack gap="sm">
                   <OverlayControls
                     overlayType={overlayType}
+                    bracketScreen={bracketScreen}
                     sourceLinks={
                       overlayType === 'versus' ? (
                         <OverlaySourceDetails overlayType={overlayType} localBaseUrl={localBaseUrl} />
@@ -192,10 +206,12 @@ function OverlayControls({
   selectedEventName,
   phases,
   assetCatalogRevision,
+  bracketScreen,
   sourceLinks
 }: Omit<OtherOverlaysPanelProps, 'localBaseUrl'> & {
   overlayType: Exclude<OtherOverlayType, 'commentators'>;
   sourceLinks?: ReactElement;
+  bracketScreen?: BracketScreenState;
 }): ReactElement {
   switch (overlayType) {
     case 'playerStats':
@@ -203,7 +219,15 @@ function OverlayControls({
     case 'queueTicker':
       return <QueueTickerControls logos={logos} />;
     case 'bracket':
-      return <BracketScreenControls eventId={selectedEventId} phases={phases} profiles={profiles} logos={logos} />;
+      return (
+        <BracketScreenControls
+          live={bracketScreen}
+          eventId={selectedEventId}
+          phases={phases}
+          profiles={profiles}
+          logos={logos}
+        />
+      );
     case 'topEightMatchups':
       return (
         <TopEightMatchupsControls

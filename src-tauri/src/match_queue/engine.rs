@@ -393,6 +393,7 @@ async fn load_queued_match(
         asset_catalog_slug: c.asset_catalog_slug.clone(),
         event_id: Some(c.event_id.clone()),
         tournament_slug: Some(c.tournament_slug.clone()),
+        queue_context: None,
         restore_overrides: true,
         preserve_broadcast: true,
         preserve_station: c.preserve_station,
