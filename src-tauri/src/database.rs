@@ -234,6 +234,26 @@ impl Database {
             ).optional().map_err(|_| "Unable to read saved character artwork settings.".to_owned())
     }
 
+    pub(crate) fn copy_versus_character_defaults(
+        &self,
+        catalog: &str,
+        source: &str,
+        target: &str,
+    ) -> Result<Vec<crate::versus_screen::CharacterMediaDefault>, String> {
+        let connection = self.connection.lock().map_err(|_| "Local database is unavailable.")?;
+        let mut rows = connection.prepare(
+            "SELECT json_set(scope, '$.characterAssetId', ?3), placement
+             FROM (SELECT CASE WHEN json_valid(context) THEN context END AS scope, placement
+                   FROM versus_character_defaults)
+             WHERE json_extract(scope, '$.catalog') = ?1 AND json_extract(scope, '$.characterAssetId') = ?2",
+        ).map_err(|_| "Could not read saved Versus artwork framing.")?;
+        rows.query_map(params![catalog, source, target], |row| {
+            Ok(crate::versus_screen::CharacterMediaDefault { context: row.get(0)?, payload: row.get(1)? })
+        }).map_err(|_| "Could not read saved Versus artwork framing.")?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| "Could not read saved Versus artwork framing.".to_owned())
+    }
+
     pub fn load_set_versus_media(&self, set_id: &str) -> Result<Option<String>, String> {
         let connection = self.connection.lock()
             .map_err(|_| "Local database is unavailable.".to_owned())?;

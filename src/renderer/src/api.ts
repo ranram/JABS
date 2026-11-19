@@ -1,3 +1,8 @@
+import {
+  characterFramingGroupsResponseSchema,
+  gameCharacterAssetsResponseSchema,
+  type CharacterFramingGroupEdit
+} from '@shared/characterAssets';
 import { recordDiagnostic, setOverlayDiagnosticTransport, type DiagnosticEvent } from './diagnostics';
 import {
   libraryLookupSchema,
@@ -27,7 +32,6 @@ import type {
   ExhibitionGameSelection,
   AssetCatalogSummary,
   CountryOption,
-  GameCharacterAsset,
   IdentityMediaInput,
   LogoAsset,
   OverlayMediaMatches,
@@ -436,7 +440,18 @@ export const api = {
   playerPhotoAssetUrl: (assetId: string, trimPadding = true) =>
     catalogRasterUrl(`/assets/player-photos/${encodeURIComponent(assetId)}`, trimPadding),
   gameCharacterAssets: (gameId: string) =>
-    request<{ assets: GameCharacterAsset[] }>(`/api/assets/game-characters?gameId=${encodeURIComponent(gameId)}`),
+    request(`/api/assets/game-characters?gameId=${encodeURIComponent(gameId)}`, undefined, {
+      decoder: gameCharacterAssetsResponseSchema
+    }),
+  saveCharacterFramingGroup: (gameId: string, group: CharacterFramingGroupEdit) =>
+    request(
+      `/api/assets/game-characters?gameId=${encodeURIComponent(gameId)}`,
+      { method: 'PUT', body: JSON.stringify(group) },
+      { decoder: characterFramingGroupsResponseSchema }
+    ).then(({ revision, framingGroups }) => {
+      applyCatalogRevision(revision);
+      return framingGroups;
+    }),
   gameCharacterAssetUrl: (gameId: string, assetId: string) =>
     catalogRasterUrl(`/assets/game-characters/${encodeURIComponent(gameId)}/${encodeURIComponent(assetId)}`, true),
   gameCharacterPortraitUrl: (gameId: string, assetId: string) =>

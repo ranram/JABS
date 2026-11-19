@@ -1,3 +1,4 @@
+import { ShareArtworkFraming } from './ShareArtworkFraming';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Badge, Button, Group, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -5,6 +6,7 @@ import type { GameId, GameProfile } from '@shared/gameProfiles';
 import type { LogoAsset, SelectedSetState } from '@shared/models';
 import {
   clampMediaTransform,
+  defaultCharacterTransform,
   defaultMediaTransform,
   playerMediaModeIds,
   type PlayerMediaMode,
@@ -294,23 +296,40 @@ export function VersusScreenControls({
                     setSelectedLayer({ player: Number(player) as 0 | 1, layer: layer as MediaLayerKind });
                   }}
                 />
-                <Group align="flex-end">
+                <Group align="flex-end" grow>
                   <Button
-                    fullWidth
                     variant="default"
                     disabled={!selectedLayer}
-                    onClick={() =>
-                      selectedLayer &&
-                      updatePlacement(selectedLayer.player, selectedLayer.layer, defaultMediaTransform())
-                    }
+                    onClick={() => {
+                      if (!selectedLayer) return;
+                      const { player, layer } = selectedLayer;
+                      const transform =
+                        layer === 'character'
+                          ? defaultCharacterTransform(player, state.mirrorCharacterPlacement)
+                          : defaultMediaTransform();
+                      updatePlacement(player, layer, transform);
+                    }}
                   >
                     {t('topEight.resetPlacement')}
                   </Button>
+                  {selectedLayer?.layer === 'character' &&
+                    (() => {
+                      const player = selectedLayer.player === 0 ? activeSet.playerOne : activeSet.playerTwo;
+                      const game = activeSet.assetCatalogSlug ?? activeSet.gameId;
+                      return (
+                        <ShareArtworkFraming
+                          key={JSON.stringify([game, player.character, player.characterAssetId])}
+                          game={game}
+                          player={player}
+                          disabled={saving}
+                        />
+                      );
+                    })()}
                 </Group>
               </SimpleGrid>
               <MediaControlHint showOverlapSelection />
               <Text size="xs" c="dimmed">
-                {t('workspaces.versusScreen.framingHelp')}
+                {t('artworkFraming.mirroringHelp')}
               </Text>
             </>
           )}

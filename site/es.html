@@ -11,7 +11,8 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=2" />
+    <link rel="stylesheet" href="style.css?v=6" />
+    <link rel="icon" href="favicon.ico?v=2" type="image/x-icon" />
   </head>
   <body>
     <a class="skip" href="#main">Ir al contenido</a>
@@ -31,22 +32,23 @@
       <nav id="main-navigation" aria-label="Navegación principal">
         <a href="#toolkit">Funciones</a><a href="#start">Cómo empezar</a
         ><a href="https://github.com/ranram/jabs">GitHub</a>
-        <a href="https://github.com/ranram/jabs/releases">DESCARGAR</a>
+        <a href="#download">DESCARGAR</a>
       </nav>
       <a class="language" href="index.html" lang="en" hreflang="en" aria-label="Switch to English">EN/ES</a>
     </header>
     <main id="main">
+      <aside class="release-banner" aria-label="Última versión">
+        <div class="release-banner-details">
+          <span>Última versión</span>
+          <strong class="release-banner-version" hidden></strong>
+          <time hidden></time>
+        </div>
+        <a class="release-banner-link" href="https://github.com/ranram/jabs/releases/latest">Notas de la versión</a>
+      </aside>
       <section class="hero">
         <img class="hero-logo" src="assets/logo-red.svg" alt="JABS" />
         <h1>ORGANIZA EL TORNEO.<br /><em>CONTROLA LA TRANSMISIÓN.</em></h1>
-        <div class="intro"><a class="button" href="https://github.com/ranram/jabs/releases">DESCARGAR JABS </a></div>
-        <figure class="main-screen">
-          <img
-            src="assets/jabs-stream-controls.png"
-            alt="Bracket del torneo y controles de transmisión de JABS"
-            fetchpriority="high"
-          />
-        </figure>
+        <div class="intro"><a class="button" href="#download">DESCARGAR JABS</a></div>
       </section>
       <section id="toolkit">
         <h2>Organiza tu torneo.</h2>
@@ -151,16 +153,40 @@
         </div>
         <a href="https://github.com/ranram/jabs/blob/main/USER_MANUAL.md">LEER EL MANUAL (EN INGLÉS)</a>
       </section>
-      <section class="last">
+      <section class="last" id="download">
         <h2>Descarga JABS.</h2>
-        <a class="button" href="https://github.com/ranram/jabs/releases">DESCARGAR </a>
+        <div class="download-platforms" hidden>
+          <article class="download-platform">
+            <h3><img src="assets/windows.svg.webp" alt="" width="32" height="32" /> Windows</h3>
+            <ul>
+              <li hidden><a data-download="windows">Instalador x64 (.exe)</a></li>
+            </ul>
+          </article>
+          <article class="download-platform">
+            <h3><img src="assets/apple.svg.webp" alt="" width="32" height="32" /> macOS</h3>
+            <ul>
+              <li hidden><a data-download="mac-arm">Apple Silicon (serie M)</a></li>
+              <li hidden><a data-download="mac-intel">Mac con Intel</a></li>
+            </ul>
+          </article>
+          <article class="download-platform">
+            <h3><img src="assets/tux.svg.webp" alt="" width="32" height="32" /> Linux</h3>
+            <ul>
+              <li hidden><a data-download="linux-deb">Debian / Ubuntu (.deb)</a></li>
+              <li hidden><a data-download="linux-rpm">Fedora (.rpm)</a></li>
+              <li hidden><a data-download="linux-appimage">AppImage</a></li>
+            </ul>
+          </article>
+        </div>
+        <a class="download-all" href="https://github.com/ranram/jabs/releases">Todas las versiones</a>
       </section>
     </main>
     <footer>
       <img class="logo" src="assets/logo.svg" alt="JABS" />
       <nav class="footer-links" aria-label="Pie de página">
-        <a href="https://github.com/ranram/jabs">CÓDIGO</a><a href="https://ko-fi.com/ranram">APOYAR EL DESARROLLO</a
-        ><a href="credits-es.html">CRÉDITOS</a>
+        <a href="https://github.com/ranram/jabs">CÓDIGO</a>
+        <a href="https://ko-fi.com/ranram">APOYA A JABS EN KO-FI</a>
+        <a href="credits-es.html">CRÉDITOS</a>
       </nav>
     </footer>
     <dialog class="image-viewer" aria-label="Captura de pantalla">
@@ -168,5 +194,6 @@
     </dialog>
     <script src="gallery.js" defer></script>
     <script src="navigation.js" defer></script>
+    <script src="release.js?v=2" defer></script>
   </body>
 </html>

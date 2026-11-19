@@ -198,11 +198,24 @@ impl VersusScreenStore {
                 }
             }
         }
-        let framing_changed = std::array::from_fn(|side| {
-            mirrored && submitted.media_placements[side].character != character_baseline[side].character
-        });
-        if let Some(context) = &submitted.media_match {
-            context.mirror_character_edits(&mut submitted.media_placements, framing_changed);
+        let groups = match &submitted.media_match {
+            Some(context) if submitted.media_placements != character_baseline => {
+                crate::character_framing_groups::load(database, context.catalog())?
+            }
+            _ => Vec::new(),
+        };
+        let mut framing_changed = [false; 2];
+        if mirrored && let Some(context) = &submitted.media_match {
+            framing_changed = std::array::from_fn(|side| {
+                let next = &submitted.media_placements[side].character;
+                let previous = &character_baseline[side].character;
+                if context.artwork_group(&groups, side).is_some() {
+                    !next.same_position(previous)
+                } else {
+                    next != previous
+                }
+            });
+            context.mirror_character_edits(database, &groups, &scope, &mut submitted.media_placements, framing_changed)?;
         }
         let edited: [MediaLayerEdits; 2] = std::array::from_fn(|side| MediaLayerEdits {
             character: submitted.media_placements[side].character != character_baseline[side].character,
@@ -226,8 +239,10 @@ impl VersusScreenStore {
                     &scope,
                     mirrored,
                     &submitted.media_placements,
+                    &character_baseline,
                     edited,
                     framing_changed,
+                    &groups,
                 )?)
             }
             _ => None,
@@ -324,14 +339,22 @@ impl VersusScreenStore {
             Some(previous) => previous.clone(),
             None => MediaMatch::resolve(database, artwork_directory, photo_directory, previous_set)?,
         };
+        let matching_artwork = context.same_character_artwork();
+        let mirror_pair_changed = current.mirror_character_placement
+            && (matching_artwork != previous_context.same_character_artwork()
+                || (matching_artwork && current.media_match.is_none()));
         if context.same_set(&previous_context) {
             for (side, placement) in placements.iter_mut().enumerate() {
                 if !context.same_layout(&previous_context, side, &scope) {
                     continue;
                 }
                 let unchanged = context.unchanged_layers(&previous_context, side);
-                if unchanged.character {
+                if unchanged.character && !mirror_pair_changed {
+                    let flipped = placement.character.flipped;
                     placement.character = current.media_placements[side].character.clone();
+                    if current.mirror_character_placement {
+                        placement.character.flipped = flipped;
+                    }
                 }
                 if unchanged.photo {
                     placement.photo = current.media_placements[side].photo.clone();
@@ -343,6 +366,26 @@ impl VersusScreenStore {
         next.media_match = Some(context);
         self.save_settings(database, &mut current, next, None)
             .map(|_| ())
+    }
+
+    pub(crate) fn refresh_character_groups(&self, database: &Database, catalog: &str) -> Result<(), String> {
+        let mut current = self
+            .state
+            .write()
+            .map_err(|_| "Versus Screen settings are unavailable.".to_owned())?;
+        let Some(context) = &current.media_match else { return Ok(()); };
+        if context.catalog() != catalog {
+            return Ok(());
+        }
+        let restored = context.restore_placements(database, &media_scope(&current), current.mirror_character_placement)?;
+        let mut next = current.clone();
+        for (placement, restored) in next.media_placements.iter_mut().zip(restored) {
+            placement.character = restored.character;
+        }
+        if next.media_placements != current.media_placements {
+            self.save_settings(database, &mut current, next, None)?;
+        }
+        Ok(())
     }
 
     // Only settings edits change updated_at. A history refresh must not cause

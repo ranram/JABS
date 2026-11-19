@@ -7,7 +7,7 @@ import { resolveGameProfile, type GameProfile } from '@shared/gameProfiles';
 import type { SelectedSetState } from '@shared/models';
 import type { ResultScreenState } from '@shared/resultScreen';
 import { playerCharacters, playerPortraitCharacters } from '@shared/characterTeams';
-import { selectedCharacterAssetId } from '@shared/characterAssets';
+import { characterFramingGroup, selectedCharacterAssetId, type CharacterFramingGroup } from '@shared/characterAssets';
 import { api } from '../api';
 import { loadCharacterPortraits, type CharacterPortrait } from '../characterPortraits';
 import { useCatalogRevision } from '../hooks/useCatalogRevision';
@@ -85,6 +85,7 @@ function AnnouncementOverlayContent({
     ? {
         characterUrl: settings.showCharacter ? highlightWinner.characterUrl : undefined,
         artworkAssetId: highlightWinner.characterAssetId,
+        framingGroup: highlightWinner.framingGroup,
         characterPortraits: [],
         hasCatalogMedia: highlightWinner.hasCatalogCharacterMedia,
         ready: highlightMedia.ready
@@ -104,9 +105,11 @@ function AnnouncementOverlayContent({
           artworkFramingLayout(composition, Boolean(characterUrl), Boolean(photoUrl)),
           {
             characterAssetId: characterMedia.artworkAssetId,
+            framingGroup: characterMedia.framingGroup,
             photoAssetId: winnerMedia.photoAssetId
           },
-          winner === selectedSet.playerOne ? 0 : 1
+          winner === selectedSet.playerOne ? 0 : 1,
+          settings.artworkFraming
         )
       )
     : undefined;
@@ -318,6 +321,7 @@ function useAnnouncementCharacterMedia(
 ): {
   characterUrl?: string;
   artworkAssetId?: string;
+  framingGroup?: CharacterFramingGroup;
   characterPortraits: CharacterPortrait[];
   hasCatalogMedia: boolean;
   ready: boolean;
@@ -325,6 +329,7 @@ function useAnnouncementCharacterMedia(
   const [media, setMedia] = useState<{
     characterUrl?: string;
     artworkAssetId?: string;
+    framingGroup?: CharacterFramingGroup;
     characterPortraits: CharacterPortrait[];
     hasCatalogMedia: boolean;
     key: string;
@@ -341,7 +346,7 @@ function useAnnouncementCharacterMedia(
     }
     void api
       .gameCharacterAssets(gameId)
-      .then(async ({ assets }) => {
+      .then(async ({ assets, framingGroups }) => {
         const selectedAssetId = selectedCharacterAssetId(
           {
             character: leadCharacter,
@@ -356,7 +361,14 @@ function useAnnouncementCharacterMedia(
           loadCharacterPortraits(gameId, selectedPortraits, assets)
         ]);
         if (active)
-          setMedia({ key, artworkAssetId: selectedAssetId, characterUrl, characterPortraits, hasCatalogMedia });
+          setMedia({
+            key,
+            artworkAssetId: selectedAssetId,
+            framingGroup: characterFramingGroup(selectedAssetId, framingGroups),
+            characterUrl,
+            characterPortraits,
+            hasCatalogMedia
+          });
       })
       .catch(() => {
         if (active)

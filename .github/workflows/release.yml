@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Release tag matching the committed application version
         required: true
-        default: v1.6.3
+        default: v1.6.4
   push:
     tags:
       - "v*"
@@ -100,7 +100,7 @@ jobs:
         include:
           - name: Linux x64
             platform: ubuntu-22.04
-            args: --bundles deb,appimage
+            args: --bundles deb,rpm,appimage
             rust_targets: ""
           - name: Windows x64
             platform: windows-latest

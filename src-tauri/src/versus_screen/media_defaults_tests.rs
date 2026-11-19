@@ -23,7 +23,7 @@ impl Fixture {
         for catalog in ["street-fighter-6", "custom-fighter"] {
             let artwork = root.join(catalog).join("characters");
             std::fs::create_dir_all(&artwork).unwrap();
-            for name in ["Cammy.webp", "Cammy_2.webp", "Ryu.webp"] {
+            for name in ["Cammy.webp", "Cammy_2.webp", "Cammy_3.webp", "Cammy_4.webp", "Ryu.webp"] {
                 std::fs::write(artwork.join(name), image).unwrap();
             }
         }
@@ -347,7 +347,8 @@ fn mirrored_framing_waits_until_the_same_artwork_is_used_on_the_other_side() {
     settings.media_placements[0].character.x = 0.25;
     settings.media_placements[0].character.y = -0.15;
     settings.media_placements[0].character.scale = 1.4;
-    let other_artwork = settings.media_placements[1].clone();
+    let mut other_artwork = settings.media_placements[1].clone();
+    other_artwork.character.flipped = true;
     fixture.store.replace(&fixture.database, settings).unwrap();
     assert_eq!(fixture.settings().media_placements[1], other_artwork);
 
@@ -356,7 +357,38 @@ fn mirrored_framing_waits_until_the_same_artwork_is_used_on_the_other_side() {
     selected.player_two.characters = vec!["Cammy".into()];
     selected.player_two.character_asset_id = Some("Cammy_2.webp".into());
     fixture.select(selected.clone());
-    assert_eq!(fixture.settings().media_placements[1].character, MediaTransform::default());
+    assert_eq!(fixture.settings().media_placements[1].character,
+        MediaTransform { flipped: true, ..MediaTransform::default() });
+
+    let mut cached = fixture.settings();
+    cached.media_placements[1].character.flipped = false;
+    fixture.database.save_broadcast_surface(
+        SURFACE_ID, &serde_json::to_string(&cached).unwrap(), &cached.updated_at,
+    ).unwrap();
+    let mut fixture = fixture.reopen();
+    fixture.select(selected.clone());
+    assert!(fixture.settings().media_placements[1].character.flipped);
+
+    let mut compact = fixture.settings();
+    compact.information_layout = "compact".into();
+    fixture.store.replace(&fixture.database, compact).unwrap();
+    let mut standard = fixture.settings();
+    standard.information_layout = "standard".into();
+    fixture.store.replace(&fixture.database, standard).unwrap();
+
+    let mut matching = selected.clone();
+    matching.player_one.character_asset_id = selected.player_two.character_asset_id.clone();
+    fixture.select(matching);
+    assert!(fixture.settings().media_placements[1].character.flipped);
+    let mut compact = fixture.settings();
+    compact.information_layout = "compact".into();
+    fixture.store.replace(&fixture.database, compact).unwrap();
+    assert!(fixture.settings().media_placements[1].character.flipped);
+    let mut standard = fixture.settings();
+    standard.information_layout = "standard".into();
+    fixture.store.replace(&fixture.database, standard).unwrap();
+    fixture.select(selected.clone());
+    assert!(fixture.settings().media_placements[1].character.flipped);
 
     selected.player_two.character_asset_id = None;
     fixture.select(selected);
@@ -369,6 +401,204 @@ fn mirrored_framing_waits_until_the_same_artwork_is_used_on_the_other_side() {
     new_match.player_one.characters = vec!["Ryu".into()];
     fixture.select(new_match);
     assert_eq!(fixture.settings().media_placements[1].character, right);
+    fixture.close();
+}
+
+#[test]
+fn sharing_versus_framing_preserves_existing_variant_edits_until_selected() {
+    use crate::character_framing_groups::{GroupEdit, save};
+
+    let mut fixture = Fixture::new();
+    let mut anchor = fixture.selected.clone();
+    anchor.set_id = Some("400".into());
+    let mut variant = anchor.clone();
+    variant.set_id = Some("500".into());
+    variant.player_one.character_asset_id = Some("Cammy_2.webp".into());
+    for id in ["400", "500"] {
+        fixture.database.save_stream_state("{}", &now_rfc3339().unwrap(), Some((id, "{}"))).unwrap();
+    }
+    fixture.select(variant.clone());
+    let mut settings = fixture.settings();
+    settings.media_placements[0].character.x = -0.2;
+    fixture.store.replace(&fixture.database, settings).unwrap();
+
+    fixture.select(anchor.clone());
+    let mut settings = fixture.settings();
+    settings.media_placements[0].character.x = 0.3;
+    settings.media_placements[0].character.flipped = true;
+    fixture.store.replace(&fixture.database, settings).unwrap();
+    let game = "street-fighter-6";
+    let assets = crate::catalogs::list_game_character_assets(&fixture.root, game).unwrap();
+    let mut group = GroupEdit {
+        number: None,
+        anchor: "Cammy.webp".into(),
+        members: vec!["Cammy_2.webp".into()],
+        use_shared_for_adjusted: false,
+    };
+    let groups = save(&fixture.database, game, &assets, group.clone()).unwrap();
+    group.number = Some(groups[0].number);
+    fixture.select(variant);
+    assert_eq!(fixture.settings().media_placements[0].character.x, -0.2);
+
+    group.use_shared_for_adjusted = true;
+    save(&fixture.database, game, &assets, group.clone()).unwrap();
+    fixture.store.refresh_character_groups(&fixture.database, game).unwrap();
+    assert_eq!(fixture.settings().media_placements[0].character.x, 0.3);
+    assert!(!fixture.settings().media_placements[0].character.flipped);
+    let mut settings = fixture.settings();
+    settings.media_placements[0].character.x = 0.4;
+    fixture.store.replace(&fixture.database, settings).unwrap();
+
+    group.use_shared_for_adjusted = false;
+    save(&fixture.database, game, &assets, group).unwrap();
+    fixture.store.refresh_character_groups(&fixture.database, game).unwrap();
+    assert_eq!(fixture.settings().media_placements[0].character.x, -0.2);
+    fixture.select(anchor);
+    assert_eq!(fixture.settings().media_placements[0].character.x, 0.4);
+    assert!(fixture.settings().media_placements[0].character.flipped);
+    fixture.close();
+}
+
+#[test]
+fn grouped_versus_artwork_mirrors_position_but_keeps_private_flips() {
+    use crate::character_framing_groups::{GroupEdit, load, save};
+
+    let mut fixture = Fixture::new();
+    let game = "street-fighter-6";
+    let mut paired = fixture.selected.clone();
+    paired.player_two.character = Some("Cammy".into());
+    paired.player_two.characters = vec!["Cammy".into()];
+    fixture.select(paired.clone());
+    let mut settings = fixture.settings();
+    settings.mirror_character_placement = true;
+    fixture.store.replace(&fixture.database, settings).unwrap();
+    let before_grouping = fixture.settings().media_placements;
+    assert!(before_grouping[1].character.flipped);
+
+    let assets = crate::catalogs::list_game_character_assets(&fixture.root, game).unwrap();
+    let mut group = GroupEdit {
+        number: None,
+        anchor: "Cammy.webp".into(),
+        members: vec!["Cammy_2.webp".into()],
+        use_shared_for_adjusted: true,
+    };
+    let groups = save(&fixture.database, game, &assets, group.clone()).unwrap();
+    group.number = Some(groups[0].number);
+    fixture.store.refresh_character_groups(&fixture.database, game).unwrap();
+    assert_eq!(fixture.settings().media_placements, before_grouping);
+
+    paired.player_two.character_asset_id = Some("Cammy_2.webp".into());
+    fixture.select(paired.clone());
+    let mut settings = fixture.settings();
+    assert!(settings.media_placements[1].character.flipped);
+    settings.media_placements[1].character.flipped = false;
+    fixture.store.replace(&fixture.database, settings).unwrap();
+    let mut settings = fixture.settings();
+    settings.media_placements[0].character.x = 0.3;
+    settings.media_placements[0].character.scale = 1.4;
+    fixture.store.replace(&fixture.database, settings).unwrap();
+
+    let [left, right] = fixture.settings().media_placements;
+    assert!(!left.character.flipped);
+    assert!(!right.character.flipped);
+    assert_eq!(right.character.x, -0.3);
+    assert_eq!(right.character.scale, 1.4);
+    let mut other_match = paired.clone();
+    other_match.set_id = Some("701".into());
+    other_match.player_two.character_asset_id = None;
+    fixture.select(other_match);
+    assert!(fixture.settings().media_placements[1].character.flipped);
+    fixture = fixture.reopen();
+    fixture.select(paired.clone());
+    assert_eq!(fixture.settings().media_placements[1].character, right.character);
+
+    group.members.clear();
+    save(&fixture.database, game, &assets, group).unwrap();
+    fixture.store.refresh_character_groups(&fixture.database, game).unwrap();
+    assert!(load(&fixture.database, game).unwrap().is_empty());
+    assert_eq!(fixture.settings().media_placements[1].character, MediaTransform::default());
+    paired.player_two.character_asset_id = None;
+    fixture.select(paired);
+    assert_eq!(fixture.settings().media_placements[1].character, MediaTransform {
+        flipped: true, ..right.character
+    });
+    fixture.close();
+}
+
+#[test]
+fn moving_a_group_reference_keeps_the_old_number_and_framing() {
+    use crate::character_framing_groups::{GroupEdit, load, save};
+
+    let mut fixture = Fixture::new();
+    let game = "street-fighter-6";
+    let assets = crate::catalogs::list_game_character_assets(&fixture.root, game).unwrap();
+    let anchor = "Cammy.webp";
+    let remaining = "Cammy_2.webp";
+    let destination = "Cammy_3.webp";
+    let mut settings = fixture.settings();
+    settings.media_placements[0].character.x = 0.35;
+    settings.media_placements[0].character.flipped = true;
+    fixture.store.replace(&fixture.database, settings).unwrap();
+
+    let renderer_key = serde_json::json!(["stats", game, "character", "Cammy", anchor]).to_string();
+    let renderer_placement = serde_json::json!({ "x": 0.4, "y": 0, "scale": 1.2, "flipped": true });
+    let mut framing = crate::artwork_framing::ArtworkFraming::new();
+    framing.insert(renderer_key, serde_json::from_value(renderer_placement).unwrap());
+    fixture.database.save_broadcast_surface(
+        "player-stats", &serde_json::json!({ "artworkFraming": framing }).to_string(), "fixture",
+    ).unwrap();
+
+    // A pre-upgrade group has no number, so its first load assigns one.
+    fixture.database.save_broadcast_surface(
+        "character-framing-groups:street-fighter-6",
+        &serde_json::json!([{ "anchor": anchor, "members": [remaining] }]).to_string(),
+        "fixture",
+    ).unwrap();
+    let old_number = load(&fixture.database, game).unwrap()[0].number;
+    let groups = save(&fixture.database, game, &assets, GroupEdit {
+        number: None, anchor: destination.into(), members: vec!["Cammy_4.webp".into()], use_shared_for_adjusted: true,
+    }).unwrap();
+    let destination_number = groups[1].number;
+    let groups = save(&fixture.database, game, &assets, GroupEdit {
+        number: Some(destination_number), anchor: destination.into(), members: vec!["Cammy_4.webp".into(), anchor.into()], use_shared_for_adjusted: true,
+    }).unwrap();
+    assert_eq!(groups[0].number, old_number);
+    assert_eq!(groups[0].anchor, remaining);
+    assert_eq!(groups[1].number, destination_number);
+    assert!(groups[1].members.iter().any(|id| id == anchor));
+    let moved_key = serde_json::json!(["stats", game, "character", "Cammy", groups[0].framing_source()]).to_string();
+    assert_eq!(groups[0].framing_snapshot[&moved_key].x, 0.4);
+    assert!(!groups[0].framing_snapshot[&moved_key].flipped);
+
+    fixture.store.refresh_character_groups(&fixture.database, game).unwrap();
+    assert_eq!(fixture.settings().media_placements[0].character.x, 0.0);
+    assert!(fixture.settings().media_placements[0].character.flipped);
+    let mut settings = fixture.settings();
+    settings.media_placements[0].character.x = -0.25;
+    fixture.store.replace(&fixture.database, settings).unwrap();
+    let mut other = fixture.selected.clone();
+    other.player_one.character_asset_id = Some(remaining.into());
+    fixture.select(other);
+    assert_eq!(fixture.settings().media_placements[0].character.x, 0.35);
+    assert!(!fixture.settings().media_placements[0].character.flipped);
+
+    let groups = save(&fixture.database, game, &assets, GroupEdit {
+        number: Some(destination_number),
+        anchor: destination.into(),
+        members: vec!["Cammy_4.webp".into(), anchor.into(), remaining.into()],
+        use_shared_for_adjusted: true,
+    }).unwrap();
+    assert_eq!(groups.len(), 1);
+    assert_eq!(groups[0].number, destination_number);
+
+    let groups = save(&fixture.database, game, &assets, GroupEdit {
+        number: None,
+        anchor: anchor.into(),
+        members: vec![remaining.into()],
+        use_shared_for_adjusted: true,
+    }).unwrap();
+    assert!(groups.iter().all(|group| group.number != old_number));
+    assert!(groups.iter().any(|group| group.number > destination_number));
     fixture.close();
 }
 

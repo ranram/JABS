@@ -64,10 +64,41 @@ nav {
 section {
   padding: 30px 6%;
 }
+.release-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px 20px;
+  padding: 3px 4%;
+  border-bottom: 1px solid #595752;
+  font-size: 15px;
+}
+.release-banner-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+}
+.release-banner-version {
+  font-weight: 600;
+}
+.release-banner time {
+  color: #b7b5ae;
+}
+.release-banner-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
 .hero {
   padding-top: 30px;
   position: relative;
   isolation: isolate;
+  overflow: hidden;
+  border-bottom: 1px solid #595752;
 }
 .eyebrow,
 small,
@@ -126,13 +157,6 @@ figcaption {
   justify-content: space-between;
   padding: 15px 0;
 }
-.main-screen {
-  border-top: 1px solid #595752;
-}
-.main-screen img {
-  width: 100%;
-  border: 1px solid #595752;
-}
 h2 {
   font-size: clamp(60px, 8vw, 112px);
   line-height: 0.92;
@@ -188,15 +212,62 @@ h3 {
 }
 .last {
   background: var(--red);
-  color: var(--ink);
-}
-.last .button {
-  background: var(--ink);
   color: var(--paper);
 }
-.last .button:hover {
+.download-platforms:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 12px;
+}
+.download-platform {
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+}
+.download-platform h3 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  padding: 12px 18px;
   background: var(--paper);
   color: var(--ink);
+}
+.download-platform img {
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.download-platform ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.download-platform a {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 8px 18px;
+  border-top: 1px solid #595752;
+  font-weight: 600;
+}
+.download-platform a:hover {
+  background: var(--paper);
+  color: var(--ink);
+  text-decoration: none;
+}
+.download-platform a:focus-visible {
+  outline-offset: -3px;
+}
+.download-all {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.download-all:focus-visible {
+  outline-color: var(--ink);
 }
 footer {
   padding: 35px 6%;
@@ -240,8 +311,7 @@ header .logo {
 .hero::before {
   content: '';
   position: absolute;
-  inset: 0 0 auto;
-  height: clamp(620px, 65vw, 1000px);
+  inset: 0;
   z-index: -1;
   pointer-events: none;
   background:
@@ -249,19 +319,6 @@ header .logo {
     linear-gradient(rgba(239, 57, 44, 0.28), rgba(239, 57, 44, 0.28)),
     url('assets/arcade-hero-v2.jpg') center 42% / cover no-repeat;
   background-blend-mode: normal, color, normal;
-}
-.hero .main-screen {
-  background: var(--ink);
-  margin-left: calc(-100% * 6 / 88);
-  margin-right: calc(-100% * 6 / 88);
-}
-.hero .main-screen figcaption {
-  padding-left: 6%;
-  padding-right: 6%;
-}
-.hero .main-screen img {
-  border-left: 0;
-  border-right: 0;
 }
 .hero .intro {
   justify-content: center;

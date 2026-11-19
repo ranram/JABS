@@ -1,4 +1,3 @@
-import { updateArtworkFraming } from '@shared/artworkFraming';
 import { useVersusMedia } from '../useVersusMedia';
 import { useEffect, useMemo } from 'react';
 import { Select, SimpleGrid, Stack, Switch, Text } from '@mantine/core';
@@ -81,6 +80,12 @@ export function PlayerStatsControls({
           disabled={saving}
           onChange={(event) => void update({ showBackground: !event.currentTarget.checked })}
         />
+        <Switch
+          label={t('workspaces.versusScreen.mirrorCharacterPlacement')}
+          checked={state.mirrorCharacterPlacement}
+          disabled={saving}
+          onChange={(event) => void update({ mirrorCharacterPlacement: event.currentTarget.checked })}
+        />
         {controls.map((setting) => (
           <Switch
             key={setting}
@@ -97,12 +102,16 @@ export function PlayerStatsControls({
           framing={state.artworkFraming}
           stylingGameId={state.stylingGameId}
           layout="stats"
+          mirrorCharacterPlacement={state.mirrorCharacterPlacement}
           showCharacter={state.showCharacter}
           showPhoto={state.showPlayerPhoto}
           media={media}
           ready={ready}
-          onChange={(key, transform, mirroredKey) =>
-            void update((current) => ({ ...current, artworkFraming: updateArtworkFraming(current.artworkFraming, key, transform, mirroredKey) }))
+          onChange={(applyFraming) =>
+            void update((current) => ({
+              ...current,
+              artworkFraming: applyFraming(current.artworkFraming)
+            }))
           }
         />
       )}

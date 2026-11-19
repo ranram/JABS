@@ -480,7 +480,7 @@ export const es419 = {
         },
         stingerPlay: {
           title: 'Reproduce clips desde cualquier pestaña',
-          body: 'Este menú permite reproducir los clips configurados o detenerlos. Winner requiere una **partida con marcador completo**. **Reconectar fuente de OBS** actualiza la conexión cuando hace falta.'
+          body: 'Con los atajos activados, **Ctrl+P** reproduce Perfect y **Ctrl+W** reproduce Winner. Usa **Detener en OBS** aquí para cortar la reproducción.'
         }
       }
     },
@@ -971,8 +971,6 @@ export const es419 = {
         informationLayout: 'Diseño de la información',
         informationLayouts: { standard: 'Estándar', compact: 'Compacto' },
         mirrorCharacterPlacement: 'Reflejar posición del personaje',
-        framingHelp:
-          'El reflejo aplica a la misma ilustración en ambos lados. Desactívalo para recuperar el encuadre manual y ajustar cada lado por separado. Cada modo guarda su propio encuadre del personaje. Las fotos conservan la misma posición en ambos modos. Estándar y Compacto guardan sus propios encuadres.',
         showMatchBackdrop: 'Fondo de la información de la partida',
         matchBackdropHelp: 'Las filas de comparación e historial conservan su fondo.',
         statsHeading: 'Comparación de jugadores',
@@ -1449,13 +1447,23 @@ export const es419 = {
 
     // Artwork positioning
     artworkFraming: {
-      title: 'Encuadre de imágenes',
-      help: 'Haz clic para elegir una imagen. Ctrl+clic selecciona la ilustración detrás. La posición y el tamaño del personaje se reflejan entre lados, pero cada lado conserva su propia opción de voltear. Cada foto mantiene su encuadre.',
-      photo: 'Foto del jugador',
-      character: 'Personaje',
-      size: 'Tamaño',
-      flip: 'Voltear',
-      reset: 'Restablecer imagen seleccionada'
+      mirroringHelp: 'Desactiva el reflejo para ajustar cada lado por separado.',
+      share: 'Compartir encuadre con…',
+      shareHelp: 'Elige variantes con la misma pose que {{image}} para compartir posición y tamaño.',
+      useSharedForAdjusted: 'Usar el encuadre del grupo en imágenes que ya ajustaste',
+      groups: 'Grupos de ilustraciones',
+      groupNumber: 'Grupo #{{number}}',
+      searchGroups: 'Buscar grupos',
+      noGroupsFound: 'No hay grupos que coincidan',
+      newGroup: 'Nuevo grupo',
+      inGroup: 'En el grupo #{{number}}',
+      moveFromGroup: 'Mover desde el grupo #{{number}}',
+      groupLimit: 'Puedes incluir hasta {{count}} imágenes más en un grupo.',
+      shareFailed: 'No se pudo actualizar el grupo. Vuelve a abrir esta ventana e inténtalo de nuevo.',
+      saveGroup: 'Guardar grupo',
+      deleteGroup: 'Eliminar grupo',
+      deleteConfirm: '¿Eliminar el grupo #{{number}}? Sus imágenes volverán a usar su propio encuadre.',
+      title: 'Encuadre de imágenes'
     },
     mediaControls: {
       click: 'Clic',

@@ -1,0 +1,25 @@
+.artwork-group-dialog-body {
+  container-type: inline-size;
+}
+
+.artwork-group-layout {
+  --artwork-group-list-height: 10rem;
+  display: grid;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mantine-spacing-md);
+}
+
+.artwork-group-browser {
+  min-width: 0;
+  padding: var(--mantine-spacing-xs);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+}
+
+@container (min-width: 40rem) {
+  .artwork-group-layout.has-groups {
+    --artwork-group-list-height: min(26rem, 48vh);
+    grid-template-columns: 12rem minmax(0, 1fr);
+  }
+}

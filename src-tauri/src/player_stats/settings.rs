@@ -30,6 +30,8 @@ pub struct PlayerStatsSettings {
     show_player_photo: bool,
     #[serde(default = "default_true")]
     show_character: bool,
+    #[serde(default = "default_true")]
+    mirror_character_placement: bool,
     #[serde(default)]
     artwork_framing: crate::artwork_framing::ArtworkFraming,
     updated_at: String,
@@ -56,6 +58,7 @@ impl SettingsStore {
                     show_sponsor_logo: true,
                     show_player_photo: true,
                     show_character: true,
+                    mirror_character_placement: true,
                     artwork_framing: Default::default(),
                     updated_at: now_rfc3339()?,
                 })
@@ -161,6 +164,7 @@ mod tests {
         let store = SettingsStore::load(&database).unwrap();
         let initial = store.current().unwrap();
         assert_eq!(initial["showBackground"], true);
+        assert_eq!(initial["mirrorCharacterPlacement"], true);
         assert!(initial.get("logoAssetId").is_none());
         assert!(initial.get("stylingGameId").is_none());
         let mut updates = store.subscribe();
@@ -169,6 +173,7 @@ mod tests {
         settings.show_sponsor_logo = false;
         settings.show_player_photo = false;
         settings.show_character = false;
+        settings.mirror_character_placement = false;
         settings.show_placement_logos = false;
         settings.artwork_framing.insert("character-context".into(), crate::versus_screen::MediaTransform {
             x: 0.25, y: -0.3, scale: 6.0, flipped: true,
@@ -176,6 +181,7 @@ mod tests {
         settings.logo_asset_id = Some("local.png".into());
         settings.styling_game_id = Some("tekken-8".into());
         let saved = store.replace(&database, settings).unwrap();
+        assert_eq!(saved["mirrorCharacterPlacement"], false);
         let message: Value = serde_json::from_str(&updates.try_recv().unwrap()).unwrap();
         assert_eq!(message["event"], "player-stats-settings");
         assert_eq!(message["payload"], saved);

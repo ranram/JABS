@@ -1,4 +1,3 @@
-import { updateArtworkFraming } from '@shared/artworkFraming';
 import { useVersusMedia } from '../useVersusMedia';
 import { useSettingsDraft } from '../../hooks/useSettingsDraft';
 import { ArtworkFramingControls } from './ArtworkFramingControls';
@@ -164,10 +163,10 @@ export function ResultScreenControls({ activeSet, logos, profiles }: ResultScree
           showBackground={state.showBackground}
           media={media}
           ready={ready}
-          onChange={(key, transform, mirroredKey, mirrorX) =>
+          onChange={(applyFraming) =>
             void updateDraft((current) => ({
               ...current,
-              artworkFraming: updateArtworkFraming(current.artworkFraming, key, transform, mirroredKey, mirrorX)
+              artworkFraming: applyFraming(current.artworkFraming)
             }))
           }
         />

@@ -474,7 +474,7 @@ export const en = {
         },
         stingerPlay: {
           title: 'Play clips from any tab',
-          body: 'Use this menu to play configured clips or stop playback. Winner needs a **completed set score**. **Reconnect OBS source** refreshes the connection when needed.'
+          body: 'With keyboard shortcuts enabled, **Ctrl+P** plays Perfect and **Ctrl+W** plays Winner. Use **Stop in OBS** here to stop playback.'
         }
       }
     },
@@ -866,8 +866,6 @@ export const en = {
         informationLayout: 'Information layout',
         informationLayouts: { standard: 'Standard', compact: 'Compact' },
         mirrorCharacterPlacement: 'Mirror character placement',
-        framingHelp:
-          'Mirroring reflects the same character artwork across sides. Turn it off to restore manual framing and adjust each side separately. Both modes save their own character framing and share the same player photo placements. Standard and Compact save separate framing.',
         showMatchBackdrop: 'Match information backdrop',
         matchBackdropHelp: 'Comparison and history rows keep their backgrounds.',
         statsHeading: 'Match comparison',
@@ -1417,13 +1415,23 @@ export const en = {
 
     // Artwork positioning
     artworkFraming: {
-      title: 'Image framing',
-      help: 'Click to select an image. Ctrl+click selects artwork behind it. Character position and size mirror across sides, with flip saved separately. Photos keep their own framing.',
-      photo: 'Player photo',
-      character: 'Character',
-      size: 'Size',
-      flip: 'Flip',
-      reset: 'Reset selected image'
+      mirroringHelp: 'Turn mirroring off to adjust each side separately.',
+      share: 'Share framing with…',
+      shareHelp: 'Choose variants with the same pose as {{image}} to share position and size.',
+      useSharedForAdjusted: 'Use group framing on images you already adjusted',
+      groups: 'Artwork groups',
+      groupNumber: 'Group #{{number}}',
+      searchGroups: 'Search groups',
+      noGroupsFound: 'No matching groups',
+      newGroup: 'New group',
+      inGroup: 'In Group #{{number}}',
+      moveFromGroup: 'Move from Group #{{number}}',
+      groupLimit: 'A group can include up to {{count}} other images.',
+      shareFailed: 'Could not update the group. Reopen this window and try again.',
+      saveGroup: 'Save group',
+      deleteGroup: 'Delete group',
+      deleteConfirm: 'Delete Group #{{number}}? Its images will use their own framing again.',
+      title: 'Image framing'
     },
     mediaControls: {
       click: 'Click',

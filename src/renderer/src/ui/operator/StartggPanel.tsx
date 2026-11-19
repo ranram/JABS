@@ -13,6 +13,7 @@ import { DestructiveButton } from '../DestructiveButton';
 import type { NoticeSink } from './operatorNotice';
 import {
   Badge,
+  Box,
   Button,
   Group,
   Modal,
@@ -59,7 +60,6 @@ import {
   KeyIcon,
   SquaresFourIcon,
   StackIcon,
-  FilmSlateIcon,
   TrophyIcon,
   YoutubeLogoIcon
 } from '../icons';
@@ -258,7 +258,6 @@ export function StartggPanel({
     { id: 'bracket', label: t('operator:workspaces.bracket'), icon: TreeStructureIcon },
     { id: 'custom-scoreboard', label: t('operator:workspaces.customScoreboard'), icon: SquaresFourIcon },
     { id: 'overlays', label: t('operator:workspaces.otherOverlays'), icon: StackIcon },
-    { id: 'stingers', label: t('operator:workspaces.stingers'), icon: FilmSlateIcon },
     { id: 'top-eight', label: t('operator:workspaces.topEight'), icon: TrophyIcon },
     { id: 'thumbnail', label: t('operator:workspaces.thumbnail'), icon: YoutubeLogoIcon }
   ];
@@ -380,7 +379,7 @@ export function StartggPanel({
 
       <Tabs
         className="operator-workspaces"
-        value={workspace}
+        value={workspace === 'stingers' ? null : workspace}
         onChange={(value) => value && setWorkspace(value)}
         keepMounted={false}
         mt="md"
@@ -412,7 +411,6 @@ export function StartggPanel({
             onClearCache={bracket.actions.clearCachedBracketData}
             onModerationApplied={onModerationApplied}
             onCopy={onCopy}
-            onConfigureStingers={configureStingers}
             onTutorialWorkspace={setWorkspace}
             onOpenSetSelector={() => setSetSelectorOpen(true)}
             setSelectorDisabled={!tournamentLoaded || !setSelector}
@@ -462,9 +460,11 @@ export function StartggPanel({
           />
         </Tabs.Panel>
 
-        <Tabs.Panel value="stingers" pt="md">
-          <StingersPanel activeSet={activeSet} localBaseUrl={localBaseUrl} />
-        </Tabs.Panel>
+        {workspace === 'stingers' && (
+          <Box component="section" className="stingers-workspace" pt="md" aria-label={t('operator:workspaces.stingers')}>
+            <StingersPanel activeSet={activeSet} localBaseUrl={localBaseUrl} />
+          </Box>
+        )}
 
         <Tabs.Panel value="top-eight" pt="md">
           <TopEightGenerator

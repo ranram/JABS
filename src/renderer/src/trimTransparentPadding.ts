@@ -2,23 +2,66 @@ import { measureWork } from './performanceMetrics';
 import { blobDataUrl } from './blobDataUrl';
 
 type PixelBounds = { x: number; y: number; width: number; height: number };
+const canvasPixelLimit = 16_777_216;
+const artworkPixelLimit = 64_000_000;
 
-/** Ignore near-invisible export noise (alpha 1–2 out of 255) when locating artwork. */
-export function visiblePixelBounds(pixels: Uint8ClampedArray, width: number, height: number): PixelBounds | undefined {
-  let left = width;
-  let top = height;
-  let right = -1;
-  let bottom = -1;
+export function countVisiblePixels(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  columns: Uint32Array,
+  rows: Uint32Array,
+  offsetX = 0,
+  offsetY = 0
+) {
   for (let y = 0; y < height; y++) {
+    let rowCount = 0;
     for (let x = 0; x < width; x++) {
       if (pixels[(y * width + x) * 4 + 3] <= 2) continue;
-      left = Math.min(left, x);
-      top = Math.min(top, y);
-      right = Math.max(right, x);
-      bottom = Math.max(bottom, y);
+      columns[offsetX + x]++;
+      rowCount++;
     }
+    rows[offsetY + y] += rowCount;
   }
-  return right < left ? undefined : { x: left, y: top, width: right - left + 1, height: bottom - top + 1 };
+}
+
+function contentEdge(counts: Uint32Array, edge: number, opposite: number, step: 1 | -1) {
+  const minimumGap = Math.max(16, Math.ceil(counts.length * 0.03));
+  let lastContent = edge;
+  let outerPixels = 0;
+  let gap = 0;
+  for (let index = edge; index !== opposite + step; index += step) {
+    const count = counts[index];
+    if (!count) {
+      gap++;
+      continue;
+    }
+    if (gap >= minimumGap) lastContent = index;
+    outerPixels += count;
+    // Leave detached effects intact. Only a few pixels beyond a wide gap count as export noise.
+    if (outerPixels > 4) break;
+    gap = 0;
+  }
+  return lastContent;
+}
+
+export function visiblePixelBounds(columns: Uint32Array, rows: Uint32Array): PixelBounds | undefined {
+  let left = columns.findIndex(Boolean);
+  if (left === -1) return undefined;
+  let right = columns.length - 1;
+  while (right > left && !columns[right]) right--;
+  let top = rows.findIndex(Boolean);
+  let bottom = rows.length - 1;
+  while (bottom > top && !rows[bottom]) bottom--;
+  if (rows.reduce((sum, count) => sum + count, 0) >= 128) {
+    const cleanLeft = contentEdge(columns, left, right, 1);
+    right = contentEdge(columns, right, left, -1);
+    left = cleanLeft;
+    const cleanTop = contentEdge(rows, top, bottom, 1);
+    bottom = contentEdge(rows, bottom, top, -1);
+    top = cleanTop;
+  }
+  return { x: left, y: top, width: right - left + 1, height: bottom - top + 1 };
 }
 
 /** Prepare a display copy only. Fully transparent, unpadded, or unsupported images pass through. */
@@ -36,50 +79,47 @@ export async function trimTransparentPadding(source: string): Promise<string> {
     }
     const width = image.naturalWidth;
     const height = image.naturalHeight;
-    if (!width || !height || width * height > 16_777_216) return source;
-    // Scan original pixels in 1 MiB tiles. Small detached accents and faint edges
-    // survive, without allocating a full-image RGBA readback or blocking one long scan.
-    canvas.width = Math.min(width, 1024);
-    canvas.height = Math.min(height, 256);
+    if (!width || !height || width * height > artworkPixelLimit) return source;
+    // Keep readbacks small. Sample oversized artwork so it can still be cropped.
+    const sampleScale = Math.min(1, Math.sqrt(canvasPixelLimit / (width * height)));
+    const sampleWidth = Math.max(1, Math.floor(width * sampleScale));
+    const sampleHeight = Math.max(1, Math.floor(height * sampleScale));
+    const pixelWidth = width / sampleWidth;
+    const pixelHeight = height / sampleHeight;
+    canvas.width = Math.min(sampleWidth, 1024);
+    canvas.height = Math.min(sampleHeight, 256);
     const context = canvas.getContext('2d', { willReadFrequently: true });
     if (!context) return source;
     const finishBounds = measureWork('image-bounds');
-    let left = width,
-      top = height,
-      right = -1,
-      bottom = -1,
-      tiles = 0;
+    const columns = new Uint32Array(sampleWidth);
+    const rows = new Uint32Array(sampleHeight);
+    let tiles = 0;
     try {
-      for (let y = 0; y < height; y += canvas.height) {
-        for (let x = 0; x < width; x += canvas.width) {
-          const w = Math.min(canvas.width, width - x);
-          const h = Math.min(canvas.height, height - y);
+      for (let y = 0; y < sampleHeight; y += canvas.height) {
+        for (let x = 0; x < sampleWidth; x += canvas.width) {
+          const w = Math.min(canvas.width, sampleWidth - x);
+          const h = Math.min(canvas.height, sampleHeight - y);
           context.clearRect(0, 0, canvas.width, canvas.height);
-          context.drawImage(image, x, y, w, h, 0, 0, w, h);
-          const tile = visiblePixelBounds(context.getImageData(0, 0, w, h).data, w, h);
-          if (tile) {
-            left = Math.min(left, x + tile.x);
-            top = Math.min(top, y + tile.y);
-            right = Math.max(right, x + tile.x + tile.width - 1);
-            bottom = Math.max(bottom, y + tile.y + tile.height - 1);
-          }
+          context.drawImage(image, x * pixelWidth, y * pixelHeight, w * pixelWidth, h * pixelHeight, 0, 0, w, h);
+          countVisiblePixels(context.getImageData(0, 0, w, h).data, w, h, columns, rows, x, y);
           if (++tiles % 4 === 0) await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
         }
       }
     } finally {
       finishBounds();
     }
-    const bounds = right < left ? undefined : { x: left, y: top, width: right - left + 1, height: bottom - top + 1 };
-    if (!bounds || (bounds.width === width && bounds.height === height)) return source;
-    // Retain a pixel around the bounds for soft edges; do not threshold the artwork itself.
-    const x = Math.max(0, bounds.x - 1);
-    const y = Math.max(0, bounds.y - 1);
-    const croppedWidth = Math.min(width, bounds.x + bounds.width + 1) - x;
-    const croppedHeight = Math.min(height, bounds.y + bounds.height + 1) - y;
+    const bounds = visiblePixelBounds(columns, rows);
+    if (!bounds) return source;
+    // Leave a margin for soft edges and the rounding in oversized images.
+    const x = Math.max(0, Math.floor((bounds.x - 1) * pixelWidth));
+    const y = Math.max(0, Math.floor((bounds.y - 1) * pixelHeight));
+    const croppedWidth = Math.min(width, Math.ceil((bounds.x + bounds.width + 1) * pixelWidth)) - x;
+    const croppedHeight = Math.min(height, Math.ceil((bounds.y + bounds.height + 1) * pixelHeight)) - y;
     if (croppedWidth === width && croppedHeight === height) return source;
-    canvas.width = croppedWidth;
-    canvas.height = croppedHeight;
-    context.drawImage(image, x, y, croppedWidth, croppedHeight, 0, 0, croppedWidth, croppedHeight);
+    const outputScale = Math.min(1, Math.sqrt(canvasPixelLimit / (croppedWidth * croppedHeight)));
+    canvas.width = Math.max(1, Math.floor(croppedWidth * outputScale));
+    canvas.height = Math.max(1, Math.floor(croppedHeight * outputScale));
+    context.drawImage(image, x, y, croppedWidth, croppedHeight, 0, 0, canvas.width, canvas.height);
     const finishEncode = measureWork('image-encode');
     try {
       const trimmed = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));

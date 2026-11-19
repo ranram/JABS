@@ -415,8 +415,10 @@ fn player_defaults_apply_to_exhibitions_and_new_sets_without_replacing_saved_set
 
     select(&store, &initial, &exhibition);
     set_mode(&store, "combined");
+    let mut manual = settings(&store);
+    manual.mirror_character_placement = false;
+    store.replace(&database, manual).unwrap();
     let mut edited = settings(&store);
-    edited.mirror_character_placement = false;
     edited.media_placements[0].character.scale = 1.4;
     edited.media_placements[0].photo.x = 0.2;
     edited.media_placements[1].character.flipped = true;

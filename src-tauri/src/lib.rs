@@ -1,5 +1,6 @@
 mod app_updates;
 mod artwork_framing;
+mod character_framing_groups;
 mod appearance_preferences;
 mod bracket_screen;
 mod catalogs;

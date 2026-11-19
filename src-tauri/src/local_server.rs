@@ -111,7 +111,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .route("/api/assets/identity-media", post(identity_media))
         .route("/assets/sponsor-logos/{asset_id}", get(sponsor_logo_asset))
         .route("/assets/player-photos/{asset_id}", get(player_photo_asset))
-        .route("/api/assets/game-characters", get(game_character_assets))
+        .route("/api/assets/game-characters", get(game_character_assets).put(update_character_framing_group))
         .route("/api/assets/game-characters/prepare", post(crate::startgg_characters::prepare))
         .route("/assets/game-characters/{game_id}/{asset_id}", get(game_character_asset))
         .route("/assets/game-character-portraits/{game_id}/{asset_id}", get(game_character_portrait))
@@ -557,10 +557,38 @@ async fn game_character_assets(
     Query(query): Query<GameCharacterAssetsQuery>,
 ) -> Response {
     match crate::catalogs::list_game_character_assets(&runtime.game_asset_directory, &query.game_id) {
-        Ok(assets) => secure_json(Json(serde_json::json!({ "assets": assets }))),
+        Ok(assets) => {
+            let framing_groups = crate::character_framing_groups::load(&runtime.database, &query.game_id)
+                .unwrap_or_default();
+            secure_json(Json(serde_json::json!({ "assets": assets, "framingGroups": framing_groups })))
+        }
         Err(error) => secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({
             "error": error
         })))),
+    }
+}
+
+async fn update_character_framing_group(
+    State(runtime): State<Arc<RuntimeState>>,
+    Query(query): Query<GameCharacterAssetsQuery>,
+    headers: HeaderMap,
+    Json(group): Json<crate::character_framing_groups::GroupEdit>,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    let result = crate::catalogs::list_game_character_assets(&runtime.game_asset_directory, &query.game_id)
+        .and_then(|assets| crate::character_framing_groups::save(&runtime.database, &query.game_id, &assets, group));
+    match result {
+        Ok(groups) => {
+            let _ = runtime.versus_screen.refresh_character_groups(&runtime.database, &query.game_id);
+            runtime.asset_catalog_revision.send_modify(|revision| *revision = revision.wrapping_add(1));
+            secure_json(Json(serde_json::json!({
+                "framingGroups": groups,
+                "revision": *runtime.asset_catalog_revision.borrow(),
+            })))
+        }
+        Err(error) => secure_json((StatusCode::UNPROCESSABLE_ENTITY, Json(serde_json::json!({ "error": error })))),
     }
 }
 

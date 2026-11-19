@@ -27,6 +27,10 @@ export type PlayerMediaPlacement = Record<MediaLayerKind, MediaTransform>;
 
 export const defaultMediaTransform = (): MediaTransform => ({ x: 0, y: 0, scale: 1, flipped: false });
 
+export function defaultCharacterTransform(side: 0 | 1, mirrored?: boolean): MediaTransform {
+  return { ...defaultMediaTransform(), flipped: mirrored === true && side === 1 };
+}
+
 export const defaultPlayerMediaPlacement = (): PlayerMediaPlacement => ({
   character: defaultMediaTransform(),
   photo: defaultMediaTransform()

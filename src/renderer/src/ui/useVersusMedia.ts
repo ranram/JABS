@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { PlayerMediaMatch, PlayerState, SelectedSetState } from '@shared/models';
 import { versusPresentationMode } from '@shared/versusScreen';
 import { playerCharacters, playerPortraitCharacters } from '@shared/characterTeams';
-import { selectedCharacterAssetId } from '@shared/characterAssets';
+import { characterFramingGroup, selectedCharacterAssetId, type CharacterFramingGroup } from '@shared/characterAssets';
 import { useMediaLookups } from '../hooks/useMediaLookups';
 import { LocalApiError } from '../localApiTransport';
 import { api } from '../api';
@@ -15,6 +15,7 @@ import {
 
 export type SubjectMedia = {
   characterAssetId?: string;
+  framingGroup?: CharacterFramingGroup;
   photoAssetId?: string;
   characterUrl?: string;
   characterFrame?: HighlightArtworkFrame;
@@ -75,7 +76,7 @@ export function useVersusMedia(
       }),
       loadCharacters(gameSlug).catch(() => {
         catalogFailed = true;
-        return { assets: [] };
+        return { assets: [], framingGroups: undefined };
       })
     ])
       .then(async ([{ matches }, assets]) => {
@@ -130,11 +131,13 @@ export function useVersusMedia(
               'characterUrl',
               'characterFrame',
               'characterAssetId',
+              'framingGroup',
               'characterPortraits',
               'hasCatalogCharacterMedia'
             ].forEach((field) => failed.add(field as keyof SubjectMedia));
           const media: SubjectMedia = {
             characterAssetId,
+            framingGroup: characterFramingGroup(characterAssetId, assets.framingGroups),
             photoAssetId: photo.assetId,
             characterUrl: framedCharacter?.url ?? characterUrl,
             characterFrame: framedCharacter?.frame,

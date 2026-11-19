@@ -16,6 +16,7 @@
 }
 .scoreboard-detail-pill {
   --detail-unit: 1px;
+  --detail-size: 16;
   --detail-accent: var(--game-accent, #6366f1);
   display: inline-flex;
   flex: 0 1 auto;
@@ -23,7 +24,7 @@
   gap: calc(6 * var(--detail-unit));
   min-width: 0;
   max-width: 100%;
-  padding: calc(5 * var(--detail-unit)) calc(12 * var(--detail-unit));
+  padding: calc(4 * var(--detail-unit)) calc(10 * var(--detail-unit));
   border: var(--detail-unit) solid color-mix(in srgb, var(--detail-accent) 80%, white);
   border-radius: 0;
   background: color-mix(in srgb, var(--detail-accent) 42%, #080b13);
@@ -34,9 +35,9 @@
     inset calc(-2 * var(--detail-unit)) calc(-2 * var(--detail-unit)) 0
       color-mix(in srgb, var(--detail-accent) 45%, black),
     calc(4 * var(--detail-unit)) calc(4 * var(--detail-unit)) 0 #000;
-  font-family: var(--scoreboard-font-family, var(--custom-font-family, 'JABS Barlow Condensed')), sans-serif;
-  font-size: calc(12px * var(--appearance-text-scale, 1));
-  font-weight: 900;
+  font-family: 'JABS Inter', system-ui, sans-serif;
+  font-size: calc(var(--detail-size) * var(--detail-unit) * var(--appearance-text-scale, 1));
+  font-weight: 700;
   line-height: 1.1;
   text-transform: uppercase;
   white-space: nowrap;
@@ -44,6 +45,12 @@
 }
 .scoreboard-detail-pill[data-player-side='right'] {
   --detail-accent: var(--broadcast-right, var(--game-accent, #6366f1));
+}
+.scoreboard-detail-group .scoreboard-detail-pill:is([data-detail='pronouns'], [data-detail='seed']) {
+  flex-shrink: 0;
+}
+.scoreboard-detail-group .scoreboard-detail-pill[data-detail='pronouns'] {
+  max-width: 35%;
 }
 .scoreboard-detail-icon {
   flex: 0 0 auto;
@@ -70,18 +77,18 @@
   display: flex;
 }
 .scoreboard-character-group .scoreboard-detail-pill {
-  box-sizing: border-box;
+  --detail-size: 24;
   width: 100%;
+  padding-block: calc(2 * var(--detail-unit));
   justify-content: center;
+  line-height: 1.05;
   text-align: center;
 }
-.custom-scoreboard-canvas .scoreboard-character-names .scoreboard-detail-pill {
+.custom-scoreboard-canvas .scoreboard-detail-pill {
   --detail-unit: 0.052083333cqw;
-  font-size: calc(12 * var(--detail-unit) * var(--appearance-text-scale, 1));
 }
 .custom-scoreboard-element .scoreboard-detail-pill {
-  --detail-unit: 0.052083333cqw;
   max-height: 100%;
-  font-family: inherit;
+  padding-block: 0;
   font-size: inherit;
 }

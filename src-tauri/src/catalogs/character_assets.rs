@@ -35,6 +35,13 @@ pub struct GameCharacterAssetVariant {
     portrait_asset_id: Option<String>,
 }
 
+impl GameCharacterAsset {
+    pub(crate) fn has_artwork(&self, id: &str) -> bool {
+        self.asset_id.as_deref() == Some(id)
+            || self.variants.iter().any(|variant| variant.asset_id.as_deref() == Some(id))
+    }
+}
+
 pub(crate) fn selected_character_artwork(
     assets: &[GameCharacterAsset],
     player: &crate::state::Player,

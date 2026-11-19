@@ -50,14 +50,23 @@ impl LayoutSettings {
             return;
         }
         let scope = media_scope(state);
+        let mirror_pair_changed = state.mirror_character_placement
+            && current.same_character_artwork() != saved.same_character_artwork();
         for side in 0..2 {
             if !current.same_layout(saved, side, &scope) {
                 continue;
             }
             let unchanged = current.unchanged_layers(saved, side);
-            if unchanged.character && self.mirror_character_placement.is_none_or(|saved| saved == state.mirror_character_placement) {
+            if unchanged.character
+                && !mirror_pair_changed
+                && self.mirror_character_placement.is_none_or(|saved| saved == state.mirror_character_placement)
+            {
+                let flipped = state.media_placements[side].character.flipped;
                 state.media_placements[side].character =
                     self.media_placements[side].character.clone();
+                if state.mirror_character_placement {
+                    state.media_placements[side].character.flipped = flipped;
+                }
             }
             if unchanged.photo {
                 state.media_placements[side].photo = self.media_placements[side].photo.clone();

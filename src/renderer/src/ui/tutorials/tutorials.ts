@@ -109,7 +109,7 @@ export const tutorials = {
     { id: 'stingers', target: target('stingers'), workspace: 'stingers' },
     { id: 'stingerFraming', target: target('stingers') },
     { id: 'stingerObs', target: target('stingers') },
-    { id: 'stingerPlay', target: target('stinger-menu') }
+    { id: 'stingerPlay', target: '.stinger-header-actions' }
   ]
 } as const satisfies Record<string, readonly TutorialStep[]>;
 

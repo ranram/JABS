@@ -6,7 +6,6 @@ import type { SelectedSetState, StartggSetScope } from '@shared/models';
 import { ModerationAllowlistControls } from './ModerationAllowlistControls';
 import type { LocalHandoffUrl } from '../../desktopRuntime';
 import { OverlayUrlMenu } from './OverlayUrlMenu';
-import { StingerQuickMenu } from '../stingers/StingerQuickMenu';
 import { HelpMenu } from '../tutorials/HelpMenu';
 import type { TutorialWorkspace } from '../tutorials/tutorials';
 import { OperatorIcon, WrenchIcon, ArrowsClockwiseIcon, TrashSimpleIcon, SignOutIcon } from '../icons';
@@ -33,7 +32,6 @@ type WorkspaceMaintenanceBarProps = {
   onClearCache(): void;
   onModerationApplied(): void;
   onCopy(kind: LocalHandoffUrl): void;
-  onConfigureStingers(): void;
   onTutorialWorkspace(workspace: TutorialWorkspace): void;
   onOpenSetSelector(): void;
   setSelectorDisabled: boolean;
@@ -59,7 +57,6 @@ export function WorkspaceMaintenanceBar({
   onClearCache,
   onModerationApplied,
   onCopy,
-  onConfigureStingers,
   onTutorialWorkspace,
   onOpenSetSelector,
   setSelectorDisabled
@@ -165,7 +162,6 @@ export function WorkspaceMaintenanceBar({
           aria-label="OBS"
         >
           <OverlayUrlMenu copied={copiedHandoff} disabled={!localBaseUrl} compact onCopy={onCopy} />
-          <StingerQuickMenu activeSet={activeSet} onConfigure={onConfigureStingers} />
         </div>
 
         <div className="workspace-maintenance-group workspace-maintenance-preferences">

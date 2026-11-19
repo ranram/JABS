@@ -125,7 +125,7 @@ Choose **Scoreboard font** under **Edit stream state** to change the scoreboard 
 
 Use **Settings** for colors, broadcast language, and text size. **Larger** is the default text size. Choose **Smaller** for a more compact layout.
 
-Set **Animation delay (seconds)** in **Settings** to wait before OBS overlay entrances, including built-in and custom scoreboards. The default is `0` for an immediate start. Custom scoreboard frames and text slide up and fade in together. Player photos keep their usual entrance. The delay is saved with appearance presets. Stingers keep the timing set under **Stingers**.
+Set **Animation delay (seconds)** in **Settings** to wait before OBS overlay entrances, including built-in and custom scoreboards. The default is `0` for an immediate start. Custom scoreboard frames and text slide up and fade in together. Player photos keep their usual entrance. The delay is saved with appearance presets. Stingers follow their own playback timing.
 
 In **Settings**, choose a saved appearance preset to apply it. To create one, choose **New preset**, adjust the default settings, enter a name, and choose **Save preset**. This creates a separate preset and keeps your other saved presets.
 
@@ -145,7 +145,7 @@ Open the overlay’s settings and use **Image framing**. Player Stats shows both
 
 Click an image to select it, or use **Ctrl+click** to reach artwork behind it. Drag to move, use **+ / −** to resize, and press **F** to flip. **Adjust visual layer** selects an image by name. **Reset position** resets only the selected image. Images can scale up to 800% if needed.
 
-Classic, Victory, and Spotlight keep artwork on the left and names, logos, and match details on the right for either winner. Character position and size carry across winners without reversing horizontal movement. Player Stats mirrors character framing between sides. Flip stays separate for each side, and photos keep each player’s own framing. Each screen and composition saves separate framing for photos alone, characters alone, and both together.
+Classic, Victory, and Spotlight keep artwork on the left and names, logos, and match details on the right for either winner. Character position and size carry across winners. Player Stats offers the same **Mirror character placement** option as the Versus Screen. Each screen and composition saves separate framing for photos alone, characters alone, and both together.
 
 Choose **Highlight** under **Layout** for large player and character artwork grouped in the center, with a faint team or sponsor logo behind them. Artwork can extend behind the Winner or Champion title or your own OBS banner. The glow follows the winning side’s theme color. Use **Image framing** to adjust the same arrangement shown in OBS.
 
@@ -153,7 +153,7 @@ Turn off **Keep Winner / Champion title** in any winner layout to hide the title
 
 ### Stingers
 
-Add your Perfect and Winner videos under **Stingers** in WebM format. Winner playback needs a completed set and can start automatically. Use **Winner framing** to check the photo, character, sponsor logo, and name against your video. This preview stays inside JABS.
+Open **Help → Set up stingers** to manage your Perfect and Winner videos. Use WebM files. Winner playback needs a completed set and can start automatically. Use **Winner framing** to check the photo, character, sponsor logo, and name against your video. This preview stays inside JABS.
 
 Enable **Limit playback duration** to keep winner details on screen for the selected duration. They slide out during the final two seconds. If the video ends sooner, its last frame stays behind the details until the duration finishes.
 
@@ -161,7 +161,7 @@ To try it first, use the [sample Winner stinger](examples/stingers/Winner-Placeh
 
 Place the Stingers Browser Source above the graphics it should cover and reuse it across scenes. Enable **Control audio via OBS** to mix its sound in OBS. Hiding the source or leaving its active scene stops playback.
 
-Use the toolbar’s **Stingers** menu to play or stop clips from any tab. With keyboard shortcuts enabled, **Ctrl+P** plays Perfect and **Ctrl+W** plays Winner. If a clip is missing, JABS offers to open setup. Both actions are also supported by the Stream Deck integration.
+With keyboard shortcuts enabled, **Ctrl+P** plays Perfect and **Ctrl+W** plays Winner. If a clip is missing, JABS offers to open setup. Both actions are also supported by the Stream Deck integration. Use **Stop in OBS** in stinger settings to stop a clip.
 
 If playback loses its connection, check that the source is in the active OBS scene and choose **Reconnect OBS source**. If OBS failed to load the page, first use **Refresh cache of current page** in that Browser Source’s properties.
 
@@ -247,7 +247,15 @@ In Versus Screen, Top 8 Generator, and YouTube Thumbnail Generator, drag either 
 
 With an image selected, arrow keys move it, `Shift` + arrows moves it farther, `+` / `-` resizes it, and `F` flips it.
 
-In **Overlays → Versus Screen**, **Mirror character placement** links character position and size across sides for the same game and artwork. It is on by default. A character edit on either side saves a reflected copy of the same artwork for the other side. Turn it off to move, resize, and flip each side independently. Switching modes restores the framing saved for that mode. Player photos keep the same placement in both modes. Standard and Compact save separate framing.
+With **Mirror character placement** on, Player 2’s character art starts flipped, even with a different file. Use **F** to override the flip for that image. Position and size mirror across sides for the same artwork or a shared group. Turn mirroring off to restore manual framing and adjust each side separately. Player photos keep the same placement in both modes. Standard and Compact save separate framing.
+
+### Share framing across artwork variants
+
+In a Versus, Player Stats, or Winner & Champion preview, select the character artwork you want to use as a reference. Choose **Share framing with…**, select variants with the same pose, then choose **Save group**.
+
+Groups share position and size within each screen and layout. Each image keeps its own flip. If you want to apply the group’s placement to images you already adjusted, check **Use group framing on images you already adjusted**.
+
+To move an image, select the destination group, check the image, and save. To remove a variant, clear its checkbox and save. To ungroup all images at once, select the group and choose **Delete group**. The images stay in your artwork folder and return to individual framing.
 
 ## Custom scoreboards
 

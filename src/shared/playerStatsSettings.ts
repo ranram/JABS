@@ -14,6 +14,7 @@ export const playerStatsSettingsSchema = z.object({
   showSponsorLogo: z.boolean().default(true),
   showPlayerPhoto: z.boolean().default(true),
   showCharacter: z.boolean().default(true),
+  mirrorCharacterPlacement: z.boolean().default(true),
   updatedAt: z.string().datetime({ offset: true })
 });
 

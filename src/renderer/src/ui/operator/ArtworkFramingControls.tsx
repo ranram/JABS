@@ -1,3 +1,4 @@
+import { ShareArtworkFraming } from './ShareArtworkFraming';
 import { useEffect, useRef, useState } from 'react';
 import { Button, Group, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
@@ -6,9 +7,15 @@ import {
   artworkFramingLayout,
   artworkPlacement,
   clampArtworkTransform,
+  updateArtworkPlacement,
   type ArtworkFraming
 } from '@shared/artworkFraming';
-import { defaultMediaTransform, type MediaLayerKind, type MediaTransform } from '@shared/mediaPlacement';
+import {
+  defaultCharacterTransform,
+  defaultMediaTransform,
+  type MediaLayerKind,
+  type MediaTransform
+} from '@shared/mediaPlacement';
 import type { SelectedSetState } from '@shared/models';
 import type { ResultScreenState } from '@shared/resultScreen';
 import { resolveGameProfile } from '@shared/gameProfiles';
@@ -36,6 +43,7 @@ export function ArtworkFramingControls({
   winnerSide,
   stylingGameId,
   highlightSettings,
+  mirrorCharacterPlacement,
   onChange
 }: {
   activeSet: SelectedSetState;
@@ -48,8 +56,9 @@ export function ArtworkFramingControls({
   ready: boolean;
   winnerSide?: 0 | 1;
   stylingGameId?: SelectedSetState['stylingGameId'];
+  mirrorCharacterPlacement?: boolean;
   highlightSettings?: Pick<ResultScreenState, 'showIdentity' | 'showWinnerTitle' | 'showSponsorLogo'>;
-  onChange(key: string, transform: MediaTransform, mirroredKey?: string, mirrorX?: boolean): void;
+  onChange(update: (framing: ArtworkFraming) => ArtworkFraming): void;
 }) {
   const { t } = useTranslation('operator');
   const [selected, setSelected] = useState<{ side: 0 | 1; layer: MediaLayerKind }>();
@@ -86,7 +95,9 @@ export function ArtworkFramingControls({
       player,
       artworkFramingLayout(layout, Boolean(visible.characterUrl), Boolean(visible.photoUrl)),
       media[side],
-      side
+      side,
+      framing,
+      mirrorCharacterPlacement
     );
   }
   function change(side: 0 | 1, layer: MediaLayerKind, transform: MediaTransform) {
@@ -94,12 +105,7 @@ export function ArtworkFramingControls({
     const visible = visibleArtwork(side);
     if (!(layer === 'character' ? visible.characterUrl : visible.photoUrl)) return;
     const keys = framingKeys(side);
-    onChange(
-      keys[layer],
-      clampArtworkTransform(transform),
-      layer === 'character' ? keys.mirroredCharacter : undefined,
-      keys.mirrorX
-    );
+    onChange((current) => updateArtworkPlacement(current, keys, layer, clampArtworkTransform(transform)));
   }
   const options = sides.flatMap((side) => {
     const player = side === 0 ? activeSet.playerOne : activeSet.playerTwo;
@@ -121,9 +127,11 @@ export function ArtworkFramingControls({
   return (
     <Stack gap="sm">
       <Text fw={700}>{t('artworkFraming.title')}</Text>
-      <Text size="sm" c="dimmed">
-        {t('artworkFraming.help')}
-      </Text>
+      {mirrorCharacterPlacement !== undefined && (
+        <Text size="sm" c="dimmed">
+          {t('artworkFraming.mirroringHelp')}
+        </Text>
+      )}
       <SimpleGrid type="container" cols={{ base: 1, '36rem': 2 }}>
         <Select
           label={t('thumbnail.adjustLayer')}
@@ -137,15 +145,34 @@ export function ArtworkFramingControls({
             setSelected({ side: Number(side) as 0 | 1, layer: layer as MediaLayerKind });
           }}
         />
-        <Group align="flex-end">
+        <Group align="flex-end" grow>
           <Button
-            fullWidth
             variant="default"
             disabled={!selection}
-            onClick={() => selection && change(selection.side, selection.layer, defaultMediaTransform())}
+            onClick={() => {
+              if (!selection) return;
+              const { side, layer } = selection;
+              const transform =
+                layer === 'character'
+                  ? defaultCharacterTransform(side, mirrorCharacterPlacement)
+                  : defaultMediaTransform();
+              change(side, layer, transform);
+            }}
           >
             {t('topEight.resetPlacement')}
           </Button>
+          {selection?.layer === 'character' &&
+            (() => {
+              const player = selection.side === 0 ? activeSet.playerOne : activeSet.playerTwo;
+              const game = activeSet.assetCatalogSlug ?? activeSet.gameId;
+              return (
+                <ShareArtworkFraming
+                  key={JSON.stringify([game, player.character, player.characterAssetId])}
+                  game={game}
+                  player={player}
+                />
+              );
+            })()}
         </Group>
       </SimpleGrid>
       <MediaControlHint showOverlapSelection behindModifier="Ctrl" />

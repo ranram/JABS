@@ -657,6 +657,10 @@ body {
   font-family: "Arial Narrow", "Avenir Next Condensed", sans-serif;
 }
 
+.smash-stock-broadcast .overlay-match-context-rail {
+  width: 20%;
+}
+
 .smash-stock-broadcast .overlay-info-right {
   background:
     linear-gradient(260deg, var(--scoreboard-side-wash, rgba(79, 140, 255, 0.32)), transparent 45%),

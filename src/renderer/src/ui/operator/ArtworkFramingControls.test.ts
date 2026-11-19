@@ -3,15 +3,18 @@ import { act, createElement as h } from 'react';
 import { MantineProvider } from '@mantine/core';
 import { afterEach, expect, it, vi } from 'vitest';
 import { createTestOverlayState } from '@shared/testFixtures';
+import { characterFramingGroup } from '@shared/characterAssets';
 import {
   artworkFramingKeys,
   artworkPlacement,
-  updateArtworkFraming,
+  updateArtworkPlacement,
   type ArtworkFraming
 } from '@shared/artworkFraming';
 import { mountView } from '../../hooks/hookTestHarness';
 import { initializeI18n } from '../../i18n';
 import { ArtworkFramingControls } from './ArtworkFramingControls';
+import { ShareArtworkFraming } from './ShareArtworkFraming';
+import { api } from '../../api';
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -84,8 +87,8 @@ it('edits artwork on both sides and limits result framing to the winner', async 
         showPhoto,
         media: [...media],
         ready: true,
-        onChange(key, transform, mirroredKey, mirrorX) {
-          framing = updateArtworkFraming(framing, key, transform, mirroredKey, mirrorX);
+        onChange(applyFraming) {
+          framing = applyFraming(framing);
         }
       })
     )
@@ -267,4 +270,190 @@ it('edits artwork on both sides and limits result framing to the winner', async 
     `, ${initialY},`
   );
   await view.unmount();
+});
+
+it.each([false, true])('manages shared artwork framing with existing groups: %s', async (moving) => {
+  await initializeI18n();
+  const match = createTestOverlayState().selectedSet;
+  const player = { ...match.playerOne, character: 'Ryu', characters: ['Ryu'] };
+  const extraGroups = moving
+    ? Array.from({ length: 4 }, (_, index) => ({
+        number: 20 + index,
+        anchor: `Ryu-${20 + index}.webp`,
+        members: [],
+        useSharedForAdjusted: false
+      }))
+    : [];
+  const groups = moving
+    ? [
+        { number: 4, anchor: 'Ryu.webp', members: ['Ryu-16.webp'], useSharedForAdjusted: false },
+        { number: 7, anchor: 'Ryu-17.webp', members: ['Ryu-18.webp'], useSharedForAdjusted: false },
+        ...extraGroups
+      ]
+    : [];
+  const catalog = {
+    assets: [
+      {
+        character: 'Ryu',
+        assetId: 'Ryu.webp',
+        variants: [
+          { label: '16', assetId: 'Ryu-16.webp' },
+          { label: '17', assetId: 'Ryu-17.webp' },
+          { label: '18', assetId: 'Ryu-18.webp' },
+          ...extraGroups.map(({ number, anchor }) => ({ label: String(number), assetId: anchor }))
+        ]
+      },
+      { character: 'Ken', assetId: 'Ken.webp', variants: [] }
+    ],
+    framingGroups: groups
+  };
+  const load = vi.spyOn(api, 'gameCharacterAssets').mockResolvedValue(catalog);
+  vi.spyOn(api, 'gameCharacterAssetUrl').mockResolvedValue('data:image/png;base64,');
+  const save = vi.spyOn(api, 'saveCharacterFramingGroup').mockResolvedValue(groups);
+  const view = await mountView(() =>
+    h(MantineProvider, { env: 'test' }, h(ShareArtworkFraming, { game: 'street-fighter-6', player }))
+  );
+  await act(async () => view.container.querySelector('button')!.click());
+  const dialog = document.querySelector('[role="dialog"]')!;
+  expect(dialog.textContent).toContain('Ryu-17.webp');
+  expect(dialog.textContent).not.toContain('Ken.webp');
+  if (moving) {
+    const groups = dialog.querySelector('[aria-label="Artwork groups"]')!;
+    const search = groups.querySelector<HTMLInputElement>('input[aria-label="Search groups"]')!;
+    const searchFor = (value: string) =>
+      act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, value);
+        search.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    await searchFor('RYU-20');
+    expect(groups.textContent).toContain('Group #20');
+    expect(groups.textContent).not.toContain('Group #7');
+    await searchFor('#7');
+    const destination = [...groups.querySelectorAll('button')].find((button) =>
+      button.textContent?.includes('Group #7')
+    )!;
+    await act(async () => destination.click());
+    expect(destination.getAttribute('aria-pressed')).toBe('true');
+    expect(dialog.textContent).toContain('In Group #4');
+  }
+  const artwork = moving ? 'Ryu.webp' : 'Ryu-17.webp';
+  const choice = [...dialog.querySelectorAll('label')].find((label) => label.textContent?.includes(artwork))!;
+  await act(async () => document.getElementById(choice.htmlFor)!.click());
+  if (moving) expect(dialog.textContent).toContain('Move from Group #4');
+  const saveButton = [...dialog.querySelectorAll('button')].find((button) => button.textContent === 'Save group')!;
+  await act(async () => saveButton.click());
+  expect(save).toHaveBeenCalledWith('street-fighter-6', {
+    ...(moving ? { number: 7 } : {}),
+    anchor: moving ? 'Ryu-17.webp' : 'Ryu.webp',
+    members: moving ? ['Ryu-18.webp', 'Ryu.webp'] : ['Ryu-17.webp'],
+    useSharedForAdjusted: false
+  });
+  if (moving) {
+    await act(async () => view.container.querySelector('button')!.click());
+    const deleteButton = [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(
+      (button) => button.textContent === 'Delete group'
+    )!;
+    const confirm = vi.fn().mockReturnValueOnce(false).mockReturnValue(true);
+    vi.stubGlobal('confirm', confirm);
+    await act(async () => deleteButton.click());
+    expect(save).toHaveBeenCalledTimes(1);
+    const remaining = groups.filter(({ number }) => number !== 4);
+    save.mockResolvedValue(remaining);
+    load.mockResolvedValue({ ...catalog, framingGroups: remaining });
+    await act(async () => deleteButton.click());
+    expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining('Group #4'));
+    expect(save).toHaveBeenLastCalledWith('street-fighter-6', {
+      number: 4,
+      anchor: 'Ryu.webp',
+      members: [],
+      useSharedForAdjusted: false
+    });
+    await act(async () => view.container.querySelector('button')!.click());
+    expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain('Group #4');
+  }
+  await view.unmount();
+});
+
+it('restores independent Player Stats framing after editing the mirrored placement', () => {
+  const set = createTestOverlayState().selectedSet;
+  const player = { ...set.playerOne, character: 'Ryu', characters: ['Ryu'] };
+  const assets = { characterAssetId: 'Ryu.webp', photoAssetId: 'player.webp' };
+  const keys = (side: 0 | 1, mirrored: boolean) =>
+    artworkFramingKeys(set, player, 'stats', assets, side, undefined, mirrored);
+  const left = keys(0, false);
+  const right = keys(1, false);
+  const mirrored = keys(0, true);
+  const individual = { x: 0.15, y: 0, scale: 1.2, flipped: false };
+  const photo = { x: 0.1, y: 0, scale: 1, flipped: false };
+  const reflected = { x: 0.25, y: -0.25, scale: 2, flipped: false };
+  const framing = updateArtworkPlacement(
+    { [right.character]: individual, [left.photo]: photo },
+    mirrored,
+    'character',
+    reflected
+  );
+  expect(artworkPlacement(framing, keys(1, true)).character).toEqual({ ...reflected, x: -0.25, flipped: true });
+  expect(artworkPlacement(framing, right).character).toEqual(individual);
+  expect(artworkPlacement(framing, mirrored).photo).toEqual(photo);
+});
+
+it('shares grouped artwork geometry without sharing or overwriting flips', () => {
+  const set = createTestOverlayState().selectedSet;
+  const player = { ...set.playerOne, character: 'Ryu', characters: ['Ryu'] };
+  const group = { number: 1, anchor: 'Ryu.webp', members: ['Ryu-17.webp'], useSharedForAdjusted: true };
+  for (const [layout, mirror] of [
+    ['stats', true],
+    ['spotlight', undefined]
+  ] as const) {
+    let framing: ArtworkFraming = {};
+    const keys = (assetId: string, side: 0 | 1, grouped = true) =>
+      artworkFramingKeys(
+        set,
+        player,
+        layout,
+        {
+          characterAssetId: assetId,
+          framingGroup: grouped ? characterFramingGroup(assetId, [group]) : undefined
+        },
+        side,
+        framing,
+        mirror
+      );
+    const anchor = keys(group.anchor, 0);
+    const member = keys(group.members[0]!, 0);
+    framing[anchor.character] = { x: 0.2, y: 0.1, scale: 1.5, flipped: false };
+    expect(artworkPlacement(framing, keys(group.anchor, 1)).character.flipped).toBe(mirror === true);
+    framing[anchor.mirroredCharacter] = { x: -0.2, y: 0.1, scale: 1.5, flipped: false };
+    expect(artworkPlacement(framing, keys(group.anchor, 1)).character.flipped).toBe(mirror === true);
+    delete framing[anchor.mirroredCharacter];
+    framing[anchor.character] = { x: 0.2, y: 0.1, scale: 1.5, flipped: true };
+    expect(artworkPlacement(framing, member).character).toEqual({ x: 0.2, y: 0.1, scale: 1.5, flipped: false });
+    const rightMember = keys(group.members[0]!, 1);
+    const previousRight = artworkPlacement(framing, rightMember).character;
+    expect(previousRight.flipped).toBe(mirror === true);
+    expect(artworkPlacement(framing, keys(group.members[0]!, 1, false)).character).toEqual({
+      x: 0,
+      y: 0,
+      scale: 1,
+      flipped: mirror === true
+    });
+    const overrideFlip = mirror !== true;
+    framing = updateArtworkPlacement(framing, rightMember, 'character', { ...previousRight, flipped: overrideFlip });
+    expect(artworkPlacement(framing, member).character.flipped).toBe(false);
+    expect(artworkPlacement(framing, keys(group.anchor, 1)).character.flipped).toBe(mirror === true);
+    framing = updateArtworkPlacement(framing, member, 'character', { x: 0.4, y: 0.2, scale: 1.75, flipped: false });
+    expect(artworkPlacement(framing, anchor).character).toEqual({ x: 0.4, y: 0.2, scale: 1.75, flipped: true });
+    expect(artworkPlacement(framing, rightMember).character).toEqual({
+      x: mirror ? -0.4 : 0.4,
+      y: 0.2,
+      scale: 1.75,
+      flipped: overrideFlip
+    });
+    expect(artworkPlacement(framing, keys(group.members[0]!, 1, false)).character).toEqual({
+      x: 0,
+      y: 0,
+      scale: 1,
+      flipped: overrideFlip
+    });
+  }
 });

@@ -95,7 +95,7 @@
   outline-offset: -5px;
 }
 
-.operator-workspaces > .mantine-Tabs-panel {
+.operator-workspaces > :is(.mantine-Tabs-panel, .stingers-workspace) {
   padding-inline: 12px;
   padding-bottom: 12px;
 }

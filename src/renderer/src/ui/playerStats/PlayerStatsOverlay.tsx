@@ -86,7 +86,9 @@ function PlayerStatsScreen({ slot }: { slot: StatsPlayer }) {
                       player,
                       artworkFramingLayout('stats', Boolean(characterUrl), Boolean(photoUrl)),
                       artwork,
-                      slot === 1 ? 0 : 1
+                      slot === 1 ? 0 : 1,
+                      settings.artworkFraming,
+                      settings.mirrorCharacterPlacement
                     )
                   )
                 : undefined
