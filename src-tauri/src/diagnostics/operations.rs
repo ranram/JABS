@@ -71,6 +71,7 @@ pub enum Operation {
     Score,
     ScoreboardPhotos,
     ScoreboardPhotosResolve,
+    BroadcastWinner,
     ScoresReset,
     SelectedSet,
     SetSessionStartggToken,

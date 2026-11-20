@@ -129,6 +129,8 @@ export type ReportOutcome = {
 export type SelectedSetState = {
   /** Confirmed result reported without game scores; numeric progress is kept separately. */
   reportedOutcome?: ReportOutcome;
+  /** Operator choice for the active broadcast result. */
+  useReportedBroadcastWinner?: boolean;
   /**
    * True marks retained scores from a reset result.
    * False follows a score edit/reset or confirmed report; missing covers older/imported data.

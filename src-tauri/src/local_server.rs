@@ -89,6 +89,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .route("/api/state/selected-set", put(update_selected_set).delete(clear_selected_set))
         .route("/api/state/exhibition-game", post(select_exhibition_game))
         .route("/api/state/score", post(set_score))
+        .route("/api/state/broadcast-winner", post(choose_broadcast_winner))
         .route("/api/state/scores/reset", post(reset_scores))
         .route("/api/state/players/swap", post(swap_players))
         .route("/api/state/players/clear", post(selection::clear_players))
@@ -298,6 +299,26 @@ async fn set_score(
         }
     }
     state_result(result)
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct BroadcastWinnerBody {
+    updated_at: String,
+    use_reported: bool,
+}
+
+async fn choose_broadcast_winner(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+    Json(body): Json<BroadcastWinnerBody>,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    state_result(runtime.overlay.choose_broadcast_winner(
+        &runtime.database, &body.updated_at, body.use_reported,
+    ))
 }
 
 async fn reset_scores(

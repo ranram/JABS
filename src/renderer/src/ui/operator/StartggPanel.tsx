@@ -1,3 +1,4 @@
+import { ResultConflictBanner } from './ResultConflictBanner';
 import { useStingerPlaybackActions } from '../stingers/useStingerPlaybackActions';
 import { useTutorialActive } from '../tutorials/tutorialActivity';
 import { ImportEventPlayers } from '../players/ImportEventPlayers';
@@ -428,6 +429,7 @@ export function StartggPanel({
           <SetSelectorLauncherContext.Provider
             value={{ disabled: !tournamentLoaded || !setSelector, open: () => setSetSelectorOpen(true) }}
           >
+            {activeSet && <ResultConflictBanner activeSet={activeSet} blocked={loading || streamPending} prominent />}
             {children}
           </SetSelectorLauncherContext.Provider>
         </Tabs.Panel>

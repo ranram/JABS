@@ -52,13 +52,13 @@ impl OverlayStore {
         next.selected_set.upstream_reset = upstream_reset;
         if upstream_reset == Some(true) { next.selected_set.reported_outcome = None; }
         else if let Some(outcome) = reported { next.selected_set.reported_outcome = Some(outcome); }
+        next.selected_set.use_reported_broadcast_winner = false;
         next.selected_set.updated_at = next_timestamp(&selected.updated_at)?;
         validate_state(&next)?;
         let payload = serde_json::to_string(&next)
             .map_err(|_| "Unable to serialize local stream state.".to_owned())?;
         persist_stream_state(database, &next, &payload)?;
         *current = next;
-        drop(current);
         let _ = self.updates.send(payload);
         Ok(reset_id)
     }

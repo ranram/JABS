@@ -35,6 +35,7 @@ impl OverlayStore {
         selected.tournament_slug = None;
         selected.state = None;
         selected.reported_outcome = None;
+        selected.use_reported_broadcast_winner = false;
         selected.upstream_reset = None;
         selected.winners_side_entrant_id = None;
         selected.updated_at = next_timestamp(&current.selected_set.updated_at).map_err(invalid)?;
@@ -45,8 +46,8 @@ impl OverlayStore {
         persist_stream_state(database, &next, &payload).map_err(invalid)?;
         self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
-        drop(current);
         let _ = self.updates.send(payload.clone());
+        drop(current);
         serde_json::from_str(&payload)
             .map_err(|_| invalid("Unable to serialize local stream state.".to_owned()))
     }

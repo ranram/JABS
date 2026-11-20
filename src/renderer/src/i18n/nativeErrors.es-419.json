@@ -9,6 +9,7 @@
   "Invalid pairing key.": "La clave de vinculación no es válida.",
   "Bridge unavailable.": "No se pudo conectar con Stream Deck.",
   "The local service is unavailable.": "El servicio local de JABS no está disponible.",
+  "The live set changed. Review it and try again.": "La partida en transmisión cambió. Revísala y vuelve a intentarlo.",
   "The stream match changed before clearing the players. Review it and try again.": "La partida en transmisión cambió antes de borrar los jugadores. Revísala e inténtalo de nuevo.",
   "Choose only one logo backdrop.": "Elige solo una opción de logos de fondo.",
   "Choose a valid game before preparing character files.": "Elige un juego válido antes de preparar los archivos de personajes.",

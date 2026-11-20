@@ -607,6 +607,11 @@ export function winnerSideForMatch(selectedSet: SelectedSetState): 'one' | 'two'
     return winnerId === selectedSet.playerOne.entrantId ? 'one'
       : winnerId === selectedSet.playerTwo.entrantId ? 'two' : undefined;
   }
+  return winnerSideForLocalScore(selectedSet);
+}
+
+export function winnerSideForLocalScore(selectedSet: SelectedSetState): 'one' | 'two' | undefined {
+  if (selectedSet.upstreamReset) return undefined;
   const one = selectedSet.playerOne.score;
   const two = selectedSet.playerTwo.score;
   if (one === two) return undefined;

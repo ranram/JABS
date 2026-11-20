@@ -642,6 +642,12 @@ export const api = {
       },
       { decoder: overlayStateSchema }
     ),
+  chooseBroadcastWinner: (updatedAt: string, useReported: boolean) =>
+    request<OverlayState>(
+      '/api/state/broadcast-winner',
+      { method: 'POST', body: JSON.stringify({ updatedAt, useReported }) },
+      { decoder: overlayStateSchema }
+    ),
   resetScores: () =>
     request<OverlayState>(
       '/api/state/scores/reset',

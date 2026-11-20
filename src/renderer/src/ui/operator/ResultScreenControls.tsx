@@ -11,7 +11,7 @@ import type { ResultScreenState } from '@shared/resultScreen';
 import type { LogoAsset, SelectedSetState } from '@shared/models';
 import type { GameId, GameProfile } from '@shared/gameProfiles';
 import { api } from '../../api';
-import { announcementPresentation } from '../announcementPresentation';
+import { announcementPresentation, reportedWinnerConflict } from '../announcementPresentation';
 
 type ResultScreenControlsProps = {
   activeSet?: SelectedSetState;
@@ -185,13 +185,14 @@ export function ResultScreenStatus({ activeSet }: { activeSet?: SelectedSetState
       </Badge>
     );
   }
+  const conflict = activeSet && reportedWinnerConflict(activeSet);
   return (
     <Group gap="xs" wrap="nowrap">
       <Text fw={900} miw={0} style={{ overflowWrap: 'anywhere' }}>
         {result.winner.name}
       </Text>
-      <Badge color={result.kind === 'champion' ? 'yellow' : 'green'} variant="light" style={{ flexShrink: 0 }}>
-        {t(`workspaces.resultScreen.${result.kind}`)}
+      <Badge color={conflict || result.kind === 'champion' ? 'yellow' : 'green'} variant="light" flex="0 0 auto">
+        {t(conflict ? 'workspaces.resultScreen.winnerMismatch' : `workspaces.resultScreen.${result.kind}`)}
       </Badge>
     </Group>
   );

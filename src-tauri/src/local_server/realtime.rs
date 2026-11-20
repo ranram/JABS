@@ -9,7 +9,6 @@ pub(super) async fn websocket_session(mut socket: WebSocket, runtime: Arc<Runtim
     let mut ticker_updates = runtime.queue_ticker.subscribe();
     let mut stinger_updates = runtime.stingers.subscribe();
     let mut photo_updates = runtime.scoreboard_photos.subscribe();
-    let mut updates = runtime.overlay.subscribe();
     let mut commentator_updates = runtime.commentators.subscribe();
     let mut result_screen_updates = runtime.result_screen.subscribe();
     let mut stats_settings_updates = runtime.player_stats_settings.subscribe();
@@ -19,7 +18,10 @@ pub(super) async fn websocket_session(mut socket: WebSocket, runtime: Arc<Runtim
     let mut top_eight_matchups_updates = runtime.top_eight_matchups.subscribe();
     let mut player_updates = runtime.player_library_revision.subscribe();
     let mut asset_updates = runtime.asset_catalog_revision.subscribe();
-    let Ok(initial) = runtime.overlay.current().and_then(overlay_state_message) else {
+    let Ok((snapshot, mut updates)) = runtime.overlay.subscribe_with_snapshot() else {
+        return;
+    };
+    let Ok(initial) = overlay_state_message(snapshot) else {
         return;
     };
     if socket.send(Message::Text(initial.into())).await.is_err() {

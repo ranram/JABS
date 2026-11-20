@@ -55,6 +55,9 @@ pub struct SelectedSet {
     /// Confirmed W/L or DQ winner; recorded game scores remain unchanged.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reported_outcome: Option<ReportOutcome>,
+    /// Explicit choice for the active, conflicting broadcast result.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub(crate) use_reported_broadcast_winner: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub set_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -250,6 +253,15 @@ impl OverlayStore {
         self.updates.subscribe()
     }
 
+    pub(crate) fn subscribe_with_snapshot(&self) -> Result<(Value, broadcast::Receiver<String>), String> {
+        let state = self.state.read()
+            .map_err(|_| "Local stream state is unavailable.".to_owned())?;
+        // Writers publish under the same lock, so the receiver starts after this snapshot.
+        let snapshot = serde_json::to_value(&*state)
+            .map_err(|_| "Unable to serialize local stream state.".to_owned())?;
+        Ok((snapshot, self.subscribe()))
+    }
+
     pub fn selected_set(&self) -> Result<SelectedSet, String> {
         self.state.read()
             .map(|state| state.selected_set.clone())
@@ -302,6 +314,7 @@ impl OverlayStore {
         if expected.is_some_and(|version| version != current.selected_set.updated_at) {
             return Err("The live match changed while loading the queue. Review it before continuing.".into());
         }
+        selected_set.use_reported_broadcast_winner = false;
         selected_set.updated_at = next_timestamp(&current.selected_set.updated_at)?;
         let mut next = OverlayState { selected_set };
         validate_state(&next)?;
@@ -315,8 +328,8 @@ impl OverlayStore {
         persist_stream_state(database, &next, &payload)?;
         self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
-        drop(current);
         let _ = self.updates.send(payload.clone());
+        drop(current);
         serde_json::from_str(&payload)
             .map_err(|_| "Unable to serialize local stream state.".to_owned())
     }
@@ -366,6 +379,8 @@ impl OverlayStore {
                 current.selected_set.upstream_reset
             };
         }
+        submitted.use_reported_broadcast_winner = current.selected_set.use_reported_broadcast_winner
+            && submitted.same_broadcast_result(&current.selected_set);
         if current.selected_set.set_id.is_some() {
             submitted.player_one.player_id = player_id_for_entrant(
                 &current.selected_set,
@@ -418,8 +433,8 @@ impl OverlayStore {
             .map_err(UpdateSelectedSetError::Invalid)?;
         self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
-        drop(current);
         let _ = self.updates.send(payload.clone());
+        drop(current);
         serde_json::from_str(&payload)
             .map_err(|_| UpdateSelectedSetError::Invalid("Unable to serialize local stream state.".to_owned()))
     }
@@ -489,8 +504,8 @@ impl OverlayStore {
         persist_stream_state(database, &next, &payload).map_err(invalid)?;
         self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
-        drop(current);
         let _ = self.updates.send(payload.clone());
+        drop(current);
         serde_json::from_str(&payload)
             .map_err(|_| invalid("Unable to serialize local stream state.".to_owned()))
     }
@@ -505,8 +520,8 @@ impl OverlayStore {
         persist_stream_state(database, &next, &payload)?;
         self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
-        drop(current);
         let _ = self.updates.send(payload.clone());
+        drop(current);
         serde_json::from_str(&payload)
             .map_err(|_| "Unable to serialize local stream state.".to_owned())
     }
@@ -612,6 +627,11 @@ impl OverlayStore {
             .map_err(|_| "Local stream state is unavailable.".to_owned())?;
         let mut next = current.clone();
         mutation(&mut next.selected_set)?;
+        if next.selected_set.use_reported_broadcast_winner
+            && !next.selected_set.same_broadcast_result(&current.selected_set)
+        {
+            next.selected_set.use_reported_broadcast_winner = false;
+        }
         next.selected_set.updated_at = next_timestamp(&current.selected_set.updated_at)?;
         validate_state(&next)?;
         let payload = serde_json::to_string(&next)
@@ -619,8 +639,8 @@ impl OverlayStore {
         persist_stream_state(database, &next, &payload)?;
         self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
-        drop(current);
         let _ = self.updates.send(payload.clone());
+        drop(current);
         serde_json::from_str(&payload)
             .map_err(|_| "Unable to serialize local stream state.".to_owned())
     }
@@ -643,11 +663,16 @@ fn persist_stream_state(
     )
 }
 
+fn is_false(value: &bool) -> bool {
+    !value
+}
+
 fn default_state() -> OverlayState {
     OverlayState {
         selected_set: SelectedSet {
             report_baseline: None,
             reported_outcome: None,
+            use_reported_broadcast_winner: false,
             upstream_reset: None,
             set_id: None,
             event_id: None,

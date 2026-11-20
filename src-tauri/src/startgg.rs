@@ -505,6 +505,7 @@ pub async fn selected_set(
     let mut selected_set = SelectedSet {
         report_baseline: None,
         reported_outcome: None,
+        use_reported_broadcast_winner: false,
         upstream_reset: None,
         set_id: Some(set_id),
         event_id: set.get("event").and_then(|event| event.get("id")).and_then(normalized_id).or_else(|| optional_context(input.event_id)),

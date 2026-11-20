@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SelectedSetState } from '@shared/models';
-import { announcementPresentation } from './announcementPresentation';
+import { announcementPresentation, reportedWinnerConflict } from './announcementPresentation';
 
 function completedSet(round: string, winner: 'one' | 'two', winnersSideEntrantId?: string): SelectedSetState {
   return {
@@ -21,6 +21,37 @@ describe('announcement presentation', () => {
     expect(announcementPresentation(completedSet('Grand Final', 'one', 'alpha'))?.kind).toBe('champion');
     expect(announcementPresentation(completedSet('Grand Finals', 'two', 'alpha'))?.kind).toBe('winner');
     expect(announcementPresentation(completedSet('Grand Final Reset', 'two', 'alpha'))?.kind).toBe('champion');
+  });
+
+  it('keeps the local winner unless the active result carries an explicit choice', () => {
+    const local = completedSet('Losers Quarter-Final', 'one');
+    const set: SelectedSetState = {
+      ...local,
+      setId: 'funda-set',
+      state: '3',
+      playerTwo: { ...local.playerTwo, score: 0 },
+      reportedOutcome: { kind: 'win-loss', winnerId: 'beta' }
+    };
+
+    const conflict = reportedWinnerConflict(set);
+    expect(conflict).toMatchObject({
+      localWinner: { entrantId: 'alpha', score: 3 },
+      reportedWinner: { entrantId: 'beta', score: 0 },
+      usingReported: false
+    });
+    expect(announcementPresentation(set)?.winner.entrantId).toBe('alpha');
+
+    const chosen = { ...set, useReportedBroadcastWinner: true };
+    expect(announcementPresentation(chosen)?.winner.entrantId).toBe('beta');
+    expect(announcementPresentation({ ...chosen, upstreamReset: true })).toBeUndefined();
+
+    const agreed = { ...chosen, reportedOutcome: { kind: 'win-loss' as const, winnerId: 'alpha' } };
+    expect(reportedWinnerConflict(agreed)).toBeUndefined();
+    expect(announcementPresentation(agreed)?.winner.entrantId).toBe('alpha');
+
+    const inconclusive = { ...set, playerOne: { ...set.playerOne, score: 2 } };
+    expect(reportedWinnerConflict(inconclusive)).toBeUndefined();
+    expect(announcementPresentation(inconclusive)?.winner.entrantId).toBe('beta');
   });
 
   it('waits for Topanga deuce to finish and awards the deciding win at 9–9', () => {

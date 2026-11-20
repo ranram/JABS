@@ -10,6 +10,7 @@ export const requestOperations = {
   '/api/state/selected-set': 'selected-set',
   '/api/state/exhibition-game': 'exhibition-game',
   '/api/state/score': 'score',
+  '/api/state/broadcast-winner': 'broadcast-winner',
   '/api/state/scores/reset': 'scores-reset',
   '/api/state/players/swap': 'players-swap',
   '/api/state/players/clear': 'players-clear',

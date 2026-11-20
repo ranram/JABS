@@ -9,6 +9,7 @@ import { resultScreenStateSchema, type ResultScreenState } from '@shared/resultS
 import { deferred, mountView } from '../renderer/src/hooks/hookTestHarness';
 import { invalidateCatalogConsumers } from '../renderer/src/hooks/useCatalogRevision';
 import { initializeI18n, i18n } from '../renderer/src/i18n';
+import { ResultConflictBanner } from '../renderer/src/ui/operator/ResultConflictBanner';
 import { ResultScreenControls } from '../renderer/src/ui/operator/ResultScreenControls';
 import { api } from '../renderer/src/api';
 import { notifications } from '@mantine/notifications';
@@ -17,6 +18,7 @@ const transport = vi.hoisted(() => ({
   state: undefined as OverlayState | undefined,
   result: undefined as ResultScreenState | undefined,
   saveResult: vi.fn(),
+  chooseBroadcastWinner: vi.fn(),
   playerMedia: vi.fn(),
   characters: vi.fn()
 }));
@@ -38,7 +40,8 @@ vi.mock('../renderer/src/api', () => ({
     logos: async () => ({ logos }),
     logoAssetUrl: async (id: string) => `data:image/png;base64,${id}`,
     resultScreenState: async () => transport.result,
-    updateResultScreenState: transport.saveResult
+    updateResultScreenState: transport.saveResult,
+    chooseBroadcastWinner: transport.chooseBroadcastWinner
   }
 }));
 afterEach(() => vi.restoreAllMocks());
@@ -256,4 +259,60 @@ it('prepares the score leader before completion and refreshes result media witho
     await act(async () => document.getElementById(label.htmlFor)!.click());
   }
   await resultView.unmount();
+});
+
+it('updates both conflict controls from confirmed live state and sends choices with the set version', async () => {
+  await initializeI18n();
+  await i18n.changeLanguage('en');
+  const { selectedSet } = createTestOverlayState();
+  let activeSet = {
+    ...selectedSet,
+    setId: '100',
+    bestOf: 5,
+    state: '3',
+    playerOne: { ...selectedSet.playerOne, name: 'Bryan-D', score: 3 },
+    playerTwo: { ...selectedSet.playerTwo, name: 'DestroyGodz', score: 0 },
+    reportedOutcome: { kind: 'disqualification' as const, winnerId: selectedSet.playerTwo.entrantId }
+  };
+  transport.chooseBroadcastWinner.mockResolvedValue(undefined);
+  const view = await mountView(() =>
+    h(
+      MantineProvider,
+      { env: 'test' },
+      h(ResultConflictBanner, { activeSet, prominent: true }),
+      h(ResultConflictBanner, { activeSet })
+    )
+  );
+  try {
+    const alerts = [...view.container.querySelectorAll('[role="alert"]')];
+    expect(alerts).toHaveLength(2);
+    expect(alerts[0]?.textContent).toContain('Bryan-D won 3–0');
+    expect(alerts[0]?.textContent).toContain('start.gg lists DestroyGodz as the winner by disqualification.');
+    const local = alerts.map((alert) => alert.querySelectorAll('button')[0]!);
+    const upstream = alerts.map((alert) => alert.querySelectorAll('button')[1]!);
+    expect(local[0]?.getAttribute('aria-pressed')).toBe('true');
+    expect(upstream[0]?.textContent).toContain('Show DestroyGodz (start.gg)');
+
+    await act(async () => upstream[0]?.click());
+    expect(transport.chooseBroadcastWinner).toHaveBeenLastCalledWith(activeSet.updatedAt, true);
+    expect(local[0]?.getAttribute('aria-pressed')).toBe('true');
+
+    activeSet = { ...activeSet, updatedAt: '2026-11-20T12:00:00Z', useReportedBroadcastWinner: true };
+    await view.rerender();
+    expect(upstream[1]?.getAttribute('aria-pressed')).toBe('true');
+    expect(alerts[1]?.textContent).toContain('The winner graphic will show DestroyGodz.');
+
+    await act(async () => local[1]?.click());
+    expect(transport.chooseBroadcastWinner).toHaveBeenLastCalledWith(activeSet.updatedAt, false);
+
+    activeSet = {
+      ...activeSet,
+      useReportedBroadcastWinner: false,
+      reportedOutcome: { ...activeSet.reportedOutcome, winnerId: activeSet.playerOne.entrantId }
+    };
+    await view.rerender();
+    expect(view.container.querySelector('[role="alert"]')).toBeNull();
+  } finally {
+    await view.unmount();
+  }
 });

@@ -98,7 +98,7 @@ export function recordDiagnostic(event: DiagnosticEvent, context: DiagnosticCont
 
 export function diagnosticArea(operation: string): DiagnosticArea {
   if (operation.startsWith('queue-') || operation.startsWith('bracket-')) return 'bracket';
-  if (['overlay-state', 'selected-set', 'exhibition-game', 'score', 'scores-reset', 'players-swap', 'players-clear'].includes(operation)) return 'stream';
+  if (['overlay-state', 'selected-set', 'exhibition-game', 'score', 'broadcast-winner', 'scores-reset', 'players-swap', 'players-clear'].includes(operation)) return 'stream';
   if (operation.includes('stinger')) return 'obs';
   if (operation.includes('report')) return 'reporting';
   if (operation.includes('startgg')) return 'startgg';

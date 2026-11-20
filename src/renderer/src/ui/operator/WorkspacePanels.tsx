@@ -10,6 +10,7 @@ import '../panelHeader.css';
 import './overlayCharacters.css';
 import { OverlayCharacterControls } from './OverlayCharacterControls';
 import { CommentatorPanel } from './CommentatorPanel';
+import { ResultConflictBanner } from './ResultConflictBanner';
 import { ResultScreenControls, ResultScreenStatus } from './ResultScreenControls';
 import { VersusScreenControls, VersusScreenStatus } from './VersusScreenControls';
 import { TopEightMatchupsControls } from './TopEightMatchupsControls';
@@ -241,7 +242,12 @@ function OverlayControls({
         />
       );
     case 'winner':
-      return <ResultScreenControls activeSet={activeSet} logos={logos} profiles={profiles} />;
+      return (
+        <Stack gap="md">
+          {activeSet && <ResultConflictBanner activeSet={activeSet} blocked={streamPending} />}
+          <ResultScreenControls activeSet={activeSet} logos={logos} profiles={profiles} />
+        </Stack>
+      );
     case 'versus':
       return (
         <VersusScreenControls
