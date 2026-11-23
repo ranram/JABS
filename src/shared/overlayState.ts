@@ -72,6 +72,7 @@ export const selectedSetStateSchema = z
   .object({
     upstreamReset: z.boolean().optional(),
     useReportedBroadcastWinner: z.boolean().optional(),
+    upstreamDoubleDq: z.boolean().optional(),
     reportedOutcome: z
       .object({
         kind: z.enum(['win-loss', 'disqualification']),

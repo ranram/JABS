@@ -58,6 +58,9 @@ pub struct SelectedSet {
     /// Explicit choice for the active, conflicting broadcast result.
     #[serde(default, skip_serializing_if = "is_false")]
     pub(crate) use_reported_broadcast_winner: bool,
+    /// A completed start.gg set has two DQ scores. Missing means the scores were unavailable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) upstream_double_dq: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub set_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -355,9 +358,11 @@ impl OverlayStore {
         } else {
             None
         };
+        submitted.upstream_double_dq = None;
         if submitted.set_id == current.selected_set.set_id {
             if submitted.set_id.is_some() {
                 submitted.state = current.selected_set.state.clone();
+                submitted.upstream_double_dq = current.selected_set.upstream_double_dq;
             }
             let scores_changed = [&submitted.player_one, &submitted.player_two]
                 .iter()
@@ -613,6 +618,7 @@ impl OverlayStore {
             }
             selected_set.state = Some(reported_state.to_owned());
             selected_set.reported_outcome = outcome;
+            selected_set.upstream_double_dq = None;
             selected_set.upstream_reset = Some(false);
             Ok(())
         })
@@ -673,6 +679,7 @@ fn default_state() -> OverlayState {
             report_baseline: None,
             reported_outcome: None,
             use_reported_broadcast_winner: false,
+            upstream_double_dq: None,
             upstream_reset: None,
             set_id: None,
             event_id: None,

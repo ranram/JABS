@@ -59,6 +59,9 @@ impl QueueStore {
         if fresh_result == Some(ResultStatus::Reported) || selected.result_status.is_none() {
             selected.result_status = fresh_result;
         }
+        if let Some(double_dq) = fresh.upstream_double_dq {
+            selected.update_double_dq(double_dq);
+        }
         let selected_position = next.snapshot.entries.iter()
             .position(|entry| entry.set_id == selected.set_id);
         let same_live = live.set_id == fresh.set_id && live.event_id == fresh.event_id;
@@ -70,7 +73,9 @@ impl QueueStore {
             old_position = next.snapshot.entries.iter()
                 .position(|candidate| candidate.set_id == entry.set_id);
             if let Some(existing) = old_position.map(|index| &next.snapshot.entries[index]) {
-                entry.reported_result = existing.reported_result.clone();
+                if !entry.upstream_double_dq {
+                    entry.reported_result = existing.reported_result.clone();
+                }
                 entry.completed_at = existing.completed_at.clone();
                 if entry.result_status.is_none() && !entry.upstream_reset {
                     entry.result_status = existing.result_status.clone();

@@ -102,7 +102,12 @@ pub(super) fn apply_player_preferences(
                 );
                 saved.state = fresh.state.clone();
                 saved.report_baseline = fresh.report_baseline.clone();
-                if saved.upstream_reset == Some(true) {
+                saved.upstream_double_dq = if saved.state.as_deref() == Some("3") {
+                    fresh.upstream_double_dq.or(saved.upstream_double_dq)
+                } else {
+                    None
+                };
+                if saved.upstream_double_dq == Some(true) || saved.upstream_reset == Some(true) {
                     saved.reported_outcome = None;
                 }
                 saved.game_id = fresh.game_id.clone();

@@ -924,6 +924,8 @@ export const en = {
         showPlayerPhoto: 'Show player photo',
         showSponsorLogo: 'Show team/sponsor logo',
         showCharacter: 'Show character',
+        doubleDq: 'start.gg shows both players as DQ',
+        doubleDqNoWinner: 'The winner graphic will wait for a final score.',
         winnerMismatch: 'Winner mismatch',
         winnerConflict: 'The local score and start.gg show different winners',
         localResult: '{{winner}} won {{winnerScore}}–{{loserScore}} on the local scoreboard.',

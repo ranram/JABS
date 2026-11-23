@@ -21,7 +21,6 @@ import { useTranslation } from 'react-i18next';
 import type { SelectedSetState } from '@shared/models';
 import { stingerLimits, type StingerCue, type StingerKind, type StingerSettings } from '@shared/stingers';
 import { api } from '../../api';
-import { OverlaySourceField } from '../operator/OverlaySourceField';
 import { useSettingsDraft } from '../../hooks/useSettingsDraft';
 import { useStingers } from '../../hooks/useStingers';
 import { announcementPresentation } from '../announcementPresentation';
@@ -30,7 +29,7 @@ import { PanelHeader } from '../PanelHeader';
 import { OperatorIcon, SlidersHorizontalIcon, MonitorIcon, FilmSlateIcon, ImageIcon } from '../icons';
 import './stingersPanel.css';
 
-export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: SelectedSetState; localBaseUrl?: string }) {
+export function StingersPanel({ activeSet }: { activeSet?: SelectedSetState }) {
   const { t } = useTranslation('operator');
   const live = useStingers();
   const [message, setMessage] = useState<string>();
@@ -370,7 +369,6 @@ export function StingersPanel({ activeSet, localBaseUrl }: { activeSet?: Selecte
           <Text size="sm" c="dimmed" mb="xs">
             {t('stingers.sourceHelp')} {t('stingers.audioHelp')}
           </Text>
-          {localBaseUrl && <OverlaySourceField localBaseUrl={localBaseUrl} source="stingers" />}
         </OperatorDisclosure>
       </Stack>
     </Paper>

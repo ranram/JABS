@@ -9,8 +9,9 @@ export type AnnouncementPresentation = {
 
 export function reportedWinnerConflict(selectedSet: SelectedSetState) {
   const { setId, reportedOutcome, playerOne, playerTwo, useReportedBroadcastWinner } = selectedSet;
+  if (!setId || !reportedOutcome || selectedSet.upstreamDoubleDq) return undefined;
   const localSide = winnerSideForLocalScore(selectedSet);
-  if (!setId || !localSide || !reportedOutcome) return undefined;
+  if (!localSide) return undefined;
   const localWinner = localSide === 'one' ? playerOne : playerTwo;
   const reportedWinner = localSide === 'one' ? playerTwo : playerOne;
   if (reportedOutcome.winnerId !== reportedWinner.entrantId) return undefined;
@@ -34,6 +35,7 @@ export function announcementPresentation(
   if (conflict) winner = conflict.usingReported ? conflict.reportedWinner : conflict.localWinner;
   if (
     !winner &&
+    !selectedSet.upstreamDoubleDq &&
     (allowLeadingScore || (selectedSet.matchFormat !== 'topanga' && selectedSet.state === '3')) &&
     selectedSet.playerOne.score !== selectedSet.playerTwo.score
   ) {

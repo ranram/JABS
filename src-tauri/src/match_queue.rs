@@ -56,6 +56,8 @@ pub struct Entry {
     /// Local scoring clears the match's reset flag while this one remains set.
     #[serde(default)]
     pub upstream_reset: bool,
+    #[serde(default)]
+    pub upstream_double_dq: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reported_result: Option<ReportedResult>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -87,6 +89,7 @@ impl Entry {
             phase: set.phase.clone(),
             result_status: results::result_status(set),
             upstream_reset: set.upstream_reset == Some(true),
+            upstream_double_dq: set.upstream_double_dq == Some(true),
             reported_result: None,
             completed_at: None,
         })

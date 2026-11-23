@@ -54,6 +54,19 @@ describe('announcement presentation', () => {
     expect(announcementPresentation(inconclusive)?.winner.entrantId).toBe('beta');
   });
 
+  it('uses only a final local score when start.gg marks both players as DQ', () => {
+    const final = {
+      ...completedSet('Grand Final Reset', 'two'),
+      setId: 'reset',
+      state: '3',
+      upstreamDoubleDq: true,
+      reportedOutcome: { kind: 'win-loss' as const, winnerId: 'alpha' }
+    };
+    expect(announcementPresentation(final)).toMatchObject({ kind: 'champion', winner: { entrantId: 'beta' } });
+    const lead = { ...final, playerTwo: { ...final.playerTwo, score: 2 } };
+    expect(announcementPresentation(lead, { allowLeadingScore: true })).toBeUndefined();
+  });
+
   it('waits for Topanga deuce to finish and awards the deciding win at 9–9', () => {
     const selected = { ...completedSet('Exhibition', 'one'), matchFormat: 'topanga' as const, bestOf: 13 };
     for (const [winningScore, losingScore, finished] of [

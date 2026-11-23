@@ -32,7 +32,12 @@ impl OverlayStore {
         let same_players = ids == (Some(selected.player_one.entrant_id.as_str()), Some(selected.player_two.entrant_id.as_str()))
             || ids == (Some(selected.player_two.entrant_id.as_str()), Some(selected.player_one.entrant_id.as_str()));
         if ids.0.is_some() && ids.1.is_some() && !same_players { return Ok(None); }
-        let reported = if state == "3" && same_players {
+        let double_dq = match (state, same_players) {
+            ("3", true) => summary["doubleDq"].as_bool().or(selected.upstream_double_dq),
+            ("3", false) => selected.upstream_double_dq,
+            _ => None,
+        };
+        let reported = if state == "3" && same_players && double_dq != Some(true) {
             serde_json::from_value::<ReportOutcome>(summary["reportedOutcome"].clone()).ok()
                 .or_else(|| summary["winnerId"].as_str().map(|winner| ReportOutcome {
                     kind: ReportOutcomeKind::WinLoss, winner_id: winner.to_owned()
@@ -42,6 +47,7 @@ impl OverlayStore {
         let upstream_reset =
             selected.result_reset_after_refresh(state, reset_ids.iter().any(|id| id == set_id));
         if selected.state.as_deref() == Some(state) && selected.upstream_reset == upstream_reset
+            && (selected.upstream_double_dq == Some(true)) == (double_dq == Some(true))
             && reported.as_ref().is_none_or(|outcome| selected.reported_outcome.as_ref() == Some(outcome)) {
             return Ok(None);
         }
@@ -50,8 +56,12 @@ impl OverlayStore {
             .then(|| set_id.to_owned());
         next.selected_set.state = Some(state.to_owned());
         next.selected_set.upstream_reset = upstream_reset;
-        if upstream_reset == Some(true) { next.selected_set.reported_outcome = None; }
-        else if let Some(outcome) = reported { next.selected_set.reported_outcome = Some(outcome); }
+        next.selected_set.upstream_double_dq = double_dq;
+        if double_dq == Some(true) || upstream_reset == Some(true) {
+            next.selected_set.reported_outcome = None;
+        } else if let Some(outcome) = reported {
+            next.selected_set.reported_outcome = Some(outcome);
+        }
         next.selected_set.use_reported_broadcast_winner = false;
         next.selected_set.updated_at = next_timestamp(&selected.updated_at)?;
         validate_state(&next)?;

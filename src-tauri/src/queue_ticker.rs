@@ -206,6 +206,7 @@ fn project(
         let mut completed: Vec<_> = queue.entries.iter().rev().collect();
         completed.sort_by(|one, two| two.completed_at.cmp(&one.completed_at));
         snapshot.results = completed.into_iter()
+            .filter(|entry| !entry.upstream_double_dq)
             .filter_map(|entry| {
                 if entry.result_status == Some(crate::match_queue::ResultStatus::Reported) && !entry.upstream_reset {
                     if let Some(result) = &entry.reported_result {

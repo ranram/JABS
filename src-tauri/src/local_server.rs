@@ -990,6 +990,7 @@ async fn inspect_startgg_set(
                 let summary = serde_json::json!({
                     "id": selected_set.set_id,
                     "state": selected_set.state,
+                    "doubleDq": selected_set.upstream_double_dq,
                     "entrantOne": { "id": selected_set.player_one.entrant_id },
                     "entrantTwo": { "id": selected_set.player_two.entrant_id },
                 });

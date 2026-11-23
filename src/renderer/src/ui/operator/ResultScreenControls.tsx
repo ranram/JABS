@@ -181,7 +181,7 @@ export function ResultScreenStatus({ activeSet }: { activeSet?: SelectedSetState
   if (!result) {
     return (
       <Badge color="gray" variant="light" maw="100%" h="auto" styles={{ label: { whiteSpace: 'normal' } }}>
-        {t('workspaces.resultScreen.noWinner')}
+        {t(activeSet?.upstreamDoubleDq ? 'workspaces.resultScreen.doubleDq' : 'workspaces.resultScreen.noWinner')}
       </Badge>
     );
   }

@@ -131,6 +131,7 @@ export type SelectedSetState = {
   reportedOutcome?: ReportOutcome;
   /** Operator choice for the active broadcast result. */
   useReportedBroadcastWinner?: boolean;
+  upstreamDoubleDq?: boolean;
   /**
    * True marks retained scores from a reset result.
    * False follows a score edit/reset or confirmed report; missing covers older/imported data.

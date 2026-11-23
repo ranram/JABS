@@ -3,7 +3,7 @@ use crate::{
     runtime::RuntimeState,
     secrets,
     startgg_queries,
-    state::{BroadcastPresentation, GameResult, Player, ReportOutcome, ReportOutcomeKind, SelectedSet},
+    state::{BroadcastPresentation, GameResult, Player, SelectedSet},
 };
 use futures_util::future::join_all;
 pub use jabs_startgg_client::{
@@ -16,6 +16,8 @@ use std::collections::HashSet;
 const MAX_EVENT_HEAD_TO_HEAD_PAGES: u32 = 5;
 mod history;
 mod queued_sets;
+mod set_scores;
+use set_scores::{completed_double_dq, slot_score, summary_reported_outcome};
 pub(crate) use queued_sets::queued_sets;
 
 pub async fn events(runtime: &RuntimeState, slug: &str) -> Result<Value, ApiError> {
@@ -488,7 +490,9 @@ pub async fn selected_set(
     } else {
         3
     };
-    let completed_best_of = (set.get("state").and_then(normalized_id).as_deref() == Some("3"))
+    let state = set.get("state").and_then(normalized_id);
+    let double_dq = completed_double_dq(state.as_deref(), &slots);
+    let completed_best_of = (double_dq != Some(true) && state.as_deref() == Some("3"))
         .then_some(if highest_score >= 3 { 5 } else { 3 });
     let best_of = completed_best_of.unwrap_or(configured_best_of.max(score_required_best_of));
     let score_limit = best_of / 2 + 1;
@@ -506,6 +510,7 @@ pub async fn selected_set(
         report_baseline: None,
         reported_outcome: None,
         use_reported_broadcast_winner: false,
+        upstream_double_dq: double_dq,
         upstream_reset: None,
         set_id: Some(set_id),
         event_id: set.get("event").and_then(|event| event.get("id")).and_then(normalized_id).or_else(|| optional_context(input.event_id)),
@@ -519,7 +524,7 @@ pub async fn selected_set(
         round,
         winners_side_entrant_id,
         station,
-        state: set.get("state").and_then(normalized_id),
+        state,
         game_id: input.game_id.to_owned(),
         game_name,
         videogame_id: optional_object(set.get("event"))
@@ -1032,6 +1037,9 @@ fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
     let slots = node_list(object.get("slots"), "set slots")?;
     let entrant_one = slots.first().and_then(|slot| entrant_summary(slot));
     let entrant_two = slots.get(1).and_then(|slot| entrant_summary(slot));
+    let state = object.get("state").and_then(normalized_id);
+    let winner_id = object.get("winnerId").and_then(normalized_id);
+    let double_dq = completed_double_dq(state.as_deref(), &slots);
     let entrant_one_score = slots.first().and_then(|slot| slot_score(slot));
     let entrant_two_score = slots.get(1).and_then(|slot| slot_score(slot));
     let phase_group = optional_object(object.get("phaseGroup"));
@@ -1061,8 +1069,9 @@ fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
         "id": id,
         "roundNumber": finite_i64(object.get("round")),
         "displayScore": optional_text(object.get("displayScore")),
-        "reportedOutcome": summary_reported_outcome(value, &slots),
-        "winnerId": object.get("winnerId").and_then(normalized_id),
+        "reportedOutcome": summary_reported_outcome(state.as_deref(), winner_id.as_deref(), &slots),
+        "doubleDq": double_dq,
+        "winnerId": winner_id,
         "entrantOneScore": entrant_one_score,
         "entrantTwoScore": entrant_two_score,
         "phase": phase,
@@ -1070,7 +1079,7 @@ fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
         "phaseGroup": phase_group_name,
         "phaseGroupId": phase_group_id,
         "round": optional_text(object.get("fullRoundText")),
-        "state": object.get("state").and_then(normalized_id),
+        "state": state,
         "station": station,
         "streamName": stream.and_then(|value| optional_text(value.get("streamName"))),
         "streamSource": stream.and_then(|value| optional_text(value.get("streamSource"))),
@@ -1078,34 +1087,6 @@ fn set_summary(value: &Value) -> Result<Option<Value>, ApiError> {
         "entrantTwo": entrant_two,
         "prerequisites": prerequisites
     })))
-}
-
-fn summary_reported_outcome(set: &Value, slots: &[&Value]) -> Option<ReportOutcome> {
-    if set.get("state").and_then(normalized_id).as_deref() != Some("3") {
-        return None;
-    }
-    let winner_id = set.get("winnerId").and_then(normalized_id)?;
-    let one = slots.first()?.pointer("/entrant/id").and_then(normalized_id)?;
-    let two = slots.get(1)?.pointer("/entrant/id").and_then(normalized_id)?;
-    if one == two || (winner_id != one && winner_id != two) {
-        return None;
-    }
-    // Read DQ before slot_score clamps negative API values for numeric controls.
-    let one_score = finite_i64(slots.first()?.pointer("/standing/stats/score/value"));
-    let two_score = finite_i64(slots.get(1)?.pointer("/standing/stats/score/value"));
-    let (winner_score, loser_score) = if winner_id == one {
-        (one_score, two_score)
-    } else {
-        (two_score, one_score)
-    };
-    let kind = if loser_score == Some(-1) && winner_score != Some(-1) {
-        ReportOutcomeKind::Disqualification
-    } else if one_score.unwrap_or(0) == 0 && two_score.unwrap_or(0) == 0 {
-        ReportOutcomeKind::WinLoss
-    } else {
-        return None;
-    };
-    Some(ReportOutcome { kind, winner_id })
 }
 
 fn entrant_summary(slot: &Value) -> Option<Value> {
@@ -1129,11 +1110,6 @@ fn entrant_summary(slot: &Value) -> Option<Value> {
         .filter(|participants| participants.len() == 1).and_then(|participants| participants.first())
         .and_then(|participant| participant.pointer("/player/id")).and_then(normalized_id);
     Some(json!({ "id": id, "playerId": player_id, "name": name, "sponsor": sponsor }))
-}
-
-fn slot_score(slot: &Value) -> Option<i64> {
-    let value = slot.pointer("/standing/stats/score/value")?;
-    finite_i64(Some(value)).map(|score| score.max(0))
 }
 
 fn page_info(connection: Option<&Map<String, Value>>, page: u32, per_page: u32) -> Value {
@@ -1309,6 +1285,31 @@ mod tests {
             assert_eq!(numeric["entrantOneScore"], 3);
             assert_eq!(numeric["entrantTwoScore"], 2);
         }
+    }
+
+    #[test]
+    fn double_dq_requires_two_scores_from_a_completed_set() {
+        let mut source = json!({
+            "id": 42, "state": 3, "winnerId": 1,
+            "slots": [
+                {"entrant": {"id": 1}, "standing": {"stats": {"score": {"value": -1}}}},
+                {"entrant": {"id": 2}, "standing": {"stats": {"score": {"value": -1}}}}
+            ]
+        });
+        let summary = set_summary(&source).unwrap().unwrap();
+        assert_eq!(summary["doubleDq"], true);
+        assert!(summary["reportedOutcome"].is_null());
+
+        let score = "/slots/1/standing/stats/score/value";
+        *source.pointer_mut(score).unwrap() = Value::Null;
+        assert!(set_summary(&source).unwrap().unwrap()["doubleDq"].is_null());
+
+        *source.pointer_mut(score).unwrap() = json!(0);
+        assert_eq!(set_summary(&source).unwrap().unwrap()["doubleDq"], false);
+
+        *source.pointer_mut(score).unwrap() = json!(-1);
+        source["state"] = json!(2);
+        assert!(set_summary(&source).unwrap().unwrap()["doubleDq"].is_null());
     }
 
     #[test]

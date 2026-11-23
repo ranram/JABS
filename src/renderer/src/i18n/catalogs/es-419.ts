@@ -909,6 +909,8 @@ export const es419 = {
         showPlayerPhoto: 'Mostrar foto del jugador',
         showSponsorLogo: 'Mostrar logo del equipo/patrocinador',
         showCharacter: 'Mostrar personaje',
+        doubleDq: 'start.gg muestra a ambos jugadores como descalificados',
+        doubleDqNoWinner: 'La gráfica de ganador esperará un marcador final.',
         winnerMismatch: 'Ganadores distintos',
         winnerConflict: 'El marcador local y start.gg muestran ganadores distintos',
         localResult: '{{winner}} ganó {{winnerScore}}–{{loserScore}} según el marcador local.',

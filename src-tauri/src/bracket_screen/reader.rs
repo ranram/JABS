@@ -274,8 +274,10 @@ fn parse_match(node: &Value) -> Result<Value, String> {
             player
         })
         .collect::<Vec<_>>();
+    let double_dq = parsed.len() == 2 && parsed.iter().all(|slot| slot["score"].as_i64() == Some(-1));
     let winner = id(&node["winnerId"]).filter(|winner| {
         state == 3
+            && !double_dq
             && parsed
                 .iter()
                 .any(|slot| slot["entrantId"].as_str() == Some(winner))
@@ -343,6 +345,12 @@ mod tests {
         assert_eq!(parse_match(&set).unwrap()["winnerId"], "1");
         set["winnerId"] = json!(99);
         assert!(parse_match(&set).unwrap().get("winnerId").is_none());
+        set["winnerId"] = json!(1);
+        set["slots"][0]["entrant"] = json!({ "id": 2, "name": "Beta" });
+        set["slots"][0]["standing"] = json!({ "stats": { "score": { "value": -1 } } });
+        let double_dq = parse_match(&set).unwrap();
+        assert_eq!(double_dq["slots"][1]["score"], -1);
+        assert!(double_dq.get("winnerId").is_none());
         let scope = Scope {
             event_id: "1".into(),
             phase_id: "2".into(),

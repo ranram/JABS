@@ -186,6 +186,36 @@ fn reset_results_are_hidden_and_confirmed_scoreless_outcomes_do_not_invent_score
 }
 
 #[test]
+fn double_dq_keeps_old_saved_results_off_the_ticker_until_corrected() {
+    let (db, settings, mut queue, mut saved) = fixture();
+    saved.state = Some("3".into());
+    let payload = serde_json::to_string(&saved).unwrap();
+    db.save_stream_state(
+        &serde_json::json!({"selectedSet":saved}).to_string(),
+        &saved.updated_at,
+        Some(("100", &payload)),
+    )
+    .unwrap();
+    queue.entries[0].result_status = Some(crate::match_queue::ResultStatus::Reported);
+    db.save_broadcast_surface("match-queue", &serde_json::to_string(&queue).unwrap(), &saved.updated_at)
+        .unwrap();
+    let store = crate::match_queue::QueueStore::load(&db).unwrap();
+    let observe = |double_dq: Option<bool>| {
+        let summary = serde_json::json!({
+            "id": "100", "state": "3", "winnerId": "20", "doubleDq": double_dq,
+            "entrantOne": { "id": "10" }, "entrantTwo": { "id": "20" }
+        });
+        store.observe_bracket(&db, "456", &[summary]).unwrap();
+        project(&db, settings.clone(), &store.current().unwrap(), &saved)
+    };
+
+    assert_eq!(project(&db, settings.clone(), &queue, &saved).results[0].winner, "one");
+    assert!(observe(Some(true)).results.is_empty());
+    assert!(observe(None).results.is_empty());
+    assert_eq!(observe(Some(false)).results[0].winner, "two");
+}
+
+#[test]
 fn repeated_reads_share_projection_cache_until_queue_revision_changes() {
     let (db, settings, queue, saved) = fixture();
     db.save_broadcast_surface(

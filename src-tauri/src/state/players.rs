@@ -36,6 +36,7 @@ impl OverlayStore {
         selected.state = None;
         selected.reported_outcome = None;
         selected.use_reported_broadcast_winner = false;
+        selected.upstream_double_dq = None;
         selected.upstream_reset = None;
         selected.winners_side_entrant_id = None;
         selected.updated_at = next_timestamp(&current.selected_set.updated_at).map_err(invalid)?;

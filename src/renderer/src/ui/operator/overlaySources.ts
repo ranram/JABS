@@ -1,6 +1,6 @@
 import type { LocalHandoffUrl } from '../../desktopRuntime';
 
-type PublicOverlayKind = Exclude<LocalHandoffUrl, 'champion'>;
+type PublicOverlayKind = Exclude<LocalHandoffUrl, 'champion' | 'stingers'>;
 
 /** Group OBS sources by their settings panel. The old Champion URL has no separate panel. */
 export const overlaySources = {
@@ -17,6 +17,5 @@ export type OtherOverlayType = keyof typeof overlaySources;
 export const otherOverlayTypes = Object.keys(overlaySources) as OtherOverlayType[];
 export const publicOverlayKinds: readonly PublicOverlayKind[] = [
   'score',
-  'stingers',
   ...Object.values(overlaySources).flat()
 ];

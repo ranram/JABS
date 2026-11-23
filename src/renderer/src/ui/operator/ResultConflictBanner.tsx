@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { SelectedSetState } from '@shared/models';
 import { api } from '../../api';
 import { localizedNativeError } from '../../i18n/nativeErrors';
-import { reportedWinnerConflict } from '../announcementPresentation';
+import { announcementPresentation, reportedWinnerConflict } from '../announcementPresentation';
 
 const buttonStyles = { label: { whiteSpace: 'normal', overflowWrap: 'anywhere' } } as const;
 
@@ -20,6 +20,23 @@ export function ResultConflictBanner({
 }) {
   const { t } = useTranslation('operator');
   const [saving, setSaving] = useState(false);
+  const alertProps = {
+    color: prominent ? 'yellow.4' : 'yellow',
+    variant: prominent ? 'filled' : 'light',
+    styles: prominent ? { title: { color: 'black' }, message: { color: 'black' } } : undefined,
+    mb: prominent ? 'sm' : undefined,
+    role: 'alert'
+  };
+  if (activeSet.upstreamDoubleDq) {
+    const winner = announcementPresentation(activeSet)?.winner;
+    return (
+      <Alert {...alertProps} title={t('workspaces.resultScreen.doubleDq')}>
+        {winner
+          ? t('workspaces.resultScreen.broadcastWinner', { winner: winner.name })
+          : t('workspaces.resultScreen.doubleDqNoWinner')}
+      </Alert>
+    );
+  }
   const conflict = reportedWinnerConflict(activeSet);
   if (!conflict) return null;
 
@@ -43,14 +60,7 @@ export function ResultConflictBanner({
   }
 
   return (
-    <Alert
-      title={t('workspaces.resultScreen.winnerConflict')}
-      color={prominent ? 'yellow.4' : 'yellow'}
-      variant={prominent ? 'filled' : 'light'}
-      styles={prominent ? { title: { color: 'black' }, message: { color: 'black' } } : undefined}
-      mb={prominent ? 'sm' : undefined}
-      role="alert"
-    >
+    <Alert {...alertProps} title={t('workspaces.resultScreen.winnerConflict')}>
       <Stack gap="xs">
         <div>
           <Text size="sm">

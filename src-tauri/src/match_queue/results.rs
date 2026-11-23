@@ -1,4 +1,4 @@
-use super::{Entry, QueueStore, current_id, pause, reset_result, save};
+use super::{Entry, QueueStore, ReportedResult, current_id, pause, reset_result, save};
 use crate::{database::Database, state::SelectedSet};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -49,6 +49,43 @@ impl Entry {
         *self = resolved;
         changed
     }
+    pub(super) fn update_double_dq(&mut self, observed: bool) -> bool {
+        let changed = self.upstream_double_dq != observed;
+        self.upstream_double_dq = observed;
+        let cleared_result = observed && self.reported_result.take().is_some();
+        changed || cleared_result
+    }
+
+    fn observe_reported_result(&mut self, summary: &Value, same_order: bool) -> bool {
+        let mut changed = false;
+        if let Some(double_dq) = summary["doubleDq"].as_bool() {
+            changed = self.update_double_dq(double_dq);
+        }
+        if self.upstream_double_dq {
+            return changed;
+        }
+
+        let winner = summary["winnerId"]
+            .as_str()
+            .or_else(|| summary["reportedOutcome"]["winnerId"].as_str());
+        let Some(winner) = winner.filter(|id| *id == self.entrant_one_id || *id == self.entrant_two_id) else {
+            return changed;
+        };
+        let score = |field: &str| summary[field].as_u64().unwrap_or(0).min(100) as u32;
+        let one = score("entrantOneScore");
+        let two = score("entrantTwoScore");
+        let (score_one, score_two) = if same_order { (one, two) } else { (two, one) };
+        let result = ReportedResult {
+            winner_id: winner.to_owned(),
+            score_one,
+            score_two,
+            disqualification: summary["reportedOutcome"]["kind"].as_str() == Some("disqualification"),
+        };
+        changed |= self.reported_result.as_ref() != Some(&result);
+        self.reported_result = Some(result);
+        changed
+    }
+
     pub(super) fn restore_result(&mut self, database: &Database) {
         self.restore_saved_result(database, false);
     }
@@ -195,18 +232,7 @@ impl QueueStore {
                 || (one == Some(entry.entrant_two_id.as_str())
                     && two == Some(entry.entrant_one_id.as_str()));
             if same_players && set["state"].as_str() == Some("3") {
-                let winner = set["winnerId"].as_str().or_else(|| set["reportedOutcome"]["winnerId"].as_str());
-                if let Some(winner) = winner.filter(|winner| Some(*winner) == one || Some(*winner) == two) {
-                    let first = one == Some(entry.entrant_one_id.as_str());
-                    let scores = (set["entrantOneScore"].as_u64().unwrap_or(0).min(100) as u32,
-                        set["entrantTwoScore"].as_u64().unwrap_or(0).min(100) as u32);
-                    let result = super::ReportedResult { winner_id: winner.to_owned(),
-                        score_one: if first { scores.0 } else { scores.1 },
-                        score_two: if first { scores.1 } else { scores.0 },
-                        disqualification: set["reportedOutcome"]["kind"].as_str() == Some("disqualification") };
-                    changed |= entry.reported_result.as_ref() != Some(&result);
-                    entry.reported_result = Some(result);
-                }
+                changed |= entry.observe_reported_result(set, one == Some(entry.entrant_one_id.as_str()));
             }
             match set["state"].as_str() {
                 Some("3")
@@ -243,6 +269,7 @@ impl QueueStore {
                     entry.reported_result = None;
                     entry.completed_at = None;
                     entry.upstream_reset = true;
+                    entry.upstream_double_dq = false;
                     active_reset |= active_id.as_deref() == Some(entry.set_id.as_str())
                         && (invalidated || (local_reset.is_none() && active_result));
                     changed |= invalidated;
@@ -317,7 +344,8 @@ impl QueueStore {
             }
         }
         let upstream_reset = reset_pending && result != Some(ResultStatus::Reported);
-        let new_report = matches!(source, ResultSource::Report(_)) && entry.reported_result.is_some();
+        let new_report = matches!(source, ResultSource::Report(_))
+            && (entry.reported_result.is_some() || entry.upstream_double_dq);
         if entry.result_status == result && entry.upstream_reset == upstream_reset && !new_report {
             return Ok(());
         }
@@ -328,6 +356,9 @@ impl QueueStore {
         next.snapshot.entries[index].reported_result = None;
         next.snapshot.entries[index].result_status = result;
         next.snapshot.entries[index].upstream_reset = upstream_reset;
+        if new_report || observed_reset {
+            next.snapshot.entries[index].upstream_double_dq = false;
+        }
         if invalidates_current {
             pause(&mut next);
             reset_result(&mut next);

@@ -38,6 +38,9 @@ impl SelectedSet {
         if self.upstream_reset == Some(true) {
             return None;
         }
+        if self.upstream_double_dq == Some(true) {
+            return self.score_winner(false);
+        }
         if let Some(outcome) = &self.reported_outcome {
             return if outcome.winner_id == self.player_one.entrant_id {
                 Some("one")
@@ -71,6 +74,7 @@ impl SelectedSet {
     fn has_broadcast_winner_conflict(&self) -> bool {
         self.set_id.is_some()
             && self.upstream_reset != Some(true)
+            && self.upstream_double_dq != Some(true)
             && self.reported_outcome.as_ref().is_some_and(|outcome| {
                 let opponent = match self.score_winner(false) {
                     Some("one") => &self.player_two,
@@ -97,6 +101,8 @@ impl SelectedSet {
                 || current_scores == [previous_scores[1], previous_scores[0]])
             && self.best_of == previous.best_of
             && self.match_format == previous.match_format
+            && (self.upstream_double_dq == Some(true))
+                == (previous.upstream_double_dq == Some(true))
             && self.upstream_reset == previous.upstream_reset
             && self.reported_outcome == previous.reported_outcome
     }
@@ -237,7 +243,28 @@ mod tests {
         overlay
             .choose_broadcast_winner(&database, &conflicting_again.updated_at, true)
             .unwrap();
+        let mut double_dq = report("10");
+        double_dq["doubleDq"] = true.into();
+        let broadcast = observe(double_dq.clone());
+        assert_eq!(broadcast.upstream_double_dq, Some(true));
+        assert!(broadcast.reported_outcome.is_none());
+        assert!(!broadcast.use_reported_broadcast_winner);
+        assert_eq!(broadcast.winner(), Some("two"));
+        overlay.set_score(&database, "two", 2).unwrap();
+
+        let partial = observe(report("10"));
+        assert_eq!(partial.upstream_double_dq, Some(true));
+        assert_eq!(partial.winner(), None);
+
+        let mut corrected = report("20");
+        corrected["doubleDq"] = false.into();
+        let corrected = observe(corrected);
+        assert_eq!(corrected.upstream_double_dq, Some(false));
+        assert_eq!(corrected.winner(), Some("one"));
+
+        observe(double_dq);
         let reopened = observe(serde_json::json!({"id": "100", "state": "1"}));
+        assert_eq!(reopened.upstream_double_dq, None);
         assert!(!reopened.use_reported_broadcast_winner);
         assert!(reopened.reported_outcome.is_none());
     }

@@ -464,7 +464,7 @@ export function StartggPanel({
 
         {workspace === 'stingers' && (
           <Box component="section" className="stingers-workspace" pt="md" aria-label={t('operator:workspaces.stingers')}>
-            <StingersPanel activeSet={activeSet} localBaseUrl={localBaseUrl} />
+            <StingersPanel activeSet={activeSet} />
           </Box>
         )}
 
