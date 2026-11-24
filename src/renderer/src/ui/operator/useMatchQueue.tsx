@@ -85,8 +85,6 @@ export function MatchQueueWorkspace({
         eventId: current.context?.eventId,
         busy: current.blocked || current.pending || current.busy || current.holding || focusedRef.current,
         sequence: requestSequence,
-        preserveStation: current.context?.preserveStation ?? false,
-        preserveMatchLength: current.context?.preserveMatchLength ?? false,
         signal: controller.signal
       });
       settleConnection(false);

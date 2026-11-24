@@ -1,6 +1,6 @@
 import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
-import { bundledFontSchema } from './fonts';
+import { scoreboardFontSchema } from './fonts';
 
 const label = z
   .string()
@@ -35,7 +35,9 @@ export const appearancePresetSchema = z
   .strict();
 export const appearancePreferencesSchema = z
   .object({
-    scoreboardFont: bundledFontSchema.optional(),
+    scoreboardFont: scoreboardFontSchema.optional(),
+    scoreboardTextScale: z.number().int().min(100).max(130).optional(),
+    showImportedFonts: z.boolean().optional(),
     appearance: appearanceSchema,
     activePresetId: z
       .string()

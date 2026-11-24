@@ -1,5 +1,6 @@
 import { useAppearance } from './appearance/AppearanceProvider';
 import { useLayoutEffect, useRef } from 'react';
+import { useScoreboardFontFamily } from './fonts/useScoreboardFont';
 
 type ScoreboardText = {
   name: string;
@@ -10,8 +11,9 @@ type ScoreboardText = {
 export function useScoreboardTextFit({ name, sponsor, themeId }: ScoreboardText) {
   const {
     appearance,
-    state: { scoreboardFont }
+    state: { scoreboardFont, scoreboardTextScale }
   } = useAppearance();
+  const fontFamily = useScoreboardFontFamily(scoreboardFont);
   const ref = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -56,7 +58,7 @@ export function useScoreboardTextFit({ name, sponsor, themeId }: ScoreboardText)
       text.style.removeProperty('font-size');
       delete text.dataset.stacked;
     };
-  }, [name, sponsor, themeId, appearance.textSize, scoreboardFont]);
+  }, [name, sponsor, themeId, appearance.textSize, scoreboardTextScale, fontFamily]);
 
   return ref;
 }

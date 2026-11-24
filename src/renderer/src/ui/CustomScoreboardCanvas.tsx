@@ -28,6 +28,7 @@ import { ScoreboardDetailPill, type ScoreboardDetailKind } from './scoreboardDet
 import { resolveGameProfile } from '@shared/gameProfiles';
 import { CustomScoreboardName } from './customScoreboard/CustomScoreboardName';
 import { bundledFonts } from './fonts/bundledFonts';
+import { useScoreboardFontFamily } from './fonts/useScoreboardFont';
 import './operator/generatorFonts.css';
 import { useCustomScoreboardEditing } from './customScoreboard/useCustomScoreboardEditing';
 
@@ -55,7 +56,7 @@ function CustomScoreboardCanvasContent({
   animateEntrance = false
 }: CustomScoreboardCanvasProps) {
   const { t } = useTranslation(['operator', 'common']);
-  const appearanceStyle = useAppearanceStyle();
+  const appearanceStyle = useAppearanceStyle('scoreboard');
   const sponsorLogos = [usePlayerSponsorLogo('left'), usePlayerSponsorLogo('right')];
   const [photoTopInset, setPhotoTopInset] = useState(0);
   const entranceRef = useOverlayEntrance(
@@ -66,6 +67,8 @@ function CustomScoreboardCanvasContent({
   );
   useScoreboardSwap(entranceRef, selectedSet, animateEntrance && !onMoveRegion);
   const matchLabel = useMatchFormatLabel(selectedSet);
+  const fontFamily = useScoreboardFontFamily(scoreboard.typography.font ?? defaultCustomScoreboardFont)
+    ?? bundledFonts[defaultCustomScoreboardFont].family;
   const detailProfile = resolveGameProfile(selectedSet?.stylingGameId ?? selectedSet?.gameId);
   const { dragging, ...editing } = useCustomScoreboardEditing({
     scoreboard,
@@ -74,7 +77,7 @@ function CustomScoreboardCanvasContent({
     onMoveRegion
   });
   const style = {
-    '--custom-font-family': bundledFonts[scoreboard.typography.font ?? defaultCustomScoreboardFont].family,
+    '--custom-font-family': fontFamily,
     '--custom-text': scoreboard.typography.textColor,
     '--custom-sponsor': scoreboard.typography.sponsorColor,
     '--custom-name-size': `${scoreboard.typography.nameSize / 19.2}cqw`,
@@ -187,7 +190,7 @@ function CustomScoreboardCanvasContent({
                   sponsor={scoreboard.visibility.sponsors ? sponsor : undefined}
                   side={playerSide}
                   fontSize={scoreboard.typography.nameSize}
-                  font={scoreboard.typography.font ?? defaultCustomScoreboardFont}
+                  fontFamily={fontFamily}
                 />
               ) : kind ? (
                 <ScoreboardDetailPill

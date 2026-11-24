@@ -149,14 +149,14 @@ export function useBracketLabel(side: 'winners' | 'losers') {
   return (side === 'winners' ? appearance.winnersLabel : appearance.losersLabel)?.trim() || t(`bracketScreen.${side}`);
 }
 
-export function useAppearanceStyle(): CSSProperties {
-  const { appearance } = useAppearance();
-  return appearanceStyle(appearance);
+export function useAppearanceStyle(surface?: 'scoreboard'): CSSProperties {
+  const { appearance, state } = useAppearance();
+  return appearanceStyle(appearance, surface === 'scoreboard' ? state.scoreboardTextScale : undefined);
 }
 
-export function appearanceStyle(appearance: Appearance): CSSProperties {
+export function appearanceStyle(appearance: Appearance, scoreboardTextScale = 100): CSSProperties {
   const style: Record<string, string | number> = {
-    '--appearance-text-scale': appearance.textSize === 'large' ? 1.12 : 1
+    '--appearance-text-scale': (appearance.textSize === 'large' ? 1.12 : 1) * (scoreboardTextScale / 100)
   };
   if (appearance.colorOverride) {
     for (const variable of [

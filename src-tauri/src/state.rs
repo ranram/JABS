@@ -2,7 +2,9 @@ mod text_moderation;
 mod bracket_status;
 mod results;
 mod players;
-pub use results::ReportBaseline;
+mod stream_presentation;
+use stream_presentation::StreamPresentation;
+pub use results::{ReportBaseline, report_readiness};
 
 pub use text_moderation::censor_untrusted_selected_set;
 use text_moderation::assert_safe_state;
@@ -102,6 +104,11 @@ pub struct SelectedSet {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub match_format: Option<String>,
     pub best_of: u32,
+    /// The best-of length configured on start.gg, if available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub startgg_best_of: Option<u32>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub show_first_to: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub broadcast: Option<BroadcastPresentation>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -181,6 +188,7 @@ pub struct GameResult {
 
 pub struct OverlayStore {
     state: RwLock<OverlayState>,
+    presentation: std::sync::Mutex<StreamPresentation>,
     history_revision: AtomicU64,
     updates: broadcast::Sender<String>,
 }
@@ -240,6 +248,7 @@ impl OverlayStore {
         let (updates, _) = broadcast::channel(32);
         Ok(Self {
             state: RwLock::new(state),
+            presentation: Default::default(),
             history_revision: AtomicU64::new(0),
             updates,
         })
@@ -318,6 +327,7 @@ impl OverlayStore {
             return Err("The live match changed while loading the queue. Review it before continuing.".into());
         }
         selected_set.use_reported_broadcast_winner = false;
+        self.presentation.lock().map_err(|_| "Stream settings are unavailable.")?.apply(&mut selected_set);
         selected_set.updated_at = next_timestamp(&current.selected_set.updated_at)?;
         let mut next = OverlayState { selected_set };
         validate_state(&next)?;
@@ -359,10 +369,14 @@ impl OverlayStore {
             None
         };
         submitted.upstream_double_dq = None;
+        submitted.startgg_best_of = None;
         if submitted.set_id == current.selected_set.set_id {
             if submitted.set_id.is_some() {
                 submitted.state = current.selected_set.state.clone();
                 submitted.upstream_double_dq = current.selected_set.upstream_double_dq;
+                submitted.best_of = current.selected_set.best_of;
+                submitted.match_format = current.selected_set.match_format.clone();
+                submitted.startgg_best_of = current.selected_set.startgg_best_of;
             }
             let scores_changed = [&submitted.player_one, &submitted.player_two]
                 .iter()
@@ -384,6 +398,7 @@ impl OverlayStore {
                 current.selected_set.upstream_reset
             };
         }
+        submitted.show_first_to &= submitted.set_id.is_some();
         submitted.use_reported_broadcast_winner = current.selected_set.use_reported_broadcast_winner
             && submitted.same_broadcast_result(&current.selected_set);
         if current.selected_set.set_id.is_some() {
@@ -434,8 +449,11 @@ impl OverlayStore {
         validate_state(&next).map_err(UpdateSelectedSetError::Invalid)?;
         let payload = serde_json::to_string(&next)
             .map_err(|_| UpdateSelectedSetError::Invalid("Unable to serialize local stream state.".to_owned()))?;
+        let mut presentation = self.presentation.lock()
+            .map_err(|_| UpdateSelectedSetError::Invalid("Stream settings are unavailable.".to_owned()))?;
         persist_stream_state(database, &next, &payload)
             .map_err(UpdateSelectedSetError::Invalid)?;
+        presentation.record_edit(&current.selected_set, &next.selected_set);
         self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
         let _ = self.updates.send(payload.clone());
@@ -489,6 +507,7 @@ impl OverlayStore {
         if selected.custom_scoreboard_id.is_none() {
             selected.styling_game_id = Some(selected.game_id.clone());
         }
+        self.presentation.lock().map_err(|_| invalid("Stream settings are unavailable.".to_owned()))?.apply_style(selected);
         // Keep the players and broadcast settings when changing exhibition games.
         // Reset gameplay and old artwork before loading the new game's library defaults.
         for player in [&mut selected.player_one, &mut selected.player_two] {
@@ -519,6 +538,7 @@ impl OverlayStore {
         let mut current = self.state.write()
             .map_err(|_| "Local stream state is unavailable.".to_owned())?;
         let mut next = default_state();
+        self.presentation.lock().map_err(|_| "Stream settings are unavailable.")?.apply(&mut next.selected_set);
         next.selected_set.updated_at = next_timestamp(&current.selected_set.updated_at)?;
         let payload = serde_json::to_string(&next)
             .map_err(|_| "Unable to serialize local stream state.".to_owned())?;
@@ -701,6 +721,8 @@ fn default_state() -> OverlayState {
             asset_catalog_slug: None,
             match_format: Some("best-of".to_owned()),
             best_of: 3,
+            startgg_best_of: None,
+            show_first_to: false,
             broadcast: Some(BroadcastPresentation {
                 seeds_enabled: None,
                 info_bar_enabled: false,
@@ -806,7 +828,12 @@ fn validate_state(state: &OverlayState) -> Result<(), String> {
     }) {
         return Err("Choose a valid local game asset catalog.".to_owned());
     }
-    if !matches!(selected_set.best_of, 3 | 5 | 9 | 13 | 19) {
+    let best_of_format = matches!(selected_set.match_format.as_deref(), None | Some("best-of"));
+    if !(if best_of_format {
+        valid_startgg_best_of(selected_set.best_of)
+    } else {
+        matches!(selected_set.best_of, 3 | 5 | 9 | 13 | 19)
+    }) {
         return Err("Choose a supported match length.".to_owned());
     }
     if !matches!(
@@ -814,11 +841,6 @@ fn validate_state(state: &OverlayState) -> Result<(), String> {
         None | Some("best-of") | Some("first-to") | Some("topanga")
     ) {
         return Err("Choose a supported match format.".to_owned());
-    }
-    if matches!(selected_set.match_format.as_deref(), None | Some("best-of"))
-        && !matches!(selected_set.best_of, 3 | 5)
-    {
-        return Err("Best-of must be 3 or 5.".to_owned());
     }
     if selected_set.match_format.as_deref() == Some("topanga")
         && (selected_set.best_of != 13
@@ -874,9 +896,6 @@ fn validate_state(state: &OverlayState) -> Result<(), String> {
 }
 
 pub fn migrate_match_format(selected_set: &mut SelectedSet) {
-    if selected_set.best_of == 1 {
-        selected_set.best_of = 3;
-    }
     if selected_set.match_format.is_none() {
         selected_set.match_format = Some("best-of".to_owned());
     }
@@ -885,72 +904,16 @@ pub fn migrate_match_format(selected_set: &mut SelectedSet) {
     }
 }
 
+pub(crate) fn valid_startgg_best_of(value: u32) -> bool {
+    (1..=19).contains(&value) && value % 2 == 1
+}
+
 pub fn is_game_id(value: &str) -> bool {
     GAME_IDS.contains(&value)
 }
 
 pub fn validate_selected_set(selected_set: &SelectedSet) -> Result<(), String> {
     validate_state(&OverlayState { selected_set: selected_set.clone() })
-}
-
-pub fn report_readiness(
-    selected_set: &SelectedSet,
-    outcome: Option<&ReportOutcome>,
-) -> Result<ReportableResult, String> {
-    if selected_set.upstream_reset == Some(true) && outcome.is_none() {
-        return Err("Reset or update the local score before reporting this result.".to_owned());
-    }
-    if selected_set.state.as_deref() == Some("3") {
-        return Err("This set is already marked complete on start.gg.".to_owned());
-    }
-    if selected_set.set_id.is_none() {
-        return Err("Load a start.gg set before reporting a result.".to_owned());
-    }
-    if matches!(
-        selected_set.match_format.as_deref(),
-        Some("first-to") | Some("topanga")
-    ) {
-        return Err("Exhibition scores stay in JABS and cannot be reported to start.gg.".to_owned());
-    }
-    required(&selected_set.player_one.entrant_id, "Player one entrant ID")?;
-    required(&selected_set.player_two.entrant_id, "Player two entrant ID")?;
-    if let Some(outcome) = outcome {
-        validate_selected_set(selected_set)?;
-        let (winner, loser) = if outcome.winner_id == selected_set.player_one.entrant_id {
-            (&selected_set.player_one, &selected_set.player_two)
-        } else if outcome.winner_id == selected_set.player_two.entrant_id {
-            (&selected_set.player_two, &selected_set.player_one)
-        } else {
-            return Err("Choose the winning entrant.".to_owned());
-        };
-        return Ok(ReportableResult {
-            winner_id: winner.entrant_id.clone(),
-            winner_score: winner.score,
-            loser_score: loser.score,
-        });
-    }
-    let target = score_limit(selected_set);
-    let player_one_won = selected_set.player_one.score == target
-        && selected_set.player_two.score < target;
-    let player_two_won = selected_set.player_two.score == target
-        && selected_set.player_one.score < target;
-    if !player_one_won && !player_two_won {
-        return Err(format!(
-            "Complete the local score first. This best-of-{} ends at {target} wins.",
-            selected_set.best_of
-        ));
-    }
-    validate_state(&OverlayState { selected_set: selected_set.clone() })?;
-    let (winner, loser) = if player_one_won {
-        (&selected_set.player_one, &selected_set.player_two)
-    } else {
-        (&selected_set.player_two, &selected_set.player_one)
-    };
-    Ok(ReportableResult {
-        winner_id: winner.entrant_id.clone(),
-        winner_score: winner.score,
-        loser_score: loser.score,
-    })
 }
 
 fn validate_characters(
@@ -1454,6 +1417,7 @@ mod tests {
         let store = OverlayStore::load(&database).unwrap();
         let mut selected = store.selected_set().unwrap();
         selected.set_id = Some("set-1".to_owned());
+        selected.startgg_best_of = Some(3);
         selected.player_one.score = 2;
         selected.player_two.score = 1;
         selected.game_history = Some(vec![

@@ -33,9 +33,9 @@ fn quick_report(confirmed: bool) -> QuickReportBody {
         outcome: None,
         set_id: "100".into(),
         game_id: "street-fighter-6".into(),
-        best_of: 3,
         expected: ReportBaseline {
             state: Some("1".into()),
+            best_of: Some(3),
             player_one_entrant_id: "10".into(),
             player_two_entrant_id: "20".into(),
             player_one_score: 0,
@@ -94,6 +94,7 @@ async fn active_reports_reject_stale_matches_and_a_winner_that_disagrees_with_th
     current.player_one.score = 2;
     current.player_two.score = 0;
     current.best_of = 3;
+    current.startgg_best_of = Some(3);
     current.game_history = None;
     runtime
         .overlay
@@ -142,11 +143,12 @@ fn both_report_paths_reject_changed_upstream_results_and_missing_sets() {
     let mut fresh = runtime.overlay.selected_set().unwrap();
     fresh.set_id = Some("100".into());
     fresh.state = Some("1".into());
+    fresh.startgg_best_of = Some(3);
     fresh.player_one.entrant_id = "10".into();
     fresh.player_two.entrant_id = "20".into();
     let expected = ReportBaseline::from_set(&fresh);
     assert!(check_report_set("100", &expected, Some(fresh.clone())).is_ok());
-    let changes: [(&str, fn(&mut SelectedSet)); 6] = [
+    let changes: [(&str, fn(&mut SelectedSet)); 7] = [
         ("set started", |set| set.state = Some("2".into())),
         ("set reported", |set| set.state = Some("3".into())),
         ("first entrant replaced", |set| {
@@ -157,6 +159,7 @@ fn both_report_paths_reject_changed_upstream_results_and_missing_sets() {
         }),
         ("first score changed", |set| set.player_one.score = 1),
         ("second score changed", |set| set.player_two.score = 1),
+        ("round format changed", |set| set.startgg_best_of = Some(5)),
     ];
     for (scenario, change) in changes {
         let mut changed = fresh.clone();

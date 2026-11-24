@@ -1,21 +1,25 @@
 import { ScoreboardPlayerName } from '../ScoreboardPlayerName';
 import { useIdentityTextFit } from '../useIdentityTextFit';
-import type { CustomScoreboardFontId } from '@shared/customScoreboards';
+import { useAppearance } from '../appearance/AppearanceProvider';
 
 export function CustomScoreboardName({
   name,
   sponsor,
   side,
   fontSize,
-  font
+  fontFamily
 }: {
   name: string;
   sponsor?: string;
   side: 'left' | 'right';
   fontSize: number;
-  font: CustomScoreboardFontId;
+  fontFamily: string;
 }) {
-  const ref = useIdentityTextFit(JSON.stringify([name, sponsor, side, fontSize, font]), '.custom-scoreboard-identity');
+  const { state: { scoreboardTextScale } } = useAppearance();
+  const ref = useIdentityTextFit(
+    JSON.stringify([name, sponsor, side, fontSize, fontFamily, scoreboardTextScale]),
+    '.custom-scoreboard-identity'
+  );
   return (
     <span ref={ref} className="custom-scoreboard-name-fit">
       <span className="custom-scoreboard-identity">

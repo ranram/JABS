@@ -33,9 +33,7 @@ it('confirms a Top 8 of TBD matches, preserves the queue, and includes the expos
       eventId: 'event',
       eventName: 'Singles',
       tournamentSlug: 'test',
-      gameId: 'street-fighter-6',
-      preserveStation: false,
-      preserveMatchLength: false
+      gameId: 'street-fighter-6'
     },
     state: {
       entries: [{ setId: 'ws1', playerOne: 'A', playerTwo: 'B', entrantOneId: '1', entrantTwoId: '2' }],

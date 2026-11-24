@@ -65,6 +65,14 @@ vi.mock('../renderer/src/ui/operator/StartggPanel', () => ({
 }));
 vi.mock('../renderer/src/api', async (importOriginal) => {
   const original = await importOriginal<typeof import('../renderer/src/api')>();
+  const bracketSet: SelectedSetState = {
+    ...createTestOverlayState('tekken-8').selectedSet,
+    setId: 'set',
+    bestOf: 7,
+    startggBestOf: 7,
+    playerOne: { entrantId: 'p1', name: 'Bracket Alpha', score: 0 },
+    playerTwo: { entrantId: 'p2', name: 'Bracket Beta', score: 0 }
+  };
   return {
     ...original,
     websocketUrl: async () => 'ws://127.0.0.1/ws',
@@ -99,6 +107,10 @@ vi.mock('../renderer/src/api', async (importOriginal) => {
         events: [{ id: 'event', name: 'Singles', videogame: { id: '49783', name: 'Tekken 8' } }]
       }),
       phases: async () => ({ source: 'live', phases: [] }),
+      roundFormats: async (_eventId: string, page: number) => ({
+        formats: page === 1 ? [7, 19] : [1, 19],
+        totalPages: 2
+      }),
       sets: async () => ({
         source: 'live',
         sets: [
@@ -113,12 +125,11 @@ vi.mock('../renderer/src/api', async (importOriginal) => {
       }),
       inspectStartggSet: async () => ({
         source: 'live',
-        selectedSet: {
-          ...createTestOverlayState('tekken-8').selectedSet,
-          setId: 'set',
-          playerOne: { entrantId: 'p1', name: 'Bracket Alpha', score: 0 },
-          playerTwo: { entrantId: 'p2', name: 'Bracket Beta', score: 0 }
-        }
+        selectedSet: bracketSet
+      }),
+      selectStartggSet: async () => ({
+        source: 'live',
+        state: { selectedSet: bracketSet }
       }),
       streamQueue: async () => ({ source: 'live', assignments: [] })
     }
@@ -469,48 +480,50 @@ it('plays best-of, first-to and Topanga exhibitions and clears the game after un
   await click('Load tournament');
   expect(gameInput('Detected game').value).toBe('Tekken 8');
   expect(gameInput('Detected game').readOnly).toBe(true);
-  await act(async () => length.click());
-  expect(
-    [...document.getElementById(length.getAttribute('aria-controls')!)!.querySelectorAll('[role="option"]')].map(
-      (option) => option.textContent
-    )
-  ).toEqual(['Best of 3', 'Best of 5']);
-  await act(async () => length.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+  const previewLength = view.container.querySelector<HTMLInputElement>('[data-testid="editor-best-of"]')!;
+  await act(async () => previewLength.click());
+  const previewFormats = [...document.getElementById(previewLength.getAttribute('aria-controls')!)!
+    .querySelectorAll<HTMLElement>('[role="option"]')];
+  expect(previewFormats.map((item) => item.textContent)).toEqual(['Best of 1', 'Best of 7', 'Best of 19']);
+  await act(async () => {
+    previewFormats[2].click();
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  expect(live.selectedSet).toMatchObject({ matchFormat: 'best-of', bestOf: 19 });
+  expect(live.selectedSet.setId).toBeUndefined();
   await act(async () => view.container.querySelector<HTMLButtonElement>('[data-testid="set-set"]')!.click());
   await act(async () => document.querySelector<HTMLButtonElement>('.score-choice')!.click());
   const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
   const quickLength = dialog.querySelector<HTMLInputElement>('input')!;
   const quickIncrease = dialog.querySelector<HTMLButtonElement>('[aria-label="Increase Bracket Alpha score"]')!;
-  const quickReset = [...dialog.querySelectorAll<HTMLButtonElement>('button')].find(
-    (button) => button.textContent === 'Reset scores'
-  )!;
-  function quickLengthOptions() {
-    const dropdown = document.getElementById(quickLength.getAttribute('aria-controls')!)!;
-    return [...dropdown.querySelectorAll<HTMLElement>('[role="option"]')];
+  const quickReport = dialog.querySelector<HTMLButtonElement>('[data-testid="quick-report-startgg-result"]')!;
+  expect(quickLength.value).toBe('Best of 7');
+  expect(quickLength.readOnly).toBe(true);
+  for (let score = 1; score <= 4; score += 1) {
+    expect(quickReport.disabled).toBe(true);
+    expect(quickIncrease.disabled).toBe(false);
+    await act(async () => quickIncrease.click());
+    expect(dialog.querySelector('.quick-score-value')?.textContent).toBe(String(score));
   }
-  for (const target of [2, 3]) {
-    await act(async () => quickReset.click());
-    await act(async () => quickLength.click());
-    const options = quickLengthOptions();
-    expect(options.map((option) => option.textContent)).toEqual(['Best of 3', 'Best of 5']);
-    await act(async () => options.find((option) => option.textContent === `Best of ${target * 2 - 1}`)!.click());
-    for (let score = 1; score <= target; score += 1) {
-      expect(quickIncrease.disabled).toBe(false);
-      await act(async () => quickIncrease.click());
-      expect(dialog.querySelector('.quick-score-value')?.textContent).toBe(String(score));
-    }
-    expect(quickIncrease.disabled).toBe(true);
-    expect(dialog.querySelector<HTMLButtonElement>('[data-testid="quick-report-startgg-result"]')?.disabled).toBe(
-      false
-    );
-  }
-  await act(async () => quickLength.click());
-  const bestOfThree = quickLengthOptions().find((option) => option.textContent === 'Best of 3')!;
-  await act(async () => bestOfThree.click());
-  expect(dialog.querySelector('.quick-score-value')?.textContent).toBe('2');
+  expect(quickReport.disabled).toBe(false);
   expect(quickIncrease.disabled).toBe(true);
   expect(live.selectedSet.playerOne.score).toBe(0);
   await act(async () => dialog.querySelector<HTMLButtonElement>('.mantine-Modal-close')!.click());
+  await act(async () => view.container.querySelector<HTMLButtonElement>('[data-testid="set-set"]')!.click());
+  await act(async () => document.querySelector<HTMLButtonElement>('.stream-choice')!.click());
+  const streamLength = view.container.querySelector<HTMLInputElement>('[data-testid="editor-best-of"]')!;
+  expect(streamLength.value).toBe('Best of 7');
+  await act(async () => streamLength.click());
+  const formatOptions = document.getElementById(streamLength.getAttribute('aria-controls')!)!;
+  const firstTo = [...formatOptions.querySelectorAll<HTMLElement>('[role="option"]')]
+    .find((option) => option.textContent === 'First to 4')!;
+  await act(async () => {
+    firstTo.click();
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  expect(streamLength.value).toBe('First to 4');
+  expect(live.selectedSet).toMatchObject({ bestOf: 7, startggBestOf: 7, matchFormat: 'best-of', showFirstTo: true });
+  expect(view.container.querySelector('.preview-panel')?.textContent).toContain('start.gg · Best of 7');
   await click('Unload tournament');
   expect(gameInput('Game').value).toBe('');
   expect(gameInput('Game').readOnly).toBe(false);

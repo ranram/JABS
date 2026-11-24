@@ -29,6 +29,7 @@ import { useAppearance } from './AppearanceProvider';
 import { api } from '../../api';
 import { useOperatorNotifications } from '../operator/useOperatorNotifications';
 import { IconLabel, OperatorIcon, PlusIcon, SlidersHorizontalIcon } from '../icons';
+import { ImportedFontSettings } from '../fonts/ImportedFontSettings';
 import '../panelHeader.css';
 
 export function SettingsButton({
@@ -190,6 +191,8 @@ export function SettingsPanel() {
       <Text size="sm" c="dimmed">
         {t('appearance.bracketNamesHelp')}
       </Text>
+      <Divider />
+      <ImportedFontSettings />
       <Divider />
       <Switch
         label={t('appearance.colorOverride')}

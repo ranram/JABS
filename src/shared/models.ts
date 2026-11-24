@@ -158,6 +158,8 @@ export type SelectedSetState = {
   assetCatalogSlug?: string;
   matchFormat?: 'best-of' | 'first-to' | 'topanga';
   bestOf: number;
+  startggBestOf?: number;
+  showFirstTo?: boolean;
   broadcast?: BroadcastPresentation;
   gameHistory?: SetGameResult[];
   playerOne: PlayerState;

@@ -46,6 +46,7 @@ it.each(['en', 'es-419'])(
       eventId: '456',
       state: '3',
       bestOf: 5,
+      startggBestOf: 5,
       gameHistory: undefined
     });
     original.selectedSet.playerOne.score = 1;

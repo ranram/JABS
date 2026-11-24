@@ -5,9 +5,7 @@ export const queueContextSchema = z.object({
   eventName: z.string().min(1),
   tournamentSlug: z.string().min(1),
   gameId: z.string(),
-  assetCatalogSlug: z.string().optional(),
-  preserveStation: z.boolean().default(false),
-  preserveMatchLength: z.boolean().default(false)
+  assetCatalogSlug: z.string().optional()
 });
 export const queueEntrySchema = z.object({
   setId: z.string().min(1),

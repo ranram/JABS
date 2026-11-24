@@ -55,6 +55,10 @@ pub struct Preset {
 pub struct Preferences {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scoreboard_font: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scoreboard_text_scale: Option<u32>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub show_imported_fonts: bool,
     #[serde(default)]
     pub active_preset_id: Option<String>,
     pub appearance: Appearance,
@@ -80,6 +84,8 @@ impl AppearanceStore {
             || {
                 Ok(Preferences {
                     scoreboard_font: None,
+                    scoreboard_text_scale: None,
+                    show_imported_fonts: false,
                     active_preset_id: None,
                     appearance: Appearance::default(),
                     presets: vec![],
@@ -191,9 +197,12 @@ fn validate(value: &mut Preferences) -> Result<(), String> {
     if value
         .scoreboard_font
         .as_deref()
-        .is_some_and(|font| !crate::fonts::IDS.contains(&font))
+        .is_some_and(|font| !crate::fonts::valid_scoreboard_font(font))
     {
-        return Err("Choose a bundled scoreboard font.".into());
+        return Err("Choose a valid scoreboard font.".into());
+    }
+    if value.scoreboard_text_scale.is_some_and(|size| !(100..=130).contains(&size)) {
+        return Err("Choose a scoreboard text size between 100% and 130%.".into());
     }
     validate_appearance(&mut value.appearance)?;
     if value.presets.len() > 20 || !matches!(value.operator_language.as_str(), "en" | "es-419") {

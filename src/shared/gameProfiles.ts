@@ -577,20 +577,12 @@ export function defaultBestOfForGame(
   return gameOverride?.defaultBestOf ?? matchFormatPolicies.defaultBestOf;
 }
 
-export function scoreLimitForBestOf(gameId: string | undefined, bestOf: number): number {
-  const profile = resolveGameProfile(gameId);
-  return Math.min(profile.maxScore, Math.max(1, Math.ceil(bestOf / 2)));
-}
-
 export function scoreLimitForMatch({
-  gameId,
   bestOf,
   matchFormat
-}: Pick<SelectedSetState, 'gameId' | 'bestOf' | 'matchFormat'>): number {
-  // Exhibition targets can exceed the profile's tournament score limit.
+}: Pick<SelectedSetState, 'bestOf' | 'matchFormat'>): number {
   if (matchFormat === 'topanga') return 10;
-  if (matchFormat === 'first-to') return Math.max(1, Math.ceil(bestOf / 2));
-  return scoreLimitForBestOf(gameId, bestOf);
+  return Math.ceil(bestOf / 2);
 }
 
 export function scoreLimitForPlayer(selectedSet: SelectedSetState, side: 'one' | 'two'): number {

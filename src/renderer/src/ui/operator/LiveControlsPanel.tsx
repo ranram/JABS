@@ -98,7 +98,13 @@ export function LiveControlsPanel({
             ? [selectedSet.tournamentName, selectedSet.round].filter(Boolean).join(' · ') || selectedSet.gameName
             : t('operator:ux.noMatch')}
           {' · '}
-          {selectedSet.matchFormat === 'topanga' ? (
+          {selectedSet.setId ? (
+            <Text component="span" inherit fw={700} c="var(--mantine-color-text)">
+              {selectedSet.startggBestOf
+                ? t('operator:live.startggFormat', { format: t('common:match.bestOf', { count: selectedSet.startggBestOf }) })
+                : t('operator:editor.startggFormatUnavailable')}
+            </Text>
+          ) : selectedSet.matchFormat === 'topanga' ? (
             <Popover width={280} position="bottom-start" withArrow shadow="md" trapFocus returnFocus>
               <Popover.Target>
                 <Anchor

@@ -7,8 +7,6 @@ export type QueueHeartbeat = {
   eventId?: string;
   busy: boolean;
   sequence: number;
-  preserveStation: boolean;
-  preserveMatchLength: boolean;
   signal?: AbortSignal;
 };
 

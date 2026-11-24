@@ -8,8 +8,8 @@ fn context() -> Context {
         tournament_slug: "tournament/local".into(),
         game_id: "street-fighter-6".into(),
         asset_catalog_slug: Some("street-fighter-6".into()),
-        preserve_station: false,
-        preserve_match_length: false,
+        _legacy_preserve_station: false,
+        _legacy_preserve_match_length: false,
     }
 }
 fn live(database: &Database) -> SelectedSet {
@@ -291,7 +291,7 @@ fn reports_are_bound_to_the_activation_and_require_confirmed_success() {
     assert!(token.is_some());
     // A winning score or a harmless queue edit cannot substitute for a report.
     queue
-        .heartbeat("operator".into(), Some("456".into()), false, None, None)
+        .heartbeat("operator".into(), Some("456".into()), false, None)
         .unwrap();
     queue.reported(&database, token, "other-set", true);
     assert!(!queue.inner.lock().unwrap().reported);
@@ -645,7 +645,7 @@ pub(super) fn runtime() -> Arc<RuntimeState> {
         .unwrap();
     runtime
         .match_queue
-        .heartbeat("operator".into(), Some("456".into()), false, None, None)
+        .heartbeat("operator".into(), Some("456".into()), false, None)
         .unwrap();
     runtime
 }
@@ -833,7 +833,7 @@ fn due_advances_wait_for_edits_and_finish_without_clearing_the_live_match() {
         r.match_queue.inner.lock().unwrap().snapshot.remaining_ms = Some(0);
     }
     r.match_queue
-        .heartbeat("operator".into(), Some("456".into()), true, None, None)
+        .heartbeat("operator".into(), Some("456".into()), true, None)
         .unwrap();
     run(engine::tick(&r));
     assert_eq!(r.match_queue.current().unwrap().status, "waiting-edits");
@@ -842,7 +842,7 @@ fn due_advances_wait_for_edits_and_finish_without_clearing_the_live_match() {
         Some("100")
     );
     r.match_queue
-        .heartbeat("operator".into(), Some("456".into()), false, None, None)
+        .heartbeat("operator".into(), Some("456".into()), false, None)
         .unwrap();
     run(engine::tick(&r));
     let finished = r.match_queue.current().unwrap();
@@ -890,7 +890,7 @@ fn sleep_disconnect_and_event_changes_pause_automatic_advance() {
                     .unwrap()
                     .seen_wall = SystemTime::now() - Duration::from_secs(9);
                 r.match_queue
-                    .heartbeat("operator".into(), Some("456".into()), false, None, None)
+                    .heartbeat("operator".into(), Some("456".into()), false, None)
                     .unwrap();
             }
             _ => r
@@ -899,7 +899,6 @@ fn sleep_disconnect_and_event_changes_pause_automatic_advance() {
                     "operator".into(),
                     Some("other-event".into()),
                     false,
-                    None,
                     None,
                 )
                 .unwrap(),
@@ -992,14 +991,14 @@ fn external_reports_release_report_mode_without_overwriting_local_scores_or_bypa
     r.observe_startgg_sets("456", &[summary("other", "20")]).unwrap();
     assert!(!r.match_queue.inner.lock().unwrap().reported);
     assert_eq!(r.overlay.selected_set().unwrap().state.as_deref(), Some("1"));
-    r.match_queue.heartbeat("operator".into(), Some("456".into()), true, None, None).unwrap();
+    r.match_queue.heartbeat("operator".into(), Some("456".into()), true, None).unwrap();
     r.observe_startgg_sets("456", &[summary("20", "10")]).unwrap();
     run(engine::tick(&r));
     assert_eq!(r.match_queue.current().unwrap().status, "waiting-edits");
     let live = r.overlay.selected_set().unwrap();
     assert_eq!((live.player_one.score, live.player_two.score), (1, 0));
     assert_eq!(live.winner(), Some("two"));
-    r.match_queue.heartbeat("operator".into(), Some("456".into()), false, None, None).unwrap();
+    r.match_queue.heartbeat("operator".into(), Some("456".into()), false, None).unwrap();
     run(engine::tick(&r));
     assert_eq!(r.match_queue.current().unwrap().status, "finished");
 }

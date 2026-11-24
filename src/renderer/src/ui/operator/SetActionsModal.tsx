@@ -1,8 +1,8 @@
 import { CharacterSelect } from './CharacterSelect';
-import { Alert, Button, Group, Modal, Paper, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Alert, Button, Group, Modal, Paper, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useMemo, type ReactNode } from 'react';
-import { bestOfOptionsForGame, scoreLimitForBestOf } from '@shared/gameProfiles';
+import { scoreLimitForMatch } from '@shared/gameProfiles';
 import { maxCharactersForGame, playerCharacters } from '@shared/characterTeams';
 import type { SelectedSetState, SetSummary, ReportOutcome } from '@shared/models';
 import { startggReportReadiness, type StartggReportReadiness } from '@shared/startggReporting';
@@ -29,7 +29,6 @@ type SetActionsModalProps = {
   onClose(): void;
   onSendToStream(setId: string): void;
   onBeginQuickScore(): void;
-  onChangeBestOf(bestOf: number): void;
   onChangeScore(side: 'one' | 'two', score: number): void;
   onChangeCharacters(side: 'one' | 'two', characters: string[]): void;
   onResetScores(): void;
@@ -52,7 +51,6 @@ export function SetActionsModal({
   onClose,
   onSendToStream,
   onBeginQuickScore,
-  onChangeBestOf,
   onChangeScore,
   onChangeCharacters,
   onResetScores,
@@ -180,21 +178,12 @@ export function SetActionsModal({
       ) : quickScore ? (
         <Stack gap="md" className="quick-score-sheet">
           <Group justify="space-between" align="flex-end" wrap="wrap">
-            <Select
+            <TextInput
               label={t('operator:editor.matchLength')}
-              value={String(quickScore.bestOf)}
-              disabled={quickScoreLoading}
-              allowDeselect={false}
-              data={bestOfOptionsForGame(quickScore.gameId).map((bestOf) => ({
-                value: String(bestOf),
-                label: t('common:match.bestOf', { count: bestOf })
-              }))}
-              onChange={(value) => {
-                if (value) {
-                  clear();
-                  onChangeBestOf(Number(value));
-                }
-              }}
+              value={quickScore.startggBestOf
+                ? t('common:match.bestOf', { count: quickScore.startggBestOf })
+                : t('operator:editor.startggFormatUnavailable')}
+              readOnly
             />
             <Text size="sm" c="dimmed">
               {[
@@ -235,7 +224,7 @@ export function SetActionsModal({
                     }
                     label={player.name}
                     score={player.score}
-                    maxScore={scoreLimitForBestOf(quickScore.gameId, quickScore.bestOf)}
+                    maxScore={scoreLimitForMatch(quickScore)}
                     disabled={quickScoreLoading}
                     onChange={(score) => {
                       clear();

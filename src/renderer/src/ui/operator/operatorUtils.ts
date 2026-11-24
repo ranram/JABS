@@ -1,5 +1,5 @@
 import type { StartggReportReadiness } from '@shared/startggReporting';
-import { scoreLimitForBestOf } from '@shared/gameProfiles';
+import { scoreLimitForMatch } from '@shared/gameProfiles';
 import { recordedCharacterSelections, updateRecordedGameHistory } from '@shared/gameHistory';
 import type { SelectedSetState, SetSummary, StartggSetScope } from '@shared/models';
 import { i18n } from '../../i18n';
@@ -10,7 +10,7 @@ export function setQuickScoreValue(
   side: 'one' | 'two',
   requestedScore: number
 ): SelectedSetState {
-  const score = Math.min(Math.max(0, requestedScore), scoreLimitForBestOf(selectedSet.gameId, selectedSet.bestOf));
+  const score = Math.min(Math.max(0, requestedScore), scoreLimitForMatch(selectedSet));
   const player = side === 'one' ? selectedSet.playerOne : selectedSet.playerTwo;
   const otherPlayer = side === 'one' ? selectedSet.playerTwo : selectedSet.playerOne;
   return {
@@ -96,6 +96,8 @@ export function localizedReadinessReason(readiness: StartggReportReadiness): str
       return i18n.t('operator:readiness.exhibitionLocalOnly');
     case 'entrants-missing':
       return i18n.t('operator:readiness.entrantsMissing');
+    case 'format-unavailable':
+      return i18n.t('operator:readiness.formatUnavailable');
     case 'score-incomplete':
       return i18n.t('operator:readiness.scoreIncomplete', {
         bestOf: readiness.bestOf ?? '',

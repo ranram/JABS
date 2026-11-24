@@ -396,8 +396,6 @@ async fn load_queued_match(
         queue_context: None,
         restore_overrides: true,
         preserve_broadcast: true,
-        preserve_station: c.preserve_station,
-        preserve_match_length: c.preserve_match_length,
     };
     let raw = crate::local_server::fetch_selected_set(runtime, &body)
         .await
@@ -717,7 +715,7 @@ mod transition_tests {
         *runtime.match_queue.inner.lock().unwrap() = restored.inner.into_inner().unwrap();
         runtime
             .match_queue
-            .heartbeat("operator".into(), Some("456".into()), false, None, None)
+            .heartbeat("operator".into(), Some("456".into()), false, None)
             .unwrap();
     }
 
@@ -1011,11 +1009,11 @@ mod transition_tests {
             }
             if hold {
                 r.match_queue
-                    .heartbeat("operator".into(), Some("456".into()), true, Some(3), None)
+                    .heartbeat("operator".into(), Some("456".into()), true, Some(3))
                     .unwrap();
                 // A delayed heartbeat must not clear the newer edit hold.
                 r.match_queue
-                    .heartbeat("operator".into(), Some("456".into()), false, Some(2), None)
+                    .heartbeat("operator".into(), Some("456".into()), false, Some(2))
                     .unwrap();
                 assert_eq!(
                     commit_transition(&r, &plan, fresh).unwrap().status,

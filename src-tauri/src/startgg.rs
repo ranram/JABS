@@ -17,6 +17,7 @@ const MAX_EVENT_HEAD_TO_HEAD_PAGES: u32 = 5;
 mod history;
 mod queued_sets;
 mod set_scores;
+pub(crate) mod round_formats;
 use set_scores::{completed_double_dq, slot_score, summary_reported_outcome};
 pub(crate) use queued_sets::queued_sets;
 
@@ -467,8 +468,8 @@ pub async fn selected_set(
     };
     let slots = node_list(set.get("slots"), "selected set slots")?;
     let games = set.get("games");
-    let mut player_one = player_from_slot(slots.first().copied(), games, &set_id, 1);
-    let mut player_two = player_from_slot(slots.get(1).copied(), games, &set_id, 2);
+    let player_one = player_from_slot(slots.first().copied(), games, &set_id, 1);
+    let player_two = player_from_slot(slots.get(1).copied(), games, &set_id, 2);
     let phase_group = optional_object(set.get("phaseGroup"));
     let phase = phase_group
         .and_then(|group| optional_object(group.get("phase")))
@@ -477,27 +478,22 @@ pub async fn selected_set(
         .and_then(|group| optional_text(group.get("displayIdentifier")));
     let round = optional_text(set.get("fullRoundText"));
     let winners_side_entrant_id = winners_side_entrant_id(runtime, round.as_deref(), &slots).await;
-    let highest_score = player_one.score.max(player_two.score).min(3);
-    let tied = player_one.score == player_two.score && highest_score > 0;
-    let configured_best_of = crate::match_formats::default_best_of(
+    let startgg_best_of = startgg_best_of(set);
+    let fallback_best_of = crate::match_formats::default_best_of(
         input.game_id,
         phase.as_deref(),
         phase_group_name.as_deref(),
         round.as_deref(),
     );
-    let score_required_best_of = if highest_score >= 3 || (tied && highest_score >= 2) {
-        5
-    } else {
-        3
-    };
     let state = set.get("state").and_then(normalized_id);
     let double_dq = completed_double_dq(state.as_deref(), &slots);
-    let completed_best_of = (double_dq != Some(true) && state.as_deref() == Some("3"))
-        .then_some(if highest_score >= 3 { 5 } else { 3 });
-    let best_of = completed_best_of.unwrap_or(configured_best_of.max(score_required_best_of));
-    let score_limit = best_of / 2 + 1;
-    player_one.score = player_one.score.min(score_limit);
-    player_two.score = player_two.score.min(score_limit);
+    let best_of = imported_best_of(
+        startgg_best_of,
+        fallback_best_of,
+        player_one.score,
+        player_two.score,
+        state.as_deref() == Some("3") && double_dq != Some(true),
+    );
     let station = optional_object(set.get("station"))
         .and_then(|station| finite_u64(station.get("number")))
         .filter(|number| *number > 0)
@@ -536,6 +532,8 @@ pub async fn selected_set(
         asset_catalog_slug: input.asset_catalog_slug.map(str::to_owned),
         match_format: Some("best-of".to_owned()),
         best_of,
+        startgg_best_of,
+        show_first_to: false,
         broadcast: Some(BroadcastPresentation {
             seeds_enabled: None,
             info_bar_enabled: false,
@@ -562,6 +560,33 @@ pub async fn selected_set(
         .map_err(|message| invalid_response(&message))?;
     selected_set.report_baseline = Some(crate::state::ReportBaseline::from_set(&selected_set));
     Ok(Some(selected_set))
+}
+
+fn startgg_best_of(set: &Map<String, Value>) -> Option<u32> {
+    // start.gg uses mode 1 for best-of. Fixed game counts use a different field.
+    if set.get("setGamesType").and_then(Value::as_u64) != Some(1) {
+        return None;
+    }
+    set.get("bestOf")
+        .and_then(Value::as_u64)
+        .and_then(|value| u32::try_from(value).ok())
+        .filter(|value| crate::state::valid_startgg_best_of(*value))
+}
+
+fn imported_best_of(configured: Option<u32>, fallback: u32, one: u32, two: u32, complete: bool) -> u32 {
+    let high = one.max(two);
+    // Historical results can exceed their configured length. Keep the recorded score intact.
+    let minimum = high.saturating_mul(2).saturating_sub(1).max(1);
+    if let Some(configured) = configured {
+        return configured.max(minimum);
+    }
+    let fallback = if complete { 3 } else { fallback };
+    let tied_minimum = if one == two && !complete {
+        (minimum + 2).min(19)
+    } else {
+        minimum
+    };
+    fallback.max(tied_minimum)
 }
 
 pub async fn versus_history(
@@ -981,7 +1006,7 @@ fn player_from_slot(slot: Option<&Value>, games: Option<&Value>, set_id: &str, s
     let x_handle = x_handle_from_participant(participant)
         .map(|handle| crate::moderation::censor(Some(handle)))
         .flatten();
-    let score = slot.and_then(slot_score).unwrap_or(0).clamp(0, 3) as u32;
+    let score = slot.and_then(slot_score).unwrap_or(0).clamp(0, 10) as u32;
     let character = entrant_id_for_character
         .and_then(|entrant_id| character_for_entrant_from_games(games, &entrant_id))
         .and_then(|name| crate::moderation::censor(Some(name)));
@@ -1206,6 +1231,21 @@ mod tests {
         validate_event_slug, map_event_standings, normalized_id,
     };
     use serde_json::{Value, json};
+
+    #[test]
+    fn reads_startgg_round_settings_and_preserves_recorded_scores() {
+        for best_of in (1..=19).step_by(2) {
+            let set = json!({"bestOf": best_of, "setGamesType": 1});
+            let configured = super::startgg_best_of(set.as_object().unwrap());
+            assert_eq!(configured, Some(best_of));
+            assert_eq!(super::imported_best_of(configured, 5, 0, 0, false), best_of);
+        }
+        for set in [json!({"bestOf": 4, "setGamesType": 1}), json!({"bestOf": 3, "setGamesType": 2})] {
+            assert_eq!(super::startgg_best_of(set.as_object().unwrap()), None);
+        }
+        assert_eq!(super::imported_best_of(Some(3), 5, 3, 1, true), 5);
+        assert_eq!(super::imported_best_of(None, 3, 6, 6, false), 13);
+    }
 
     #[test]
     fn rejects_malformed_collections_and_invalid_event_slugs() {

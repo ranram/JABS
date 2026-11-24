@@ -671,6 +671,19 @@ export const en = {
     // Global broadcast appearance and portable presets
     appearance: {
       settings: 'Settings',
+      showImportedFonts: 'Show imported fonts in font pickers',
+      addFont: 'Add font…',
+      importedFont: 'Imported font',
+      scoreboardTextScale: 'Scoreboard text size',
+      importedFonts: 'Imported fonts',
+      noImportedFonts: 'No imported fonts yet.',
+      deleteFontLabel: 'Remove {{name}}',
+      deleteFontConfirm: 'Remove “{{name}}” from JABS? Scoreboards using it will use their default font.',
+      fontDeleted: 'Removed {{name}} from JABS.',
+      fontDeleteFailed: 'JABS could not remove the font.',
+      fontImported: 'Added {{name}} to the font list.',
+      fontFileInvalid: 'Choose a valid TTF or OTF font file up to 20 MB.',
+      fontImportFailed: 'JABS could not save the font.',
       loading: 'Loading settings…',
       bracketNames: 'Bracket names',
       bracketNamesHelp:
@@ -1128,6 +1141,13 @@ export const en = {
         'Choose the scoreboard design. The game determines character choices and where player details appear.',
       detectedOverride: 'Detected from event: {{profile}}. You can override it after loading the set.',
       matchLength: 'Match format',
+      formatOnStream: 'Format on stream',
+      previewFormat: 'Preview format',
+      selectFormatEvent: 'Select an event',
+      loadingRoundFormats: 'Loading set formats…',
+      noRoundFormats: 'No set formats available',
+      roundFormatsFailed: 'Couldn’t load all set formats',
+      startggFormatUnavailable: 'Unavailable on start.gg',
       displayName: 'Display name',
       round: 'Round',
       exhibitionName: 'Exhibition Name',
@@ -1184,6 +1204,7 @@ export const en = {
 
     // Live match controls
     live: {
+      startggFormat: 'start.gg · {{format}}',
       title: 'Live Controls',
       dirtyWarning: 'Waiting for stream changes to finish autosaving.',
       report: 'Report result',
@@ -1258,6 +1279,7 @@ export const en = {
       exhibitionLocalOnly: 'Exhibition scores stay in JABS and cannot be reported to start.gg.',
       entrantsMissing: 'Both start.gg entrant IDs are required to report a result.',
       scoreIncomplete: 'Complete the local score first. This best-of-{{bestOf}} ends at {{target}} wins.',
+      formatUnavailable: 'Check the set’s Best of format on start.gg and reload the set to report a score.',
       historyMismatch:
         'Recorded game history does not match the live score. Correct or reset the score before reporting.'
     },

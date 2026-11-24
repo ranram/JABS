@@ -32,7 +32,7 @@ export const es419 = {
     // Match details
     match: {
       bestOf: 'Mejor de {{count}}',
-      firstTo: 'Primero en llegar a {{count}}',
+      firstTo: 'Primero a {{count}}',
       topanga: 'Reglas Topanga',
       topangaDescription:
         'Gana quien llegue primero a 7 victorias con dos de ventaja. Al llegar a 10 victorias, gana sin importar la ventaja.',
@@ -681,6 +681,19 @@ export const es419 = {
     // Global broadcast appearance and portable presets
     appearance: {
       settings: 'Configuración',
+      showImportedFonts: 'Mostrar las fuentes importadas en los selectores',
+      addFont: 'Agregar fuente…',
+      importedFont: 'Fuente importada',
+      scoreboardTextScale: 'Tamaño del texto del marcador',
+      importedFonts: 'Fuentes importadas',
+      noImportedFonts: 'Todavía no hay fuentes importadas.',
+      deleteFontLabel: 'Quitar {{name}}',
+      deleteFontConfirm: '¿Quieres quitar «{{name}}» de JABS? Los marcadores que la usan volverán a su fuente predeterminada.',
+      fontDeleted: 'Se quitó {{name}} de JABS.',
+      fontDeleteFailed: 'JABS no pudo quitar la fuente.',
+      fontImported: 'Se agregó {{name}} a la lista de fuentes.',
+      fontFileInvalid: 'Elige un archivo TTF u OTF válido de hasta 20 MB.',
+      fontImportFailed: 'JABS no pudo guardar la fuente.',
       loading: 'Cargando configuración…',
       bracketNames: 'Nombres del bracket',
       bracketNamesHelp:
@@ -1155,6 +1168,13 @@ export const es419 = {
         'Elige el diseño del marcador. El juego determina los personajes disponibles y la ubicación de los datos de cada jugador.',
       detectedOverride: 'Detectado del evento: {{profile}}. Puedes cambiarlo después de cargar el set.',
       matchLength: 'Formato de la partida',
+      formatOnStream: 'Formato en pantalla',
+      previewFormat: 'Formato de vista previa',
+      selectFormatEvent: 'Selecciona un evento',
+      loadingRoundFormats: 'Cargando formatos de los sets…',
+      noRoundFormats: 'No hay formatos disponibles',
+      roundFormatsFailed: 'No se pudieron cargar todos los formatos',
+      startggFormatUnavailable: 'No disponible en start.gg',
       displayName: 'Nombre visible',
       round: 'Ronda',
       exhibitionName: 'Nombre de la exhibición',
@@ -1211,6 +1231,7 @@ export const es419 = {
 
     // Live match controls
     live: {
+      startggFormat: 'start.gg · {{format}}',
       title: 'Controles en vivo',
       dirtyWarning: 'Esperando a que terminen de guardarse los cambios de transmisión.',
       report: 'Reportar resultado',
@@ -1287,6 +1308,7 @@ export const es419 = {
       entrantsMissing: 'Se requieren los ID de ambos participantes de start.gg para reportar un resultado.',
       scoreIncomplete:
         'Completa primero el marcador local. Este mejor de {{bestOf}} termina al llegar a {{target}} victorias.',
+      formatUnavailable: 'Revisa el formato de la partida en start.gg y vuelve a cargarla para reportar el marcador.',
       historyMismatch:
         'El historial de juegos no coincide con el marcador en vivo. Corrige o reinicia el marcador antes de reportar.'
     },

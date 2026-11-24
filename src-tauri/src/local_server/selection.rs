@@ -102,6 +102,14 @@ pub(super) fn apply_player_preferences(
                 );
                 saved.state = fresh.state.clone();
                 saved.report_baseline = fresh.report_baseline.clone();
+                saved.match_format = fresh.match_format.clone();
+                saved.best_of = fresh.best_of;
+                saved.startgg_best_of = fresh.startgg_best_of;
+                let score_limit = fresh.best_of / 2 + 1;
+                let restore_scores = saved.player_one.score <= score_limit && saved.player_two.score <= score_limit;
+                if !restore_scores {
+                    saved.game_history = fresh.game_history.clone();
+                }
                 saved.upstream_double_dq = if saved.state.as_deref() == Some("3") {
                     fresh.upstream_double_dq.or(saved.upstream_double_dq)
                 } else {
@@ -122,6 +130,9 @@ pub(super) fn apply_player_preferences(
                     player.seed = fresh_player.and_then(|fresh_player| fresh_player.seed);
                     player.local_player_id =
                         fresh_player.and_then(|fresh_player| fresh_player.local_player_id.clone());
+                    if !restore_scores {
+                        player.score = fresh_player.map_or(0, |fresh_player| fresh_player.score);
+                    }
                 }
                 saved.set_id = fresh.set_id.clone();
                 saved.phase_group = fresh.phase_group.clone();
@@ -244,6 +255,8 @@ mod tests {
         fresh.player_one.seed = Some(7);
         fresh.player_two.seed = Some(12);
         let mut saved = fresh.clone();
+        fresh.best_of = 7;
+        fresh.startgg_best_of = Some(7);
         fresh.state = Some("1".into());
         fresh.report_baseline = Some(crate::state::ReportBaseline::from_set(&fresh));
         saved.state = Some("3".into());
@@ -280,6 +293,8 @@ mod tests {
             Some(false)
         );
         assert_eq!(restored.player_two.score, 1);
+        assert_eq!(restored.best_of, 7);
+        assert_eq!(restored.startgg_best_of, Some(7));
         assert_eq!(restored.state.as_deref(), Some("1"));
         assert!(restored.report_baseline == fresh.report_baseline);
         assert_eq!(restored.upstream_reset, Some(true));

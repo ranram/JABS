@@ -13,9 +13,7 @@ const context = {
   eventId: 'event',
   eventName: 'Singles',
   tournamentSlug: 'local',
-  gameId: '2xko',
-  preserveStation: false,
-  preserveMatchLength: false
+  gameId: '2xko'
 };
 function controller(): QueueController {
   return {

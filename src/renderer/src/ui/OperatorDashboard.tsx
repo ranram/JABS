@@ -54,7 +54,6 @@ export function OperatorDashboard() {
   const setMessage = useOperatorNotifications(stateError);
   const [loading, setLoading] = useState(false);
   const [draftState, setDraftState] = useOperatorDraft(state?.selectedSet);
-  const persistentSetOverrides = useRef({ station: false, matchLength: false });
   const [copiedHandoff, setCopiedHandoff] = useState<LocalHandoffUrl>();
   const browser = useBracketBrowser({
     startgg: api,
@@ -246,10 +245,7 @@ export function OperatorDashboard() {
         eventId: selectedEventId || undefined,
         tournamentSlug: tournamentSlug || undefined,
         assetCatalogSlug,
-        preserveBroadcast: true,
-        preserveStation: persistentSetOverrides.current.station,
-        preserveMatchLength:
-          persistentSetOverrides.current.matchLength && (selectedSet.matchFormat ?? 'best-of') === 'best-of'
+        preserveBroadcast: true
       });
       recordStartggResult(response);
       setState(response.state);
@@ -268,15 +264,6 @@ export function OperatorDashboard() {
     }
   }
   function patchDraft(patch: Partial<SelectedSetState>) {
-    if (Object.prototype.hasOwnProperty.call(patch, 'station')) {
-      persistentSetOverrides.current.station = true;
-    }
-    if (
-      Object.prototype.hasOwnProperty.call(patch, 'bestOf') ||
-      Object.prototype.hasOwnProperty.call(patch, 'matchFormat')
-    ) {
-      persistentSetOverrides.current.matchLength = true;
-    }
     setDraftState((current) =>
       current
         ? {
@@ -325,7 +312,6 @@ export function OperatorDashboard() {
       const response = await api.clearSelectedSet();
       setState(response);
       setDraftState({ value: response.selectedSet, baseline: response.selectedSet, dirty: false });
-      persistentSetOverrides.current = { station: false, matchLength: false };
     });
   }
   async function unloadTournament() {
@@ -410,10 +396,7 @@ export function OperatorDashboard() {
         tournamentSlug: selectedSet.tournamentSlug,
         assetCatalogSlug: selectedSet.assetCatalogSlug ?? assetCatalogSlug,
         restoreOverrides: false,
-        preserveBroadcast: true,
-        preserveStation: persistentSetOverrides.current.station,
-        preserveMatchLength:
-          persistentSetOverrides.current.matchLength && (selectedSet.matchFormat ?? 'best-of') === 'best-of'
+        preserveBroadcast: true
       });
       recordStartggResult(response);
       setState(response.state);
@@ -519,9 +502,7 @@ export function OperatorDashboard() {
         eventName: selectedEvent.name,
         tournamentSlug,
         gameId: setLoadGameId,
-        assetCatalogSlug,
-        preserveStation: persistentSetOverrides.current.station,
-        preserveMatchLength: persistentSetOverrides.current.matchLength
+        assetCatalogSlug
       }
     : undefined;
   return (
@@ -670,6 +651,7 @@ export function OperatorDashboard() {
                 characters={characterCatalog.characters}
                 characterAssets={characterCatalog.assets}
                 allowExhibitionFormats={!browser.state.tournamentLoaded}
+                selectedEventId={selectedEventId}
                 dirty={draftDirty}
                 saving={draftSaving}
                 blocked={draftBlocked}

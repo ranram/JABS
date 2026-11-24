@@ -35,7 +35,6 @@ export function DashboardSetActions({ quickScore: q, ...props }: Props) {
         props.onSendToStream(id);
       }}
       onBeginQuickScore={() => void q.begin()}
-      onChangeBestOf={q.changeBestOf}
       onChangeScore={q.changeScore}
       onChangeCharacters={q.changeCharacters}
       onResetScores={q.resetScores}

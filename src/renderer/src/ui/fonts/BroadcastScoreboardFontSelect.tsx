@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { defaultCustomScoreboardFont } from '@shared/customScoreboards';
-import type { BundledFontId } from '@shared/fonts';
+import type { ScoreboardFontId } from '@shared/fonts';
 import { useAppearance } from '../appearance/AppearanceProvider';
 import { useOperatorNotifications } from '../operator/useOperatorNotifications';
 import { ScoreboardFontSelect } from './ScoreboardFontSelect';
@@ -10,7 +10,7 @@ export function BroadcastScoreboardFontSelect({
   customFont
 }: {
   customActive?: boolean;
-  customFont?: BundledFontId;
+  customFont?: ScoreboardFontId;
 }) {
   const { t } = useTranslation('operator');
   const { state, ready, error, update } = useAppearance();

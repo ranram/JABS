@@ -20,9 +20,9 @@ export type StartggQuickReportInput = {
   outcome?: ReportOutcome;
   setId: string;
   gameId: string;
-  bestOf: number;
   expected: {
     state?: string;
+    bestOf?: number;
     playerOneEntrantId: string;
     playerTwoEntrantId: string;
     playerOneScore: number;

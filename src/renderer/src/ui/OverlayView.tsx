@@ -43,6 +43,7 @@ import { ScoreboardSponsorLogo } from './scoreboardSponsors/ScoreboardSponsorLog
 import { ScoreboardPlayerPhotos } from './scoreboardPhotos/ScoreboardPlayerPhotos';
 import { ScoreboardSource } from './scoreboardPhotos/ScoreboardSource';
 import { bundledFonts } from './fonts/bundledFonts';
+import { useScoreboardFontFamily } from './fonts/useScoreboardFont';
 import './fonts/scoreboardFontOverride.css';
 
 type OverlayTemplateProps = {
@@ -81,11 +82,12 @@ export function OverlayView() {
 
 function MatchOverlayView() {
   const [photoTopInset, setPhotoTopInset] = useState(0);
-  const appearanceStyle = useAppearanceStyle();
+  const appearanceStyle = useAppearanceStyle('scoreboard');
   const {
     state: { scoreboardFont },
     appearance
   } = useAppearance();
+  const selectedFontFamily = useScoreboardFontFamily(scoreboardFont);
   const { t } = useTranslation(['overlay', 'common']);
   const { state, error } = useOverlayState();
   const selectedSet = state?.selectedSet;
@@ -114,7 +116,9 @@ function MatchOverlayView() {
     );
   }
   const profile = resolveGameProfile(presentation.gameId);
-  const effectiveScoreboardFont = scoreboardFont ?? (profile.id === 'marvel-tokon' ? 'inter' : undefined);
+  const defaultFont = profile.id === 'marvel-tokon' ? 'inter' : undefined;
+  const effectiveScoreboardFont = selectedFontFamily ? scoreboardFont : defaultFont;
+  const fontFamily = selectedFontFamily ?? (defaultFont && bundledFonts[defaultFont].family);
   const Template = overlayTemplates[presentation.template];
   const logoUrl = useLogoAssetUrl(selectedSet?.broadcast?.logoAssetId);
   const customScoreboard = useCustomScoreboard(selectedSet?.customScoreboardId, selectedSet?.customScoreboardRevision);
@@ -174,9 +178,7 @@ function MatchOverlayView() {
           {
             ...appearanceStyle,
             '--scoreboard-photo-top': `${photoTopInset / 10.8}%`,
-            ...(effectiveScoreboardFont
-              ? { '--scoreboard-font-family': bundledFonts[effectiveScoreboardFont].family }
-              : {})
+            ...(fontFamily ? { '--scoreboard-font-family': fontFamily } : {})
           } as CSSProperties
         }
         data-scoreboard-font={effectiveScoreboardFont}

@@ -4,7 +4,7 @@ import {
   defaultBestOfForGame,
   gameIdForStartggVideogame,
   resolveStartggGameProfileId,
-  scoreLimitForBestOf
+  scoreLimitForMatch
 } from './gameProfiles';
 
 describe('game profiles', () => {
@@ -42,9 +42,9 @@ describe('game profiles', () => {
 
   it('derives score limits and applies phase and game format rules', () => {
     expect(bestOfOptionsForGame('street-fighter-6')).toEqual([3, 5]);
-    expect(scoreLimitForBestOf('street-fighter-6', 3)).toBe(2);
-    expect(scoreLimitForBestOf('street-fighter-6', 5)).toBe(3);
-    expect(scoreLimitForBestOf('street-fighter-6', 99)).toBe(3);
+    expect(scoreLimitForMatch({ bestOf: 1 })).toBe(1);
+    expect(scoreLimitForMatch({ bestOf: 5 })).toBe(3);
+    expect(scoreLimitForMatch({ bestOf: 19 })).toBe(10);
     expect(defaultBestOfForGame('street-fighter-6', { phase: 'Pools' })).toBe(3);
     expect(defaultBestOfForGame('street-fighter-6', { phase: 'Top 8' })).toBe(5);
     expect(defaultBestOfForGame('guilty-gear-strive', { phase: 'Pools' })).toBe(5);

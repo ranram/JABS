@@ -33,10 +33,10 @@ pub struct Context {
     pub game_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub asset_catalog_slug: Option<String>,
-    #[serde(default)]
-    pub preserve_station: bool,
-    #[serde(default)]
-    pub preserve_match_length: bool,
+    #[serde(default, rename = "preserveStation", skip_serializing)]
+    pub(super) _legacy_preserve_station: bool,
+    #[serde(default, rename = "preserveMatchLength", skip_serializing)]
+    pub(super) _legacy_preserve_match_length: bool,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -302,7 +302,6 @@ impl QueueStore {
         event_id: Option<String>,
         busy: bool,
         sequence: Option<u64>,
-        preserve: Option<(bool, bool)>,
     ) -> Result<(), String> {
         if client_id.len() > 80 || client_id.is_empty() {
             return Err("Invalid queue connection.".into());
@@ -336,14 +335,6 @@ impl QueueStore {
                 inner.snapshot.pause_reason = Some(PauseReason::EventChanged);
                 inner.snapshot.revision += 1;
                 self.publish(&inner);
-            }
-        }
-        if let Some(c) = inner.snapshot.context.as_mut() {
-            if event_id.as_deref() == Some(&c.event_id) {
-                if let Some((station, length)) = preserve {
-                    c.preserve_station = station;
-                    c.preserve_match_length = length;
-                }
             }
         }
         inner.clients.insert(

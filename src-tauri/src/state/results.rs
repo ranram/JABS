@@ -1,4 +1,4 @@
-use super::{OverlayStore, SelectedSet};
+use super::{OverlayStore, ReportOutcome, ReportableResult, SelectedSet, required, score_limit, validate_selected_set};
 use crate::database::Database;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -8,6 +8,8 @@ use serde_json::Value;
 #[serde(rename_all = "camelCase")]
 pub struct ReportBaseline {
     pub state: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub best_of: Option<u32>,
     pub player_one_entrant_id: String,
     pub player_two_entrant_id: String,
     pub player_one_score: u32,
@@ -18,6 +20,7 @@ impl ReportBaseline {
     pub fn from_set(set: &SelectedSet) -> Self {
         Self {
             state: set.state.clone(),
+            best_of: set.startgg_best_of,
             player_one_entrant_id: set.player_one.entrant_id.clone(),
             player_two_entrant_id: set.player_two.entrant_id.clone(),
             player_one_score: set.player_one.score,
@@ -31,6 +34,69 @@ impl ReportBaseline {
         (one == &self.player_one_entrant_id && two == &self.player_two_entrant_id)
             || (one == &self.player_two_entrant_id && two == &self.player_one_entrant_id)
     }
+}
+
+pub fn report_readiness(
+    selected_set: &SelectedSet,
+    outcome: Option<&ReportOutcome>,
+) -> Result<ReportableResult, String> {
+    if selected_set.upstream_reset == Some(true) && outcome.is_none() {
+        return Err("Reset or update the local score before reporting this result.".to_owned());
+    }
+    if selected_set.state.as_deref() == Some("3") {
+        return Err("This set is already marked complete on start.gg.".to_owned());
+    }
+    if selected_set.set_id.is_none() {
+        return Err("Load a start.gg set before reporting a result.".to_owned());
+    }
+    if matches!(
+        selected_set.match_format.as_deref(),
+        Some("first-to") | Some("topanga")
+    ) {
+        return Err("Exhibition scores stay in JABS and cannot be reported to start.gg.".to_owned());
+    }
+    required(&selected_set.player_one.entrant_id, "Player one entrant ID")?;
+    required(&selected_set.player_two.entrant_id, "Player two entrant ID")?;
+    if let Some(outcome) = outcome {
+        validate_selected_set(selected_set)?;
+        let (winner, loser) = if outcome.winner_id == selected_set.player_one.entrant_id {
+            (&selected_set.player_one, &selected_set.player_two)
+        } else if outcome.winner_id == selected_set.player_two.entrant_id {
+            (&selected_set.player_two, &selected_set.player_one)
+        } else {
+            return Err("Choose the winning entrant.".to_owned());
+        };
+        return Ok(ReportableResult {
+            winner_id: winner.entrant_id.clone(),
+            winner_score: winner.score,
+            loser_score: loser.score,
+        });
+    }
+    if selected_set.startgg_best_of != Some(selected_set.best_of) {
+        return Err("Check the set’s Best of format on start.gg and reload the set to report a score.".to_owned());
+    }
+    let target = score_limit(selected_set);
+    let player_one_won = selected_set.player_one.score == target
+        && selected_set.player_two.score < target;
+    let player_two_won = selected_set.player_two.score == target
+        && selected_set.player_one.score < target;
+    if !player_one_won && !player_two_won {
+        return Err(format!(
+            "Complete the local score first. This best-of-{} ends at {target} wins.",
+            selected_set.best_of
+        ));
+    }
+    validate_selected_set(selected_set)?;
+    let (winner, loser) = if player_one_won {
+        (&selected_set.player_one, &selected_set.player_two)
+    } else {
+        (&selected_set.player_two, &selected_set.player_one)
+    };
+    Ok(ReportableResult {
+        winner_id: winner.entrant_id.clone(),
+        winner_score: winner.score,
+        loser_score: loser.score,
+    })
 }
 
 impl SelectedSet {

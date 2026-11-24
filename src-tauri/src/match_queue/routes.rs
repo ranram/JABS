@@ -88,8 +88,6 @@ async fn add(
             queue_context: None,
             restore_overrides: false,
             preserve_broadcast: false,
-            preserve_station: false,
-            preserve_match_length: false,
         };
         match crate::local_server::fetch_selected_set(&runtime, &request).await {
             Ok(Some(mut set)) => {
@@ -180,8 +178,10 @@ struct Heartbeat {
     event_id: Option<String>,
     busy: bool,
     sequence: u64,
-    preserve_station: bool,
-    preserve_match_length: bool,
+    #[serde(default, rename = "preserveStation")]
+    _legacy_preserve_station: bool,
+    #[serde(default, rename = "preserveMatchLength")]
+    _legacy_preserve_match_length: bool,
 }
 async fn heartbeat(
     State(runtime): State<Arc<RuntimeState>>,
@@ -196,7 +196,6 @@ async fn heartbeat(
         body.event_id,
         body.busy,
         Some(body.sequence),
-        Some((body.preserve_station, body.preserve_match_length)),
     ) {
         Ok(()) => secure_json(StatusCode::NO_CONTENT),
         Err(error) => result(Err(error)),

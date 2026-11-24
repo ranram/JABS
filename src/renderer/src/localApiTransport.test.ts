@@ -224,7 +224,7 @@ it('keeps diagnostic operation labels compatible across renderer and native code
     ...dynamicOperations
   ]);
   expect(new Set(variants)).toEqual(labels);
-  for (const file of ['src/renderer/src/api.ts', 'src/renderer/src/matchQueueApi.ts']) {
+  for (const file of ['src/renderer/src/api.ts', 'src/renderer/src/matchQueueApi.ts', 'src/renderer/src/fontApi.ts']) {
     const source = readFileSync(file, 'utf8');
     const routes = source.matchAll(/['"`]([/]api[/][a-z/-]+)(?:[?]|['"`])/g);
     for (const [, route] of routes) {

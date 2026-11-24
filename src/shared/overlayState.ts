@@ -2,6 +2,7 @@ import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
 import { canonicalGameId, gameProfiles, scoreLimitForMatch, type GameId } from './gameProfiles';
 import { isSafeGameAssetCatalogSlug } from './gameAssetCatalog';
+import { bestOfLengthSchema } from './startgg';
 import type { OverlayState } from './models';
 
 const gameIds = Object.keys(gameProfiles) as [GameId, ...GameId[]];
@@ -110,11 +111,9 @@ export const selectedSetStateSchema = z
       .refine(isSafeGameAssetCatalogSlug, 'Choose a valid local game asset catalog.')
       .optional(),
     matchFormat: z.enum(['best-of', 'first-to', 'topanga']).optional().default('best-of'),
-    bestOf: z
-      .number()
-      .int()
-      .refine((value) => [3, 5, 9, 13, 19].includes(value), 'Choose a supported match length.')
-      .default(3),
+    bestOf: bestOfLengthSchema.default(3),
+    startggBestOf: bestOfLengthSchema.optional(),
+    showFirstTo: z.boolean().optional(),
     broadcast: broadcastPresentationSchema.optional(),
     gameHistory: z.array(setGameResultSchema).max(99).optional(),
     playerOne: playerStateSchema,
@@ -132,11 +131,11 @@ export const selectedSetStateSchema = z
         message: 'Choose the winning entrant.'
       });
     }
-    if (selectedSet.matchFormat === 'best-of' && ![3, 5].includes(selectedSet.bestOf)) {
+    if (selectedSet.matchFormat !== 'best-of' && ![3, 5, 9, 13, 19].includes(selectedSet.bestOf)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['bestOf'],
-        message: 'Best-of must be 3 or 5.'
+        message: 'Choose a supported match length.'
       });
     }
     if (

@@ -89,6 +89,7 @@ export function reconcileDirtyDraft(
     customScoreboardRevision: changed('customScoreboardRevision', draft, baseline, live),
     matchFormat: changed('matchFormat', draft, baseline, live),
     bestOf: changed('bestOf', draft, baseline, live),
+    showFirstTo: changed('showFirstTo', draft, baseline, live),
     broadcast: changed('broadcast', draft, baseline, live),
     playerOne: mergePlayer(live.playerOne, draft, baseline),
     playerTwo: mergePlayer(live.playerTwo, draft, baseline),

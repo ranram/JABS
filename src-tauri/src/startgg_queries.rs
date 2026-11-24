@@ -29,6 +29,17 @@ query EventPhases($eventId: ID!) {
 }
 "#;
 
+pub const EVENT_ROUND_FORMATS: &str = r#"
+query EventRoundFormats($eventId: ID!, $page: Int!) {
+  event(id: $eventId) {
+    sets(page: $page, perPage: 100, sortType: STANDARD) {
+      pageInfo { totalPages }
+      nodes { setGamesType bestOf }
+    }
+  }
+}
+"#;
+
 pub const EVENT_STANDINGS: &str = r#"
 query EventStandings($eventId: ID!) {
   event(id: $eventId) {
@@ -107,6 +118,8 @@ query SetById($setId: ID!) {
   set(id: $setId) {
     id
     round
+    bestOf
+    setGamesType
     displayScore
     fullRoundText
     event { id videogame { id name } tournament { name } }

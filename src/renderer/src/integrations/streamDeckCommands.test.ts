@@ -29,18 +29,14 @@ function fixture() {
         eventId: 'event',
         eventName: 'Singles',
         tournamentSlug: 'local',
-        gameId: '2xko',
-        preserveStation: false,
-        preserveMatchLength: false
+        gameId: '2xko'
       },
       state: {
         context: {
           eventId: 'event',
           eventName: 'Singles',
           tournamentSlug: 'local',
-          gameId: '2xko',
-          preserveStation: false,
-          preserveMatchLength: false
+          gameId: '2xko'
         },
         entries: [1, 2, 3].map((id) => ({
           setId: String(id),

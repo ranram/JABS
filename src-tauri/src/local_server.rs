@@ -94,6 +94,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .route("/api/state/players/swap", post(swap_players))
         .route("/api/state/players/clear", post(selection::clear_players))
         .route("/api/settings/appearance", get(crate::appearance_preferences::current).put(crate::appearance_preferences::update))
+        .merge(crate::fonts::router())
         // Broadcast layouts
         .route("/api/broadcast/commentators", get(commentator_state).put(update_commentator_state))
         .route("/api/broadcast/result-screen", get(result_screen_state).put(update_result_screen_state))
@@ -139,6 +140,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         .route("/api/startgg/cache", delete(clear_startgg_cache))
         .route("/api/startgg/stream-queue", get(startgg_stream_queue))
         .route("/api/startgg/phases", get(startgg_phases))
+        .route("/api/startgg/round-formats", get(crate::startgg::round_formats::get))
         .route("/api/startgg/event-standings", post(startgg_event_standings))
         .route("/api/startgg/phase-groups", get(startgg_phase_groups))
         .route("/api/startgg/sets", get(startgg_sets))
@@ -968,10 +970,6 @@ pub(crate) struct SelectedSetBody {
     pub restore_overrides: bool,
     #[serde(default = "default_true")]
     pub preserve_broadcast: bool,
-    #[serde(default)]
-    pub preserve_station: bool,
-    #[serde(default)]
-    pub preserve_match_length: bool,
 }
 
 fn default_true() -> bool {
@@ -1062,10 +1060,6 @@ pub(crate) fn prepare_imported_set(runtime: &RuntimeState, body: &SelectedSetBod
     selection::apply_player_preferences(&runtime.database, &runtime.game_asset_directory, &mut fresh, body.restore_overrides, upstream_reset)?;
     let current = runtime.overlay.selected_set()?;
     if body.preserve_broadcast { retain_broadcast_extras(&mut fresh, &current); }
-    if body.preserve_station { fresh.station = current.station; }
-    if body.preserve_match_length && current.match_format.as_deref() == Some("best-of") {
-        fresh.match_format = current.match_format; fresh.best_of = current.best_of;
-    }
     Ok(fresh)
 }
 

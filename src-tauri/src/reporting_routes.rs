@@ -121,7 +121,6 @@ struct QuickReportBody {
     outcome: Option<crate::state::ReportOutcome>,
     set_id: String,
     game_id: String,
-    best_of: u32,
     expected: ReportBaseline,
     player_one_score: u32,
     player_two_score: u32,
@@ -138,8 +137,8 @@ async fn quick_report_startgg_set(
     if !body.confirmed {
         return state_result(Err("Confirm the start.gg report before submitting it.".to_owned()));
     }
-    if !matches!(body.best_of, 3 | 5) || !crate::state::is_game_id(&body.game_id) {
-        return state_result(Err("Choose a supported game and match length.".to_owned()));
+    if !crate::state::is_game_id(&body.game_id) {
+        return state_result(Err("Choose a supported game.".to_owned()));
     }
     if body.game_history.as_ref().is_some_and(|history| history.len() > 99) {
         return state_result(Err("Recorded game history is too long.".to_owned()));
@@ -161,7 +160,6 @@ async fn perform_quick_report(runtime: &RuntimeState, body: QuickReportBody) -> 
         Ok(current) => current,
         Err(response) => return response,
     };
-    current.best_of = body.best_of;
     current.player_one.score = body.player_one_score;
     current.player_two.score = body.player_two_score;
     current.game_history = body.game_history;
@@ -257,6 +255,14 @@ fn check_report_set(
             Json(serde_json::json!({ "error": "Set not found." })),
         )));
     };
+    if fresh.startgg_best_of != expected.best_of {
+        return Err(secure_json((
+            StatusCode::CONFLICT,
+            Json(serde_json::json!({
+                "error": "The match format changed on start.gg. Reload the set and review the score before reporting."
+            })),
+        )));
+    }
     if fresh.state.as_deref() == Some("3") || ReportBaseline::from_set(&fresh) != *expected {
         return Err(secure_json((
             StatusCode::CONFLICT,

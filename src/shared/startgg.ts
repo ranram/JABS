@@ -1,3 +1,12 @@
+import { z } from 'zod';
+
+export const bestOfLengthSchema = z.number().int().min(1).max(19).refine((length) => length % 2 === 1);
+
+export const startggRoundFormatsPageSchema = z.object({
+  formats: z.array(bestOfLengthSchema).max(10),
+  totalPages: z.number().int().nonnegative()
+});
+
 export function normalizeTournamentSlug(input: string): string {
   const value = input.trim();
   if (!value) {

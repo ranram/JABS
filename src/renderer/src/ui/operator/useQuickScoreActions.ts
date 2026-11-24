@@ -1,7 +1,7 @@
 import type { NoticeSink } from './operatorNotice';
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import { scoreLimitForBestOf, type GameId } from '@shared/gameProfiles';
+import type { GameId } from '@shared/gameProfiles';
 import { characterTeamSelection } from '@shared/characterTeams';
 import type { SelectedSetState, SetSummary, StartggResultMeta, ReportOutcome } from '@shared/models';
 import { reportOutcomeText, reportConfirmationText } from './ResultOutcomeControls';
@@ -105,16 +105,6 @@ export function useQuickScoreActions({
     setScoreState((current) => (current ? setQuickScoreValue(current, side, score) : current));
   }
 
-  function changeBestOf(bestOf: number): void {
-    setScoreState((current) => {
-      if (!current) return current;
-      let next = { ...current, bestOf };
-      const maxScore = scoreLimitForBestOf(next.gameId, bestOf);
-      next = setQuickScoreValue(next, 'one', Math.min(next.playerOne.score, maxScore));
-      return setQuickScoreValue(next, 'two', Math.min(next.playerTwo.score, maxScore));
-    });
-  }
-
   function changeCharacters(side: 'one' | 'two', characters: string[]): void {
     setScoreState((current) => {
       if (!current) return current;
@@ -161,9 +151,9 @@ export function useQuickScoreActions({
         setId: result.setId,
         outcome,
         gameId: scoreState.gameId,
-        bestOf: scoreState.bestOf,
         expected: {
           state: baseline.state,
+          bestOf: baseline.startggBestOf,
           playerOneEntrantId: baseline.playerOne.entrantId,
           playerTwoEntrantId: baseline.playerTwo.entrantId,
           playerOneScore: baseline.playerOne.score,
@@ -216,7 +206,6 @@ export function useQuickScoreActions({
     begin,
     refreshModerated,
     changeScore,
-    changeBestOf,
     changeCharacters,
     resetScores,
     report

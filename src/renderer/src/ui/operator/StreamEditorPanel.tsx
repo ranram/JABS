@@ -7,7 +7,7 @@ import { streamSaveStatus } from './streamStatus';
 import { PanelHeader } from '../PanelHeader';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useId, useMemo, useRef, type ReactNode } from 'react';
-import { type GameId, type GameProfile } from '@shared/gameProfiles';
+import { bestOfOptionsForGame, type GameId, type GameProfile } from '@shared/gameProfiles';
 import type { CountryOption, GameCharacterAsset, LogoAsset, SelectedSetState } from '@shared/models';
 import { PlayerEditor } from './PlayerEditor';
 import { StreamBroadcastControls } from './StreamBroadcastControls';
@@ -17,6 +17,7 @@ import { maxCharactersForGame } from '@shared/characterTeams';
 import { useCustomScoreboardManifest } from '../../hooks/useCustomScoreboard';
 import { ScoreboardPhotoControls } from '../scoreboardPhotos/ScoreboardPhotoControls';
 import { BroadcastScoreboardFontSelect } from '../fonts/BroadcastScoreboardFontSelect';
+import { useEventRoundFormats } from './useEventRoundFormats';
 import {
   IconLabel,
   OperatorIcon,
@@ -44,6 +45,7 @@ type StreamEditorPanelProps = {
   characters: readonly string[];
   characterAssets: readonly GameCharacterAsset[];
   allowExhibitionFormats: boolean;
+  selectedEventId?: string;
   dirty: boolean;
   saving: boolean;
   blocked: boolean;
@@ -67,6 +69,7 @@ export function StreamEditorPanel({
   characters,
   characterAssets,
   allowExhibitionFormats,
+  selectedEventId,
   dirty,
   saving,
   blocked,
@@ -80,6 +83,8 @@ export function StreamEditorPanel({
   const logoSelectId = useId();
   const clearPlayersHelpId = useId();
   const isExhibition = !draft.setId;
+  const isEventPreview = isExhibition && !allowExhibitionFormats;
+  const roundFormats = useEventRoundFormats(isEventPreview ? selectedEventId : undefined);
   const playerGameKey = draft.assetCatalogSlug ?? draft.gameId;
   const maxCharacters = maxCharactersForGame(playerGameKey);
   const locale = i18n.resolvedLanguage ?? i18n.language;
@@ -111,10 +116,11 @@ export function StreamEditorPanel({
   const changePlayerTwo = useCallback((playerTwo: SelectedSetState['playerTwo']) => {
     patchRef.current({ playerTwo });
   }, []);
-  const matchLengthOptions: Array<{ value: string; label: string }> = [
-    { value: 'best-of:3', label: t('common:match.bestOf', { count: 3 }) },
-    { value: 'best-of:5', label: t('common:match.bestOf', { count: 5 }) }
-  ];
+  const bestOfOptions = isEventPreview ? roundFormats?.formats ?? [] : bestOfOptionsForGame(draft.gameId);
+  const matchLengthOptions: Array<{ value: string; label: string }> = bestOfOptions.map((count) => ({
+    value: `best-of:${count}`,
+    label: t('common:match.bestOf', { count })
+  }));
   if (allowExhibitionFormats) {
     for (const firstTo of [2, 3, 5, 7, 10]) {
       matchLengthOptions.push({
@@ -127,6 +133,13 @@ export function StreamEditorPanel({
   let matchLengthValue = `best-of:${draft.bestOf}`;
   if (draft.matchFormat === 'first-to') matchLengthValue = `first-to:${Math.ceil(draft.bestOf / 2)}`;
   if (draft.matchFormat === 'topanga') matchLengthValue = 'topanga:7';
+  const previewFormatStatus = !selectedEventId
+    ? t('operator:editor.selectFormatEvent')
+    : roundFormats?.status === 'error'
+      ? t('operator:editor.roundFormatsFailed')
+      : roundFormats?.status !== 'ready'
+        ? t('operator:editor.loadingRoundFormats')
+        : undefined;
 
   const appearance = (
     <details className="operator-disclosure" data-testid="stream-appearance">
@@ -173,12 +186,28 @@ export function StreamEditorPanel({
       )}
       <Select
         data-testid="editor-best-of"
-        label={t('operator:editor.matchLength')}
-        data={matchLengthOptions}
-        value={matchLengthValue}
+        label={t(isEventPreview ? 'operator:editor.previewFormat' : isExhibition ? 'operator:editor.matchLength' : 'operator:editor.formatOnStream')}
+        data={isExhibition ? matchLengthOptions : [
+          { value: 'best-of', label: t('common:match.bestOf', { count: draft.bestOf }) },
+          { value: 'first-to', label: t('common:match.firstTo', { count: Math.ceil(draft.bestOf / 2) }) }
+        ]}
+        value={isEventPreview && !matchLengthOptions.some(({ value }) => value === matchLengthValue)
+          ? null
+          : isExhibition ? matchLengthValue : draft.showFirstTo ? 'first-to' : 'best-of'}
+        disabled={isEventPreview && matchLengthOptions.length === 0}
+        placeholder={isEventPreview
+          ? matchLengthOptions.length
+            ? t('common:actions.select')
+            : previewFormatStatus ?? t('operator:editor.noRoundFormats')
+          : undefined}
+        description={isEventPreview && matchLengthOptions.length > 0 ? previewFormatStatus : undefined}
         allowDeselect={false}
         onChange={(value) => {
           if (!value) return;
+          if (!isExhibition) {
+            onPatch({ showFirstTo: value === 'first-to' ? true : undefined });
+            return;
+          }
           const [matchFormat, length] = value.split(':') as [NonNullable<SelectedSetState['matchFormat']>, string];
           const amount = Number(length);
           onPatch({

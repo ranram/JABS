@@ -55,6 +55,8 @@ import type {
 } from '@shared/models';
 import type { GameProfile } from '@shared/gameProfiles';
 import type { StartggQuickReportInput } from '@shared/startggGateway';
+import { startggRoundFormatsPageSchema } from '@shared/startgg';
+import { createFontApi } from './fontApi';
 import { commentatorStateSchema, type CommentatorState } from '@shared/commentators';
 import { resultScreenStateSchema, type ResultScreenState } from '@shared/resultScreen';
 import { versusScreenStateSchema, type VersusScreenState } from '@shared/versusScreen';
@@ -229,6 +231,7 @@ async function stingerRequest(path: string, init?: RequestInit, timeoutMs = 4000
 }
 
 export const api = {
+  ...createFontApi(request, apiBasePromise),
   scoreboardPhotoSettings: () =>
     request('/api/scoreboard-photos', undefined, { decoder: scoreboardPhotoSettingsSchema }),
   updateScoreboardPhotoSettings: (settings: ScoreboardPhotoSettings) =>
@@ -529,6 +532,10 @@ export const api = {
     request<StartggStreamQueueResult>(`/api/startgg/stream-queue?tournamentSlug=${encodeURIComponent(tournamentSlug)}`),
   phases: (eventId: string) =>
     request<StartggPhasesResult>(`/api/startgg/phases?eventId=${encodeURIComponent(eventId)}`),
+  roundFormats: (eventId: string, page: number, signal?: AbortSignal) => {
+    const query = new URLSearchParams({ eventId, page: String(page) });
+    return request(`/api/startgg/round-formats?${query.toString()}`, { signal }, { decoder: startggRoundFormatsPageSchema });
+  },
   phaseGroups: (phaseId: string, page = 1, perPage = 50) => {
     const query = new URLSearchParams({
       phaseId,
@@ -564,8 +571,6 @@ export const api = {
       assetCatalogSlug?: string;
       restoreOverrides?: boolean;
       preserveBroadcast?: boolean;
-      preserveStation?: boolean;
-      preserveMatchLength?: boolean;
       queueContext?: QueueContext;
     } = {}
   ) =>

@@ -204,8 +204,6 @@ pub(super) async fn send(
         queue_context: None,
         restore_overrides: true,
         preserve_broadcast: true,
-        preserve_station: context.preserve_station,
-        preserve_match_length: context.preserve_match_length,
     };
     let fresh = crate::local_server::fetch_selected_set(runtime, &body)
         .await

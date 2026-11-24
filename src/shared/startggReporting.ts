@@ -1,5 +1,5 @@
 import type { SelectedSetState, SetGameCharacterSelection, ReportOutcome } from './models';
-import { scoreLimitForBestOf } from './gameProfiles';
+import { scoreLimitForMatch } from './gameProfiles';
 
 export type ReportableStartggResult = {
   outcome?: ReportOutcome;
@@ -29,6 +29,7 @@ export type StartggReportReadiness =
         | 'set-missing'
         | 'exhibition-local-only'
         | 'entrants-missing'
+        | 'format-unavailable'
         | 'score-incomplete'
         | 'history-mismatch';
       bestOf?: number;
@@ -81,7 +82,14 @@ export function startggReportReadiness(selectedSet: SelectedSetState, outcome?: 
       }
     };
   }
-  const target = scoreLimitForBestOf(selectedSet.gameId, selectedSet.bestOf);
+  if (selectedSet.startggBestOf !== selectedSet.bestOf) {
+    return {
+      ready: false,
+      reasonCode: 'format-unavailable',
+      reason: 'Check the set’s Best of format on start.gg and reload the set to report a score.'
+    };
+  }
+  const target = scoreLimitForMatch(selectedSet);
   const oneWon = selectedSet.playerOne.score === target && selectedSet.playerTwo.score < target;
   const twoWon = selectedSet.playerTwo.score === target && selectedSet.playerOne.score < target;
   if (!oneWon && !twoWon) {

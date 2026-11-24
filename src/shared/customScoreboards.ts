@@ -1,9 +1,8 @@
 import { utf16AtMost } from './schemaText';
 import { z } from 'zod';
-import { bundledFontSchema, type BundledFontId } from './fonts';
+import { scoreboardFontSchema } from './fonts';
 
-export type CustomScoreboardFontId = BundledFontId;
-export const defaultCustomScoreboardFont: CustomScoreboardFontId = 'bebas-neue';
+export const defaultCustomScoreboardFont = 'bebas-neue';
 
 export const customScoreboardRegionIds = [
   'playerOneFlag',
@@ -92,7 +91,7 @@ export const customScoreboardSchema = z.object({
     infoRight: z.boolean().default(true)
   }),
   typography: z.object({
-    font: bundledFontSchema.optional(),
+    font: scoreboardFontSchema.optional(),
     textColor: z.string().regex(/^#[0-9a-f]{6}$/i),
     sponsorColor: z
       .string()

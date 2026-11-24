@@ -89,6 +89,8 @@ it.each(['win-loss', 'disqualification'] as const)(
   async (kind) => {
     await initializeI18n();
     const set = selectedSet();
+    set.bestOf = 7;
+    set.startggBestOf = 7;
     const inspect = vi.fn(async () => ({ selectedSet: set, source: 'live' }));
     const report = vi.fn(async () => ({
       reportedSetId: '100',
@@ -128,6 +130,7 @@ it.each(['win-loss', 'disqualification'] as const)(
     };
     await act(async () => actions.open(target));
     await act(async () => actions.begin(target));
+    expect(document.querySelector<HTMLInputElement>('input[value="Best of 7"]')?.readOnly).toBe(true);
     await act(async () =>
       button(
         kind === 'disqualification' ? `Disqualify ${set.playerOne.name}` : `Mark ${set.playerTwo.name} as winner`
@@ -146,6 +149,7 @@ it.each(['win-loss', 'disqualification'] as const)(
         gameHistory: undefined,
         expected: {
           state: '1',
+          bestOf: 7,
           playerOneEntrantId: set.playerOne.entrantId,
           playerTwoEntrantId: set.playerTwo.entrantId,
           playerOneScore: 1,

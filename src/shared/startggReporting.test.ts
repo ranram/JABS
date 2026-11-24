@@ -32,6 +32,7 @@ describe('start.gg report readiness', () => {
       setId: 'set-1',
       state: '2',
       bestOf: 3,
+      startggBestOf: 3,
       gameHistory: undefined,
       playerOne: { entrantId: 'entrant-1', name: 'Alpha', score: 2 },
       playerTwo: { entrantId: 'entrant-2', name: 'Bravo', score: 1 }
@@ -84,6 +85,7 @@ describe('start.gg report readiness', () => {
       setId: 'set-1',
       state: '2',
       bestOf: 3,
+      startggBestOf: 3,
       gameHistory: [
         {
           winnerId: 'entrant-1',
@@ -123,5 +125,26 @@ describe('start.gg report readiness', () => {
       ready: false,
       reason: expect.stringContaining('does not match')
     });
+  });
+
+  it('uses the start.gg round format from best of 1 through best of 19', () => {
+    const set = { ...createTestOverlayState().selectedSet, setId: 'set-1', state: '2', gameHistory: undefined };
+    for (let target = 1; target <= 10; target += 1) {
+      const bestOf = target * 2 - 1;
+      const completed = {
+        ...set,
+        bestOf,
+        startggBestOf: bestOf,
+        playerOne: { ...set.playerOne, score: target },
+        playerTwo: { ...set.playerTwo, score: 0 }
+      };
+      expect(startggReportReadiness(completed)).toMatchObject({ ready: true, result: { winnerScore: target } });
+      expect(startggReportReadiness({
+        ...completed, playerOne: { ...completed.playerOne, score: target - 1 }
+      })).toMatchObject({ ready: false, reasonCode: 'score-incomplete' });
+      expect(startggReportReadiness({ ...completed, startggBestOf: undefined })).toMatchObject({
+        ready: false, reasonCode: 'format-unavailable'
+      });
+    }
   });
 });

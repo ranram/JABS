@@ -47,9 +47,7 @@ const context: QueueContext = {
   eventId: '456',
   eventName: 'Singles',
   tournamentSlug: 'local',
-  gameId: 'street-fighter-6',
-  preserveStation: false,
-  preserveMatchLength: false
+  gameId: 'street-fighter-6'
 };
 let snapshot: MatchQueue;
 beforeAll(async () => {
@@ -196,8 +194,6 @@ it('adds without opening the queue or replacing the stream draft and protects fo
     eventId: '456',
     busy: true,
     sequence: expect.any(Number),
-    preserveStation: false,
-    preserveMatchLength: false,
     signal: expect.any(AbortSignal)
   });
   await act(async () => button('Add set').click());
@@ -210,8 +206,6 @@ it('adds without opening the queue or replacing the stream draft and protects fo
     eventId: '456',
     busy: false,
     sequence: expect.any(Number),
-    preserveStation: false,
-    preserveMatchLength: false,
     signal: expect.any(AbortSignal)
   });
 });

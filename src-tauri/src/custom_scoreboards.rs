@@ -266,7 +266,7 @@ fn validate(scoreboard: &CustomScoreboard) -> Result<(), String> {
     if type_settings
         .font
         .as_deref()
-        .is_some_and(|font| !crate::fonts::IDS.contains(&font))
+        .is_some_and(|font| !crate::fonts::valid_scoreboard_font(font))
         || !valid_color(&type_settings.text_color)
         || type_settings
             .sponsor_color
