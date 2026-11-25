@@ -199,6 +199,15 @@ pub enum UpdateSelectedSetError {
     Conflict(String),
 }
 
+impl UpdateSelectedSetError {
+    fn rejected(reason: crate::diagnostics::Reason) -> impl FnOnce(String) -> Self {
+        move |message| {
+            crate::diagnostics::stream_save_rejected(reason, 422);
+            Self::Invalid(message)
+        }
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ExhibitionGameSelection {
@@ -411,27 +420,31 @@ impl OverlayStore {
                 &submitted.player_two.entrant_id,
             );
         }
+        use crate::diagnostics::Reason;
+        let rejected = UpdateSelectedSetError::rejected;
         for player in [&mut submitted.player_one, &mut submitted.player_two] {
             if let Some(local_id) = player.local_player_id.as_deref() {
-                if database.library_player(local_id).map_err(UpdateSelectedSetError::Invalid)?.is_none() {
+                let local_player = database.library_player(local_id)
+                    .map_err(rejected(Reason::StreamPlayerLibrary))?;
+                if local_player.is_none() {
                     // Deleting a library record must not prevent editing the match already on stream.
                     player.local_player_id = None;
                 } else {
                     database.library_resolve(Some(local_id), player.player_id.as_deref())
-                        .map_err(UpdateSelectedSetError::Invalid)?;
+                        .map_err(rejected(Reason::StreamPlayerLibrary))?;
                 }
             }
         }
         validate_state(&OverlayState { selected_set: submitted.clone() })
-            .map_err(UpdateSelectedSetError::Invalid)?;
-        assert_safe_state(&submitted).map_err(UpdateSelectedSetError::Invalid)?;
+            .map_err(rejected(Reason::StreamState))?;
+        assert_safe_state(&submitted).map_err(rejected(Reason::StreamModeration))?;
         validate_characters(&submitted, game_asset_directory)
-            .map_err(UpdateSelectedSetError::Invalid)?;
-        validate_logo(&submitted, logo_directory).map_err(UpdateSelectedSetError::Invalid)?;
+            .map_err(rejected(Reason::StreamCharacters))?;
+        validate_logo(&submitted, logo_directory).map_err(rejected(Reason::StreamLogo))?;
         crate::catalogs::validate_player_location(&mut submitted.player_one)
-            .map_err(UpdateSelectedSetError::Invalid)?;
+            .map_err(rejected(Reason::StreamLocation))?;
         crate::catalogs::validate_player_location(&mut submitted.player_two)
-            .map_err(UpdateSelectedSetError::Invalid)?;
+            .map_err(rejected(Reason::StreamLocation))?;
         if submitted.updated_at != current.selected_set.updated_at {
             let mut replay = submitted;
             replay.updated_at = current.selected_set.updated_at.clone();
@@ -444,15 +457,15 @@ impl OverlayStore {
             ));
         }
         submitted.updated_at = next_timestamp(&current.selected_set.updated_at)
-            .map_err(UpdateSelectedSetError::Invalid)?;
+            .map_err(rejected(Reason::StreamState))?;
         let next = OverlayState { selected_set: submitted };
-        validate_state(&next).map_err(UpdateSelectedSetError::Invalid)?;
+        validate_state(&next).map_err(rejected(Reason::StreamState))?;
         let payload = serde_json::to_string(&next)
             .map_err(|_| UpdateSelectedSetError::Invalid("Unable to serialize local stream state.".to_owned()))?;
         let mut presentation = self.presentation.lock()
             .map_err(|_| UpdateSelectedSetError::Invalid("Stream settings are unavailable.".to_owned()))?;
         persist_stream_state(database, &next, &payload)
-            .map_err(UpdateSelectedSetError::Invalid)?;
+            .map_err(rejected(Reason::Storage))?;
         presentation.record_edit(&current.selected_set, &next.selected_set);
         self.record_matchup_change(&current.selected_set, &next.selected_set);
         *current = next;
@@ -504,9 +517,6 @@ impl OverlayStore {
         selected.game_name = Some(selection.game_name.trim().to_owned());
         selected.videogame_id = Some(selection.videogame_id);
         selected.asset_catalog_slug = Some(selection.asset_catalog_slug);
-        if selected.custom_scoreboard_id.is_none() {
-            selected.styling_game_id = Some(selected.game_id.clone());
-        }
         self.presentation.lock().map_err(|_| invalid("Stream settings are unavailable.".to_owned()))?.apply_style(selected);
         // Keep the players and broadcast settings when changing exhibition games.
         // Reset gameplay and old artwork before loading the new game's library defaults.
@@ -532,23 +542,6 @@ impl OverlayStore {
         drop(current);
         serde_json::from_str(&payload)
             .map_err(|_| invalid("Unable to serialize local stream state.".to_owned()))
-    }
-
-    pub fn clear_selected_set(&self, database: &Database) -> Result<Value, String> {
-        let mut current = self.state.write()
-            .map_err(|_| "Local stream state is unavailable.".to_owned())?;
-        let mut next = default_state();
-        self.presentation.lock().map_err(|_| "Stream settings are unavailable.")?.apply(&mut next.selected_set);
-        next.selected_set.updated_at = next_timestamp(&current.selected_set.updated_at)?;
-        let payload = serde_json::to_string(&next)
-            .map_err(|_| "Unable to serialize local stream state.".to_owned())?;
-        persist_stream_state(database, &next, &payload)?;
-        self.record_matchup_change(&current.selected_set, &next.selected_set);
-        *current = next;
-        let _ = self.updates.send(payload.clone());
-        drop(current);
-        serde_json::from_str(&payload)
-            .map_err(|_| "Unable to serialize local stream state.".to_owned())
     }
 
     pub fn set_score(&self, database: &Database, side: &str, requested_score: u32) -> Result<Value, String> {
@@ -924,7 +917,7 @@ fn validate_characters(
         .asset_catalog_slug
         .as_deref()
         .unwrap_or(&selected_set.game_id);
-    let maximum = max_characters_for_game(&selected_set.game_id);
+    let maximum = max_characters_for_game(catalog_slug);
     for player in [&selected_set.player_one, &selected_set.player_two] {
         if player.characters.len() > maximum {
             return Err(format!(
@@ -1432,6 +1425,29 @@ mod tests {
         assert_eq!(report_readiness(&selected, None).unwrap().winner_id, "p1");
         selected.state = Some("3".to_owned());
         assert!(report_readiness(&selected, None).is_err());
+    }
+
+    #[test]
+    fn exhibition_saves_a_four_character_team_with_a_different_scoreboard_profile() {
+        let assets = std::path::Path::new("/jabs-no-test-assets");
+        let database = Database::open(std::path::Path::new(":memory:")).unwrap();
+        let store = OverlayStore::load(&database).unwrap();
+        let mut draft = store.selected_set().unwrap();
+        assert_eq!(draft.game_id, "street-fighter-6");
+        draft.asset_catalog_slug = Some("marvel-tokon".to_owned());
+        draft.player_two.characters = ["Black Panther", "Danger", "Deadpool", "Green Goblin"]
+            .map(str::to_owned)
+            .to_vec();
+
+        store.update_selected_set(&database, assets, assets, draft).unwrap();
+        let mut saved = store.selected_set().unwrap();
+        assert_eq!(saved.player_two.characters, ["Black Panther", "Danger", "Deadpool", "Green Goblin"]);
+        saved.player_two.characters.push("Wolverine".to_owned());
+
+        assert!(matches!(
+            store.update_selected_set(&database, assets, assets, saved),
+            Err(UpdateSelectedSetError::Invalid(message)) if message.contains("at most 4")
+        ));
     }
 
     #[test]

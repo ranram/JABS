@@ -36,6 +36,7 @@ pub enum Event {
     NativePanic,
     LocalServiceStopped,
     RequestFailed,
+    StreamSaveRejected,
     StartggFailed,
     ReportOutcomeUncertain,
     SettingsRecovered,
@@ -153,6 +154,13 @@ pub enum Reason {
     Server,
     InvalidResponse,
     Validation,
+    StreamPayload,
+    StreamState,
+    StreamCharacters,
+    StreamLogo,
+    StreamLocation,
+    StreamPlayerLibrary,
+    StreamModeration,
     Storage,
     NotFound,
     Unavailable,
@@ -348,6 +356,20 @@ pub fn shutdown(clean: bool) {
             }
         }
     }
+}
+
+pub(crate) fn stream_save_rejected(reason: Reason, status: u16) {
+    record(
+        Event::StreamSaveRejected,
+        Context {
+            area: Area::Stream,
+            reason: Some(reason),
+            status: Some(status),
+            operation: Some(Operation::SelectedSet),
+            method: Some(Method::Put),
+            ..Context::default()
+        },
+    );
 }
 
 pub fn http_failure(route: &str, status: u16) {

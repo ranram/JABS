@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { gameIdForStartggVideogame, gameProfiles, resolveStartggGameProfileId } from '@shared/gameProfiles';
 import { gameAssetCatalogSlug } from '@shared/gameAssetCatalog';
-import type { CountryOption, SelectedSetState, StartggResultMeta, ReportOutcome } from '@shared/models';
+import type { CountryOption, SelectedSetState, StartggEvent, StartggResultMeta, ReportOutcome } from '@shared/models';
 import { reportConfirmationText } from './operator/ResultOutcomeControls';
 import { startggReportReadiness } from '@shared/startggReporting';
 import { versusHistoryMatch } from '@shared/versusScreen';
@@ -308,9 +308,12 @@ export function OperatorDashboard() {
     clearFailureMessage: t('operator:messages.clearPlayersFailed')
   });
 
-  async function clearStreamState() {
+  async function clearStreamState(event?: StartggEvent) {
+    const gameId = resolveStartggGameProfileId(event?.videogame);
+    const catalogSlug = gameIdForStartggVideogame(event?.videogame) ?? gameAssetCatalogSlug(event?.videogame);
+    const preview = catalogSlug ? { gameId, assetCatalogSlug: catalogSlug } : undefined;
     await withAutosavePaused(async () => {
-      const response = await api.clearSelectedSet();
+      const response = await api.clearSelectedSet(preview);
       setState(response);
       setDraftState({ value: response.selectedSet, baseline: response.selectedSet, dirty: false });
     });

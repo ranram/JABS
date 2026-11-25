@@ -21,7 +21,7 @@ import { useBracketBrowserState } from './bracketBrowserState';
 import type { BracketController } from './bracketController';
 
 type UseBracketBrowserOptions = {
-  onContextChange?(): Promise<void>;
+  onContextChange?(event?: StartggEvent): Promise<void>;
   startgg: StartggGateway;
   setMessage: NoticeSink;
   setLoading: Dispatch<SetStateAction<boolean>>;
@@ -299,7 +299,7 @@ export function useBracketBrowser({
           : undefined;
       const nextEvent = retainedEvent ?? response.events[0];
       const firstEventId = nextEvent ? String(nextEvent.id) : '';
-      if (previous.slug !== normalizedSlug || previous.eventId !== firstEventId) await onContextChange?.();
+      if (previous.slug !== normalizedSlug || previous.eventId !== firstEventId) await onContextChange?.(nextEvent);
       loadedContextRef.current = { slug: normalizedSlug, eventId: firstEventId };
       patch({ tournamentSlug: normalizedSlug, loadedTournamentSlug: normalizedSlug });
       setEvents(response.events);
@@ -351,10 +351,11 @@ export function useBracketBrowser({
   }
 
   async function selectEvent(eventId: string, leadingNotice?: string, availableEvents = events): Promise<void> {
+    const event = availableEvents.find((candidate) => String(candidate.id) === eventId);
     if (loadedContextRef.current.eventId !== eventId) {
       setLoading(true);
       try {
-        await onContextChange?.();
+        await onContextChange?.(event);
         loadedContextRef.current = { ...loadedContextRef.current, eventId };
       } catch (error) {
         setMessage(errorMessage(error, t('messages.tournamentUnloadFailed')), 'error');
@@ -364,7 +365,7 @@ export function useBracketBrowser({
     }
     setSelectedEventId(eventId);
     setSelectionGameId(
-      gameIdForStartggVideogame(availableEvents.find((event) => String(event.id) === eventId)?.videogame) ?? ''
+      gameIdForStartggVideogame(event?.videogame) ?? ''
     );
     setSelectedPhaseId('');
     setSelectedPhaseGroupId('');

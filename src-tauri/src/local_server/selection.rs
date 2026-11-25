@@ -5,7 +5,7 @@ use crate::{
     state::{SelectedSet, UpdateSelectedSetError},
 };
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::{HeaderMap, StatusCode},
     response::Response,
     Json,
@@ -56,6 +56,44 @@ pub(super) async fn clear_players(
             };
             secure_json((status, Json(serde_json::json!({ "error": message }))))
         }
+    }
+}
+
+#[derive(Default, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct StreamPreviewGame {
+    game_id: Option<String>,
+    asset_catalog_slug: Option<String>,
+}
+
+pub(super) async fn clear_selected_set(
+    State(runtime): State<Arc<RuntimeState>>,
+    headers: HeaderMap,
+    Query(preview): Query<StreamPreviewGame>,
+) -> Response {
+    if let Some(response) = reject_untrusted_mutation(&headers) {
+        return response;
+    }
+    let game = match (preview.game_id.as_deref(), preview.asset_catalog_slug.as_deref()) {
+        (None, None) => None,
+        (Some(game_id), Some(catalog_slug))
+            if crate::state::is_game_id(game_id) && crate::catalogs::valid_game_asset_catalog_slug(catalog_slug) =>
+        {
+            Some((game_id, catalog_slug))
+        }
+        _ => return secure_json(StatusCode::BAD_REQUEST),
+    };
+    runtime.match_queue.interrupt(&runtime.database);
+    match runtime.overlay.clear_selected_set_for_game(&runtime.database, game) {
+        Ok(state) => {
+            let _ = runtime.bracket_screen.clear(&runtime.database);
+            let _ = runtime.versus_screen.reset_media_placements(&runtime.database);
+            secure_json(Json(state))
+        },
+        Err(error) => secure_json((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": error })),
+        )),
     }
 }
 

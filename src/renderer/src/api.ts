@@ -615,9 +615,9 @@ export const api = {
       { method: 'POST', body: JSON.stringify(selection) },
       { decoder: overlayStateSchema }
     ),
-  clearSelectedSet: () =>
+  clearSelectedSet: (preview?: { gameId: string; assetCatalogSlug: string }) =>
     request<OverlayState>(
-      '/api/state/selected-set',
+      preview ? `/api/state/selected-set?${new URLSearchParams(preview)}` : '/api/state/selected-set',
       {
         method: 'DELETE'
       },

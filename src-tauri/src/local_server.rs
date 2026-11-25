@@ -7,7 +7,7 @@ mod dev_web;
 use axum::{
     body::{Body, Bytes},
     Json, Router,
-    extract::{DefaultBodyLimit, Path as AxumPath, Query, State, WebSocketUpgrade},
+    extract::{DefaultBodyLimit, Path as AxumPath, Query, State, WebSocketUpgrade, rejection::JsonRejection},
     http::{HeaderMap, HeaderValue, Method, StatusCode, Uri, header},
     response::{IntoResponse, Response},
     routing::{delete, get, post, put},
@@ -86,7 +86,7 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
         // Stream state and live scores
         .route("/api/state", get(current_state))
         .route("/api/moderation/text", post(validate_moderation_text))
-        .route("/api/state/selected-set", put(update_selected_set).delete(clear_selected_set))
+        .route("/api/state/selected-set", put(update_selected_set).delete(selection::clear_selected_set))
         .route("/api/state/exhibition-game", post(select_exhibition_game))
         .route("/api/state/score", post(set_score))
         .route("/api/state/broadcast-winner", post(choose_broadcast_winner))
@@ -191,11 +191,21 @@ async fn current_state(State(runtime): State<Arc<RuntimeState>>) -> Response {
 async fn update_selected_set(
     State(runtime): State<Arc<RuntimeState>>,
     headers: HeaderMap,
-    Json(selected_set): Json<crate::state::SelectedSet>,
+    payload: Result<Json<crate::state::SelectedSet>, JsonRejection>,
 ) -> Response {
     if let Some(response) = reject_untrusted_mutation(&headers) {
         return response;
     }
+    let Json(selected_set) = match payload {
+        Ok(payload) => payload,
+        Err(rejection) => {
+            crate::diagnostics::stream_save_rejected(
+                crate::diagnostics::Reason::StreamPayload,
+                rejection.status().as_u16(),
+            );
+            return rejection.into_response();
+        }
+    };
     let previous = runtime.overlay.selected_set().ok();
     match runtime.overlay.update_selected_set(
         &runtime.database,
@@ -253,27 +263,6 @@ async fn select_exhibition_game(
         )),
         Err(crate::state::UpdateSelectedSetError::Conflict(error)) => secure_json((
             StatusCode::CONFLICT,
-            Json(serde_json::json!({ "error": error })),
-        )),
-    }
-}
-
-async fn clear_selected_set(
-    State(runtime): State<Arc<RuntimeState>>,
-    headers: HeaderMap,
-) -> Response {
-    if let Some(response) = reject_untrusted_mutation(&headers) {
-        return response;
-    }
-    runtime.match_queue.interrupt(&runtime.database);
-    match runtime.overlay.clear_selected_set(&runtime.database) {
-        Ok(state) => {
-            let _ = runtime.bracket_screen.clear(&runtime.database);
-            let _ = runtime.versus_screen.reset_media_placements(&runtime.database);
-            secure_json(Json(state))
-        },
-        Err(error) => secure_json((
-            StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": error })),
         )),
     }
@@ -1457,7 +1446,7 @@ mod tests {
         let before_score = runtime.versus_screen.current().unwrap();
         let mut exhibition = runtime.overlay.selected_set().unwrap();
         exhibition.station = Some("Station 1".into());
-        let response = super::update_selected_set(State(runtime.clone()), headers.clone(), Json(exhibition)).await;
+        let response = super::update_selected_set(State(runtime.clone()), headers.clone(), Ok(Json(exhibition))).await;
         assert_eq!(response.status(), axum::http::StatusCode::OK);
         let response = super::set_score(State(runtime.clone()), headers.clone(), Json(super::ScoreBody { side: "one".into(), score: 1 })).await;
         assert_eq!(response.status(), axum::http::StatusCode::OK);
@@ -1477,11 +1466,11 @@ mod tests {
         let mut tournament = runtime.overlay.selected_set().unwrap();
         tournament.set_id = Some("123".into());
         tournament.event_id = Some("456".into());
-        let response = super::update_selected_set(State(runtime.clone()), headers.clone(), Json(tournament)).await;
+        let response = super::update_selected_set(State(runtime.clone()), headers.clone(), Ok(Json(tournament))).await;
         assert_eq!(response.status(), axum::http::StatusCode::OK);
         assert_reset(&runtime);
         adjust(&runtime);
-        let response = super::clear_selected_set(State(runtime.clone()), headers).await;
+        let response = super::selection::clear_selected_set(State(runtime.clone()), headers, axum::extract::Query(Default::default())).await;
         assert_eq!(response.status(), axum::http::StatusCode::OK);
         assert_reset(&runtime);
     }
