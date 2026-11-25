@@ -12,7 +12,9 @@ Changes in **Edit stream state** save automatically. Open **Scoreboard appearanc
 
 For a loaded start.gg match, **Phase** and **Round** are separate editable fields. Phase stays hidden for exhibitions. JABS labels identified Top 8 qualification matches **Top 8 Qualifier (W)** or **Top 8 Qualifier (L)**. Otherwise, it keeps the round name from start.gg. You can edit either field. JABS remembers your labels for that match.
 
-**Game** sets the rules and character choices. **Scoreboard styling** chooses the look. For games outside the built-in lineup, **Game profile for set** lets you choose a rules profile.
+**Game** sets the rules and character choices. Use **Scoreboard style** to pick a design. For games outside the built-in lineup, use **Game profile for set** to choose a rules profile.
+
+With a start.gg match loaded, use **Format on stream** to show Best of or First to. For example, Best of 5 can display as First to 3. JABS remembers your choice while the app is open. Reporting follows the round format from start.gg when one is available.
 
 Choose **Clear player details** in the editor header to prepare a match manually. Both slots return to **Player 1** and **Player 2**, with player details, scores, and game history cleared. Game and broadcast settings stay in place. Clearing pauses the queue and detaches the current start.gg set. Saved player profiles, queued matches, and the previous set's saved progress are preserved.
 
@@ -119,9 +121,15 @@ The two clear shortcuts open a **Yes / No** dialog. Click your choice, press **Y
 
 Choose a source from **Copy overlay URL** in the toolbar, then paste its URL into an OBS Browser Source. Use `1920×1080` unless you enable SF6 photo extension, described under **Scoreboard photos and logos** below. Clear any custom CSS and keep JABS running while broadcasting.
 
-The Scoreboard follows the current match. Winner & Champion prepares the player leading the JABS score, even before the winning point is entered. Unresolved ties keep the screen blank. In Grand Finals, the screen chooses Winner or Champion automatically. Set up the other sources under **Overlays**. For Bracket View, choose a phase and pool. Its header shows that selection, or **No phase/pool selected**. For Top 8 Matchups, load the opening matchups from your event.
+The Scoreboard follows the current match. Winner & Champion can preview the player leading the score in JABS before the set ends. An unresolved tie leaves the screen blank. In Grand Finals, JABS chooses Winner or Champion automatically.
 
-Choose **Scoreboard font** under **Edit stream state** to change the scoreboard and its information rails. **[DEFAULT]** uses the selected style’s font. Custom scoreboards keep their own font choice.
+If start.gg reports a different winner from the final score in JABS, the screen follows the JABS score. Use the warning in **Edit stream state** to choose the start.gg winner if that’s the result you want on stream. If start.gg disqualifies both players, the screen waits for a final score in JABS.
+
+Set up the other sources under **Overlays**. For Bracket View, choose a phase and pool. Its header shows that selection, or **No phase/pool selected**. For Top 8 Matchups, load the opening matchups from your event.
+
+To use your own font, go to **Settings → Add font…** and choose a TTF or OTF file up to 20 MB. Turn on **Include imported fonts in font lists** to see it in the font picker. Expand **Imported fonts** in Settings to remove a font. Scoreboards that used it return to their default font.
+
+Choose **Scoreboard font** under **Edit stream state → Scoreboard appearance**. **[DEFAULT]** uses the selected style’s font. Set the font for a custom scoreboard in its editor. Use **Scoreboard text size** in Settings to resize text from bundled or imported fonts.
 
 Use **Settings** for colors, broadcast language, and text size. **Larger** is the default text size. Choose **Smaller** for a more compact layout.
 
@@ -153,7 +161,7 @@ Turn off **Keep Winner / Champion title** in any winner layout to hide the title
 
 ### Stingers
 
-Open **Help → Set up stingers** to manage your Perfect and Winner videos. Use WebM files. Winner playback needs a completed set and can start automatically. Use **Winner framing** to check the photo, character, sponsor logo, and name against your video. This preview stays inside JABS.
+If a clip is missing, press its shortcut and confirm to open Stingers setup. Add Perfect and Winner videos in WebM format. Winner playback needs a completed set and can start automatically. Use **Winner framing** to check the photo, character, sponsor logo, and name against your video. This preview stays inside JABS.
 
 Enable **Limit playback duration** to keep winner details on screen for the selected duration. They slide out during the final two seconds. If the video ends sooner, its last frame stays behind the details until the duration finishes.
 
@@ -265,13 +273,15 @@ Layout changes save automatically. Move each sponsor logo independently of the p
 
 Team/Sponsor names use the theme’s primary color for Player 1 and secondary color for Player 2. Under **Appearance**, turn off **Use theme colors for Team/Sponsor** to choose one color for both. Saved custom colors stay in use until you enable theme colors.
 
+Select a flag and use **Flag slant** to angle its edges toward the center. Slanted flags use the same proportions as the built-in scoreboards. Set the slant to 0% to use straight edges and set your own width. Turn on **Clip flag to frame** to trim the flag to the visible parts of your PNG.
+
 At the bottom of **Appearance**, use **Broadcast extras** to enter left and right rail text and choose which rails appear. The center rail uses match details.
 
 ## Top 8 graphics and thumbnails
 
 Top 8 Generator can import completed event standings or use players you enter yourself. YouTube Thumbnail Generator can use the match on stream or a manually entered matchup. Choose the game, fill in the players, and adjust the appearance and artwork in the preview.
 
-Download the finished PNG from the toolbar: Top 8 graphics export at `1920×1080`, and thumbnails at `1280×720`.
+Download the finished PNG from the toolbar. Top 8 graphics export at `1920×1080` and thumbnails at `1280×720`. The Top 8 preview and PNG both show each placement on a square badge over the artwork.
 
 You can switch tabs and return to your unfinished graphic. Download it before closing or updating JABS, since generator drafts are not restored after a restart.
 

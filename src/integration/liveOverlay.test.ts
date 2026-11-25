@@ -468,18 +468,17 @@ it('renders bundled flags and falls back safely for invalid country selections',
   overlay.selectedSet.round = originalRound;
   overlay.selectedSet.stylingGameId = originalStyling;
   overlay.selectedSet.winnersSideEntrantId = undefined;
+  const leftFlag = () => view.container.querySelector<HTMLElement>('.overlay-player-left .overlay-player-flag')!;
   overlay.selectedSet.playerOne.displayFlag = 'pride:transgender';
   await view.rerender();
-  expect(view.container.querySelector('.overlay-player-left .overlay-player-flag img')?.getAttribute('src')).toBe(
-    displayFlagUrl('US', 'pride:transgender')
+  expect(leftFlag().style.getPropertyValue('--scoreboard-flag-image')).toBe(
+    `url(${JSON.stringify(displayFlagUrl('US', 'pride:transgender'))})`
   );
   overlay.selectedSet.playerOne.displayFlag = undefined;
   overlay.selectedSet.playerOne.country = 'USA';
   await view.rerender();
   expect(countryFlagUrl('USA')).toBeUndefined();
-  expect(view.container.querySelector('.overlay-player-left .overlay-player-flag img')?.getAttribute('src')).toBe(
-    noFlag
-  );
+  expect(leftFlag().style.getPropertyValue('--scoreboard-flag-image')).toBe(`url(${JSON.stringify(noFlag)})`);
 });
 
 it('fits long scoreboard names in compact plates and restores their size when space increases', async () => {

@@ -23,7 +23,7 @@ type ImageLayer = {
 };
 
 type ShapeLayer = {
-  kind: 'top8-identity' | 'thumbnail-identity';
+  kind: 'top8-identity' | 'top8-placement' | 'thumbnail-identity';
   rect: DOMRect;
   background: string;
   borderColor: string;
@@ -191,7 +191,7 @@ function shapeLayer(element: HTMLElement): ShapeLayer {
   return {
     kind: element.dataset.exportShape as ShapeLayer['kind'],
     rect: element.getBoundingClientRect(),
-    background: element.dataset.exportShape === 'thumbnail-identity' ? shapeStyle.backgroundColor
+    background: element.dataset.exportShape !== 'top8-identity' ? shapeStyle.backgroundColor
       : style.getPropertyValue('--top8-background').trim()
       || style.getPropertyValue('--thumbnail-background').trim()
       || '#19110c',
@@ -471,7 +471,7 @@ function drawShapeLayer(
     height: layer.rect.height * scaleY
   };
   context.save();
-  if (layer.kind === 'top8-identity') {
+  if (layer.kind !== 'thumbnail-identity') {
     context.fillStyle = layer.background;
     const left = Math.floor(box.x);
     const top = Math.floor(box.y);

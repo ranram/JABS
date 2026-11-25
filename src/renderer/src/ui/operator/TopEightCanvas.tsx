@@ -215,7 +215,7 @@ function TopEightCard({
               layer="foreground"
             />
           )}
-          <span className="top8-placement" data-export-text>
+          <span className="top8-placement" data-export-shape="top8-placement" data-export-text="wrapped">
             {placementLabel(entrant.placement)}
           </span>
           <span

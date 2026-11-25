@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { gameIdForStartggVideogame, resolveStartggGameProfileId, type GameProfile } from '@shared/gameProfiles';
+import { gameIdForStartggVideogame, gameProfiles, resolveStartggGameProfileId } from '@shared/gameProfiles';
 import { gameAssetCatalogSlug } from '@shared/gameAssetCatalog';
 import type { CountryOption, SelectedSetState, StartggResultMeta, ReportOutcome } from '@shared/models';
 import { reportConfirmationText } from './operator/ResultOutcomeControls';
@@ -37,10 +37,12 @@ import { useScoreShortcuts } from './operator/useScoreShortcuts';
 import { swapSavedCommentators } from './operator/swapCommentators';
 import { usePlayerDefaultsAutosave } from './operator/usePlayerDefaultsAutosave';
 import { useLogoCatalog } from '../hooks/useLogoCatalog';
+
+const profiles = Object.values(gameProfiles)
+
 export function OperatorDashboard() {
   const { t } = useTranslation(['operator', 'common', 'errors']);
   const { state, setState, error: stateError } = useOverlayState();
-  const [profiles, setProfiles] = useState<GameProfile[]>([]);
   const [countries, setCountries] = useState<CountryOption[]>([]);
   const [logos, setLogos] = useLogoCatalog();
   const [assetCatalogRevision, setAssetCatalogRevision] = useState(0);
@@ -89,9 +91,8 @@ export function OperatorDashboard() {
     refreshAfterReport: refreshSetSelectorAfterReport
   } = browser.actions;
   useEffect(() => {
-    void Promise.all([api.gameProfiles(), api.countries(), api.tokenStatus(), api.recentTournaments(), api.health()])
-      .then(([profileResponse, countryResponse, tokenStatus, recentResponse, health]) => {
-        setProfiles(profileResponse.profiles);
+    void Promise.all([api.countries(), api.tokenStatus(), api.recentTournaments(), api.health()])
+      .then(([countryResponse, tokenStatus, recentResponse, health]) => {
         setCountries(countryResponse.countries);
         setTokenConfigured(tokenStatus.configured);
         setTokenStorageAvailable(tokenStatus.storageAvailable);

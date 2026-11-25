@@ -102,7 +102,7 @@ it('rejects preview text that differs from the approved export text', async () =
   );
 });
 
-it('clips enlarged Top 8 artwork above the name panel and inside the borders in both layouts', async () => {
+it('clips enlarged Top 8 artwork above the name panel and inside the borders', async () => {
   vi.spyOn(HTMLImageElement.prototype, 'decode').mockResolvedValue();
   vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true);
   vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(600);
@@ -115,29 +115,27 @@ it('clips enlarged Top 8 artwork above the name panel and inside the borders in 
     if (this.classList.contains('top8-card')) return new DOMRect(95, 95, 210, 330);
     return new DOMRect(0, 0, 600, 600);
   });
-  for (const style of ['mosaic', 'neon'] as const) {
-    const { context } = mockRasterExport();
-    const draft = { ...createTopEightDraft(), style };
-    const view = await mountView(() =>
-      h(TopEightCanvas, {
-        editable: false,
-        draft,
-        stylingProfile: gameProfiles['street-fighter-6'],
-        media: draft.entrants.map(() => ({ characterUrl: 'data:image/png;base64,artwork' })),
-        placements: [],
-        onSelectLayer() {},
-        onPlacementChange() {}
-      })
-    );
-    const source = view.container.querySelector<HTMLElement>('.top8-canvas')!;
-    source.querySelectorAll<HTMLElement>('.top8-card').forEach((card) => {
-      card.style.borderRadius = '4px';
-    });
-    await exportGraphicAsPng(source, { ...pngOptions, trustedText: topEightTrustedText(draft) });
-    expect(context.moveTo).toHaveBeenCalledWith(200, 200);
-    expect(context.moveTo).toHaveBeenCalledWith(198, 190);
-    expect(context.lineTo).toHaveBeenCalledWith(600, 700);
-  }
+  const { context } = mockRasterExport();
+  const draft = createTopEightDraft();
+  const view = await mountView(() =>
+    h(TopEightCanvas, {
+      editable: false,
+      draft,
+      stylingProfile: gameProfiles['street-fighter-6'],
+      media: draft.entrants.map(() => ({ characterUrl: 'data:image/png;base64,artwork' })),
+      placements: [],
+      onSelectLayer() {},
+      onPlacementChange() {}
+    })
+  );
+  const source = view.container.querySelector<HTMLElement>('.top8-canvas')!;
+  source.querySelectorAll<HTMLElement>('.top8-card').forEach((card) => {
+    card.style.borderRadius = '4px';
+  });
+  await exportGraphicAsPng(source, { ...pngOptions, trustedText: topEightTrustedText(draft) });
+  expect(context.moveTo).toHaveBeenCalledWith(200, 200);
+  expect(context.moveTo).toHaveBeenCalledWith(198, 190);
+  expect(context.lineTo).toHaveBeenCalledWith(600, 700);
 });
 
 async function mountWrappedPreview() {

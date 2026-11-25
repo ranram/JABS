@@ -1,0 +1,433 @@
+.overlay-frame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--hud-center-width) minmax(0, 1fr);
+  grid-template-rows: var(--scoreboard-photo-top, 0%) 1fr;
+  column-gap: var(--hud-gap);
+  align-items: start;
+  padding-inline: var(--hud-side-padding);
+  filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.58));
+}
+
+/* The flag forms the end of the plate. Its bevel runs into the name area. */
+.overlay-player {
+  --plate-cut: var(--plate-no-flag-cut, 10px);
+  --player-side-accent: var(--game-accent);
+  --scoreboard-side-wash: var(--appearance-primary-wash);
+  --end-cut: var(--plate-cut);
+  --flag-cut: calc(var(--hud-plate-height) * 0.6);
+  --flag-width: calc(var(--hud-plate-height) * 2.38);
+  --flag-bleed: calc(var(--hud-plate-height) * 0.24);
+  /* Keep the middle 96% of the 4:3 artwork at its original proportions. */
+  --flag-edge-width: calc((var(--flag-width) - var(--hud-plate-height) * 1.28) / 2);
+  /* The plate clips the outside edge. Clip only the name-facing edge here. */
+  --flag-shape: polygon(0 0, calc(100% - var(--flag-cut)) 0, 100% 100%, 0 100%);
+  --score-width: clamp(66px, calc(var(--hud-plate-height) * 1.55), 88px);
+  --score-cut: calc(var(--hud-plate-height) * 0.52);
+  --score-name-top: var(--score-cut);
+  --score-name-bottom: 0px;
+  --score-center-top: 0px;
+  --score-center-bottom: 0px;
+  --score-center-offset: calc(
+    (var(--score-name-top) + var(--score-name-bottom) - var(--score-center-top) - var(--score-center-bottom)) / 4
+  );
+  --score-direction: 1;
+  --score-accent: var(--player-side-accent);
+  --score-fill: var(--score-accent);
+  --score-ink: var(--appearance-on-accent, #101219);
+  --plate-direction: 90deg;
+  --plate-shape: polygon(
+    0 0, calc(100% - var(--score-center-top)) 0, calc(100% - var(--score-center-bottom)) 100%, var(--end-cut) 100%
+  );
+  --plate-wash: var(--scoreboard-side-wash, color-mix(in srgb, var(--score-accent) 26%, transparent));
+  display: grid;
+  grid-column: 1;
+  grid-row: 2;
+  grid-template-columns: minmax(0, 1fr) var(--score-width);
+  grid-template-areas: 'copy score';
+  min-width: 0;
+  height: var(--hud-plate-height);
+  overflow: hidden;
+  align-items: stretch;
+  margin-top: var(--hud-top);
+  padding-inline-start: var(--plate-cut);
+  border: 0;
+  border-radius: 0;
+  clip-path: var(--plate-shape);
+  background-color: var(--plate-base, var(--game-bg));
+  background-image:
+    linear-gradient(var(--plate-direction), var(--plate-wash), transparent 57%),
+    var(--plate-texture, linear-gradient(180deg, var(--plate-light, rgb(255 255 255 / 8%)), transparent));
+  color: var(--plate-ink, #fff);
+}
+
+.overlay-player-right {
+  grid-column: 3;
+  --player-side-accent: var(--broadcast-right);
+  --scoreboard-side-wash: var(--appearance-secondary-wash);
+  --score-ink: var(--appearance-on-secondary, var(--score-default-right-ink, #101219));
+  --score-direction: -1;
+  --plate-direction: 270deg;
+  --plate-shape: polygon(
+    var(--score-center-top) 0, 100% 0, calc(100% - var(--end-cut)) 100%, var(--score-center-bottom) 100%
+  );
+  --flag-shape: polygon(var(--flag-cut) 0, 100% 0, 100% 100%, 0 100%);
+  grid-template-columns: var(--score-width) minmax(0, 1fr);
+  grid-template-areas: 'score copy';
+  padding-inline: 0 var(--plate-cut);
+}
+
+.overlay-player.has-country-flag {
+  --end-cut: var(--flag-cut);
+  padding-inline: 0;
+}
+
+.overlay-player-left.has-country-flag {
+  grid-template-columns: var(--flag-width) minmax(0, 1fr) var(--score-width);
+  grid-template-areas: 'flag copy score';
+}
+
+.overlay-player-right.has-country-flag {
+  grid-template-columns: var(--score-width) minmax(0, 1fr) var(--flag-width);
+  grid-template-areas: 'score copy flag';
+}
+
+.overlay-player-flag {
+  position: relative;
+  grid-area: flag;
+  overflow: hidden;
+  clip-path: var(--flag-shape);
+}
+
+.overlay-player-flag::before,
+.custom-scoreboard-slanted-flag::before {
+  /* Let the artwork bleed past the window so margins in flag assets stay hidden. */
+  position: absolute;
+  inset: -1px calc(-1 * var(--flag-bleed));
+  border-image: var(--scoreboard-flag-image) 0 2% fill / 0 calc(var(--flag-edge-width) + var(--flag-bleed)) stretch;
+  content: '';
+}
+
+.overlay-player-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  grid-area: copy;
+  min-width: 0;
+  overflow: hidden;
+  padding-inline: 8px 7px;
+  line-height: 1;
+  text-align: left;
+}
+
+.overlay-player-right .overlay-player-copy {
+  padding-inline: 7px 8px;
+  text-align: right;
+}
+
+.overlay-player-identity {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.overlay-player-right .overlay-player-identity {
+  justify-content: flex-end;
+}
+
+.overlay-player-name {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--scoreboard-font-family, var(--scoreboard-theme-font, 'JABS Barlow Condensed')), sans-serif;
+  font-style: var(--scoreboard-name-style, normal);
+  font-weight: var(--scoreboard-name-weight, 800);
+  font-size: calc(clamp(19px, calc(var(--hud-plate-height) * 0.55), 29px) * var(--appearance-text-scale, 1));
+  letter-spacing: 0.025em;
+  line-height: normal;
+  padding: 1px 3px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.overlay-player-prefix {
+  color: var(--sponsor-ink, var(--score-accent));
+}
+
+.overlay-player-score {
+  display: grid;
+  grid-area: score;
+  place-items: center;
+  min-height: 0;
+  /* The plate already clips the center-facing edge so the color reaches the tip. */
+  clip-path: polygon(var(--score-name-top) 0, 100% 0, 100% 100%, var(--score-name-bottom) 100%);
+  background-color: var(--score-fill);
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 12%), transparent 63%);
+  color: var(--score-ink);
+  font-size: calc(clamp(22px, calc(var(--hud-plate-height) * 0.63), 36px) * var(--appearance-text-scale, 1));
+  font-family: var(--scoreboard-font-family, 'JABS Barlow Condensed'), sans-serif;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.overlay-player-right .overlay-player-score {
+  clip-path: polygon(0 0, calc(100% - var(--score-name-top)) 0, calc(100% - var(--score-name-bottom)) 100%, 0 100%);
+}
+
+.overlay-player-score-text {
+  transform: translateX(calc(var(--score-direction) * var(--score-center-offset)));
+}
+
+.overlay-match-chip {
+  --label-shape: polygon(0 0, 100% 0, calc(100% - var(--label-cut)) 100%, var(--label-cut) 100%);
+  display: grid;
+  grid-column: 2;
+  grid-row: 1 / -1;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 1fr;
+  height: 28px;
+  align-content: center;
+  align-items: center;
+  align-self: start;
+  overflow: hidden;
+  padding-block: 2px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.overlay-broadcast-layer {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.72));
+}
+
+.overlay-info-rail {
+  --label-shape: polygon(var(--label-cut) 0, calc(100% - var(--label-cut)) 0, 100% 100%, 0 100%);
+  position: absolute;
+  bottom: 0;
+  display: grid;
+  width: var(--broadcast-rail-width);
+  max-width: 45vw;
+  height: var(--broadcast-height);
+  place-items: center;
+  overflow: hidden;
+  font-size: calc(14px * var(--appearance-text-scale, 1));
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.overlay-info-text {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  padding-inline: 3px;
+  line-height: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overlay-match-context-rail {
+  z-index: 1;
+  left: 50%;
+  width: clamp(var(--broadcast-center-width), 32vw, 620px);
+  max-width: 46vw;
+  transform: translateX(-50%);
+}
+
+.overlay-logo-slot {
+  position: absolute;
+  z-index: 2;
+  bottom: calc(var(--broadcast-height) + 6px);
+  left: 50%;
+  width: calc(var(--broadcast-center-width) + 28px);
+  height: calc(var(--broadcast-logo-height) + 10px);
+  transform: translateX(-50%);
+}
+
+.logo-top-center .overlay-logo-slot,
+.logo-upper-center .overlay-logo-slot {
+  top: var(--broadcast-logo-top);
+  bottom: auto;
+}
+
+.overlay-logo-slot img {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  max-width: calc(100% - 8px);
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.72));
+  opacity: 0;
+  transform: translateX(-50%);
+}
+
+.logo-top-center .overlay-logo-slot img,
+.logo-upper-center .overlay-logo-slot img {
+  top: 0;
+  bottom: auto;
+}
+
+.overlay-logo-slot img.is-loaded {
+  opacity: 1;
+}
+
+/* Carry the angled edges through to the round label and bottom rails. */
+.overlay-match-chip,
+.overlay-info-rail {
+  --label-cut: 11px;
+  padding-inline: calc(var(--label-cut) + 10px);
+  clip-path: var(--label-shape);
+  background-color: var(--label-base, var(--plate-base, var(--game-bg)));
+  background-image: linear-gradient(180deg, var(--label-light, rgb(255 255 255 / 8%)), transparent);
+  color: var(--label-ink, #eef2ff);
+  font-family: var(--scoreboard-font-family, var(--scoreboard-theme-font, 'JABS Barlow Condensed')), sans-serif;
+}
+
+.overlay-match-chip strong {
+  grid-column: 1;
+  grid-row: 1;
+  overflow: hidden;
+  font-size: calc(15px * var(--appearance-text-scale, 1));
+  line-height: normal;
+  padding-inline: 3px;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.overlay-info-left {
+  left: 0;
+  --label-shape: polygon(0 0, calc(100% - var(--label-cut)) 0, 100% 100%, 0 100%);
+}
+
+.overlay-info-right {
+  right: 0;
+  --label-shape: polygon(var(--label-cut) 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Themes supply color, texture and typography. The frame owns the shared geometry. */
+.theme-sf6 {
+  --plate-no-flag-cut: 14px;
+  --plate-base: #17120f;
+  --plate-light: #2e2520;
+  --label-light: #28201a;
+}
+
+.theme-t8 {
+  --plate-base: #050a13;
+  --plate-texture: repeating-linear-gradient(118deg, transparent 0 18px, rgb(255 255 255 / 5%) 19px 21px);
+  --label-light: #1a2335;
+}
+
+/* The BBCF HUD extends 31px farther on the right at 1920×1080. */
+.theme-bbcf .overlay-player-right {
+  margin-inline-end: -31px;
+}
+
+.theme-avatar-legends,
+.theme-bbcf,
+.theme-gbvsr,
+.theme-mbtl,
+.theme-mk1 {
+  --scoreboard-theme-font: Georgia, 'Times New Roman';
+  --scoreboard-name-weight: 700;
+}
+
+.theme-avatar-legends {
+  --plate-base: #0b2533;
+  --label-light: #173d46;
+}
+
+.theme-mk1 {
+  --score-default-right-ink: #fff4e7;
+}
+
+.theme-2xko,
+.theme-cotw,
+.theme-kofxv,
+.theme-umvc3,
+.theme-ggst {
+  --scoreboard-name-style: italic;
+}
+
+.theme-cotw {
+  --plate-texture: repeating-linear-gradient(115deg, rgb(255 255 255 / 5%) 0 4px, transparent 4px 15px);
+}
+
+.theme-smash-ultimate {
+  --plate-no-flag-cut: 8px;
+  --plate-base: #0c1425;
+  --plate-light: #202b42;
+  --label-light: #26344e;
+}
+
+.theme-smash-ultimate .overlay-match-context-rail {
+  width: 20%;
+}
+
+.theme-tokon {
+  --tokon-halftone: radial-gradient(circle, rgb(48 24 25 / 14%) 0 1px, transparent 1.2px);
+  --plate-no-flag-cut: 7px;
+  --plate-base: #fff0ce;
+  --plate-ink: #211b20;
+  --label-light: #f6d898;
+  --label-ink: #211b20;
+  --scoreboard-name-style: italic;
+}
+
+.theme-tokon .overlay-player {
+  --score-accent: var(--appearance-primary, #f3c448);
+  --sponsor-ink: var(--appearance-primary, #634315);
+  background-image:
+    var(--tokon-halftone),
+    linear-gradient(var(--plate-direction), var(--plate-wash), transparent 58%);
+  background-size: 6px 6px, auto;
+}
+
+.theme-tokon .overlay-match-chip,
+.theme-tokon .overlay-info-rail {
+  background-image: var(--tokon-halftone), linear-gradient(180deg, var(--label-light), transparent);
+  background-size: 6px 6px, auto;
+}
+
+.theme-tokon .overlay-player-right {
+  --score-accent: var(--appearance-secondary, #ad1539);
+  --score-ink: var(--appearance-on-secondary, #fff6e7);
+  --sponsor-ink: var(--appearance-secondary, #8b2340);
+}
+
+.theme-tokon .overlay-player-name {
+  font-size: calc(18px * var(--appearance-text-scale, 1));
+}
+
+.theme-tokon .overlay-player-name[data-stacked='true'] {
+  text-shadow: none;
+}
+
+.theme-ggst {
+  --plate-no-flag-cut: 12px;
+  --plate-base: #191816;
+  --plate-light: #34302b;
+  --label-light: #36302a;
+}
+
+.theme-ggst .overlay-player {
+  --score-fill: color-mix(in srgb, var(--score-accent) 29%, #141418);
+  --score-ink: var(--appearance-primary, #ffd2bb);
+  --sponsor-ink: var(--score-ink);
+}
+
+.theme-ggst .overlay-player-right {
+  --score-ink: var(--appearance-secondary, #c6f2ff);
+}

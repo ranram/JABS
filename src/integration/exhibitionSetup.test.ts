@@ -2,7 +2,6 @@
 import { act, createElement as h, type ComponentProps } from 'react';
 import { MantineProvider } from '@mantine/core';
 import { afterEach, expect, it, vi } from 'vitest';
-import { gameProfiles } from '@shared/gameProfiles';
 import type { ExhibitionGameSelection, OverlayState, SelectedSetState } from '@shared/models';
 import type { GameCharacterPreparation } from '@shared/startggVideogames';
 import { createTestOverlayState } from '@shared/testFixtures';
@@ -89,7 +88,6 @@ vi.mock('../renderer/src/api', async (importOriginal) => {
       reportRendererDiagnostic: vi.fn(),
       gameCharacterAssets: transport.characters,
       prepareGameCharacters: transport.prepare,
-      gameProfiles: async () => ({ profiles: Object.values(gameProfiles) }),
       countries: async () => ({ countries: [] }),
       logos: async () => ({ logos: [] }),
       tokenStatus: async () => ({ configured: true, storageAvailable: true, sessionOnly: false }),

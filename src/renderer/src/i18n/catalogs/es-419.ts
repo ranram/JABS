@@ -246,8 +246,7 @@ export const es419 = {
         library: 'Usar la biblioteca de jugadores',
         folders: 'Recursos y carpetas de imágenes',
         media: 'Mover y ajustar imágenes',
-        scoreboard: 'Crear un marcador personalizado',
-        stingers: 'Configurar stingers'
+        scoreboard: 'Crear un marcador personalizado'
       },
       steps: {
         queueAdd: {
@@ -332,7 +331,7 @@ export const es419 = {
         },
         quickFinish: {
           title: 'Todo listo para empezar',
-          body: 'Empieza con el enlace de un torneo o prepara una exhibición en **Editar estado de transmisión**. En **Ayuda** encontrarás guías para cada tarea, incluidas imágenes, marcadores personalizados y stingers. Primeros pasos seguirá aquí para cuando quieras repasarlo.'
+          body: 'Empieza con el enlace de un torneo o prepara una exhibición en **Editar estado de transmisión**. En **Ayuda** hay guías para ajustar imágenes de jugadores, crear marcadores personalizados y usar otras herramientas.'
         },
         tournament: {
           title: 'Carga tu torneo',
@@ -465,22 +464,6 @@ export const es419 = {
         scoreboardSave: {
           title: 'Los diseños se guardan automáticamente',
           body: 'Los cambios **se guardan automáticamente**. El indicador junto al título muestra si ya se guardaron. Elige **Usar en OBS** para mostrar el diseño en la transmisión.'
-        },
-        stingers: {
-          title: 'Elige tus clips',
-          body: 'Agrega videos Perfect y Winner en formato **WebM**. Winner puede reproducirse **automáticamente** cuando el marcador completa la partida.'
-        },
-        stingerFraming: {
-          title: 'Encuadra al ganador',
-          body: 'Usa la vista previa para revisar la foto, el personaje y la franja del nombre. Define cuándo aparecen los recursos en el clip. Esta vista previa **no activa OBS**.'
-        },
-        stingerObs: {
-          title: 'Agrega la fuente en OBS',
-          body: 'Copia la URL de Stingers y agrégala como Fuente de navegador de **1920×1080** **sobre las demás fuentes**. Reutilízala entre escenas y comprueba que aparezca activa en JABS. **Deja sin marcar “Apagar fuente cuando no sea visible” y “Actualizar el navegador cuando la escena se active”** para que cambiar de escena no interrumpa la reproducción.'
-        },
-        stingerPlay: {
-          title: 'Reproduce clips desde cualquier pestaña',
-          body: 'Con los atajos activados, **Ctrl+P** reproduce Perfect y **Ctrl+W** reproduce Winner. Usa **Detener en OBS** aquí para cortar la reproducción.'
         }
       }
     },
@@ -681,7 +664,7 @@ export const es419 = {
     // Global broadcast appearance and portable presets
     appearance: {
       settings: 'Configuración',
-      showImportedFonts: 'Mostrar las fuentes importadas en los selectores',
+      showImportedFonts: 'Incluir las fuentes importadas en las listas',
       addFont: 'Agregar fuente…',
       importedFont: 'Fuente importada',
       scoreboardTextScale: 'Tamaño del texto del marcador',
@@ -922,16 +905,16 @@ export const es419 = {
         showPlayerPhoto: 'Mostrar foto del jugador',
         showSponsorLogo: 'Mostrar logo del equipo/patrocinador',
         showCharacter: 'Mostrar personaje',
-        doubleDq: 'start.gg muestra a ambos jugadores como descalificados',
-        doubleDqNoWinner: 'La gráfica de ganador esperará un marcador final.',
+        doubleDq: 'start.gg marcó a ambos jugadores como descalificados',
+        doubleDqNoWinner: 'La pantalla de ganador esperará un marcador final en JABS.',
         winnerMismatch: 'Ganadores distintos',
-        winnerConflict: 'El marcador local y start.gg muestran ganadores distintos',
-        localResult: '{{winner}} ganó {{winnerScore}}–{{loserScore}} según el marcador local.',
+        winnerConflict: 'JABS y start.gg muestran ganadores distintos',
+        localResult: 'Según el marcador de JABS, {{winner}} ganó {{winnerScore}}–{{loserScore}}.',
         reportedWinner: 'En start.gg figura {{winner}} como ganador.',
         reportedDqWinner: 'En start.gg figura {{winner}} como ganador por descalificación.',
         broadcastWinner: 'La gráfica de ganador mostrará a {{winner}}.',
         useReportedWinner: 'Mostrar a {{winner}} (start.gg)',
-        useLocalWinner: 'Mostrar a {{winner}} (marcador local)',
+        useLocalWinner: 'Mostrar a {{winner}} (marcador de JABS)',
         winnerChoiceFailed: 'No se pudo cambiar el ganador para la transmisión',
         unavailableForWinner: 'No se encontró una imagen.',
         failedTitle: 'No se pudo actualizar la pantalla de ganador y campeón',
@@ -1169,11 +1152,11 @@ export const es419 = {
       detectedOverride: 'Detectado del evento: {{profile}}. Puedes cambiarlo después de cargar el set.',
       matchLength: 'Formato de la partida',
       formatOnStream: 'Formato en pantalla',
-      previewFormat: 'Formato de vista previa',
+      previewFormat: 'Formato para la vista previa',
       selectFormatEvent: 'Selecciona un evento',
-      loadingRoundFormats: 'Cargando formatos de los sets…',
-      noRoundFormats: 'No hay formatos disponibles',
-      roundFormatsFailed: 'No se pudieron cargar todos los formatos',
+      loadingRoundFormats: 'Cargando formatos de las rondas…',
+      noRoundFormats: 'No hay formatos de ronda disponibles',
+      roundFormatsFailed: 'No se pudieron cargar todos los formatos de ronda',
       startggFormatUnavailable: 'No disponible en start.gg',
       displayName: 'Nombre visible',
       round: 'Ronda',
@@ -1325,6 +1308,9 @@ export const es419 = {
       sponsorColor: 'Color del texto de equipo/patrocinador',
       sponsorThemeColors: 'Usar colores del tema para equipo/patrocinador',
       flagSize: 'Tamaño de la bandera',
+      flagSlant: 'Inclinación de la bandera',
+      clipFlagToFrame: 'Recortar la bandera al marco',
+      clipFlagHelp: 'La bandera se muestra solo donde el PNG tiene imagen visible.',
       title: 'Marcador personalizado',
       description:
         'Usa tu propio diseño transparente mientras JABS mantiene al día nombres, puntajes, banderas y datos de transmisión.',

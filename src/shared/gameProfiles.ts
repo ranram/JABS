@@ -46,7 +46,6 @@ export type OverlayHudSafeZone = {
 };
 
 export type OverlayBroadcastSafeZone = {
-  bottom: number;
   height: number;
   railWidth: number;
   centerWidth: number;
@@ -102,11 +101,11 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: {
         top: 4,
         bottom: 60,
-        sidePadding: 250,
+        sidePadding: 238,
         centerWidth: 310,
         gap: 60
       },
-      broadcastSafeZone: { bottom: 5, height: 28, railWidth: 500, centerWidth: 180, logoHeight: 64 }
+      broadcastSafeZone: { height: 28, railWidth: 500, centerWidth: 180, logoHeight: 64 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -135,7 +134,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
         centerWidth: 400,
         gap: 70
       },
-      broadcastSafeZone: { bottom: 5, height: 28, railWidth: 520, centerWidth: 180, logoHeight: 62 }
+      broadcastSafeZone: { height: 28, railWidth: 520, centerWidth: 180, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -160,11 +159,11 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: {
         top: 4,
         bottom: 60,
-        sidePadding: 260,
+        sidePadding: 204,
         centerWidth: 320,
         gap: 40
       },
-      broadcastSafeZone: { bottom: 5, height: 28, railWidth: 510, centerWidth: 170, logoHeight: 62 }
+      broadcastSafeZone: { height: 28, railWidth: 510, centerWidth: 170, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -189,11 +188,11 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: {
         top: 2,
         bottom: 38,
-        sidePadding: 430,
+        sidePadding: 374,
         centerWidth: 300,
         gap: 30
       },
-      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 500, centerWidth: 170, logoHeight: 64 }
+      broadcastSafeZone: { height: 28, railWidth: 500, centerWidth: 170, logoHeight: 64 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -218,11 +217,11 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       hudSafeZone: {
         top: 4,
         bottom: 52,
-        sidePadding: 260,
+        sidePadding: 212,
         centerWidth: 400,
-        gap: 70
+        gap: 50
       },
-      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 500, centerWidth: 180, logoHeight: 64 }
+      broadcastSafeZone: { height: 28, railWidth: 500, centerWidth: 180, logoHeight: 64 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -239,8 +238,8 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       themeClass: 'theme-2xko',
       accent: '#21e6b2',
       background: '#17101f',
-      hudSafeZone: { top: 2, bottom: 38, sidePadding: 430, centerWidth: 360, gap: 20 },
-      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 460, centerWidth: 180, logoHeight: 64 }
+      hudSafeZone: { top: 2, bottom: 38, sidePadding: 382, centerWidth: 360, gap: 20 },
+      broadcastSafeZone: { height: 28, railWidth: 460, centerWidth: 180, logoHeight: 64 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -257,8 +256,8 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       themeClass: 'theme-bbcf',
       accent: '#69dff5',
       background: '#101727',
-      hudSafeZone: { top: 3, bottom: 43, sidePadding: 470, centerWidth: 360, gap: 10 },
-      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 490, centerWidth: 170, logoHeight: 62 }
+      hudSafeZone: { top: 3, bottom: 43, sidePadding: 360, centerWidth: 360, gap: 10 },
+      broadcastSafeZone: { height: 28, railWidth: 490, centerWidth: 170, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -276,7 +275,7 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       accent: '#ffe02e',
       background: '#151118',
       hudSafeZone: { top: 3, bottom: 39, sidePadding: 300, centerWidth: 360, gap: 50 },
-      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 480, centerWidth: 170, logoHeight: 62 }
+      broadcastSafeZone: { height: 28, railWidth: 480, centerWidth: 170, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -293,8 +292,8 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       themeClass: 'theme-gbvsr',
       accent: '#71d9ff',
       background: '#101b29',
-      hudSafeZone: { top: 2, bottom: 36, sidePadding: 360, centerWidth: 400, gap: 30 },
-      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 470, centerWidth: 180, logoHeight: 62 }
+      hudSafeZone: { top: 2, bottom: 36, sidePadding: 306, centerWidth: 400, gap: 30 },
+      broadcastSafeZone: { height: 28, railWidth: 470, centerWidth: 180, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -311,8 +310,8 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       themeClass: 'theme-kofxv',
       accent: '#23cce5',
       background: '#101419',
-      hudSafeZone: { top: 3, bottom: 39, sidePadding: 260, centerWidth: 520, gap: 80 },
-      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 460, centerWidth: 180, logoHeight: 62 }
+      hudSafeZone: { top: 3, bottom: 39, sidePadding: 260, centerWidth: 260, gap: 40 },
+      broadcastSafeZone: { height: 28, railWidth: 460, centerWidth: 180, logoHeight: 62 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -329,8 +328,8 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       themeClass: 'theme-mbtl',
       accent: '#d9c2ff',
       background: '#17111d',
-      hudSafeZone: { top: 38, bottom: 72, sidePadding: 320, centerWidth: 380, gap: 80 },
-      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 460, centerWidth: 170, logoHeight: 60 }
+      hudSafeZone: { top: 26, bottom: 68, sidePadding: 272, centerWidth: 380, gap: 80 },
+      broadcastSafeZone: { height: 28, railWidth: 460, centerWidth: 170, logoHeight: 60 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -347,8 +346,8 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       themeClass: 'theme-mk1',
       accent: '#d8ad62',
       background: '#17120d',
-      hudSafeZone: { top: 3, bottom: 36, sidePadding: 350, centerWidth: 340, gap: 60 },
-      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 450, centerWidth: 170, logoHeight: 60 },
+      hudSafeZone: { top: 0, bottom: 38, sidePadding: 350, centerWidth: 90, gap: 10 },
+      broadcastSafeZone: { height: 28, railWidth: 450, centerWidth: 170, logoHeight: 60 },
       showMatchChip: false
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
@@ -366,8 +365,8 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       themeClass: 'theme-umvc3',
       accent: '#ffcf3d',
       background: '#101629',
-      hudSafeZone: { top: 2, bottom: 36, sidePadding: 400, centerWidth: 340, gap: 30 },
-      broadcastSafeZone: { bottom: 4, height: 28, railWidth: 460, centerWidth: 170, logoHeight: 60 }
+      hudSafeZone: { top: 2, bottom: 44, sidePadding: 400, centerWidth: 300, gap: 10 },
+      broadcastSafeZone: { height: 28, railWidth: 460, centerWidth: 170, logoHeight: 60 }
     },
     editableFields: ['character', 'team', 'country', 'state', 'pronouns', 'seed', 'xHandle']
   },
@@ -384,9 +383,8 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       themeClass: 'theme-smash-ultimate',
       accent: '#ff4f5f',
       background: '#101728',
-      hudSafeZone: { top: 4, bottom: 52, sidePadding: 310, centerWidth: 300, gap: 30 },
+      hudSafeZone: { top: 4, bottom: 52, sidePadding: 242, centerWidth: 300, gap: 30 },
       broadcastSafeZone: {
-        bottom: 0,
         height: 28,
         railWidth: 520,
         centerWidth: 240,
@@ -410,9 +408,8 @@ export const gameProfiles: Record<GameId, GameProfile> = {
       themeClass: 'theme-under-night',
       accent: '#59d9ff',
       background: '#161329',
-      hudSafeZone: { top: 3, bottom: 43, sidePadding: 300, centerWidth: 400, gap: 50 },
+      hudSafeZone: { top: 3, bottom: 47, sidePadding: 300, centerWidth: 400, gap: 50 },
       broadcastSafeZone: {
-        bottom: 4,
         height: 28,
         railWidth: 500,
         centerWidth: 180,

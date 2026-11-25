@@ -114,7 +114,7 @@ export function StingersPanel({ activeSet }: { activeSet?: SelectedSetState }) {
     );
 
   return (
-    <Paper className="panel stingers-panel" data-tutorial="stingers" p="md" radius="lg" withBorder>
+    <Paper className="panel stingers-panel" p="md" radius="lg" withBorder>
       <Stack gap="md">
         <PanelHeader title={t('workspaces.stingers')} icon={FilmSlateIcon} inset="md">
           <Group className="stinger-header-actions" gap="xs">

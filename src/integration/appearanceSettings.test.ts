@@ -59,10 +59,11 @@ it('applies appearance to previews and exports portable presets', async () => {
   const originalPath = window.location.pathname;
   window.history.replaceState(null, '', '/overlay/active/main');
   const styles = document.createElement('style');
-  styles.textContent =
-    readFileSync('src/renderer/src/styles.css', 'utf8') +
-    '\n' +
-    readFileSync('src/renderer/src/ui/fonts/scoreboardFontOverride.css', 'utf8');
+  styles.textContent = [
+    'src/renderer/src/styles.css',
+    'src/renderer/src/ui/scoreboardThemes/broadcastScoreboards.css',
+    'src/renderer/src/ui/fonts/scoreboardFontOverride.css'
+  ].map((path) => readFileSync(path, 'utf8')).join('\n');
   document.head.append(styles);
   transport.overlay = createTestOverlayState();
   transport.overlay.selectedSet.broadcast = {
@@ -341,12 +342,15 @@ it('applies appearance to previews and exports portable presets', async () => {
     const stage = view.container.querySelector<HTMLElement>('[data-overlay-template]')!;
     expect(stage.style.getPropertyValue('--appearance-primary')).toBe('#112233');
     expect(stage.style.getPropertyValue('--appearance-secondary')).toBe('#445566');
-    // Happy DOM does not resolve color-mix score backings; the opaque plate remains measurable.
-    const backing = profile.id === 'street-fighter-6' ? ([18, 12, 9] as const) : ([24, 20, 17] as const);
     for (const label of view.container.querySelectorAll<HTMLElement>('.overlay-player-score, .overlay-player-prefix')) {
-      const color = parseColor(getComputedStyle(label).color)!;
-      expect(label.style.color, profile.id).not.toBe('');
-      expect(contrastRatio([color[0], color[1], color[2]], backing), profile.id).toBeGreaterThanOrEqual(4.5);
+      const { color, backgroundColor } = getComputedStyle(label);
+      const [red, green, blue] = parseColor(color)!;
+      const backing = parseColor(backgroundColor);
+      // Happy DOM falls back to the opaque plate when it cannot compute a score tab's color-mix.
+      const [r, g, b] = backing?.[3] === 1
+        ? backing
+        : parseColor(getComputedStyle(label.closest('.overlay-player')!).backgroundColor)!;
+      expect(contrastRatio([red, green, blue], [r, g, b]), profile.id).toBeGreaterThanOrEqual(4.5);
     }
   }
   await act(async () => settingsButton.click());

@@ -4,9 +4,7 @@
 
 # JABS: Just Another Bracketing System
 
-JABS helps fighting game organizers run tournaments and broadcasts from their computer. It loads brackets from [start.gg](https://www.start.gg/), keeps the current match ready for stream, updates scores, and sends transparent overlays to OBS.
-
-It is designed for organizers handling the bracket and stream themselves, with tools for match reporting, broadcast graphics, and match-upload thumbnails.
+Run a fighting game tournament and its stream from one app. Load your start.gg bracket, queue matches, and update the scoreboard in OBS. JABS also makes Top 8 graphics and thumbnails for match uploads.
 
 Public brackets work without a token. Reporting results requires a start.gg token and confirmation. Settings, player profiles, and media stay on your computer.
 
@@ -60,7 +58,7 @@ JABS includes built-in scoreboard styles and game rules for:
 - Super Smash Bros. Ultimate
 - Under Night In-Birth II Sys:Celes
 
-Other fighting games are available through the searchable **Game** list or their start.gg events. They can use an existing rules profile while keeping their own game name and artwork.
+To stream another fighting game, choose it from **Game** or load its start.gg event. You can use a built-in rules profile and keep the game’s name and artwork.
 
 ## Get started
 

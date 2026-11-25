@@ -100,7 +100,6 @@ export function StingerQuickMenu({ activeSet, onConfigure }: { activeSet?: Selec
     <Menu position="bottom-start" shadow="md" width={280}>
       <Menu.Target>
         <Button
-          data-tutorial="stinger-menu"
           size="compact-xs"
           variant={state?.cue ? 'light' : 'default'}
           color={state?.cue ? 'green' : undefined}

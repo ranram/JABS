@@ -53,7 +53,6 @@ import type {
   StateOption,
   TokenStatus
 } from '@shared/models';
-import type { GameProfile } from '@shared/gameProfiles';
 import type { StartggQuickReportInput } from '@shared/startggGateway';
 import { startggRoundFormatsPageSchema } from '@shared/startgg';
 import { createFontApi } from './fontApi';
@@ -65,7 +64,6 @@ import { playerStatsSettingsSchema, type PlayerStatsSettings } from '@shared/pla
 import { topEightMatchupsStateSchema, type TopEightMatchupsState } from '@shared/topEightMatchups';
 import { overlayStateSchema } from '@shared/overlayState';
 import { customScoreboardListSchema, customScoreboardSchema, type CustomScoreboard } from '@shared/customScoreboards';
-import { gameProfiles as gameProfileCatalog } from '@shared/gameProfiles';
 import { withJsonBodyHeaders } from './requestInit';
 import { BoundedPromiseCache } from './boundedPromiseCache';
 import { prepareImage } from './imagePreparation';
@@ -325,8 +323,6 @@ export const api = {
     const health = await request<AppHealth>('/api/health');
     return { ...health, recoveryNotices: health.recoveryNotices.map((notice) => localizedNativeError(notice)) };
   },
-  gameProfiles: (): Promise<{ profiles: GameProfile[] }> =>
-    Promise.resolve({ profiles: Object.values(gameProfileCatalog) }),
   logos: () => request<{ logos: LogoAsset[] }>('/api/assets/logos'),
   playerStats: (player: StatsPlayer) =>
     request(`/api/broadcast/player-stats?player=${player}`, undefined, { decoder: playerStatsSchema }),

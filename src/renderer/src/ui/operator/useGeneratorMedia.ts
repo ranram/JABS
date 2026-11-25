@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { playerCharacters, playerPortraitCharacters } from '@shared/characterTeams';
 import { selectedCharacterAssetId } from '@shared/characterAssets';
 import type { GameCharacterAsset } from '@shared/models';
@@ -76,6 +76,7 @@ export function useGeneratorMedia<TDraft>({
   const contentKey = JSON.stringify([assetCatalogSlug, identityKey, characterKey]);
   const characterMediaKey = JSON.stringify([catalogKey, characterKey]);
   const characterAssets = characterCatalog?.slug === assetCatalogSlug ? characterCatalog.assets : emptyCharacterAssets;
+  const availableCharacterNames = useMemo(() => characterAssets.map((asset) => asset.character), [characterAssets])
   const currentCharacterMedia = characterMedia?.key === characterMediaKey ? characterMedia : undefined;
 
   useEffect(() => {
@@ -147,14 +148,15 @@ export function useGeneratorMedia<TDraft>({
               const match = byIndex.get(index);
               if (!match) return {};
               const playerPhotoAssetId = subject.playerPhotoAssetId ?? match.playerPhotoAssetId;
-              return {
-                playerPhotoUrl: playerPhotoAssetId
-                  ? await api.playerPhotoAssetUrl(playerPhotoAssetId).catch(() => undefined)
+              const [playerPhotoUrl, sponsorLogoUrl] = await Promise.all([
+                playerPhotoAssetId
+                  ? api.playerPhotoAssetUrl(playerPhotoAssetId).catch(() => undefined)
                   : undefined,
-                sponsorLogoUrl: match.sponsorLogoAssetId
-                  ? await api.sponsorLogoAssetUrl(match.sponsorLogoAssetId).catch(() => undefined)
+                match.sponsorLogoAssetId
+                  ? api.sponsorLogoAssetUrl(match.sponsorLogoAssetId).catch(() => undefined)
                   : undefined
-              };
+              ])
+              return { playerPhotoUrl, sponsorLogoUrl }
             })
           );
         })
@@ -199,7 +201,7 @@ export function useGeneratorMedia<TDraft>({
     ready,
     refreshing: !ready && preview.contentKey === contentKey,
     characterAssets,
-    availableCharacterNames: characterAssets.map((asset) => asset.character),
+    availableCharacterNames,
     warning: warning ?? identityWarning
   };
 }

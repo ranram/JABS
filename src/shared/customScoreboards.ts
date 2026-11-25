@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { scoreboardFontSchema } from './fonts';
 
 export const defaultCustomScoreboardFont = 'bebas-neue';
+export const maxCustomScoreboardFlagSlant = 100
+export const customScoreboardSlantedFlagRatio = 2.38
 
 export const customScoreboardRegionIds = [
   'playerOneFlag',
@@ -45,8 +47,13 @@ const regionSchema = z
     }
   });
 
+const flagRegionSchema = regionSchema.safeExtend({
+  flagSlant: z.number().int().min(0).max(maxCustomScoreboardFlagSlant).optional(),
+  clipFlagToFrame: z.boolean().optional()
+})
+
 const playerElementRegionsSchema = z.object({
-  flag: regionSchema,
+  flag: flagRegionSchema,
   // Legacy sponsor-text bounds remain readable in imported layouts; names include this text.
   sponsor: regionSchema,
   sponsorLogo: regionSchema.optional(),
@@ -110,7 +117,7 @@ export const customScoreboardListSchema = z.object({
 });
 
 export type CustomScoreboard = z.infer<typeof customScoreboardSchema>;
-export type CustomScoreboardRegion = z.infer<typeof regionSchema>;
+export type CustomScoreboardRegion = z.infer<typeof flagRegionSchema>;
 
 type PlayerElement = keyof NonNullable<CustomScoreboard['playerElements']['playerOne']>;
 type PlayerSide = keyof CustomScoreboard['playerElements'];
@@ -163,6 +170,7 @@ export function customScoreboardRegion(
   const location = playerRegionLocations[id];
   if (location) {
     const side = scoreboard.playerElements[location.side];
+    if (location.element === 'flag' && side.flag.flagSlant) return clampCustomScoreboardRegion(id, side.flag)
     const region = side[location.element];
     if (!region && location.element === 'sponsorLogo') {
       const name = side.name;
@@ -245,13 +253,17 @@ export function clampCustomScoreboardRegion(
   region: CustomScoreboardRegion
 ): CustomScoreboardRegion {
   const bounds = customScoreboardRegionBounds(id);
-  const width = Math.max(20, Math.min(bounds.width, region.width));
   const height = Math.max(20, Math.min(bounds.height, region.height));
+  const requestedWidth = id.endsWith('Flag') && region.flagSlant
+    ? Math.round(height * customScoreboardSlantedFlagRatio)
+    : region.width
+  const width = Math.max(20, Math.min(bounds.width, requestedWidth));
+  const x = id === 'playerTwoFlag' && region.flagSlant ? region.x + region.width - width : region.x
   return {
     ...region,
     width,
     height,
-    x: Math.max(bounds.x, Math.min(bounds.x + bounds.width - width, region.x)),
+    x: Math.max(bounds.x, Math.min(bounds.x + bounds.width - width, x)),
     y: Math.max(bounds.y, Math.min(bounds.y + bounds.height - height, region.y))
   };
 }

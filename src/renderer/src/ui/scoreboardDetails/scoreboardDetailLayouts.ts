@@ -8,7 +8,12 @@ export const scoreboardDetailLayouts: Record<GameId, DetailLayout> = {
   'tekken-8': { top: 166, left: 438, width: 420 },
   'avatar-legends': { top: 118, left: 40, width: 478 },
   'marvel-tokon': { top: 118, left: 230, width: 348 },
-  'guilty-gear-strive': { top: 62, left: 260, width: 500, belowHudTop: 206 },
+  'guilty-gear-strive': {
+    top: 62,
+    left: gameProfiles['guilty-gear-strive'].overlay.hudSafeZone.sidePadding,
+    width: 500,
+    belowHudTop: 206
+  },
   '2xko': { top: 150, left: 237, width: 329 },
   'blazblue-centralfiction': { top: 146, left: 260, width: 560 },
   'fatal-fury-city-of-the-wolves': { top: 109, left: 220, width: 420 },
@@ -17,7 +22,11 @@ export const scoreboardDetailLayouts: Record<GameId, DetailLayout> = {
   'melty-blood-type-lumina': { top: 164, left: 238, width: 560 },
   'mortal-kombat-1': { top: 94, left: 540, width: 300 },
   'ultimate-marvel-vs-capcom-3': { top: 200, left: 414, width: 440 },
-  'super-smash-bros-ultimate': { top: 64, left: 310, width: 500 },
+  'super-smash-bros-ultimate': {
+    top: 64,
+    left: gameProfiles['super-smash-bros-ultimate'].overlay.hudSafeZone.sidePadding,
+    width: 500
+  },
   'under-night-in-birth-ii-sys-celes': { top: 147, left: 213, width: 450 }
 };
 

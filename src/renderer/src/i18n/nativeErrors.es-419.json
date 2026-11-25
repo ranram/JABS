@@ -18,6 +18,7 @@
   "Choose a PNG with transparency.": "Elige un PNG con transparencia.",
   "Choose a valid PNG no larger than 20 MB.": "Elige un PNG válido de hasta 20 MB.",
   "Choose a valid custom scoreboard.": "Elige un marcador personalizado válido.",
+  "Choose a flag slant from 0 to 100.": "Elige una inclinación de bandera entre 0 y 100.",
   "Choose valid custom scoreboard typography settings.": "Revisa los ajustes de texto del marcador personalizado.",
   "Enter a custom scoreboard name between 1 and 60 characters.": "Escribe un nombre de entre 1 y 60 caracteres para el marcador.",
   "Keep every custom scoreboard region inside the 1920×1080 canvas.": "Mantén todos los campos del marcador dentro del lienzo de 1920×1080.",

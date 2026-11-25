@@ -135,6 +135,9 @@
   object-fit: contain;
   display: block;
 }
+.custom-scoreboard-slanted-flag {
+  position: relative
+}
 .custom-scoreboard-element.is-name {
   font-size: calc(var(--custom-name-size) * var(--appearance-text-scale, 1));
   font-weight: 800;
@@ -187,7 +190,7 @@
 .custom-scoreboard-region.is-sponsor-logo.is-editing {
   z-index: 3;
 }
-.custom-scoreboard-sponsor-mask {
+.custom-scoreboard-frame-mask {
   display: block;
   width: 100%;
   height: 100%;

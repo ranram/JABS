@@ -52,7 +52,7 @@ pub struct PlayerElementRegions {
 #[derive(Clone, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SideElementRegions {
-    pub flag: ScoreboardRegion,
+    pub flag: ScoreboardFlagRegion,
     pub sponsor: ScoreboardRegion,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sponsor_logo: Option<ScoreboardRegion>,
@@ -64,6 +64,17 @@ pub struct SideElementRegions {
     pub score: ScoreboardRegion,
 }
 
+#[derive(Clone, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScoreboardFlagRegion {
+    #[serde(flatten)]
+    pub region: ScoreboardRegion,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flag_slant: Option<u8>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clip_flag_to_frame: Option<bool>,
+}
+
 fn default_x_handle() -> ScoreboardRegion {
     region(0, 0, 100, 20, "left")
 }
@@ -72,7 +83,7 @@ impl Default for PlayerElementRegions {
     fn default() -> Self {
         Self {
             player_one: SideElementRegions {
-                flag: region(32, 28, 68, 46, "center"),
+                flag: flag_region(32),
                 sponsor: region(116, 18, 500, 26, "left"),
                 sponsor_logo: None,
                 x_handle: region(116, 46, 520, 20, "left"),
@@ -82,7 +93,7 @@ impl Default for PlayerElementRegions {
                 score: region(680, 26, 92, 72, "center"),
             },
             player_two: SideElementRegions {
-                flag: region(1820, 28, 68, 46, "center"),
+                flag: flag_region(1820),
                 sponsor: region(1304, 18, 500, 26, "right"),
                 sponsor_logo: None,
                 x_handle: region(1284, 46, 520, 20, "right"),
@@ -248,11 +259,16 @@ fn validate(scoreboard: &CustomScoreboard) -> Result<(), String> {
     ] {
         validate_region(region)?;
     }
-    for region in player_regions(&scoreboard.player_elements.player_one) {
-        validate_region_in_bounds(region, 0, 0, 960, 250)?;
-    }
-    for region in player_regions(&scoreboard.player_elements.player_two) {
-        validate_region_in_bounds(region, 960, 0, 960, 250)?;
+    for (side, x) in [
+        (&scoreboard.player_elements.player_one, 0),
+        (&scoreboard.player_elements.player_two, 960),
+    ] {
+        for region in player_regions(side) {
+            validate_region_in_bounds(region, x, 0, 960, 250)?;
+        }
+        if side.flag.flag_slant.is_some_and(|slant| slant > 100) {
+            return Err("Choose a flag slant from 0 to 100.".to_owned())
+        }
     }
     for region in [
         &scoreboard.regions.logo,
@@ -335,7 +351,7 @@ fn clamp_region(region: &mut ScoreboardRegion, x: u32, y: u32, width: u32, heigh
 
 fn player_regions(side: &SideElementRegions) -> impl Iterator<Item = &ScoreboardRegion> {
     [
-        &side.flag,
+        &side.flag.region,
         &side.sponsor,
         &side.x_handle,
         &side.name,
@@ -438,6 +454,14 @@ fn region(x: u32, y: u32, width: u32, height: u32, align: &str) -> ScoreboardReg
     }
 }
 
+fn flag_region(x: u32) -> ScoreboardFlagRegion {
+    ScoreboardFlagRegion {
+        region: region(x, 28, 68, 46, "center"),
+        flag_slant: None,
+        clip_flag_to_frame: None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{default_scoreboard, normalize_restricted_regions, validate, validate_png};
@@ -512,8 +536,11 @@ mod tests {
             Some(super::region(420, 150, 120, 80, "right"));
         scoreboard.player_elements.player_two.sponsor_logo =
             Some(super::region(1380, 150, 120, 80, "left"));
-        scoreboard.player_elements.player_one.flag.width = 120;
-        scoreboard.player_elements.player_one.flag.height = 90;
+        let flag = &mut scoreboard.player_elements.player_one.flag;
+        flag.region.width = 120;
+        flag.region.height = 90;
+        flag.flag_slant = Some(65);
+        flag.clip_flag_to_frame = Some(true);
         let root = std::env::temp_dir().join(format!(
             "jabs-custom-colors-{}-{}",
             std::process::id(),
@@ -530,6 +557,9 @@ mod tests {
             super::save(&root, scoreboard.clone()).unwrap();
             assert!(super::load(&root, &scoreboard.id).unwrap() == scoreboard);
         }
+        let mut invalid_slant = scoreboard.clone();
+        invalid_slant.player_elements.player_one.flag.flag_slant = Some(101);
+        assert!(super::save(&root, invalid_slant).is_err());
         for side in ["one", "two"] {
             let mut rejected = scoreboard.clone();
             let logo = if side == "one" {

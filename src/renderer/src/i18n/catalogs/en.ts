@@ -240,8 +240,7 @@ export const en = {
         library: 'Use the Player Library',
         folders: 'Media assets and folders',
         media: 'Move and resize images',
-        scoreboard: 'Create a custom scoreboard',
-        stingers: 'Set up stingers'
+        scoreboard: 'Create a custom scoreboard'
       },
       steps: {
         queueAdd: {
@@ -326,7 +325,7 @@ export const en = {
         },
         quickFinish: {
           title: 'Ready when you are',
-          body: 'Start with a tournament link or prepare an exhibition in **Edit stream state**. **Help** has detailed guides for each task, including artwork, custom scoreboards, and stingers. Quick Start is here whenever you want another look.'
+          body: 'Start with a tournament link or set up an exhibition in **Edit stream state**. Open **Help** for guides on player artwork, custom scoreboards, and other tools.'
         },
         tournament: {
           title: 'Load your tournament',
@@ -459,22 +458,6 @@ export const en = {
         scoreboardSave: {
           title: 'Layouts save automatically',
           body: 'Edits **save automatically**. The status beside the title shows whether they are saved. Choose **Use in OBS** to put this layout on air.'
-        },
-        stingers: {
-          title: 'Choose your clips',
-          body: 'Add Perfect and Winner videos in **WebM** format. Winner can play **automatically** when the score completes the set.'
-        },
-        stingerFraming: {
-          title: 'Frame the winner',
-          body: 'Use the framing preview to check the player photo, character art, and name banner. Set when the winner assets appear in your clip. This preview **does not trigger OBS**.'
-        },
-        stingerObs: {
-          title: 'Add the source to OBS',
-          body: 'Copy the Stingers URL into a **1920×1080** Browser Source **above your other sources**. Reuse it across scenes and check that it shows as active in JABS. **Leave “Shutdown source when not visible” and “Refresh browser when scene becomes active” unchecked** so switching scenes won’t interrupt playback.'
-        },
-        stingerPlay: {
-          title: 'Play clips from any tab',
-          body: 'With keyboard shortcuts enabled, **Ctrl+P** plays Perfect and **Ctrl+W** plays Winner. Use **Stop in OBS** here to stop playback.'
         }
       }
     },
@@ -671,7 +654,7 @@ export const en = {
     // Global broadcast appearance and portable presets
     appearance: {
       settings: 'Settings',
-      showImportedFonts: 'Show imported fonts in font pickers',
+      showImportedFonts: 'Include imported fonts in font lists',
       addFont: 'Add font…',
       importedFont: 'Imported font',
       scoreboardTextScale: 'Scoreboard text size',
@@ -937,16 +920,16 @@ export const en = {
         showPlayerPhoto: 'Show player photo',
         showSponsorLogo: 'Show team/sponsor logo',
         showCharacter: 'Show character',
-        doubleDq: 'start.gg shows both players as DQ',
-        doubleDqNoWinner: 'The winner graphic will wait for a final score.',
+        doubleDq: 'start.gg marked both players as disqualified',
+        doubleDqNoWinner: 'The winner screen will wait for a final score in JABS.',
         winnerMismatch: 'Winner mismatch',
-        winnerConflict: 'The local score and start.gg show different winners',
-        localResult: '{{winner}} won {{winnerScore}}–{{loserScore}} on the local scoreboard.',
+        winnerConflict: 'JABS and start.gg show different winners',
+        localResult: '{{winner}} won {{winnerScore}}–{{loserScore}} in JABS.',
         reportedWinner: 'start.gg lists {{winner}} as the winner.',
         reportedDqWinner: 'start.gg lists {{winner}} as the winner by disqualification.',
         broadcastWinner: 'The winner graphic will show {{winner}}.',
         useReportedWinner: 'Show {{winner}} (start.gg)',
-        useLocalWinner: 'Show {{winner}} (local score)',
+        useLocalWinner: 'Show {{winner}} (JABS score)',
         winnerChoiceFailed: 'Couldn’t change the broadcast winner',
         unavailableForWinner: 'No image found.',
         failedTitle: 'Unable to update Winner/Champion screen',
@@ -1132,7 +1115,7 @@ export const en = {
       notSent: 'Not sent to OBS',
       gameProfile: 'Game profile',
       detectedGame: 'Detected game',
-      styling: 'Scoreboard styling',
+      styling: 'Scoreboard style',
       scoreboardFont: 'Scoreboard font',
       fontSettingsLoading: 'Loading font settings…',
       fontSettingsRetrying: 'Reconnecting to font settings…',
@@ -1142,11 +1125,11 @@ export const en = {
       detectedOverride: 'Detected from event: {{profile}}. You can override it after loading the set.',
       matchLength: 'Match format',
       formatOnStream: 'Format on stream',
-      previewFormat: 'Preview format',
+      previewFormat: 'Preview match format',
       selectFormatEvent: 'Select an event',
-      loadingRoundFormats: 'Loading set formats…',
-      noRoundFormats: 'No set formats available',
-      roundFormatsFailed: 'Couldn’t load all set formats',
+      loadingRoundFormats: 'Loading round formats…',
+      noRoundFormats: 'No round formats available',
+      roundFormatsFailed: 'Couldn’t load all round formats',
       startggFormatUnavailable: 'Unavailable on start.gg',
       displayName: 'Display name',
       round: 'Round',
@@ -1296,6 +1279,9 @@ export const en = {
       sponsorColor: 'Team/Sponsor text color',
       sponsorThemeColors: 'Use theme colors for Team/Sponsor',
       flagSize: 'Flag size',
+      flagSlant: 'Flag slant',
+      clipFlagToFrame: 'Clip flag to frame',
+      clipFlagHelp: 'Show the flag only where the PNG has visible artwork.',
       title: 'Custom Scoreboard',
       description:
         'Use your own transparent scoreboard artwork while JABS keeps names, scores, flags, and broadcast details current.',

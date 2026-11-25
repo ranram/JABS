@@ -1,6 +1,6 @@
 import type { en } from '../../i18n/catalogs/en';
 
-export type TutorialWorkspace = 'bracket' | 'custom-scoreboard' | 'overlays' | 'stingers' | 'top-eight' | 'thumbnail';
+export type TutorialWorkspace = 'bracket' | 'custom-scoreboard' | 'overlays' | 'top-eight' | 'thumbnail';
 export type TutorialStep = {
   id: keyof typeof en.operator.help.steps;
   target: string;
@@ -104,12 +104,6 @@ export const tutorials = {
     { id: 'scoreboardRails', target: '.custom-scoreboard-workspace' },
     { id: 'scoreboardSave', target: '.custom-scoreboard-workspace' },
     obs
-  ],
-  stingers: [
-    { id: 'stingers', target: target('stingers'), workspace: 'stingers' },
-    { id: 'stingerFraming', target: target('stingers') },
-    { id: 'stingerObs', target: target('stingers') },
-    { id: 'stingerPlay', target: '.stinger-header-actions' }
   ]
 } as const satisfies Record<string, readonly TutorialStep[]>;
 
@@ -124,7 +118,6 @@ export const tutorialIds = [
   'folders',
   'media',
   'scoreboard',
-  'stingers',
   'topEight',
   'thumbnail'
 ] as const satisfies readonly TutorialId[];

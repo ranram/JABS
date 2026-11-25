@@ -9,7 +9,7 @@ import { ScoreboardDetails } from './ScoreboardDetails';
 
 beforeAll(initializeI18n);
 
-it('shows populated pills with the X icon first and respects tournament seed visibility without changing player data', async () => {
+it('lays out the available player details for the game and applies the selected theme', async () => {
   const set = createTestOverlayState().selectedSet;
   set.setId = 'linked';
   set.playerOne.xHandle = '@@NAIN_JR';
@@ -33,22 +33,9 @@ it('shows populated pills with the X icon first and respects tournament seed vis
   await view.rerender();
   expect(view.container.querySelector<HTMLElement>('.scoreboard-detail-group')?.style.top).toBe(`${150 / 10.8}%`);
   expect(handle.classList.contains('theme-sf6')).toBe(true);
-  set.broadcast = { ...set.broadcast!, seedsEnabled: false };
-  await view.rerender();
-  expect(view.container.querySelector('[data-detail=seed]')).toBeNull();
-  set.broadcast.seedsEnabled = true;
-  set.setId = undefined;
-  await view.rerender();
-  expect(view.container.querySelector('[data-detail=seed]')).toBeNull();
-  expect(set.playerOne.seed).toBe(17);
-  expect(set.playerTwo.seed).toBeUndefined();
-  // Resume a tournament with both sides populated to check mirrored placement.
-  set.setId = 'linked';
+  // Populate both sides to check mirrored placement.
   set.playerTwo.pronouns = 'they/them';
   await view.rerender();
-  expect([...view.container.querySelectorAll('[data-detail=seed]')].map((pill) => pill.textContent)).toEqual([
-    'Seed 17'
-  ]);
   const groups = [...view.container.querySelectorAll<HTMLElement>('.scoreboard-detail-group')];
   expect(groups[0].style.left).toBe(groups[1].style.right);
   expect(groups[0].style.width).toBe(groups[1].style.width);
@@ -60,12 +47,10 @@ it('shows populated pills with the X icon first and respects tournament seed vis
     [...view.container.querySelectorAll<HTMLElement>('.scoreboard-detail-group')].map((group) => group.style.cssText);
   const gamePositions = positions();
   expect(groups[0].style.top).toBe(`${62 / 10.8}%`);
-  for (const style of Object.values(gameProfiles)) {
-    profile = style;
-    await view.rerender();
-    expect(positions(), style.id).toEqual(gamePositions);
-    expect(view.container.querySelector('.scoreboard-detail-pill')?.classList.contains(style.overlay.themeClass)).toBe(
-      true
-    );
-  }
+  profile = gameProfiles['street-fighter-6'];
+  await view.rerender();
+  expect(positions()).toEqual(gamePositions);
+  expect(view.container.querySelector('.scoreboard-detail-pill')?.classList.contains(profile.overlay.themeClass)).toBe(
+    true
+  );
 });

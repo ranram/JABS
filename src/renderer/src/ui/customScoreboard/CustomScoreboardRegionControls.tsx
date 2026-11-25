@@ -6,7 +6,7 @@ import {
   type CustomScoreboardRegion,
   type CustomScoreboardRegionId
 } from '@shared/customScoreboards';
-import { CustomScoreboardFlagSizeControl } from './CustomScoreboardFlagSizeControl';
+import { CustomScoreboardFlagControls } from './CustomScoreboardFlagControls';
 
 type Props = {
   regionId: CustomScoreboardRegionId;
@@ -34,6 +34,7 @@ export function CustomScoreboardRegionControls({ regionId, region, onChange, onM
             label={field.toUpperCase()}
             {...limits[field]}
             value={region[field]}
+            disabled={field === 'width' && Boolean(region.flagSlant)}
             onChange={(value) => {
               if (typeof value === 'number' && Number.isFinite(value)) onChange({ [field]: Math.round(value) });
             }}
@@ -53,7 +54,7 @@ export function CustomScoreboardRegionControls({ regionId, region, onChange, onM
         />
       </SimpleGrid>
       {regionId.endsWith('Flag') && (
-        <CustomScoreboardFlagSizeControl key={regionId} regionId={regionId} region={region} onChange={onChange} />
+        <CustomScoreboardFlagControls key={regionId} regionId={regionId} region={region} onChange={onChange} />
       )}
       {mirrorTarget && (
         <Button variant="light" size="xs" onClick={onMirror}>

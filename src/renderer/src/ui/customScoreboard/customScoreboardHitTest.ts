@@ -44,12 +44,12 @@ export function pickCustomScoreboardRegion(
   const hits: Hit[] = regions.map((element) => {
     const box = element.getBoundingClientRect();
     const image = element.querySelector('img');
-    const logo = element.classList.contains('is-sponsor-logo') && element.querySelector('svg');
+    const frameArtwork = element.querySelector('.is-sponsor-logo svg, .custom-scoreboard-slanted-flag')
     return {
       element,
       box,
-      artwork: Boolean(image || logo),
-      ...(logo
+      artwork: Boolean(image || frameArtwork),
+      ...(frameArtwork
         ? { distance: contains(box, x, y) ? 0 : Infinity, area: box.width * box.height }
         : image
           ? {

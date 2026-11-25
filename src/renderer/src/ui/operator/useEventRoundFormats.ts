@@ -12,23 +12,25 @@ export function useEventRoundFormats(eventId?: string) {
 
   useEffect(() => {
     if (!eventId) return;
+    const currentEventId = eventId
     const controller = new AbortController();
     const formats = new Set<number>();
 
     function publish(status: RoundFormats['status']) {
-      if (controller.signal.aborted || !eventId) return;
-      setResult({ eventId, formats: [...formats].sort((a, b) => a - b), status });
+      if (controller.signal.aborted) return;
+      setResult({ eventId: currentEventId, formats: [...formats].sort((a, b) => a - b), status });
     }
 
-    async function load(currentEventId: string) {
+    async function load() {
       try {
         let totalPages = 1;
         for (let page = 1; page <= totalPages && formats.size < 10; page += 1) {
           const response = await api.roundFormats(currentEventId, page, controller.signal);
           if (controller.signal.aborted) return;
+          const previousSize = formats.size
           for (const format of response.formats) formats.add(format);
           totalPages = response.totalPages;
-          if (page < totalPages && formats.size < 10) publish('loading');
+          if (page < totalPages && formats.size < 10 && formats.size > previousSize) publish('loading');
         }
         publish('ready');
       } catch {
@@ -37,7 +39,7 @@ export function useEventRoundFormats(eventId?: string) {
     }
 
     publish('loading');
-    void load(eventId);
+    void load();
     return () => controller.abort();
   }, [eventId]);
 

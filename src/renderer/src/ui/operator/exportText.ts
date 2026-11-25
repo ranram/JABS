@@ -96,6 +96,7 @@ export function drawWrappedText(
   scaleX: number,
   scaleY: number
 ): void {
+  const nativeLetterSpacing = Reflect.has(context, 'letterSpacing')
   for (const run of runs) {
     context.save();
     const fontSize = run.font.size * scaleY;
@@ -104,17 +105,16 @@ export function drawWrappedText(
     context.textAlign = 'left';
     context.textBaseline = 'alphabetic';
     context.direction = run.direction;
-    const nativeLetterSpacing = Reflect.has(context, 'letterSpacing');
     if (nativeLetterSpacing) context.letterSpacing = `${run.letterSpacing * scaleX}px`;
     const x = (run.rect.left - sourceRect.left) * scaleX;
     const y = (run.baseline - sourceRect.top) * scaleY;
     applyTextShadow(context, run.shadow, scaleY);
-    const metrics = context.measureText(run.text);
-    if (!nativeLetterSpacing && run.letterSpacing && metrics.width) {
+    const width = !nativeLetterSpacing && run.letterSpacing ? context.measureText(run.text).width : 0
+    if (width) {
       // Older webviews still draw a complete run so joined letters and emoji
       // stay intact. Match its preview width without changing its height.
       context.translate(x, y);
-      context.scale((run.rect.width * scaleX) / metrics.width, 1);
+      context.scale((run.rect.width * scaleX) / width, 1);
       context.fillText(run.text, 0, 0);
     } else {
       context.fillText(run.text, x, y);

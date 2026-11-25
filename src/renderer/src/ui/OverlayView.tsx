@@ -4,9 +4,9 @@ import { DisplayText } from './DisplayText';
 import { BracketScreen } from './BracketScreen';
 import { isBracketOverlayPath } from './overlayPresentation';
 import { useScoreboardTextFit } from './useScoreboardTextFit';
-import { useState, type ComponentType, type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { resolveGameProfile, type GameProfile, type OverlayTemplateId } from '@shared/gameProfiles';
+import { resolveGameProfile, type GameProfile } from '@shared/gameProfiles';
 import type { PlayerState, SelectedSetState } from '@shared/models';
 import { matchPlayerName } from '@shared/matchContext';
 import { useOverlayState } from '../hooks/useOverlayState';
@@ -46,27 +46,9 @@ import { bundledFonts } from './fonts/bundledFonts';
 import { useScoreboardFontFamily } from './fonts/useScoreboardFont';
 import './fonts/scoreboardFontOverride.css';
 
-type OverlayTemplateProps = {
+type ScoreboardFrameProps = {
   profile: GameProfile;
   selectedSet: SelectedSetState;
-};
-
-const overlayTemplates: Record<OverlayTemplateId, ComponentType<OverlayTemplateProps>> = {
-  'sf6-drive': TopHudOverlay,
-  'tekken-engager': TopHudOverlay,
-  'avatar-bending': TopHudOverlay,
-  'tokon-assemble': TopHudOverlay,
-  'strive-daredevil': TopHudOverlay,
-  '2xko-duo': TournamentRibbonOverlay,
-  'blazblue-astral': TournamentRibbonOverlay,
-  'cotw-rev': TournamentRibbonOverlay,
-  'granblue-skybound': TournamentRibbonOverlay,
-  'kof-max': TournamentRibbonOverlay,
-  'melty-moon': TournamentRibbonOverlay,
-  'mk1-brutality': TournamentRibbonOverlay,
-  'umvc3-hyper': TournamentRibbonOverlay,
-  'smash-stock': TournamentRibbonOverlay,
-  'under-night-grd': TournamentRibbonOverlay
 };
 
 export function OverlayView() {
@@ -119,7 +101,6 @@ function MatchOverlayView() {
   const defaultFont = profile.id === 'marvel-tokon' ? 'inter' : undefined;
   const effectiveScoreboardFont = selectedFontFamily ? scoreboardFont : defaultFont;
   const fontFamily = selectedFontFamily ?? (defaultFont && bundledFonts[defaultFont].family);
-  const Template = overlayTemplates[presentation.template];
   const logoUrl = useLogoAssetUrl(selectedSet?.broadcast?.logoAssetId);
   const customScoreboard = useCustomScoreboard(selectedSet?.customScoreboardId, selectedSet?.customScoreboardRevision);
   useScoreboardContrast(
@@ -192,7 +173,7 @@ function MatchOverlayView() {
             logoUrl={logoUrl}
             onTopInsetChange={setPhotoTopInset}
           />
-          <Template profile={profile} selectedSet={selectedSet} />
+          <ScoreboardFrame profile={profile} selectedSet={selectedSet} />
           <ScoreboardDetails selectedSet={selectedSet} profile={profile} topInset={photoTopInset} />
           <BroadcastLayer profile={profile} selectedSet={selectedSet} logoUrl={logoUrl} />
         </ScoreboardSponsors>
@@ -260,37 +241,11 @@ function CommentatorIdentity({ side, name, handle }: { side: 'left' | 'right'; n
   );
 }
 
-const frameClasses: Partial<Record<OverlayTemplateId, string>> = {
-  'sf6-drive': 'sf6-frame',
-  'tekken-engager': 'tekken-frame',
-  'avatar-bending': 'avatar-legends-frame',
-  'strive-daredevil': 'strive-frame',
-  'tokon-assemble': 'tokon-frame'
-};
-
-function TopHudOverlay({ profile, selectedSet }: OverlayTemplateProps) {
+function ScoreboardFrame({ profile, selectedSet }: ScoreboardFrameProps) {
   return (
-    <section
-      className={`overlay-frame top-hud-frame ${frameClasses[profile.overlay.template]}`}
-      style={topHudStyle(profile)}
-    >
+    <section className="overlay-frame" style={topHudStyle(profile)}>
       <PlayerPlate player={selectedSet.playerOne} selectedSet={selectedSet} side="left" profile={profile} />
-      <MatchChip profile={profile} selectedSet={selectedSet} />
-      <PlayerPlate player={selectedSet.playerTwo} selectedSet={selectedSet} side="right" profile={profile} />
-    </section>
-  );
-}
-
-function TournamentRibbonOverlay({ profile, selectedSet }: OverlayTemplateProps) {
-  return (
-    <section
-      className={`overlay-frame top-hud-frame tournament-ribbon-frame ${profile.overlay.template}-frame`}
-      style={topHudStyle(profile)}
-    >
-      <PlayerPlate player={selectedSet.playerOne} selectedSet={selectedSet} side="left" profile={profile} />
-      {profile.overlay.showMatchChip === false ? (
-        <div className="overlay-hud-clear" aria-hidden="true" />
-      ) : (
+      {profile.overlay.showMatchChip !== false && (
         <MatchChip profile={profile} selectedSet={selectedSet} />
       )}
       <PlayerPlate player={selectedSet.playerTwo} selectedSet={selectedSet} side="right" profile={profile} />
@@ -326,9 +281,8 @@ function PlayerPlate({ player, selectedSet, side, profile }: PlayerPlateProps) {
           className="overlay-player-flag"
           role="img"
           aria-label={displayFlagLabel(player.country, player.displayFlag)}
-        >
-          <img src={flagUrl} alt="" aria-hidden="true" />
-        </span>
+          style={{ '--scoreboard-flag-image': `url(${JSON.stringify(flagUrl)})` } as CSSProperties}
+        />
       )}
       <div className="overlay-player-copy" ref={copyRef}>
         <ScoreboardSponsorLogo side={side} />

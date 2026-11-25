@@ -96,6 +96,52 @@ it('selects visible flag pixels and locks pointer or keyboard moves to the activ
   expect(editor.readback).toHaveBeenCalledOnce();
 });
 
+it('saves mirrored flag slants and clips flags only when frame clipping is enabled', async () => {
+  const editor = await mountEditor()
+  const id = 'playerOneFlag'
+  const flagArtwork = (side: 'One' | 'Two') =>
+    editor.view.container.querySelector<HTMLElement>(
+      `[data-custom-scoreboard-region=player${side}Flag] .custom-scoreboard-frame-mask`
+    )!
+  expect(flagArtwork('One').style.clipPath).toBe('')
+  expect(flagArtwork('Two').style.maskImage).toBe('')
+
+  const controls = await mountView(() =>
+    h(MantineProvider, { env: 'test' }, h(CustomScoreboardRegionControls, {
+      regionId: id,
+      region: customScoreboardRegion(editor.scoreboard, id),
+      onChange(patch) {
+        editor.scoreboard = withCustomScoreboardRegion(editor.scoreboard, id, {
+          ...customScoreboardRegion(editor.scoreboard, id),
+          ...patch
+        })
+      },
+      onMirror() {
+        editor.scoreboard = mirrorCustomScoreboardRegion(editor.scoreboard, id)
+      }
+    }))
+  )
+  const slider = controls.container.querySelector<HTMLElement>('[role=slider][aria-label="Flag slant"]')!
+  await act(async () => slider.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true })))
+  const clipping = controls.container.querySelector<HTMLInputElement>('input[type=checkbox]')!
+  await act(async () => clipping.click())
+  await editor.view.rerender()
+  const cut = `${4800 / 190}%`
+  expect(customScoreboardRegion(editor.scoreboard, id)).toMatchObject({ width: 190, height: 80 })
+  expect(flagArtwork('One').style.clipPath).toBe(`polygon(0 0, calc(100% - ${cut}) 0, 100% 100%, ${cut} 100%)`)
+  expect(flagArtwork('One').style.maskImage).toContain('frame.png')
+  expect(flagArtwork('One').style.maskSize).toBe(`${(1920 / 190) * 100}% 1350%`)
+  expect(flagArtwork('Two').style.clipPath).toBe('')
+  expect(flagArtwork('Two').style.maskImage).toBe('')
+
+  await act(async () => controls.container.querySelector<HTMLButtonElement>('button.mantine-Button-root')!.click())
+  editor.scoreboard = customScoreboardSchema.parse(JSON.parse(JSON.stringify(editor.scoreboard)))
+  await editor.view.rerender()
+  expect(flagArtwork('Two').style.clipPath).toBe(`polygon(${cut} 0, 100% 0, calc(100% - ${cut}) 100%, 0 100%)`)
+  expect(flagArtwork('Two').style.maskImage).toContain('frame.png')
+  expect(flagArtwork('Two').style.maskPosition).not.toBe(flagArtwork('One').style.maskPosition)
+})
+
 it('drags and nudges sponsor logos independently, then mirrors and serializes their bounds', async () => {
   const editor = await mountEditor();
   const originalName = { ...editor.scoreboard.playerElements.playerOne.name };

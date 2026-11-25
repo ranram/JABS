@@ -12,7 +12,6 @@ type ScoreOverlayContextProps = {
 };
 
 type BroadcastStyle = CSSProperties & {
-  '--broadcast-bottom': string;
   '--broadcast-height': string;
   '--broadcast-rail-width': string;
   '--broadcast-center-width': string;
@@ -47,7 +46,7 @@ export function BroadcastLayer({
 
   return (
     <aside
-      className={`overlay-broadcast-layer ${profile.overlay.template}-broadcast logo-${profile.overlay.broadcastSafeZone.logoAnchor ?? 'bottom-center'}`}
+      className={`overlay-broadcast-layer logo-${profile.overlay.broadcastSafeZone.logoAnchor ?? 'bottom-center'}`}
       style={broadcastStyle(profile)}
       aria-label={t('broadcastInformation')}
     >
@@ -81,7 +80,6 @@ function roundLabel(selectedSet: SelectedSetState, profile: GameProfile): string
 function broadcastStyle(profile: GameProfile): BroadcastStyle {
   const safeZone = profile.overlay.broadcastSafeZone;
   return {
-    '--broadcast-bottom': `${safeZone.bottom}px`,
     '--broadcast-height': `${safeZone.height}px`,
     '--broadcast-rail-width': `${safeZone.railWidth}px`,
     '--broadcast-center-width': `${safeZone.centerWidth}px`,

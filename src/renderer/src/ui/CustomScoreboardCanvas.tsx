@@ -6,6 +6,7 @@ import {
   customScoreboardRegion,
   customScoreboardRegionBounds,
   defaultCustomScoreboardFont,
+  maxCustomScoreboardFlagSlant,
   type CustomScoreboard,
   type CustomScoreboardRegion,
   type CustomScoreboardRegionId
@@ -115,6 +116,7 @@ function CustomScoreboardCanvasContent({
       score: `${playerKey}Score`
     } as const;
     const sponsorRegion = customScoreboardRegion(scoreboard, ids.sponsorLogo);
+    const flagRegion = customScoreboardRegion(scoreboard, ids.flag)
     const flagUrl =
       player && scoreboard.visibility.flags ? displayFlagUrl(player.country, player.displayFlag) : undefined;
     const sponsor = player ? sponsorLine(player) : t('players.fields.prefix');
@@ -159,7 +161,7 @@ function CustomScoreboardCanvasContent({
         {scoreboard.visibility.sponsors && (sponsorLogo || editingRegion === ids.sponsorLogo) && (
           <span {...regionProps(ids.sponsorLogo, ' custom-scoreboard-element is-sponsor-logo')}>
             {sponsorLogo ? (
-              <span className="custom-scoreboard-sponsor-mask" style={sponsorMaskStyle(frameUrl, sponsorRegion)}>
+              <span className="custom-scoreboard-frame-mask" style={frameMaskStyle(frameUrl, sponsorRegion)}>
                 <ScoreboardSponsorLogo side={playerSide} align={sponsorRegion.align} />
               </span>
             ) : (
@@ -173,7 +175,21 @@ function CustomScoreboardCanvasContent({
             role="img"
             aria-label={player ? displayFlagLabel(player.country, player.displayFlag) : t('editor.displayFlag')}
           >
-            {flagUrl ? <img src={flagUrl} draggable={false} alt="" aria-hidden="true" /> : t('editor.displayFlag')}
+            {flagUrl && flagRegion.flagSlant ? (
+              <span
+                className="custom-scoreboard-frame-mask custom-scoreboard-slanted-flag"
+                style={slantedFlagStyle(flagUrl, frameUrl, flagRegion, side)}
+              />
+            ) : flagUrl ? (
+              <img
+                className="custom-scoreboard-frame-mask"
+                style={flagRegion.clipFlagToFrame ? frameMaskStyle(frameUrl, flagRegion) : undefined}
+                src={flagUrl}
+                draggable={false}
+                alt=""
+                aria-hidden="true"
+              />
+            ) : t('editor.displayFlag')}
           </span>
         )}
         {values.map(({ id, value, className, kind }) => {
@@ -275,7 +291,25 @@ function CustomScoreboardCanvasContent({
   );
 }
 
-function sponsorMaskStyle(frameUrl: string, { x, y, width, height }: CustomScoreboardRegion): CSSProperties {
+function slantedFlagStyle(
+  flagUrl: string,
+  frameUrl: string,
+  { width, height, flagSlant, clipFlagToFrame, ...position }: CustomScoreboardRegion,
+  side: 'one' | 'two'
+): CSSProperties {
+  const cut = `${(60 * height / width) * (flagSlant ?? 0) / maxCustomScoreboardFlagSlant}%`
+  return {
+    ...(clipFlagToFrame ? frameMaskStyle(frameUrl, { ...position, width, height }) : undefined),
+    '--scoreboard-flag-image': `url(${JSON.stringify(flagUrl)})`,
+    '--flag-bleed': `${height * 0.24 / 19.2}cqw`,
+    '--flag-edge-width': `${(width - height * 1.28) / 38.4}cqw`,
+    clipPath: side === 'one'
+      ? `polygon(0 0, calc(100% - ${cut}) 0, 100% 100%, ${cut} 100%)`
+      : `polygon(${cut} 0, 100% 0, calc(100% - ${cut}) 100%, 0 100%)`
+  } as CSSProperties
+}
+
+function frameMaskStyle(frameUrl: string, { x, y, width, height }: CustomScoreboardRegion): CSSProperties {
   // CSS positions a mask by the difference between the region and mask sizes.
   const position = (offset: number, remaining: number) => (remaining ? (offset / remaining) * 100 : 0);
   return {

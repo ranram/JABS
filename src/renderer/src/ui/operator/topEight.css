@@ -275,20 +275,30 @@
 .top8-placement {
   position: absolute;
   z-index: 1;
-  bottom: calc(100% + 0.25cqw);
-  left: 1.2cqw;
-  color: var(--top8-accent);
+  /* Overlap the nameplate by one pixel to close seams at fractional sizes. */
+  bottom: calc(100% - 1px);
+  left: 0;
+  inline-size: 1.2em;
+  block-size: 1.2em;
+  background: color-mix(in srgb, var(--top8-background) 94%, transparent);
+  color: #fff;
   font-family: 'JABS Bebas Neue', Impact, sans-serif;
-  font-size: calc(64px * var(--appearance-text-scale, 1));
+  font-size: calc(var(--top8-placement-size, 64px) * var(--top8-placement-scale, 1) * var(--appearance-text-scale, 1));
   font-weight: 700;
   letter-spacing: 0.04em;
-  line-height: 1;
+  line-height: 1.2;
+  text-align: center;
   text-transform: uppercase;
 }
 
 .top8-placement sup {
   font-family: inherit;
   font-size: 0.45em;
+  line-height: 0;
+}
+
+.top8-card:is(.placement-4, .placement-5, .placement-6, .placement-7) .top8-placement {
+  --top8-placement-scale: 0.8;
 }
 
 .top8-name-row {
@@ -480,14 +490,11 @@
   gap: 0.15cqw;
   padding: 0.4cqw 0.6cqw;
 }
-.top8-mosaic-position:not(.position-1) .top8-placement {
-  left: 0.6cqw;
-}
 .top8-mosaic-position:not(.position-1) .top8-name-row > strong {
   font-size: calc(1.45cqw * var(--appearance-text-scale, 1));
 }
 .top8-mosaic-position:not(.position-1) .top8-placement {
-  font-size: calc(3.3cqw * var(--appearance-text-scale, 1));
+  --top8-placement-size: 3.3cqw;
 }
 .top8-mosaic-position.position-2 .top8-name-row > strong {
   font-size: calc(1.85cqw * var(--appearance-text-scale, 1));
@@ -499,7 +506,7 @@
   font-size: calc(1.55cqw * var(--appearance-text-scale, 1));
 }
 .top8-mosaic .top8-card:is(.placement-5, .placement-7) .top8-placement {
-  font-size: calc(2cqw * var(--appearance-text-scale, 1));
+  --top8-placement-size: 2cqw;
 }
 .top8-mosaic .top8-card:is(.placement-2, .placement-3, .placement-5, .placement-7) .top8-sponsor-text.is-empty,
 .top8-mosaic .top8-card:is(.placement-2, .placement-3, .placement-5, .placement-7) .top8-x-handle.is-empty {
@@ -594,14 +601,11 @@
 .top8-neon-finalists > .top8-card:nth-child(-n + 2) .top8-name-row {
   height: 2.8cqw;
 }
-.top8-neon-finalists .top8-placement {
-  left: 0.7cqw;
-}
 .top8-neon-finalists .top8-name-row > strong {
   font-size: calc(1.4cqw * var(--appearance-text-scale, 1));
 }
 .top8-neon-finalists .top8-placement {
-  font-size: calc(3.3cqw * var(--appearance-text-scale, 1));
+  --top8-placement-size: 3.3cqw;
 }
 .top8-neon-finalists > .top8-card:nth-child(1) .top8-name-row > strong {
   font-size: calc(2cqw * var(--appearance-text-scale, 1));

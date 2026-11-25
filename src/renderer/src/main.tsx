@@ -9,6 +9,7 @@ import { jabsTheme } from './ui/theme';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import './styles.css';
+import './ui/scoreboardThemes/broadcastScoreboards.css';
 import './controlDeck.css';
 import { trackObsSourceActivity } from './hooks/obsSourceActivity';
 import { trackRendererErrors } from './diagnostics';
