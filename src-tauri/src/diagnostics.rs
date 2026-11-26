@@ -39,6 +39,7 @@ pub enum Event {
     StreamSaveRejected,
     StartggFailed,
     ReportOutcomeUncertain,
+    ReportCharactersOmitted,
     SettingsRecovered,
     ArtworkSetupFailed,
     LogoSetupFailed, // Retained for reading existing diagnostic files.
@@ -116,6 +117,7 @@ impl Event {
             Self::PreviousSessionUnfinished
             | Self::SettingsRecovered
             | Self::ObsSourceDisconnected
+            | Self::ReportCharactersOmitted
             | Self::LocalRequestRetry
             | Self::RealtimeDisconnected
             | Self::QueueOverflow => "warning",

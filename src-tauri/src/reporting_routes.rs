@@ -73,14 +73,11 @@ async fn perform_active_report(runtime: &RuntimeState, body: ReportSetBody) -> R
     if let Err(response) = fresh_report_set(runtime, &body.set_id, &current.game_id, expected).await {
         return response;
     }
-    let game_data = match crate::startgg::reported_games(
+    let game_data = crate::startgg::reported_games(
         runtime,
         &body.set_id,
         if body.outcome.is_some() { None } else { current.game_history.as_deref() },
-    ).await {
-        Ok(game_data) => game_data,
-        Err(error) => return startgg_error(error),
-    };
+    ).await;
     let reported_character_selection_count = game_data.as_ref().map_or(0, |games| {
         games.iter().map(|game| game.selections.len()).sum::<usize>()
     });
@@ -170,14 +167,11 @@ async fn perform_quick_report(runtime: &RuntimeState, body: QuickReportBody) -> 
         Ok(readiness) => readiness,
         Err(error) => return state_result(Err(error)),
     };
-    let game_data = match crate::startgg::reported_games(
+    let game_data = crate::startgg::reported_games(
         runtime,
         &body.set_id,
         if body.outcome.is_some() { None } else { current.game_history.as_deref() },
-    ).await {
-        Ok(game_data) => game_data,
-        Err(error) => return startgg_error(error),
-    };
+    ).await;
     let reported_character_selection_count = game_data.as_ref().map_or(0, |games| {
         games.iter().map(|game| game.selections.len()).sum::<usize>()
     });

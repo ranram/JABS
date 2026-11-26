@@ -3,7 +3,7 @@ use crate::{
     runtime::RuntimeState,
     secrets,
     startgg_queries,
-    state::{BroadcastPresentation, GameResult, Player, SelectedSet},
+    state::{BroadcastPresentation, Player, SelectedSet},
 };
 use futures_util::future::join_all;
 pub use jabs_startgg_client::{
@@ -16,6 +16,8 @@ use std::collections::HashSet;
 const MAX_EVENT_HEAD_TO_HEAD_PAGES: u32 = 5;
 mod history;
 mod queued_sets;
+mod report_games;
+pub(crate) use report_games::reported_games;
 mod set_scores;
 pub(crate) mod round_formats;
 use set_scores::{completed_double_dq, slot_score, summary_reported_outcome};
@@ -337,82 +339,6 @@ pub struct ReportedGameSelection {
 pub struct ReportReceipt {
     pub id: String,
     pub state: String,
-}
-
-pub async fn reported_games(
-    runtime: &RuntimeState,
-    set_id: &str,
-    history: Option<&[GameResult]>,
-) -> Result<Option<Vec<ReportedGame>>, ApiError> {
-    let Some(history) = history else { return Ok(None) };
-    let requested_selection_count = history
-        .iter()
-        .map(|game| game.selections.len())
-        .sum::<usize>();
-    let character_catalog = if requested_selection_count == 0 {
-        Vec::new()
-    } else {
-        set_character_catalog(runtime, set_id).await?
-    };
-
-    let games = history
-        .iter()
-        .enumerate()
-        .map(|(index, game)| {
-            let selections = game
-                .selections
-                .iter()
-                .map(|selection| {
-                    let character_id = character_catalog
-                        .iter()
-                        .find(|(_, name)| {
-                            crate::catalogs::character_names_match(name, &selection.character)
-                        })
-                        .map(|(id, _)| id.clone())
-                        .ok_or_else(|| {
-                            invalid_response(&format!(
-                                "start.gg does not recognize the selected character ‘{}’ for this event. Clear it or choose a character from the event catalog before reporting.",
-                                selection.character
-                            ))
-                        })?;
-                    Ok(ReportedGameSelection {
-                        entrant_id: selection.entrant_id.clone(),
-                        character_id,
-                    })
-                })
-                .collect::<Result<Vec<_>, ApiError>>()?;
-            Ok(ReportedGame {
-                game_num: index + 1,
-                winner_id: game.winner_id.clone(),
-                selections,
-            })
-        })
-        .collect::<Result<Vec<_>, ApiError>>()?;
-    Ok(Some(games))
-}
-
-async fn set_character_catalog(
-    runtime: &RuntimeState,
-    set_id: &str,
-) -> Result<Vec<(String, String)>, ApiError> {
-    let data: Value = request(
-        runtime,
-        startgg_queries::SET_CHARACTER_CATALOG,
-        json!({ "setId": set_id }),
-    ).await?;
-    let characters = data
-        .pointer("/set/event/videogame/characters")
-        .and_then(Value::as_array)
-        .ok_or_else(|| invalid_response(
-            "start.gg does not provide a character catalog for this event. Clear character selections before reporting."
-        ))?;
-    Ok(characters.iter().filter_map(|character| {
-        let object = character.as_object()?;
-        Some((
-            object.get("id").and_then(normalized_id)?,
-            optional_text(object.get("name"))?,
-        ))
-    }).collect())
 }
 
 pub async fn report_set(
