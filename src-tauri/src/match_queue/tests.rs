@@ -774,8 +774,9 @@ fn confirmed_scoreless_results_keep_progress_and_advance_in_both_automatic_modes
             ))
             .unwrap();
             let token = r.match_queue.report_token("100");
+            let live = r.overlay.selected_set().unwrap();
             r.overlay
-                .mark_reported(&r.database, "100", "3", Some(outcome.clone()))
+                .mark_reported(&r.database, "100", &live.updated_at, "3", Some(outcome.clone()))
                 .unwrap();
             let reported = r.overlay.selected_set().unwrap();
             assert_eq!(reported.player_one.score, before.player_one.score);

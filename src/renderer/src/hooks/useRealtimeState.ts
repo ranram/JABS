@@ -11,6 +11,8 @@ type RealtimeStateOptions<T> = {
   loadError: string;
   reconnectingError?: string;
   refreshIntervalMs?: number;
+  realtime?: boolean;
+  onMessage?: (value: unknown) => void;
   diagnosticOperation?: DiagnosticOperation;
 };
 
@@ -21,6 +23,8 @@ export function useRealtimeState<T>({
   loadError,
   reconnectingError = i18n.t('errors:realtimeConnection'),
   refreshIntervalMs,
+  realtime = true,
+  onMessage,
   diagnosticOperation
 }: RealtimeStateOptions<T>) {
   const [state, setState] = useState<T>();
@@ -86,6 +90,7 @@ export function useRealtimeState<T>({
         nextSocket.addEventListener('message', (event) => {
           if (disposed || socket !== nextSocket) return;
           if (acceptCatalogMessage(event.data)) return;
+          onMessage?.(event.data);
           const next = parseMessage(event.data);
           if (next !== undefined) {
             receivedSnapshot = true;
@@ -114,7 +119,7 @@ export function useRealtimeState<T>({
     }
 
     void refresh();
-    void connect();
+    if (realtime) void connect();
     const interval = refreshIntervalMs
       ? window.setInterval(() => {
           if (!pendingLoads) void refresh();
@@ -126,7 +131,7 @@ export function useRealtimeState<T>({
       socket?.close();
       if (interval !== undefined) window.clearInterval(interval);
     };
-  }, [load, loadError, parseMessage, reconnectingError, refreshIntervalMs, diagnosticOperation, connection]);
+  }, [load, loadError, parseMessage, reconnectingError, refreshIntervalMs, realtime, onMessage, diagnosticOperation, connection]);
 
   return { state, setState, error, reconnect };
 }

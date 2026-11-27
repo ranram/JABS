@@ -301,7 +301,15 @@ export type StartggErrorCode =
   | 'upstream'
   | 'invalid-response'
   | 'graphql'
-  | 'conflict';
+  | 'conflict'
+  | 'report-in-progress'
+  | 'report-live-set-changed'
+  | 'report-baseline-missing'
+  | 'report-format-changed'
+  | 'report-stale'
+  | 'report-use-live-controls'
+  | 'report-outcome-uncertain'
+  | 'report-save-conflict';
 
 export type StartggResultMeta = {
   source: 'live';

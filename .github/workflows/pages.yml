@@ -30,10 +30,25 @@ jobs:
         uses: actions/configure-pages@v6
       - name: Exclude local maintenance instructions
         run: rm -f site/README.md
+      - name: Verify website files
+        run: test -s site/index.html && test -s site/es.html
+      - name: Package scoreboard masks
+        run: |
+          mkdir -p site/downloads
+          git archive \
+            --format=zip \
+            --output=site/downloads/scoreboard-masks.zip \
+            HEAD scoreboard-masks
       - name: Upload website
+        id: upload
         uses: actions/upload-pages-artifact@v3
         with:
+          name: github-pages
           path: site
+      - name: Verify artifact upload
+        env:
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact_id }}
+        run: test -n "$ARTIFACT_ID"
       - name: Deploy website
         id: deployment
         uses: actions/deploy-pages@v4

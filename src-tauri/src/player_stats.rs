@@ -109,13 +109,22 @@ async fn current(
         }
     };
     let context = StatsContext::from_set(&selected, query.player);
-    match runtime.player_stats.load(runtime.clone(), context).await {
+    let completed_set = if selected.state.as_deref() == Some("3") {
+        selected.set_id
+    } else {
+        None
+    };
+    match runtime.player_stats.load(runtime.clone(), context, completed_set).await {
         Ok(stats) => secure_json(Json(stats)),
         Err(error) => startgg_error(error),
     }
 }
 
-async fn load(runtime: &RuntimeState, context: StatsContext) -> Result<PlayerStats, ApiError> {
+async fn load(
+    runtime: &RuntimeState,
+    context: StatsContext,
+    completed_set: Option<&str>,
+) -> Result<PlayerStats, ApiError> {
     let mut stats = PlayerStats {
         context: context.clone(),
         tournament_name: String::new(),
@@ -169,7 +178,7 @@ async fn load(runtime: &RuntimeState, context: StatsContext) -> Result<PlayerSta
     };
     let run = async {
         match &tournament_id {
-            Some(id) => Some(run::load_run(runtime, &context, id).await),
+            Some(id) => Some(run::load_run(runtime, &context, id, completed_set).await),
             None => None,
         }
     };
@@ -182,13 +191,14 @@ async fn load(runtime: &RuntimeState, context: StatsContext) -> Result<PlayerSta
                     runtime.player_stats.register_logos(&placements);
                     stats.placements = placements;
                 }
-                Err(error) => stats.placements_error = Some(error.error),
+                Err(error) => stats.placements_error = Some(stats_error(error)),
             },
-            None => {
-                stats.placements_error = Some("The linked start.gg player was not found.".into())
-            }
+            None => stats.placements_error = Some(stats_error(api_error(
+                "The linked start.gg player was not found.",
+                "player-not-found",
+            ))),
         },
-        Err(error) => stats.placements_error = Some(error.error),
+        Err(error) => stats.placements_error = Some(stats_error(error)),
         Ok(None) => {}
     }
     if context.event_id.is_none() {
@@ -196,12 +206,9 @@ async fn load(runtime: &RuntimeState, context: StatsContext) -> Result<PlayerSta
     }
     let Some(result) = run else {
         stats.run_complete = false;
-        stats.run_error = Some(
-            metadata
-                .err()
-                .map(|error| error.error)
-                .unwrap_or_else(|| "The current tournament could not be loaded.".into()),
-        );
+        stats.run_error = Some(stats_error(metadata.err().unwrap_or_else(|| {
+            api_error("The current tournament could not be loaded.", "invalid-response")
+        })));
         return Ok(stats);
     };
     stats.tournament_name =
@@ -209,6 +216,11 @@ async fn load(runtime: &RuntimeState, context: StatsContext) -> Result<PlayerSta
     stats.run_scope = "event";
     stats.run = result.sets;
     stats.run_complete = result.error.is_none();
-    stats.run_error = result.error;
+    stats.run_error = result.error.map(stats_error);
     Ok(stats)
+}
+
+fn stats_error(error: ApiError) -> String {
+    crate::diagnostics::startgg_failure(error.code);
+    error.error
 }

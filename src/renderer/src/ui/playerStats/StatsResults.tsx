@@ -23,6 +23,7 @@ function placementTier(placement: number) {
 
 type Props = {
   stats?: PlayerStats;
+  completedSetId?: string;
   loading: boolean;
   error?: string;
   linked: boolean;
@@ -30,7 +31,7 @@ type Props = {
   showPlacementLogos?: boolean;
 };
 
-export function StatsResults({ stats, loading, error, linked, tournament, showPlacementLogos = true }: Props) {
+export function StatsResults({ stats, completedSetId, loading, error, linked, tournament, showPlacementLogos = true }: Props) {
   const { t, i18n } = useTranslation('overlay');
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const numberFormat = useMemo(() => new Intl.NumberFormat(locale), [locale]);
@@ -41,14 +42,16 @@ export function StatsResults({ stats, loading, error, linked, tournament, showPl
   const pageCount = Math.max(1, Math.ceil(run.length / runPageSize));
   const [runPage, setRunPage] = useState(0);
   const contextKey = JSON.stringify(stats?.context);
+  const completedMatchIndex = completedSetId ? run.findIndex((set) => set.id === completedSetId) : -1;
+  const completedMatchPage = completedMatchIndex < 0 ? 0 : Math.floor(completedMatchIndex / runPageSize);
   useEffect(() => {
-    setRunPage(0);
-  }, [contextKey, pageCount]);
+    setRunPage(completedMatchPage);
+  }, [contextKey, pageCount, completedMatchPage]);
   useEffect(() => {
     if (pageCount === 1 || active === false) return;
     const timer = window.setInterval(() => setRunPage((page) => (page + 1) % pageCount), runPageIntervalMs);
     return () => window.clearInterval(timer);
-  }, [contextKey, pageCount, active]);
+  }, [contextKey, pageCount, completedMatchPage, active]);
   const page = Math.min(runPage, pageCount - 1);
   const displayed = run.slice(page * runPageSize, (page + 1) * runPageSize);
   const columns = displayed.length > runColumnSize ? 2 : 1;

@@ -184,55 +184,75 @@ pub async fn refresh(runtime: Arc<RuntimeState>, force: bool) -> Result<Value, A
         })
         .map_err(local_error)?
         .ok_or_else(changed)?;
-    let fetch_runtime = runtime.clone();
-    let (result, epoch) = runtime
-        .versus_history
-        .load(context.cache_key(), force, || {
-            async move { crate::startgg::versus_history(&fetch_runtime, &selected).await }
-                .boxed()
-                .shared()
-        })
-        .await;
-    // A score report makes cached history and pending requests outdated.
-    // Keep the cache locked until the result is saved, so a report cannot slip between those steps.
-    let cache = runtime
-        .versus_history
-        .state
-        .lock()
-        .map_err(|_| local_error("History cache is unavailable.".into()))?;
-    let result = if cache.epoch == epoch {
-        result
-    } else {
-        Err(changed())
-    };
-    let published = runtime
-        .overlay
-        .with_history_revision(revision, || {
-            runtime
-                .versus_screen
-                .finish_history(&runtime.database, &context, &result)
-        })
-        .map_err(local_error)?
-        .ok_or_else(changed)?;
-    result.map(|_| published)
+    // A score report can invalidate a lookup while the overlay is loading.
+    let mut retried = false;
+    loop {
+        let fetch_runtime = runtime.clone();
+        let fetch_selected = selected.clone();
+        let (result, epoch) = runtime
+            .versus_history
+            .load(context.cache_key(), force && !retried, || {
+                async move { crate::startgg::versus_history(&fetch_runtime, &fetch_selected).await }
+                    .boxed()
+                    .shared()
+            })
+            .await;
+        // A score report makes cached history and pending requests outdated.
+        // Keep the cache locked until the result is saved, so a report cannot slip between those steps.
+        let cache = runtime
+            .versus_history
+            .state
+            .lock()
+            .map_err(|_| local_error("History cache is unavailable.".into()))?;
+        let result = if cache.epoch == epoch {
+            result
+        } else if !retried {
+            drop(cache);
+            if runtime.overlay.history_snapshot().map_err(local_error)?.1 != revision {
+                return Err(changed());
+            }
+            retried = true;
+            continue;
+        } else {
+            Err(changed())
+        };
+        let published = runtime
+            .overlay
+            .with_history_revision(revision, || {
+                runtime
+                    .versus_screen
+                    .finish_history(&runtime.database, &context, &result)
+            })
+            .map_err(local_error)?
+            .ok_or_else(changed)?;
+        return result.map(|_| published);
+    }
 }
 
 pub fn watch(runtime: Arc<RuntimeState>) {
     let mut updates = runtime.overlay.subscribe();
+    let mut reports = runtime.report_revision.subscribe();
     tokio::spawn(async move {
         let mut previous_revision = None;
+        let mut previous_report = 0;
         loop {
+            let report = *reports.borrow_and_update();
+            let result_reported = report != previous_report;
+            previous_report = report;
             if let Ok((selected, revision)) = runtime.overlay.history_snapshot() {
-                if previous_revision != Some(revision) {
+                let matchup_changed = previous_revision != Some(revision);
+                if matchup_changed || result_reported {
                     previous_revision = Some(revision);
                     let context = HistoryMatch::from_set(&selected);
-                    let _ = runtime.overlay.with_history_revision(revision, || {
-                        runtime.versus_screen.begin_history(
-                            &runtime.database,
-                            context.clone(),
-                            true,
-                        )
-                    });
+                    if matchup_changed {
+                        let _ = runtime.overlay.with_history_revision(revision, || {
+                            runtime.versus_screen.begin_history(
+                                &runtime.database,
+                                context.clone(),
+                                true,
+                            )
+                        });
+                    }
                     if context.is_some() {
                         let runtime = runtime.clone();
                         tokio::spawn(async move {
@@ -241,9 +261,15 @@ pub fn watch(runtime: Arc<RuntimeState>) {
                     }
                 }
             }
-            match updates.recv().await {
-                Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
-                _ => continue,
+            tokio::select! {
+                update = updates.recv() => {
+                    if matches!(update, Err(tokio::sync::broadcast::error::RecvError::Closed)) {
+                        break;
+                    }
+                }
+                report = reports.changed() => {
+                    if report.is_err() { break; }
+                }
             }
         }
     });
@@ -278,6 +304,49 @@ mod tests {
     fn lookup(calls: &Arc<AtomicUsize>) -> PendingHistory {
         calls.fetch_add(1, Ordering::Relaxed);
         async { Ok(empty_history()) }.boxed().shared()
+    }
+
+    #[tokio::test]
+    async fn a_report_refreshes_history_for_the_same_matchup() {
+        let directory = Path::new("unused");
+        let runtime = Arc::new(RuntimeState::new(
+            Database::open(Path::new(":memory:")).unwrap(),
+            directory.into(), directory.into(), directory.into(), directory.into(),
+            directory.into(), directory.into(),
+        ).unwrap());
+        let mut match_on_air = runtime.overlay.selected_set().unwrap();
+        match_on_air.set_id = Some("100".into());
+        match_on_air.event_id = Some("event".into());
+        match_on_air.player_one.player_id = Some("one".into());
+        match_on_air.player_two.player_id = Some("two".into());
+        let context = HistoryMatch::from_set(&match_on_air).unwrap();
+        runtime.overlay.replace_selected_set(
+            &runtime.database, directory, directory, match_on_air,
+        ).unwrap();
+
+        let seed_history = |name: &'static str| runtime.versus_history.load(
+            context.cache_key(), false, move || async move {
+                Ok(VersusHistory { tournament_name: Some(name.into()), ..empty_history() })
+            }.boxed().shared(),
+        );
+        async fn received_history(name: &str, updates: &mut tokio::sync::broadcast::Receiver<String>) {
+            loop {
+                let update: Value = serde_json::from_str(&updates.recv().await.unwrap()).unwrap();
+                if update["historyLoading"] == false && update["history"]["tournamentName"] == name {
+                    return;
+                }
+            }
+        }
+
+        let mut updates = runtime.versus_screen.subscribe();
+        seed_history("Before report").await.0.unwrap();
+        watch(runtime.clone());
+        tokio::time::timeout(Duration::from_secs(2), received_history("Before report", &mut updates)).await.unwrap();
+        let revision = runtime.overlay.history_snapshot().unwrap().1;
+        runtime.refresh_reported_results();
+        seed_history("After report").await.0.unwrap();
+        tokio::time::timeout(Duration::from_secs(2), received_history("After report", &mut updates)).await.unwrap();
+        assert_eq!(runtime.overlay.history_snapshot().unwrap().1, revision);
     }
 
     #[test]

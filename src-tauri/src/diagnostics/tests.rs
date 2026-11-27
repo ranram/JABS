@@ -151,3 +151,25 @@ fn diagnostic_ingress_accepts_only_reviewed_events_and_non_text_metadata() {
     assert_eq!(Event::LocalRequestCancelled.level(), "info");
     assert_eq!(Event::LocalRequestRecovered.level(), "info");
 }
+
+#[test]
+fn error_codes_keep_their_own_logged_reason() {
+    // These codes used to log as "unknown", which made a start.gg rejection, a
+    // discarded cache entry and a report conflict look identical to support.
+    for (code, reason) in [
+        ("graphql", Reason::Graphql),
+        ("query-complexity", Reason::QueryComplexity),
+        ("stats-changed", Reason::StatsChanged),
+        ("history-changed", Reason::HistoryChanged),
+        ("report-in-progress", Reason::ReportInProgress),
+        ("report-live-set-changed", Reason::ReportLiveSetChanged),
+        ("report-baseline-missing", Reason::ReportBaselineMissing),
+        ("report-format-changed", Reason::ReportFormatChanged),
+        ("report-stale", Reason::ReportStale),
+        ("report-save-conflict", Reason::ReportSaveConflict),
+    ] {
+        assert_eq!(Reason::from_code(code), reason);
+        assert_eq!(serde_json::to_string(&reason).unwrap(), format!("\"{code}\""));
+    }
+    assert_eq!(Reason::from_code("private token"), Reason::Unknown);
+}

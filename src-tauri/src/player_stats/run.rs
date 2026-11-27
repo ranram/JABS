@@ -3,10 +3,11 @@ use crate::{
     runtime::RuntimeState,
     startgg::{finite_i64, finite_u64, normalized_id, safe_history_text},
 };
-use jabs_startgg_client::ApiError;
+use jabs_startgg_client::{ApiError, api_error};
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::collections::HashSet;
+use std::time::Duration;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,21 +30,47 @@ pub struct RunSet {
 
 pub struct RunResult {
     pub sets: Vec<RunSet>,
-    pub error: Option<String>,
+    pub error: Option<ApiError>,
 }
 
 pub async fn load_run(
     runtime: &RuntimeState,
     context: &StatsContext,
     tournament_id: &str,
+    completed_set: Option<&str>,
 ) -> RunResult {
     let query = queries::run_query();
-    load_pages(context, tournament_id, |page| {
+    let mut run = load_pages(context, tournament_id, |page| {
         let vars =
             json!({"eventId": context.event_id, "entrantId": context.entrant_id, "page": page});
         crate::startgg::request::<Value>(runtime, &query, vars)
     })
-    .await
+    .await;
+    if let Some(set_id) = completed_set.filter(|id| run.sets.iter().all(|set| &set.id != id)) {
+        let query = queries::completed_set_query();
+        // The individual set can be current before the event's completed-set list catches up.
+        let result = tokio::time::timeout(
+            Duration::from_secs(4),
+            crate::startgg::request::<Value>(runtime, &query, json!({ "setId": set_id })),
+        ).await;
+        if let Ok(Ok(data)) = result
+            && let Some(set) = parse_completed_set(&data, context, tournament_id, set_id)
+        {
+            run.sets.push(set);
+            sort_run(&mut run.sets);
+        }
+    }
+    run
+}
+
+fn parse_completed_set(
+    data: &Value,
+    context: &StatsContext,
+    tournament_id: &str,
+    set_id: &str,
+) -> Option<RunSet> {
+    let set = parse_set(data.get("set")?, context, tournament_id)?;
+    (set.id == set_id).then_some(set)
 }
 
 async fn load_pages<F, Fut>(context: &StatsContext, tournament_id: &str, mut fetch: F) -> RunResult
@@ -63,7 +90,7 @@ where
         let data = match response {
             Ok(data) => data,
             Err(error) => {
-                result.error = Some(error.error);
+                result.error = Some(error);
                 break;
             }
         };
@@ -75,7 +102,10 @@ where
             .and_then(|sets| sets.pointer("/pageInfo/totalPages"))
             .and_then(Value::as_u64);
         let (Some(nodes), Some(pages)) = (nodes, pages) else {
-            result.error = Some("start.gg returned an unreadable tournament run.".into());
+            result.error = Some(api_error(
+                "start.gg returned an unreadable tournament run.",
+                "invalid-response",
+            ));
             break;
         };
         for node in nodes {
@@ -89,18 +119,25 @@ where
             break;
         }
         if page >= 100 || nodes.is_empty() {
-            result.error = Some("The tournament run is incomplete. Refresh to try again.".into());
+            result.error = Some(api_error(
+                "The tournament run is incomplete. Refresh to try again.",
+                "stats-run-incomplete",
+            ));
             break;
         }
         page += 1;
     }
-    result.sets.sort_by_key(|set| {
+    sort_run(&mut result.sets);
+    result
+}
+
+fn sort_run(sets: &mut [RunSet]) {
+    sets.sort_by_key(|set| {
         (
             set.completed_at.unwrap_or(0),
             set.id.parse::<u64>().unwrap_or(0),
         )
     });
-    result
 }
 
 #[cfg(test)]
@@ -123,6 +160,18 @@ mod tests {
             {"entrant": {"id": "other", "name": "Opponent"}, "standing": {"stats": {"score": {"value": 3}}}},
             {"entrant": {"id": "entrant", "participants": [{"player": {"id": "player"}}]}, "standing": {"stats": {"score": {"value": -1}}}}
         ]})
+    }
+
+    #[test]
+    fn supplements_the_run_with_the_requested_completed_set() {
+        let mut response = json!({ "set": set(8) });
+        let result = parse_completed_set(&response, &context(), "tournament", "8").unwrap();
+        assert_eq!(result.id, "8");
+        assert_eq!(result.outcome, "loss");
+        assert_eq!(result.opponent_score, Some(3));
+        assert!(parse_completed_set(&response, &context(), "tournament", "9").is_none());
+        response["set"]["state"] = json!(2);
+        assert!(parse_completed_set(&response, &context(), "tournament", "8").is_none());
     }
 
     #[tokio::test]
@@ -157,7 +206,9 @@ mod tests {
         })
         .await;
         assert_eq!(partial.sets.len(), 1);
-        assert_eq!(partial.error.as_deref(), Some("Offline"));
+        let error = partial.error.unwrap();
+        assert_eq!(error.error, "Offline");
+        assert_eq!(error.code, "network");
 
         let mut other_event = set(2);
         other_event["slots"][1]["entrant"]["id"] = json!("another-event-entrant");

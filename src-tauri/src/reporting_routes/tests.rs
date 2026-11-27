@@ -54,6 +54,17 @@ fn renderer_headers() -> HeaderMap {
     headers
 }
 
+async fn detailed_failure(response: Response) -> (StatusCode, String) {
+    let status = response.status();
+    assert!(response.extensions().get::<crate::diagnostics::DetailedHttpFailure>().is_some());
+    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(body["error"].as_str().is_some_and(|error| !error.is_empty()));
+    (status, body["code"].as_str().unwrap_or_default().to_owned())
+}
+
 // All rejected requests stop before credential lookup or network access. These
 // tests must never read the developer's credential store or report a real set.
 #[tokio::test]
@@ -109,14 +120,14 @@ async fn active_reports_reject_stale_matches_and_a_winner_that_disagrees_with_th
     let mut stale = active_report(&runtime, true);
     stale.updated_at = "old-match-version".into();
     assert_eq!(
-        perform_active_report(&runtime, stale).await.status(),
-        StatusCode::CONFLICT
+        detailed_failure(perform_active_report(&runtime, stale).await).await,
+        (StatusCode::CONFLICT, "report-live-set-changed".to_owned())
     );
     let mut other_set = active_report(&runtime, true);
     other_set.set_id = "200".into();
     assert_eq!(
-        perform_active_report(&runtime, other_set).await.status(),
-        StatusCode::CONFLICT
+        detailed_failure(perform_active_report(&runtime, other_set).await).await,
+        (StatusCode::CONFLICT, "report-live-set-changed".to_owned())
     );
     let mut wrong_winner = active_report(&runtime, true);
     wrong_winner.winner_id = "20".into();
@@ -133,12 +144,118 @@ async fn active_reports_reject_stale_matches_and_a_winner_that_disagrees_with_th
     for kind in [None, Some(crate::state::ReportOutcomeKind::WinLoss), Some(crate::state::ReportOutcomeKind::Disqualification)] {
         let mut request = active_report(&runtime, true);
         request.outcome = kind.map(|kind| crate::state::ReportOutcome { kind, winner_id: "10".into() });
-        assert_eq!(perform_active_report(&runtime, request).await.status(), StatusCode::CONFLICT);
+        assert_eq!(
+            detailed_failure(perform_active_report(&runtime, request).await).await,
+            (StatusCode::CONFLICT, "report-baseline-missing".to_owned())
+        );
+    }
+
+    let confirmed = active_report(&runtime, true);
+    runtime.overlay.set_score(&runtime.database, "one", 1).unwrap();
+    let edited = runtime.overlay.current().unwrap();
+    assert!(runtime.overlay.mark_reported(
+        &runtime.database, &confirmed.set_id, &confirmed.updated_at, "3", None,
+    ).is_err());
+    assert_eq!(runtime.overlay.current().unwrap(), edited);
+}
+
+#[tokio::test]
+async fn a_duplicate_report_leaves_the_running_queue_alone() {
+    use crate::match_queue::{Context, Entry, Mode, engine};
+
+    let runtime = runtime();
+    let mut live = runtime.overlay.selected_set().unwrap();
+    live.set_id = Some("100".into());
+    live.event_id = Some("456".into());
+    live.player_one.entrant_id = "10".into();
+    live.player_two.entrant_id = "20".into();
+    runtime.overlay.replace_selected_set(
+        &runtime.database, &runtime.logo_directory, &runtime.game_asset_directory, live.clone(),
+    ).unwrap();
+    let context: Context = serde_json::from_value(serde_json::json!({
+        "eventId": "456", "eventName": "Singles", "tournamentSlug": "tournament/test", "gameId": live.game_id,
+    })).unwrap();
+    let queue = &runtime.match_queue;
+    let initial = queue.add(
+        &runtime.database, queue.current().unwrap().revision, context, Entry::from_set(&live).unwrap(),
+    ).unwrap();
+    let configured = queue.edit(
+        &runtime.database, initial.revision, "settings", None, None, Some(Mode::Report), Some(1),
+    ).unwrap();
+    queue.heartbeat("operator".into(), Some("456".into()), false, None).unwrap();
+    let running = engine::navigate(&runtime, configured.revision, "start", None).await.unwrap();
+    assert!(running.running && queue.report_token("100").is_some());
+    *runtime.session_token.lock().unwrap() = Some(zeroize::Zeroizing::new("test-only".to_owned()));
+    *runtime.reporting_set_id.lock().await = Some("100".into());
+    let live_duplicate = report_startgg_set(
+        State(runtime.clone()), renderer_headers(), Json(active_report(&runtime, true)),
+    ).await;
+    let mut off_air = quick_report(true);
+    off_air.set_id = "200".into();
+    let quick_duplicate = quick_report_startgg_set(
+        State(runtime.clone()), renderer_headers(), Json(off_air),
+    ).await;
+    for response in [live_duplicate, quick_duplicate] {
+        assert_eq!(
+            detailed_failure(response).await,
+            (StatusCode::CONFLICT, "report-in-progress".to_owned())
+        );
+    }
+    let before = runtime.overlay.current().unwrap();
+    let quick_on_air = quick_report_startgg_set(
+        State(runtime.clone()), renderer_headers(), Json(quick_report(true)),
+    ).await;
+    assert_eq!(
+        detailed_failure(quick_on_air).await,
+        (StatusCode::CONFLICT, "report-use-live-controls".to_owned())
+    );
+    assert_eq!(runtime.overlay.current().unwrap(), before);
+    let after = queue.current().unwrap();
+    assert!(after.running);
+    assert_eq!(after.revision, running.revision);
+}
+
+#[tokio::test]
+async fn a_disconnected_caller_does_not_cancel_a_confirmed_report() {
+    let runtime = runtime();
+    *runtime.session_token.lock().unwrap() = Some(zeroize::Zeroizing::new("test-only".into()));
+    let (started, wait_until_started) = tokio::sync::oneshot::channel();
+    let (finish, wait_until_finished) = tokio::sync::oneshot::channel();
+    let caller = tokio::spawn(run_report(runtime.clone(), "100".into(), async move {
+        started.send(()).unwrap();
+        wait_until_finished.await.unwrap();
+        secure_json(StatusCode::OK)
+    }));
+    wait_until_started.await.unwrap();
+    caller.abort();
+    assert!(caller.await.unwrap_err().is_cancelled());
+    assert_eq!(runtime.reporting_set_id.lock().await.as_deref(), Some("100"));
+    finish.send(()).unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(2), async {
+        while runtime.reporting_set_id.lock().await.is_some() {
+            tokio::task::yield_now().await;
+        }
+    }).await.unwrap();
+    let next = run_report(runtime.clone(), "200".into(), async { secure_json(StatusCode::OK) }).await;
+    assert_eq!(next.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn an_uncertain_report_response_keeps_the_recovery_code_and_original_status() {
+    for (cause, status) in [
+        ("timeout", StatusCode::BAD_GATEWAY),
+        ("invalid-response", StatusCode::UNPROCESSABLE_ENTITY),
+    ] {
+        let response = reporting_error(jabs_startgg_client::api_error("upstream detail", cause));
+        assert_eq!(
+            detailed_failure(response).await,
+            (status, "report-outcome-uncertain".to_owned())
+        );
     }
 }
 
-#[test]
-fn both_report_paths_reject_changed_upstream_results_and_missing_sets() {
+#[tokio::test]
+async fn both_report_paths_reject_changed_upstream_results_and_missing_sets() {
     let runtime = runtime();
     let mut fresh = runtime.overlay.selected_set().unwrap();
     fresh.set_id = Some("100".into());
@@ -148,35 +265,41 @@ fn both_report_paths_reject_changed_upstream_results_and_missing_sets() {
     fresh.player_two.entrant_id = "20".into();
     let expected = ReportBaseline::from_set(&fresh);
     assert!(check_report_set("100", &expected, Some(fresh.clone())).is_ok());
-    let changes: [(&str, fn(&mut SelectedSet)); 7] = [
-        ("set started", |set| set.state = Some("2".into())),
-        ("set reported", |set| set.state = Some("3".into())),
-        ("first entrant replaced", |set| {
+    let changes: [(&str, &str, fn(&mut SelectedSet)); 7] = [
+        ("set started", "report-stale", |set| set.state = Some("2".into())),
+        ("set reported", "report-stale", |set| set.state = Some("3".into())),
+        ("first entrant replaced", "report-stale", |set| {
             set.player_one.entrant_id = "30".into()
         }),
-        ("second entrant replaced", |set| {
+        ("second entrant replaced", "report-stale", |set| {
             set.player_two.entrant_id = "40".into()
         }),
-        ("first score changed", |set| set.player_one.score = 1),
-        ("second score changed", |set| set.player_two.score = 1),
-        ("round format changed", |set| set.startgg_best_of = Some(5)),
+        ("first score changed", "report-stale", |set| set.player_one.score = 1),
+        ("second score changed", "report-stale", |set| set.player_two.score = 1),
+        ("round format changed", "report-format-changed", |set| set.startgg_best_of = Some(5)),
     ];
-    for (scenario, change) in changes {
+    for (scenario, code, change) in changes {
         let mut changed = fresh.clone();
         change(&mut changed);
         let response = check_report_set("100", &expected, Some(changed))
             .err()
             .unwrap();
-        assert_eq!(response.status(), StatusCode::CONFLICT, "{scenario}");
+        assert_eq!(
+            detailed_failure(response).await,
+            (StatusCode::CONFLICT, code.to_owned()),
+            "{scenario}"
+        );
     }
     fresh.state = Some("3".into());
     let completed = ReportBaseline::from_set(&fresh);
     assert_eq!(
-        check_report_set("100", &completed, Some(fresh))
-            .err()
-            .unwrap()
-            .status(),
-        StatusCode::CONFLICT
+        detailed_failure(
+            check_report_set("100", &completed, Some(fresh))
+                .err()
+                .unwrap()
+        )
+        .await,
+        (StatusCode::CONFLICT, "report-stale".to_owned())
     );
     assert_eq!(
         check_report_set("100", &expected, None)

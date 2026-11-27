@@ -1,0 +1,911 @@
+{
+  "name": "JABS Torneos",
+  "version": 1,
+  "resolution": {
+    "x": 1920,
+    "y": 1080
+  },
+  "current_scene": "Bracket",
+  "current_program_scene": "Bracket",
+  "scene_order": [
+    {
+      "name": "Bracket"
+    },
+    {
+      "name": "Comentaristas"
+    },
+    {
+      "name": "Cola de partidas"
+    },
+    {
+      "name": "Pantalla de juego"
+    },
+    {
+      "name": "Estadísticas del jugador 1"
+    },
+    {
+      "name": "Estadísticas del jugador 2"
+    },
+    {
+      "name": "Enfrentamientos del Top 8"
+    },
+    {
+      "name": "Pantalla versus"
+    },
+    {
+      "name": "Ganador y campeón"
+    }
+  ],
+  "sources": [
+    {
+      "name": "JABS: Bracket",
+      "uuid": "6a9e8dbe-8bf9-4f0c-a442-7c7148d17e84",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/bracket",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Comentaristas",
+      "uuid": "d3b9ca76-5358-41da-8fe2-8516fe205c7f",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/commentators",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Cola de partidas",
+      "uuid": "71ec638c-1301-4571-a227-849f4d33a9fd",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/queue-ticker",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Marcador",
+      "uuid": "faaac8f9-9c0e-4c3d-b6d6-ef3b25c04d65",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/main",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Estadísticas del jugador 1",
+      "uuid": "1faaa633-e07c-480f-a30a-a7b820c36ae4",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/stats?player=1",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Estadísticas del jugador 2",
+      "uuid": "f416bf84-4906-4ecf-8db0-0887b2729661",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/stats?player=2",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Enfrentamientos del Top 8",
+      "uuid": "c7df2ca5-6d2c-4f21-9161-a4be61aa2ff3",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/top-eight-matchups",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Pantalla versus",
+      "uuid": "4dd44211-86ab-4f1a-8545-3bc663e77806",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/versus",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Ganador y campeón",
+      "uuid": "766dab68-eac7-4214-a68f-86470a16b484",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/winner",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Bracket",
+      "uuid": "99325d04-154f-4be9-a55a-fd15cce7c0c9",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Bracket",
+            "source_uuid": "6a9e8dbe-8bf9-4f0c-a442-7c7148d17e84",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Comentaristas",
+      "uuid": "f08dbe50-5adb-44d3-8959-b06c95467a13",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Comentaristas",
+            "source_uuid": "d3b9ca76-5358-41da-8fe2-8516fe205c7f",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Cola de partidas",
+      "uuid": "3d5c7882-84f1-4322-b42e-6534713eb1aa",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Cola de partidas",
+            "source_uuid": "71ec638c-1301-4571-a227-849f4d33a9fd",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Pantalla de juego",
+      "uuid": "d3e99f70-e395-4691-87c6-3e0a3980ebeb",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Marcador",
+            "source_uuid": "faaac8f9-9c0e-4c3d-b6d6-ef3b25c04d65",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Estadísticas del jugador 1",
+      "uuid": "aaa94442-60f4-4ad5-b7ab-bb16882338bd",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Estadísticas del jugador 1",
+            "source_uuid": "1faaa633-e07c-480f-a30a-a7b820c36ae4",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Estadísticas del jugador 2",
+      "uuid": "0331a1a0-f44e-496d-9edf-94b7fa89e5ad",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Estadísticas del jugador 2",
+            "source_uuid": "f416bf84-4906-4ecf-8db0-0887b2729661",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Enfrentamientos del Top 8",
+      "uuid": "3cca4f62-f498-4fa5-a75d-ee2903338b39",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Enfrentamientos del Top 8",
+            "source_uuid": "c7df2ca5-6d2c-4f21-9161-a4be61aa2ff3",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Pantalla versus",
+      "uuid": "49344658-c936-4fa6-83ef-3fbefe2fcbe3",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Pantalla versus",
+            "source_uuid": "4dd44211-86ab-4f1a-8545-3bc663e77806",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Ganador y campeón",
+      "uuid": "52fa60e9-fbb3-4429-bdb9-69e2de833499",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Ganador y campeón",
+            "source_uuid": "766dab68-eac7-4214-a68f-86470a16b484",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    }
+  ],
+  "groups": [],
+  "transitions": [],
+  "transition_duration": 300,
+  "quick_transitions": [],
+  "saved_projectors": [],
+  "modules": {}
+}

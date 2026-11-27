@@ -39,6 +39,7 @@ pub enum Event {
     StreamSaveRejected,
     StartggFailed,
     ReportOutcomeUncertain,
+    ReportConflict,
     ReportCharactersOmitted,
     SettingsRecovered,
     ArtworkSetupFailed,
@@ -155,7 +156,19 @@ pub enum Reason {
     Upstream,
     Server,
     InvalidResponse,
+    Graphql,
+    QueryComplexity,
     Validation,
+    StatsChanged,
+    StatsRunIncomplete,
+    HistoryChanged,
+    ReportInProgress,
+    ReportLiveSetChanged,
+    ReportBaselineMissing,
+    ReportFormatChanged,
+    ReportStale,
+    ReportUseLiveControls,
+    ReportSaveConflict,
     StreamPayload,
     StreamState,
     StreamCharacters,
@@ -182,10 +195,23 @@ impl Reason {
             "rate-limit" | "rate-limited" => Self::RateLimit,
             "upstream" => Self::Upstream,
             "invalid-response" => Self::InvalidResponse,
+            "graphql" => Self::Graphql,
+            "query-complexity" => Self::QueryComplexity,
             "validation" => Self::Validation,
-            "storage" => Self::Storage,
-            "not-found" => Self::NotFound,
-            "unavailable" => Self::Unavailable,
+            "stats-changed" => Self::StatsChanged,
+            "stats-run-incomplete" => Self::StatsRunIncomplete,
+            "history-changed" => Self::HistoryChanged,
+            "report-in-progress" => Self::ReportInProgress,
+            "report-live-set-changed" => Self::ReportLiveSetChanged,
+            "report-baseline-missing" => Self::ReportBaselineMissing,
+            "report-format-changed" => Self::ReportFormatChanged,
+            "report-stale" => Self::ReportStale,
+            "report-use-live-controls" => Self::ReportUseLiveControls,
+            "server" => Self::Server,
+            "report-save-conflict" => Self::ReportSaveConflict,
+            "storage" | "history-storage" => Self::Storage,
+            "not-found" | "player-not-found" => Self::NotFound,
+            "unavailable" | "stats-unavailable" | "history-unavailable" => Self::Unavailable,
             _ => Self::Unknown,
         }
     }
@@ -369,6 +395,20 @@ pub(crate) fn stream_save_rejected(reason: Reason, status: u16) {
             status: Some(status),
             operation: Some(Operation::SelectedSet),
             method: Some(Method::Put),
+            ..Context::default()
+        },
+    );
+}
+
+#[derive(Clone)]
+pub(crate) struct DetailedHttpFailure;
+
+pub(crate) fn startgg_failure(code: &str) {
+    record(
+        Event::StartggFailed,
+        Context {
+            area: Area::Startgg,
+            reason: Some(Reason::from_code(code)),
             ..Context::default()
         },
     );

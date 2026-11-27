@@ -670,6 +670,7 @@ export function OperatorDashboard() {
         </StartggPanel>
 
         <DashboardSetActions
+          onAirSetId={selectedSet?.setId}
           quickScore={quickScore}
           reportingEnabled={tokenConfigured}
           loading={loading}

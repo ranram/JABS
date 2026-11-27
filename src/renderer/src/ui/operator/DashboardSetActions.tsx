@@ -9,6 +9,7 @@ import { useMatchQueue } from './matchQueueContext';
 type Props = {
   quickScore: ReturnType<typeof useQuickScoreActions>;
   reportingEnabled: boolean;
+  onAirSetId?: string;
   loading: boolean;
   characterOptions: readonly string[];
   onSendToStream(setId: string): void;

@@ -22,9 +22,9 @@ use std::{
 type Pending = Shared<BoxFuture<'static, Result<PlayerStats, ApiError>>>;
 struct Entry {
     context: StatsContext,
+    completed_set: Option<String>,
     pending: Pending,
     at: Instant,
-    epoch: u64,
 }
 struct Logo {
     id: String,
@@ -62,49 +62,67 @@ impl StatsCache {
         &self,
         runtime: Arc<RuntimeState>,
         context: StatsContext,
+        completed_set: Option<String>,
     ) -> Result<PlayerStats, ApiError> {
-        let request_context = context.clone();
-        self.load_with(context, || {
-            async move { super::load(&runtime, request_context).await }
+        self.load_retrying(context.clone(), completed_set.as_deref(), || {
+            let runtime = runtime.clone();
+            let request_context = context.clone();
+            let completed_set = completed_set.clone();
+            async move { super::load(&runtime, request_context, completed_set.as_deref()).await }
                 .boxed()
                 .shared()
         })
         .await
     }
 
+    // A score report can invalidate a lookup while an OBS source is loading.
+    async fn load_retrying(
+        &self,
+        context: StatsContext,
+        completed_set: Option<&str>,
+        mut fetch: impl FnMut() -> Pending,
+    ) -> Result<PlayerStats, ApiError> {
+        match self.load_with(context.clone(), completed_set, &mut fetch).await {
+            Err(error) if error.code == "stats-changed" => self.load_with(context, completed_set, fetch).await,
+            result => result,
+        }
+    }
+
     async fn load_with(
         &self,
         context: StatsContext,
+        completed_set: Option<&str>,
         fetch: impl FnOnce() -> Pending,
     ) -> Result<PlayerStats, ApiError> {
         let (pending, epoch) = {
             let mut state = self.state.lock().expect("Stats cache poisoned");
             if let Some(index) = state.entries.iter().position(|entry| {
                 entry.context == context
-                    && (entry.pending.peek().is_none()
-                        || entry.at.elapsed() < Duration::from_secs(60))
+                    && entry.completed_set.as_deref() == completed_set
+                    && (entry.pending.peek().is_none() || entry.at.elapsed() < Duration::from_secs(60))
             }) {
                 let entry = state.entries.remove(index).unwrap();
-                let result = (entry.pending.clone(), entry.epoch);
+                let pending = entry.pending.clone();
                 state.entries.push_back(entry);
-                result
+                (pending, state.epoch)
             } else {
                 state.entries.retain(|entry| entry.context != context);
                 let pending = fetch();
-                let epoch = state.epoch;
                 state.entries.push_back(Entry {
                     context,
+                    completed_set: completed_set.map(str::to_owned),
                     pending: pending.clone(),
                     at: Instant::now(),
-                    epoch,
                 });
                 while state.entries.len() > 16 {
                     state.entries.pop_front();
                 }
-                (pending, epoch)
+                (pending, state.epoch)
             }
         };
         let result = pending.await;
+        // Invalidation already cleared the old entries. Other callers may have
+        // started or completed the replacement lookup by now.
         if self.state.lock().expect("Stats cache poisoned").epoch != epoch {
             return Err(api_error(
                 "The tournament results changed. Refresh Player Stats.",
@@ -222,17 +240,17 @@ mod tests {
             .shared()
         };
         let (one, two) = tokio::join!(
-            cache.load_with(context.clone(), fetch),
-            cache.load_with(context.clone(), fetch)
+            cache.load_with(context.clone(), None, fetch),
+            cache.load_with(context.clone(), None, fetch)
         );
         assert!(one.is_ok() && two.is_ok());
         assert_eq!(calls.load(Ordering::Relaxed), 1);
-        cache.load_with(context.clone(), fetch).await.unwrap();
+        cache.load_with(context.clone(), None, fetch).await.unwrap();
         assert_eq!(calls.load(Ordering::Relaxed), 1);
         cache.invalidate();
         let (release, wait) = tokio::sync::oneshot::channel();
         let request_context = context.clone();
-        let pending = cache.load_with(context, || {
+        let pending = cache.load_with(context, None, || {
             async move {
                 wait.await.unwrap();
                 Ok(stats(request_context))
@@ -247,6 +265,43 @@ mod tests {
         };
         let (result, _) = tokio::join!(pending, invalidation);
         assert_eq!(result.err().unwrap().code, "stats-changed");
+    }
+
+    #[tokio::test]
+    async fn retries_once_when_a_report_invalidates_a_lookup() {
+        let cache = StatsCache::default();
+        let context = StatsContext {
+            event_id: Some("1".into()),
+            game_id: "2".into(),
+            player_id: Some("3".into()),
+            entrant_id: "4".into(),
+        };
+        let calls = AtomicUsize::new(0);
+        let (release, wait) = tokio::sync::oneshot::channel();
+        let mut wait_for_invalidation = Some(wait);
+        let load = cache.load_retrying(context.clone(), None, || {
+            calls.fetch_add(1, Ordering::Relaxed);
+            let snapshot = stats(context.clone());
+            let wait = wait_for_invalidation.take();
+            async move {
+                if let Some(wait) = wait {
+                    wait.await.unwrap();
+                }
+                Ok(snapshot)
+            }
+            .boxed()
+            .shared()
+        });
+        let invalidation = async {
+            cache.invalidate();
+            release.send(()).unwrap();
+        };
+        let second_load = cache.load_retrying(context.clone(), None, || {
+            panic!("Both callers must share the initial and replacement lookups")
+        });
+        let (first, second, ()) = tokio::join!(biased; load, second_load, invalidation);
+        assert!(first.is_ok() && second.is_ok());
+        assert_eq!(calls.load(Ordering::Relaxed), 2);
     }
 }
 

@@ -18,6 +18,7 @@ pub(super) async fn websocket_session(mut socket: WebSocket, runtime: Arc<Runtim
     let mut top_eight_matchups_updates = runtime.top_eight_matchups.subscribe();
     let mut player_updates = runtime.player_library_revision.subscribe();
     let mut asset_updates = runtime.asset_catalog_revision.subscribe();
+    let mut report_updates = runtime.report_revision.subscribe();
     let Ok((snapshot, mut updates)) = runtime.overlay.subscribe_with_snapshot() else {
         return;
     };
@@ -34,8 +35,15 @@ pub(super) async fn websocket_session(mut socket: WebSocket, runtime: Arc<Runtim
 
     let players = serde_json::json!({ "event": "player-library", "revision": *player_updates.borrow_and_update() }).to_string();
     if socket.send(Message::Text(players.into())).await.is_err() { return; }
+    let report = report_revision_message(*report_updates.borrow_and_update());
+    if socket.send(Message::Text(report.into())).await.is_err() { return; }
     loop {
         tokio::select! {
+            changed = report_updates.changed() => {
+                if changed.is_err() { break; }
+                let report = report_revision_message(*report_updates.borrow_and_update());
+                if socket.send(Message::Text(report.into())).await.is_err() { break; }
+            },
             changed = player_updates.changed() => {
                 if changed.is_err() { break; }
                 let players = serde_json::json!({ "event": "player-library", "revision": *player_updates.borrow_and_update() }).to_string();
@@ -151,6 +159,10 @@ pub(super) async fn websocket_session(mut socket: WebSocket, runtime: Arc<Runtim
             }
         }
     }
+}
+
+fn report_revision_message(revision: u64) -> String {
+    serde_json::json!({ "event": "startgg-result-reported", "revision": revision }).to_string()
 }
 
 fn commentator_state_message(state: serde_json::Value) -> Result<String, String> {

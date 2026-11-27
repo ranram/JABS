@@ -220,7 +220,7 @@
   position: absolute;
   z-index: 4;
   top: 0.75cqw;
-  left: 0.75cqw;
+  right: 0.75cqw;
   display: flex;
   flex-direction: column;
   gap: 0.55cqw;
@@ -392,12 +392,12 @@
   position: absolute;
   z-index: 0;
   top: 0;
-  right: 0;
+  left: 0;
   display: none;
   width: 50%;
   height: 50%;
   object-fit: contain;
-  object-position: right top;
+  object-position: left top;
   opacity: 0.3;
   pointer-events: none;
 }
@@ -511,10 +511,6 @@
 .top8-mosaic .top8-card:is(.placement-2, .placement-3, .placement-5, .placement-7) .top8-sponsor-text.is-empty,
 .top8-mosaic .top8-card:is(.placement-2, .placement-3, .placement-5, .placement-7) .top8-x-handle.is-empty {
   display: none;
-}
-.top8-mosaic .top8-card:is(.placement-5, .placement-7) .top8-character-portraits {
-  right: 0.75cqw;
-  left: auto;
 }
 
 /* Neon: familiar champion-plus-seven grid with square cards and luminous tournament color. */

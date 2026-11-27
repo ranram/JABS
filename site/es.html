@@ -32,7 +32,7 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=6" />
+    <link rel="stylesheet" href="style.css?v=10" />
     <link rel="icon" href="favicon.ico?v=2" type="image/x-icon" />
   </head>
   <body>
@@ -176,7 +176,7 @@
       </section>
       <section class="last" id="download">
         <h2>Descarga JABS.</h2>
-        <div class="download-platforms">
+        <div class="download-platforms" id="download-installers" hidden>
           <article class="download-platform" hidden>
             <h3><img src="assets/windows.svg.webp" alt="" width="32" height="32" /> Windows</h3>
             <ul>
@@ -198,12 +198,32 @@
               <li hidden><a data-download="linux-appimage">AppImage</a></li>
             </ul>
           </article>
-          <article class="download-platform download-plugin">
-            <h3><img src="assets/stream-deck.webp" alt="" width="32" height="32" /> Stream Deck Plugin</h3>
-            <p class="coming-soon">¡Próximamente!</p>
-          </article>
         </div>
         <a class="download-all" href="https://github.com/ranram/jabs/releases">Todas las versiones</a>
+        <h3>Recursos</h3>
+        <div class="download-platforms">
+          <article class="download-platform">
+            <h4><img src="assets/stream-deck.webp" alt="" width="32" height="32" /> Plugin para Stream Deck</h4>
+            <p class="coming-soon">¡Próximamente!</p>
+          </article>
+          <article class="download-platform">
+            <h4>Máscaras de marcador</h4>
+            <ul>
+              <li><a href="downloads/scoreboard-masks.zip" download>Descargar máscaras PNG y SVG (.zip)</a></li>
+              <li><a href="https://github.com/ranram/jabs/tree/main/scoreboard-masks">Ver archivos en GitHub</a></li>
+            </ul>
+          </article>
+          <article class="download-platform">
+            <h4>Colecciones de escenas para OBS</h4>
+            <p class="download-platform-summary">
+              Nueve escenas listas para usar con JABS. En OBS, elige <strong>Colección de escenas → Importar</strong>.
+            </p>
+            <ul>
+              <li><a href="resources/JABS_Torneos.json" download>Descargar colección en español (.json)</a></li>
+              <li><a href="resources/JABS_Tournaments.json" download>Descargar colección en inglés (.json)</a></li>
+            </ul>
+          </article>
+        </div>
       </section>
     </main>
     <footer>
@@ -219,6 +239,6 @@
     </dialog>
     <script src="gallery.js" defer></script>
     <script src="navigation.js" defer></script>
-    <script src="release.js?v=2" defer></script>
+    <script src="release.js?v=3" defer></script>
   </body>
 </html>

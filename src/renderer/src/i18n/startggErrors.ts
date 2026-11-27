@@ -16,7 +16,15 @@ const translationKeys = {
   upstream: 'errors:startgg.upstream',
   'invalid-response': 'errors:startgg.invalidResponse',
   graphql: 'errors:startgg.graphql',
-  conflict: 'errors:startgg.conflict'
+  conflict: 'errors:startgg.conflict',
+  'report-in-progress': 'errors:startgg.reportInProgress',
+  'report-live-set-changed': 'errors:startgg.reportLiveSetChanged',
+  'report-baseline-missing': 'errors:startgg.reportBaselineMissing',
+  'report-format-changed': 'errors:startgg.reportFormatChanged',
+  'report-stale': 'errors:startgg.reportStale',
+  'report-use-live-controls': 'errors:startgg.reportUseLiveControls',
+  'report-outcome-uncertain': 'errors:startgg.reportOutcomeUncertain',
+  'report-save-conflict': 'errors:startgg.reportSaveConflict'
 } as const satisfies Record<StartggErrorCode, string>;
 
 export function localizedStartggError(

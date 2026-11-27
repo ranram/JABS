@@ -10,7 +10,7 @@ const installerNames = {
 };
 
 function showInstallers(release) {
-  const platforms = document.querySelector('.download-platforms');
+  const platforms = document.getElementById('download-installers');
   if (!platforms || !Array.isArray(release.assets)) return;
 
   const names = release.assets
@@ -23,7 +23,7 @@ function showInstallers(release) {
     link.href = `${releasesUrl}/download/${release.tag_name}/${encodeURIComponent(name)}`;
     link.closest('li').hidden = false;
   }
-  for (const platform of platforms.querySelectorAll('.download-platform:not(.download-plugin)')) {
+  for (const platform of platforms.querySelectorAll('.download-platform')) {
     platform.hidden = !platform.querySelector('li:not([hidden])');
   }
   platforms.hidden = !platforms.querySelector('.download-platform:not([hidden])');

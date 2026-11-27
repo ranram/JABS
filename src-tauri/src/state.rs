@@ -622,11 +622,14 @@ impl OverlayStore {
         &self,
         database: &Database,
         set_id: &str,
+        expected_updated_at: &str,
         reported_state: &str,
         outcome: Option<ReportOutcome>,
     ) -> Result<Value, String> {
         self.mutate(database, |selected_set| {
-            if selected_set.set_id.as_deref() != Some(set_id) {
+            if selected_set.set_id.as_deref() != Some(set_id)
+                || selected_set.updated_at != expected_updated_at
+            {
                 return Err("The active stream set changed after start.gg accepted the report.".to_owned());
             }
             selected_set.state = Some(reported_state.to_owned());

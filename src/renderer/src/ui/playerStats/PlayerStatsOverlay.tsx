@@ -1,12 +1,12 @@
 import '../resultScreen/artworkSides.css';
 import { artworkFramingKeys, artworkPlacement, artworkFramingLayout } from '@shared/artworkFraming';
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 import { statsPlayerFromSearch, type StatsPlayer } from '@shared/playerStats';
 import { resolveGameProfile } from '@shared/gameProfiles';
 import { useOverlayState } from '../../hooks/useOverlayState';
 import { useLogoAsset } from '../../hooks/useLogoAssetUrl';
 import { usePlayerStatsSettings } from '../../hooks/usePlayerStatsSettings';
-import { useBroadcastLogo } from '../../hooks/useBroadcastLogo';
 import { matchPlayerName, phaseAndRound } from '@shared/matchContext';
 import { CatalogImage } from '../CatalogImage';
 import { DisplayText } from '../DisplayText';
@@ -39,20 +39,23 @@ export function PlayerStatsOverlay() {
 function PlayerStatsScreen({ slot }: { slot: StatsPlayer }) {
   const { t } = useTranslation(['overlay', 'common']);
   const appearanceStyle = useAppearanceStyle();
-  const { state, error } = useOverlayState();
+  const [reportRevision, setReportRevision] = useState(0);
+  const { state, error } = useOverlayState(setReportRevision);
   const selected = state?.selectedSet;
   const player = slot === 1 ? selected?.playerOne : selected?.playerTwo;
   const { media, ready } = useVersusMedia(selected);
   const artwork = media[slot - 1];
   const { state: settings, error: settingsError } = usePlayerStatsSettings();
-  const logoAssetId = useBroadcastLogo(settings?.logoAssetId, Boolean(settings?.showTournamentLogo));
+  const logoAssetId = settings?.showTournamentLogo
+    ? settings.logoAssetId ?? selected?.broadcast?.logoAssetId
+    : undefined;
   const logo = useLogoAsset(logoAssetId);
   const profile = resolveGameProfile(settings?.stylingGameId ?? selected?.stylingGameId ?? selected?.gameId);
   const characterUrl = settings?.showCharacter ? artwork.characterUrl : undefined;
   const photoUrl = settings?.showPlayerPhoto
     ? (artwork.photoUrl ?? (ready ? playerPlaceholder : undefined))
     : undefined;
-  const stats = usePlayerStats(selected, slot);
+  const stats = usePlayerStats(selected, slot, reportRevision);
   const name = player ? matchPlayerName(player, selected) : '';
   const sponsor = player?.prefix?.trim() || player?.sponsor?.trim();
   const flagUrl = displayFlagUrl(player?.country, player?.displayFlag);
@@ -124,6 +127,7 @@ function PlayerStatsScreen({ slot }: { slot: StatsPlayer }) {
           </header>
           <StatsResults
             stats={stats.state}
+            completedSetId={selected?.state === '3' ? selected.setId : undefined}
             loading={!stats.state && !stats.error}
             error={stats.error}
             linked={Boolean(player.playerId)}

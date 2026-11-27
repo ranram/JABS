@@ -894,8 +894,9 @@ mod transition_tests {
         for restart in [false, true] {
             let r = runtime();
             r.overlay.set_score(&r.database, "one", 2).unwrap();
+            let current = r.overlay.selected_set().unwrap();
             r.overlay
-                .mark_reported(&r.database, "100", "3", None)
+                .mark_reported(&r.database, "100", &current.updated_at, "3", None)
                 .unwrap();
             r.match_queue.reported(&r.database, None, "100", true);
             add_match(&r, "150");

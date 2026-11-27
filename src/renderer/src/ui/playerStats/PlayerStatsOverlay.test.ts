@@ -21,7 +21,6 @@ const transport = vi.hoisted(() => ({
   logo: vi.fn(async (id: string) => `logo-${id}`),
   placementLogo: vi.fn(async (id: string) => `placing-${id}`)
 }));
-vi.mock('../../hooks/useOverlayState', () => ({ useOverlayState: () => ({ state: transport.state }) }));
 vi.mock('../useVersusMedia', () => ({
   useVersusMedia: () => ({
     ready: true,
@@ -30,6 +29,7 @@ vi.mock('../useVersusMedia', () => ({
 }));
 vi.mock('../../api', () => ({
   api: {
+    state: async () => transport.state,
     playerStats: transport.stats,
     playerStatsSettings: async () => transport.settings,
     logoAssetUrl: transport.logo,
@@ -110,7 +110,11 @@ it('keeps Player Stats results tied to the selected player', async () => {
   transport.stats.mockImplementation(async (slot: 1 | 2) => stats(slot));
   transport.placementLogo.mockRejectedValueOnce(new Error('Logo unavailable'));
   window.history.replaceState({}, '', '/overlay/active/stats?player=1');
+  const intervals = vi.spyOn(window, 'setInterval');
   const view = await mountView(() => h(PlayerStatsOverlay));
+  expect(Socket.instances).toHaveLength(2);
+  expect(intervals.mock.calls.some(([, delay]) => delay === 60_000)).toBe(false);
+  intervals.mockRestore();
   expect(view.container.querySelector('.victory-name')?.textContent).toBe('WBG MENARD');
   expect(view.container.querySelector('.stats-identity.has-flag > .stats-player-flag')).not.toBeNull();
   expect(view.container.querySelector('.stats-player-flag')?.nextElementSibling?.className).toBe('victory-name');
@@ -121,6 +125,30 @@ it('keeps Player Stats results tied to the selected player', async () => {
   expect(view.container.querySelector('.stats-player-flag')?.getAttribute('alt')).toBe('DO');
   expect(view.container.querySelector('.stats-player-flag')?.getAttribute('src')).toBe(displayFlagUrl('DO', undefined));
   expect(view.container.querySelectorAll('.stats-placement-list li')).toHaveLength(5);
+  const refreshed = stats(1);
+  refreshed.run[0].opponent = 'Newly reported opponent';
+  transport.stats.mockResolvedValueOnce(refreshed);
+  const publishReport = async (revision: number) => {
+    await act(async () => {
+      for (const socket of Socket.instances) {
+        socket.dispatchEvent(new MessageEvent('message', {
+          data: JSON.stringify({ event: 'startgg-result-reported', revision })
+        }));
+      }
+    });
+  };
+  const beforeReport = transport.stats.mock.calls.length;
+  await publishReport(1);
+  expect(view.container.textContent).toContain('Newly reported opponent');
+  expect(transport.stats).toHaveBeenCalledTimes(beforeReport + 1);
+  await publishReport(1);
+  expect(transport.stats).toHaveBeenCalledTimes(beforeReport + 1);
+  Object.assign(state.selectedSet, { state: '3', setId: '10' });
+  const completed = stats(1);
+  Object.assign(completed.run[9], { id: '10', opponent: 'Completed match opponent' });
+  transport.stats.mockResolvedValueOnce(completed);
+  await publishReport(2);
+  expect(view.container.textContent).toContain('Completed match opponent');
   expect(view.container.querySelector<HTMLElement>('.victory-character-art')?.style.transform).toContain('scale(4)');
   expect(view.container.querySelector<HTMLElement>('.victory-player-photo')?.style.transform).toContain('scale(1)');
   expect(view.container.querySelectorAll('.stats-placement-logo')).toHaveLength(5);
@@ -315,8 +343,9 @@ it('pages through a long run and restarts the page timer when the player changes
       opponentDq: false
     }))
   });
+  let completedSetId: string | undefined;
   const view = await mountView(() =>
-    h(StatsResults, { stats: snapshot, loading: false, linked: true, tournament: true })
+    h(StatsResults, { stats: snapshot, completedSetId, loading: false, linked: true, tournament: true })
   );
   expect(view.container.querySelectorAll('.stats-run-list li')).toHaveLength(16);
   expect(view.container.textContent).toContain('Matches 1–16 of 19');
@@ -341,6 +370,12 @@ it('pages through a long run and restarts the page timer when the player changes
     await vi.advanceTimersByTimeAsync(1);
   });
   expect(view.container.textContent).toContain('Matches 17–19 of 19');
+  completedSetId = '19';
+  await act(async () => vi.advanceTimersByTimeAsync(12_000));
+  expect(view.container.textContent).toContain('Matches 1–16 of 19');
+  snapshot.run.push({ ...snapshot.run[18], id: '19', opponent: 'Latest opponent' });
+  await view.rerender();
+  expect(view.container.textContent).toContain('Latest opponent');
   await view.unmount();
   vi.useRealTimers();
 });

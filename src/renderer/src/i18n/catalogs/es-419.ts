@@ -1768,7 +1768,21 @@ export const es419 = {
         'La API de start.gg devolvió un error temporal del servidor. El sitio web puede seguir en línea; intenta cargar de nuevo en breve.',
       invalidResponse: 'JABS no pudo leer los datos recibidos de start.gg.',
       graphql: 'start.gg rechazó la solicitud del bracket. Revisa los datos del torneo seleccionado y los permisos.',
-      conflict: 'Este set cambió después de abrirlo. Vuelve a abrirlo y revisa el resultado más reciente.'
+      conflict: 'Este set cambió después de abrirlo. Vuelve a abrirlo y revisa el resultado más reciente.',
+      reportInProgress:
+        'Ya se está enviando un resultado a start.gg. Espera a que termine antes de intentarlo de nuevo.',
+      reportLiveSetChanged:
+        'La partida en vivo cambió después de abrir este reporte. Revisa los jugadores y el marcador, y confirma de nuevo.',
+      reportBaselineMissing:
+        'Vuelve a cargar este set desde start.gg para que JABS pueda comprobar si cambió el resultado.',
+      reportFormatChanged:
+        'El formato de la partida cambió en start.gg. Vuelve a cargar el set, revisa el marcador y confirma de nuevo.',
+      reportStale: 'Vuelve a cargar este set desde start.gg y revisa si ya se reportó un resultado.',
+      reportUseLiveControls: 'Este set está en vivo. Repórtalo desde los controles del marcador en vivo.',
+      reportOutcomeUncertain:
+        'Es posible que start.gg haya aceptado el resultado. Vuelve a cargar el set y revisa el resultado antes de reportar de nuevo.',
+      reportSaveConflict:
+        'start.gg aceptó el resultado. Vuelve a cargar el set para que el resultado reportado aparezca en JABS.'
     }
   }
 } satisfies LocaleCatalog;

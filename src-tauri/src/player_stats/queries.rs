@@ -39,3 +39,12 @@ query EntrantStatsRun($eventId: ID!, $entrantId: ID!, $page: Int!) {
 "#;
     format!("{query}\n{SET_FIELDS}")
 }
+
+pub fn completed_set_query() -> String {
+    let query = r#"
+query PlayerStatsCompletedSet($setId: ID!) {
+  set(id: $setId) { ...StatsSet }
+}
+"#;
+    format!("{query}\n{SET_FIELDS}")
+}

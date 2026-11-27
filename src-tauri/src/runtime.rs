@@ -45,12 +45,19 @@ pub struct RuntimeState {
     pub custom_scoreboard_directory: PathBuf,
     pub moderation_allowlist_path: PathBuf,
     pub reporting_set_id: tokio::sync::Mutex<Option<String>>,
+    pub report_revision: tokio::sync::watch::Sender<u64>,
     pub player_library_revision: tokio::sync::watch::Sender<u64>,
     pub asset_catalog_revision: tokio::sync::watch::Sender<u64>,
     pub asset_changes: crate::catalogs::changes::AssetChangeTracker,
 }
 
 impl RuntimeState {
+    pub fn refresh_reported_results(&self) {
+        self.versus_history.invalidate();
+        self.player_stats.invalidate();
+        self.report_revision.send_modify(|revision| *revision += 1);
+    }
+
     pub fn observe_startgg_sets(&self, event_id: &str, sets: &[serde_json::Value]) -> Result<(), String> {
         let reset_ids = self.match_queue.observe_bracket(&self.database, event_id, sets)?;
         let live_reset = self.overlay.observe_bracket_state(&self.database, event_id, sets, &reset_ids)?;
@@ -118,6 +125,7 @@ impl RuntimeState {
             custom_scoreboard_directory,
             moderation_allowlist_path,
             reporting_set_id: tokio::sync::Mutex::new(None),
+            report_revision: tokio::sync::watch::channel(0).0,
             // A restarted app must also invalidate caches in OBS sources left open.
             player_library_revision: tokio::sync::watch::channel(
                 std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64,

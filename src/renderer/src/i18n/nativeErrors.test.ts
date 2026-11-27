@@ -61,6 +61,30 @@ it('localizes native HTTP and desktop failures with field details and keeps Engl
   expect(localizedStartggError({ code: '__proto__', error: 'unknown failure' }, 'Error HTTP 422')).toBe(
     'Error HTTP 422'
   );
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json({ code: 'report-outcome-uncertain', error: 'ignored' }, { status: 502 }))
+  );
+  await expect(
+    api.reportStartggSet({ setId: '100', winnerId: '10', updatedAt: 'test-version', confirmed: true })
+  ).rejects.toMatchObject({
+    code: 'report-outcome-uncertain',
+    message: i18n.t('errors:startgg.reportOutcomeUncertain')
+  });
+  // Report conflicts carry their own codes, so they must resolve to our copy
+  // instead of falling back to the server's English message.
+  for (const code of [
+    'report-in-progress',
+    'report-live-set-changed',
+    'report-baseline-missing',
+    'report-format-changed',
+    'report-stale',
+    'report-save-conflict'
+  ]) {
+    const message = localizedStartggError({ code }, 'Error HTTP 409');
+    expect(message, code).not.toBe('Error HTTP 409');
+    expect(message, code).not.toContain('errors:');
+  }
   expect(localizedNativeError('These settings changed elsewhere. Reload them before saving again.')).toContain(
     'Recárgalos'
   );

@@ -102,6 +102,7 @@ it.each(['win-loss', 'disqualification'] as const)(
     const confirm = vi.fn().mockReturnValueOnce(false).mockReturnValue(true);
     vi.stubGlobal('confirm', confirm);
     let actions!: ReturnType<typeof useQuickScoreActions>;
+    let onAirSetId: string | undefined;
     function Fixture() {
       actions = useQuickScoreActions({
         startgg: gateway,
@@ -115,13 +116,14 @@ it.each(['win-loss', 'disqualification'] as const)(
       });
       return h(DashboardSetActions, {
         quickScore: actions,
+        onAirSetId,
         reportingEnabled: true,
         loading: false,
         characterOptions: [],
         onSendToStream: noop
       });
     }
-    await mountView(() => h(MantineProvider, { env: 'test' }, h(Fixture)));
+    const view = await mountView(() => h(MantineProvider, { env: 'test' }, h(Fixture)));
     const target = {
       id: '100',
       state: '1',
@@ -137,6 +139,12 @@ it.each(['win-loss', 'disqualification'] as const)(
       ).click()
     );
     const submit = () => document.querySelector<HTMLButtonElement>('[data-testid="quick-report-startgg-result"]')!;
+    onAirSetId = target.id;
+    await view.rerender();
+    expect(submit().disabled).toBe(true);
+    expect(document.body.textContent).toContain('Use the live score controls');
+    onAirSetId = undefined;
+    await view.rerender();
     await act(async () => submit().click());
     expect(report).not.toHaveBeenCalled();
     await act(async () => submit().click());

@@ -1,0 +1,911 @@
+{
+  "name": "JABS Tournaments",
+  "version": 1,
+  "resolution": {
+    "x": 1920,
+    "y": 1080
+  },
+  "current_scene": "Bracket",
+  "current_program_scene": "Bracket",
+  "scene_order": [
+    {
+      "name": "Bracket"
+    },
+    {
+      "name": "Commentators"
+    },
+    {
+      "name": "Queue Ticker"
+    },
+    {
+      "name": "Game Screen"
+    },
+    {
+      "name": "Stats Player 1"
+    },
+    {
+      "name": "Stats Player 2"
+    },
+    {
+      "name": "Top 8 Matchups"
+    },
+    {
+      "name": "Versus Screen"
+    },
+    {
+      "name": "Winner and Champion"
+    }
+  ],
+  "sources": [
+    {
+      "name": "JABS: Bracket",
+      "uuid": "a9912db3-1382-4864-8456-5219f358643c",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/bracket",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Commentators",
+      "uuid": "3ae98469-1e82-4f46-b020-620ac7369df8",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/commentators",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Queue Ticker",
+      "uuid": "02de1cac-4b1a-4062-a0b5-6ca527dffc61",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/queue-ticker",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Scoreboard",
+      "uuid": "c3529916-6a41-4ff3-8471-b25a595e7b7c",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/main",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Stats Player 1",
+      "uuid": "db4cf6c5-06e2-477a-acd2-4ef86344cd48",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/stats?player=1",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Stats Player 2",
+      "uuid": "4ec6262a-2c98-4c60-883a-c1359dcee84e",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/stats?player=2",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Top 8 Matchups",
+      "uuid": "a50e50f3-921d-4f6a-ba70-10d85a43072c",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/top-eight-matchups",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Versus Screen",
+      "uuid": "5dcbea3b-d9e3-49ec-83f9-94ec6259dde0",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/versus",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "JABS: Winner and Champion",
+      "uuid": "a9f8ab02-affc-4a18-ac6e-b89faf7e5cd6",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "http://127.0.0.1:4279/overlay/active/winner",
+        "is_local_file": false,
+        "width": 1920,
+        "height": 1080,
+        "fps_custom": false,
+        "fps": 30,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }",
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "webpage_control_level": 0
+      },
+      "mixers": 255,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Bracket",
+      "uuid": "415276fb-26e3-4bab-97d1-c2afa536e4a3",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Bracket",
+            "source_uuid": "a9912db3-1382-4864-8456-5219f358643c",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Commentators",
+      "uuid": "16e0b807-9d9b-4e79-b4e6-188228f7354f",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Commentators",
+            "source_uuid": "3ae98469-1e82-4f46-b020-620ac7369df8",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Queue Ticker",
+      "uuid": "1d86dcb1-d0c7-41c3-9bb0-5ef2822a0440",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Queue Ticker",
+            "source_uuid": "02de1cac-4b1a-4062-a0b5-6ca527dffc61",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Game Screen",
+      "uuid": "d66282d5-e994-4d0a-978b-01845df13fe0",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Scoreboard",
+            "source_uuid": "c3529916-6a41-4ff3-8471-b25a595e7b7c",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Stats Player 1",
+      "uuid": "1a759f1c-f341-4db1-a5cf-a731b39b406d",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Stats Player 1",
+            "source_uuid": "db4cf6c5-06e2-477a-acd2-4ef86344cd48",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Stats Player 2",
+      "uuid": "474bc3f6-7557-4138-9bf3-ead92786717b",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Stats Player 2",
+            "source_uuid": "4ec6262a-2c98-4c60-883a-c1359dcee84e",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Top 8 Matchups",
+      "uuid": "3d2fb3ce-6fe6-40bb-a603-3fe68b0c10f6",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Top 8 Matchups",
+            "source_uuid": "a50e50f3-921d-4f6a-ba70-10d85a43072c",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Versus Screen",
+      "uuid": "2942457c-46ed-4227-881d-912a84fcf89a",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Versus Screen",
+            "source_uuid": "5dcbea3b-d9e3-49ec-83f9-94ec6259dde0",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    },
+    {
+      "name": "Winner and Champion",
+      "uuid": "3a520aad-743c-4fb2-897a-4b9dc9af80c6",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "JABS: Winner and Champion",
+            "source_uuid": "a9f8ab02-affc-4a18-ac6e-b89faf7e5cd6",
+            "visible": true,
+            "locked": false,
+            "rot": 0.0,
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds_crop": false,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "private_settings": {}
+          }
+        ]
+      },
+      "mixers": 0,
+      "sync": 0,
+      "flags": 0,
+      "volume": 1.0,
+      "balance": 0.5,
+      "enabled": true,
+      "muted": false,
+      "push_to_mute": false,
+      "push_to_mute_delay": 0,
+      "push_to_talk": false,
+      "push_to_talk_delay": 0,
+      "hotkeys": {},
+      "deinterlace_mode": 0,
+      "deinterlace_field_order": 0,
+      "monitoring_type": 0,
+      "private_settings": {}
+    }
+  ],
+  "groups": [],
+  "transitions": [],
+  "transition_duration": 300,
+  "quick_transitions": [],
+  "saved_projectors": [],
+  "modules": {}
+}

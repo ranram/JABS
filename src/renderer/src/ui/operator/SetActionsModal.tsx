@@ -15,6 +15,7 @@ import { OperatorIcon, ArrowCounterClockwiseIcon, CheckCircleIcon } from '../ico
 
 type SetActionsModalProps = {
   reportingEnabled: boolean;
+  onAirSetId?: string;
   target?: SetSummary;
   quickScore?: SelectedSetState;
   receipt?: string;
@@ -37,6 +38,7 @@ type SetActionsModalProps = {
 
 export function SetActionsModal({
   reportingEnabled,
+  onAirSetId,
   target,
   quickScore,
   receipt,
@@ -56,7 +58,7 @@ export function SetActionsModal({
   onResetScores,
   onReport
 }: SetActionsModalProps) {
-  const { t, i18n } = useTranslation(['operator', 'common']);
+  const { t, i18n } = useTranslation(['operator', 'common', 'errors']);
   const { outcome, choose, clear } = useReportOutcome(quickScore);
   const quickReadiness = outcome && quickScore ? startggReportReadiness(quickScore, outcome) : scoreReadiness;
   const quickReadinessReason = outcome ? localizedReadinessReason(quickReadiness) : scoreReadinessReason;
@@ -71,6 +73,12 @@ export function SetActionsModal({
 
   if (!target) return null;
 
+  const onAir = target.id === onAirSetId;
+  const reportWarning = onAir
+    ? t('errors:startgg.reportUseLiveControls')
+    : !reportingEnabled
+      ? t('operator:startgg.reportToken')
+      : undefined;
   const targetContext = [setPhaseContext(target), target.round ?? t('common:match.set', { id: target.id })]
     .filter(Boolean)
     .join(' · ');
@@ -137,7 +145,7 @@ export function SetActionsModal({
               size="lg"
               h="auto"
               py="md"
-              disabled={!reportingEnabled || quickScoreLoading || target.state === '3'}
+              disabled={onAir || !reportingEnabled || quickScoreLoading || target.state === '3'}
               loading={quickScoreLoading}
               onClick={onBeginQuickScore}
             >
@@ -152,7 +160,7 @@ export function SetActionsModal({
             </Button>
           </SimpleGrid>
           {queueAction}
-          <ControlWarning message={!reportingEnabled ? t('operator:startgg.reportToken') : undefined} />
+          <ControlWarning message={reportWarning} />
           {target.state === '3' && (
             <Alert color="yellow" w="100%" miw={0}>
               {t('operator:setActions.alreadyComplete')}
@@ -275,7 +283,7 @@ export function SetActionsModal({
                     })
                 : quickReadinessReason}
             </Text>
-            <ControlWarning message={!reportingEnabled ? t('operator:startgg.reportToken') : undefined} />
+            <ControlWarning message={reportWarning} />
           </Paper>
 
           <Group grow preventGrowOverflow={false}>
@@ -292,7 +300,7 @@ export function SetActionsModal({
             <Button
               data-testid="quick-report-startgg-result"
               loading={quickScoreLoading}
-              disabled={!reportingEnabled || !quickReadiness.ready}
+              disabled={onAir || !reportingEnabled || !quickReadiness.ready}
               onClick={() => onReport(outcome)}
               leftSection={<OperatorIcon icon={CheckCircleIcon} />}
             >

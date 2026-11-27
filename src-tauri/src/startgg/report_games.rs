@@ -1,6 +1,6 @@
 use super::{ReportedGame, ReportedGameSelection, normalized_id, optional_text, request};
 use crate::{
-    catalogs::character_names_match,
+    catalogs::character_names_match_for_game,
     diagnostics::{self, Area, Context, Event, Reason},
     runtime::RuntimeState,
     startgg_queries,
@@ -12,6 +12,7 @@ use std::collections::HashSet;
 pub(crate) async fn reported_games(
     runtime: &RuntimeState,
     set_id: &str,
+    game_id: &str,
     history: Option<&[GameResult]>,
 ) -> Option<Vec<ReportedGame>> {
     let history = history?;
@@ -31,7 +32,7 @@ pub(crate) async fn reported_games(
             Err(error) => (Vec::new(), Some(Reason::from_code(error.code))),
         }
     };
-    let games = build_games(history, &catalog);
+    let games = build_games(history, &catalog, game_id);
     let reported_count: usize = games.iter().map(|game| game.selections.len()).sum();
     if reported_count < requested_count {
         diagnostics::record(
@@ -70,7 +71,7 @@ fn character_catalog(data: &Value) -> Vec<(String, String)> {
         .collect()
 }
 
-fn build_games(history: &[GameResult], catalog: &[(String, String)]) -> Vec<ReportedGame> {
+fn build_games(history: &[GameResult], catalog: &[(String, String)], game_id: &str) -> Vec<ReportedGame> {
     history
         .iter()
         .enumerate()
@@ -83,7 +84,7 @@ fn build_games(history: &[GameResult], catalog: &[(String, String)]) -> Vec<Repo
                 .filter_map(|selection| {
                     let mut matches = catalog
                         .iter()
-                        .filter(|(_, name)| character_names_match(name, &selection.character));
+                        .filter(|(_, name)| character_names_match_for_game(game_id, name, &selection.character));
                     let (character_id, _) = matches.next()?;
                     if matches.any(|(id, _)| id != character_id) {
                         return None;
@@ -116,7 +117,7 @@ mod tests {
         };
         assert!(has_multiple_picks_per_player(std::slice::from_ref(&game)));
         assert_eq!(
-            serde_json::to_value(build_games(std::slice::from_ref(&game), &[])).unwrap(),
+            serde_json::to_value(build_games(std::slice::from_ref(&game), &[], "2xko")).unwrap(),
             json!([{ "gameNum": 1, "winnerId": "2" }])
         );
 
@@ -145,7 +146,7 @@ mod tests {
         let data = json!({ "set": { "event": { "videogame": { "characters": [
             { "id": 42, "name": "Nagoriyuki" }
         ] } } } });
-        let partial = build_games(&history, &character_catalog(&data));
+        let partial = build_games(&history, &character_catalog(&data), "guilty-gear-strive");
         assert_eq!(
             serde_json::to_value(&partial[0]).unwrap(),
             json!({
@@ -154,7 +155,23 @@ mod tests {
             })
         );
 
-        let missing = build_games(&history, &character_catalog(&Value::Null));
+        let catalog = [
+            ("41".into(), "Sol".into()),
+            ("42".into(), "Nagoriyuki".into()),
+        ];
+        let resolved = build_games(&history, &catalog, "guilty-gear-strive");
+        assert_eq!(resolved[0].selections[0].character_id, "41");
+        assert_eq!(resolved[0].selections[1].character_id, "42");
+        let unrelated = build_games(&history, &catalog, "custom-game");
+        assert_eq!(unrelated[0].selections.len(), 1);
+        let mut ambiguous_catalog = catalog.to_vec();
+        ambiguous_catalog.push(("99".into(), "Sol Badguy".into()));
+        let ambiguous = build_games(&history, &ambiguous_catalog, "guilty-gear-strive");
+        assert_eq!(ambiguous[0].selections.len(), 1);
+        assert_eq!(ambiguous[0].selections[0].character_id, "42");
+        assert_eq!(ambiguous[0].winner_id, "2");
+
+        let missing = build_games(&history, &character_catalog(&Value::Null), "guilty-gear-strive");
         assert_eq!(
             serde_json::to_value(missing).unwrap(),
             json!([

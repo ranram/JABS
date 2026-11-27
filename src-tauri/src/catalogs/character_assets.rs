@@ -329,9 +329,21 @@ fn normalize_character_label(value: &str) -> String {
     normalize_label(&value.replace('&', " and "))
 }
 
-pub fn character_names_match(left: &str, right: &str) -> bool {
+fn character_names_match(left: &str, right: &str) -> bool {
     let left = normalize_character_label(left);
     !left.is_empty() && left == normalize_character_label(right)
+}
+
+pub(crate) fn character_names_match_for_game(game_id: &str, left: &str, right: &str) -> bool {
+    let character_key = |name: &str| {
+        let key = normalize_character_label(name);
+        aliases()
+            .get(game_id)
+            .and_then(|entries| entries.get(&key))
+            .map_or(key, |canonical| normalize_character_label(canonical))
+    };
+    let left = character_key(left);
+    !left.is_empty() && left == character_key(right)
 }
 
 #[cfg(test)]
@@ -355,6 +367,8 @@ mod tests {
         for (game, entries) in super::aliases() {
             for (alias, canonical) in entries {
                 assert_eq!(canonical_character_for_catalog(&root, game, alias).as_ref(), Some(canonical));
+                assert!(super::character_names_match_for_game(game, alias, canonical));
+                assert!(super::character_names_match_for_game(game, canonical, alias));
             }
         }
         assert_eq!(canonical_character_for_catalog(&root, game, "Vega"), None);

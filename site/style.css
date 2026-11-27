@@ -176,7 +176,8 @@ h2 {
   max-width: 340px;
   color: #b7b5ae;
 }
-h3 {
+h3,
+.download-platform h4 {
   font-size: 40px;
   line-height: 1.05;
   font-weight: 600;
@@ -224,7 +225,7 @@ h3 {
   color: var(--paper);
   border: 2px solid var(--ink);
 }
-.download-platform h3 {
+.download-platform :is(h3, h4) {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -236,6 +237,13 @@ h3 {
 .download-platform img {
   flex-shrink: 0;
   object-fit: contain;
+}
+.download-platform-summary {
+  margin: 0;
+  padding: 12px 18px;
+  color: #b7b2a9;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 .download-platform ul {
   margin: 0;
@@ -363,7 +371,8 @@ header .logo {
 }
 h1,
 h2,
-h3 {
+h3,
+.download-platform h4 {
   font-family: 'Barlow Condensed', Impact, sans-serif;
   text-transform: uppercase;
 }

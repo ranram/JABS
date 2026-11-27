@@ -36,3 +36,6 @@ Thumbs.db
 
 # Local website maintenance instructions.
 /site/README.md
+
+# Generated website downloads
+/site/downloads/

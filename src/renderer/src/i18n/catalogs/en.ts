@@ -1720,7 +1720,19 @@ export const en = {
         'The start.gg API returned a temporary server error. The website may still be online; try loading again shortly.',
       invalidResponse: 'JABS could not read the data returned by start.gg.',
       graphql: 'start.gg rejected the bracket request. Check the selected tournament data and permissions.',
-      conflict: 'This set changed after you opened it. Reopen it and review the latest result.'
+      conflict: 'This set changed after you opened it. Reopen it and review the latest result.',
+      reportInProgress: 'A result is already being sent to start.gg. Wait for it to finish before trying again.',
+      reportLiveSetChanged:
+        'The live match changed after you opened this report. Check the players and score, then confirm again.',
+      reportBaselineMissing:
+        'Reload this set from start.gg so JABS can check whether the result changed.',
+      reportFormatChanged: 'The match format changed on start.gg. Reload the set, check the score, then confirm again.',
+      reportStale: 'Reload this set from start.gg and check whether a result has already been reported.',
+      reportUseLiveControls: 'This set is on air. Use the live score controls to report it.',
+      reportOutcomeUncertain:
+        'start.gg may have accepted the result. Reload the set and check the result before reporting again.',
+      reportSaveConflict:
+        'start.gg accepted the result. Reload the set to bring the reported result into JABS.'
     }
   }
 } as const;

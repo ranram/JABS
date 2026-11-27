@@ -160,7 +160,9 @@ pub async fn serve(listener: TcpListener, port: u16, runtime: Arc<RuntimeState>)
                 return response;
             }
             let response = next.run(request).await;
-            if response.status().is_client_error() || response.status().is_server_error() {
+            if (response.status().is_client_error() || response.status().is_server_error())
+                && response.extensions().get::<crate::diagnostics::DetailedHttpFailure>().is_none()
+            {
                 crate::diagnostics::http_failure(&route, response.status().as_u16());
             }
             response
@@ -1106,20 +1108,19 @@ pub(crate) async fn fetch_selected_set(
 }
 
 pub(crate) fn startgg_error(error: crate::startgg::ApiError) -> Response {
-    crate::diagnostics::record(crate::diagnostics::Event::StartggFailed, crate::diagnostics::Context {
-        area: crate::diagnostics::Area::Startgg,
-        reason: Some(crate::diagnostics::Reason::from_code(error.code)),
-        ..Default::default()
-    });
-    let status = match error.code {
+    crate::diagnostics::startgg_failure(error.code);
+    secure_json((startgg_error_status(error.code), Json(error)))
+}
+
+pub(crate) fn startgg_error_status(code: &str) -> StatusCode {
+    match code {
         "token-missing" | "authentication" => StatusCode::UNAUTHORIZED,
         "permission" => StatusCode::FORBIDDEN,
         "rate-limit" => StatusCode::TOO_MANY_REQUESTS,
         "invalid-response" | "player-reference" => StatusCode::UNPROCESSABLE_ENTITY,
         "player-not-found" => StatusCode::NOT_FOUND,
         _ => StatusCode::BAD_GATEWAY,
-    };
-    secure_json((status, Json(error)))
+    }
 }
 
 // Text moderation

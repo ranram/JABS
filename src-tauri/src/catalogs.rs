@@ -11,12 +11,13 @@ pub mod changes;
 mod character_setup;
 pub use character_setup::{prepare_character_files, built_in_roster, local_character_roster, repair_existing_character_folders};
 pub use character_assets::{
-    canonical_character_for_catalog, character_names_match, has_game_character_asset,
+    canonical_character_for_catalog, has_game_character_asset,
     is_character_for_game, list_game_character_assets, resolve_game_character_asset,
     resolve_game_character_portrait, valid_game_asset_catalog_slug,
 };
 use character_assets::{character_asset_directory, character_portrait_directory};
 pub(crate) use character_assets::{selected_character_artwork, GameCharacterAsset};
+pub(crate) use character_assets::character_names_match_for_game;
 
 const LOCATION_JSON: &str = include_str!("../resources/location_catalog.json");
 const PRIDE_FLAGS_JSON: &str = include_str!("../../src/shared/prideFlags.json");
